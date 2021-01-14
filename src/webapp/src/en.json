@@ -1,5 +1,6 @@
 {
   "change-language": "Switch to {{language}}",
+  "documentation": "Documentation",
   "edit-and-reload": "Edit {{file}} and save to reload.",
   "learn": "Learn"
 }

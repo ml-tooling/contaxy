@@ -1,6 +1,14 @@
 import React, { Suspense } from 'react';
 import ReactDOM from 'react-dom';
+
+import { ThemeProvider as MuiThemeProvider } from '@material-ui/core/styles';
+import { ThemeProvider } from 'styled-components';
+
+// import { HashRouter } from 'react-router-dom';
+import { CookiesProvider } from 'react-cookie';
+
 import './index.css';
+import theme from './utils/theme';
 import App from './pages/App';
 import reportWebVitals from './utils/reportWebVitals';
 
@@ -11,7 +19,15 @@ ReactDOM.render(
   <React.StrictMode>
     {/* Suspense is used because otherwise i18n will throw an error. See  */}
     <Suspense fallback="">
-      <App />
+      <MuiThemeProvider theme={theme}>
+        <ThemeProvider theme={theme}>
+          <CookiesProvider>
+            {/* <HashRouter> */}
+            <App />
+            {/* </HashRouter> */}
+          </CookiesProvider>
+        </ThemeProvider>
+      </MuiThemeProvider>
     </Suspense>
   </React.StrictMode>,
   document.getElementById('root')
