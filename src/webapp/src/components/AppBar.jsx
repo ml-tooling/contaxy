@@ -36,18 +36,18 @@ function AppBar(props) {
         <Typography
           variant="h6"
           color="inherit"
-          className={`${className} header`}
+          className={`${className} title`}
         >
           {APP_NAME}
         </Typography>
+        <ProjectSelector
+          activeProject={{}}
+          projects={[]}
+          onProjectChange={setActiveProject}
+        />
+        <Typography className={`${className} user`}>{user}</Typography>
+        <UserMenu />
       </Toolbar>
-      <ProjectSelector
-        activeProject={{}}
-        projects={[]}
-        onProjectChange={setActiveProject}
-      />
-      <Typography className={`${className} user`}>{user}</Typography>
-      <UserMenu />
     </MaterialUiAppBar>
   );
 }
@@ -65,8 +65,11 @@ AppBar.defaultProps = {
 };
 
 const StyledAppBar = styled(AppBar)`
-  &.header {
+  &.title {
+    flex: 1;
     margin-left: ${(props) => (props.isAuthenticated ? '96px' : '0px')};
+    font-weight: 300;
+    text-align: left;
   }
   &.menuButton {
     margin-right: 36px;

@@ -23,7 +23,10 @@ function UserMenu(props) {
 
   return (
     <div className={`${className} container`}>
-      <IconButton aria-owns={ID_MENU_APPBAR}>
+      <IconButton
+        aria-owns={ID_MENU_APPBAR}
+        className={`${className} iconButton`}
+      >
         <AccountCircle />
       </IconButton>
       <Menu
@@ -64,6 +67,10 @@ UserMenu.defaultProps = {
 const StyledUserMenu = styled(UserMenu)`
   &.container {
     margin-right: 12px;
+  }
+
+  &.iconButton {
+    color: inherit;
   }
 
   &.user {
