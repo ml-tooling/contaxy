@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import PropTypes from 'prop-types';
 import styled from 'styled-components';
 import MaterialUiAppBar from '@material-ui/core/AppBar';
@@ -13,16 +13,13 @@ import { APP_NAME } from '../utils/config';
 import { setActiveProject } from '../utils/project-utils';
 
 function AppBar(props) {
-  const [isDrawerOpen, setDrawerOpen] = useState(false);
-  const { className, isAuthenticated, user } = props;
-
-  const handleDrawerClick = () => setDrawerOpen(!isDrawerOpen);
+  const { className, isAuthenticated, user, onDrawerOpen } = props;
 
   const privateComponents = (
     <IconButton
       color="inherit"
       aria-label="open drawer"
-      onClick={handleDrawerClick}
+      onClick={onDrawerOpen}
       className={`${className} menuButton`}
     >
       <MenuIcon />
@@ -30,7 +27,7 @@ function AppBar(props) {
   );
 
   return (
-    <MaterialUiAppBar>
+    <MaterialUiAppBar className={`${className} root`}>
       <Toolbar disableGutters>
         {isAuthenticated ? privateComponents : false}
         <Typography
@@ -56,6 +53,7 @@ AppBar.propTypes = {
   className: PropTypes.string, // passed by styled-components
   isAuthenticated: PropTypes.bool,
   user: PropTypes.string,
+  onDrawerOpen: PropTypes.func.isRequired,
 };
 
 AppBar.defaultProps = {
@@ -65,6 +63,10 @@ AppBar.defaultProps = {
 };
 
 const StyledAppBar = styled(AppBar)`
+  &.root {
+    z-index: ${(props) => props.theme.zIndex.drawer + 1};
+  }
+
   &.title {
     flex: 1;
     margin-left: ${(props) => (props.isAuthenticated ? '96px' : '0px')};

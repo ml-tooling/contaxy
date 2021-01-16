@@ -1,17 +1,23 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 // import { useTranslation } from 'react-i18next';
 
 import './App.css';
 
 import AppBar from '../../components/AppBar';
+import AppDrawer from '../../components/AppDrawer';
 
 function App() {
   // const { t } = useTranslation();
+  const [isDrawerOpen, setDrawerOpen] = useState(false);
 
+  const onDrawerClick = () => setDrawerOpen(!isDrawerOpen);
+
+  // TODO: remove hardcoded isAuthenticated
   return (
     <div className="App">
-      <AppBar />
+      <AppBar isAuthenticated onDrawerOpen={onDrawerClick} />
+      <AppDrawer open={isDrawerOpen} handleDrawerClose={onDrawerClick} />
     </div>
   );
 }

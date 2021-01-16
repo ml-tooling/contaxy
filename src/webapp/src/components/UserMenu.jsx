@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import PropTypes from 'prop-types';
 import styled from 'styled-components';
 import { useTranslation } from 'react-i18next';
@@ -15,17 +15,18 @@ const REL = 'noopener noreferrer';
 function UserMenu(props) {
   const { t } = useTranslation();
   const [anchorEl, setAnchorEl] = useState();
-  // const [isOpen, setOpen] = useState(false);
 
   const { className } = props;
 
-  const handleClose = useMemo(() => setAnchorEl(null), []);
+  const handleClose = () => setAnchorEl(null);
+  const handleMenuClick = (event) => setAnchorEl(event.currentTarget);
 
   return (
     <div className={`${className} container`}>
       <IconButton
         aria-owns={ID_MENU_APPBAR}
         className={`${className} iconButton`}
+        onClick={handleMenuClick}
       >
         <AccountCircle />
       </IconButton>
