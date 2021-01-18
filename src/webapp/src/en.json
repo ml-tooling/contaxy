@@ -2,5 +2,6 @@
   "change-language": "Switch to {{language}}",
   "documentation": "Documentation",
   "edit-and-reload": "Edit {{file}} and save to reload.",
-  "learn": "Learn"
+  "learn": "Learn",
+  "new_tab": "New Tab"
 }

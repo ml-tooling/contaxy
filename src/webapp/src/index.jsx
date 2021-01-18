@@ -4,7 +4,7 @@ import ReactDOM from 'react-dom';
 import { ThemeProvider as MuiThemeProvider } from '@material-ui/core/styles';
 import { ThemeProvider } from 'styled-components';
 
-// import { HashRouter } from 'react-router-dom';
+import { HashRouter } from 'react-router-dom';
 import { CookiesProvider } from 'react-cookie';
 
 import './index.css';
@@ -22,9 +22,9 @@ ReactDOM.render(
       <MuiThemeProvider theme={theme}>
         <ThemeProvider theme={theme}>
           <CookiesProvider>
-            {/* <HashRouter> */}
-            <App />
-            {/* </HashRouter> */}
+            <HashRouter>
+              <App />
+            </HashRouter>
           </CookiesProvider>
         </ThemeProvider>
       </MuiThemeProvider>

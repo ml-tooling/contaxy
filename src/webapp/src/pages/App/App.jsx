@@ -5,7 +5,7 @@ import React, { useState } from 'react';
 import './App.css';
 
 import AppBar from '../../components/AppBar';
-import AppDrawer from '../../components/AppDrawer';
+import AppDrawer from '../../components/AppDrawer/AppDrawer';
 
 function App() {
   // const { t } = useTranslation();
@@ -17,7 +17,11 @@ function App() {
   return (
     <div className="App">
       <AppBar isAuthenticated onDrawerOpen={onDrawerClick} />
-      <AppDrawer open={isDrawerOpen} handleDrawerClose={onDrawerClick} />
+      <AppDrawer
+        isAdmin
+        open={isDrawerOpen}
+        handleDrawerClose={onDrawerClick}
+      />
     </div>
   );
 }
