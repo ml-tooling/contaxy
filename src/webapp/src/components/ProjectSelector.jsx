@@ -23,12 +23,13 @@ function ProjectSelector(props) {
     </MenuItem>
   ));
 
+  const selectId = activeProject.id ? activeProject.id : '';
   return (
     //   TODO: add div container?
     <FormControl className={`${className} formControl`}>
       <Select
         className={`${className} select`}
-        value={activeProject}
+        value={selectId}
         input={<Input id="select-project" />}
         onChange={changeProject}
       >
