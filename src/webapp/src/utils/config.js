@@ -1,5 +1,11 @@
 /* eslint-disable import/prefer-default-export */
 
+import Projects from '../pages/Projects';
+import Datasets from '../pages/Datasets';
+import Services from '../pages/Services';
+import Jobs from '../pages/Jobs';
+import Login from '../pages/Login';
+
 export const APP_NAME = 'Machine Learning Lab';
 
 export const DOCUMENTATION_URL = '';
@@ -43,88 +49,68 @@ export const ENDPOINTS = {
 
 // ];
 
+export const APP_DRAWER_ITEM_TYPES = {
+  divider: 'divider',
+  link: 'link',
+};
+
 /**
  * The icons are from https://material.io/tools/icons/?style=baseline and embeded via material-ui/icons.
  */
-export const APP_DRAWER_ITEMS = [
+export const PAGES = [
   {
     ICON: 'home',
     NAME: 'Home',
     PATH: '/',
+    REQUIRE_LOGIN: true,
+    APP_DRAWER_ITEM: true,
     NEW_TAB_OPTION: false,
-    NEW_TAB_LINK: '',
     PROJECT_SPECIFIC: false,
-    TYPE: 'link',
+    TYPE: APP_DRAWER_ITEM_TYPES.link,
+    COMPONENT: Projects,
   },
   {
-    ICON: 'code',
-    NAME: 'Workspace',
-    PATH: '/workspace',
-    NEW_TAB_OPTION: false,
-    NEW_TAB_LINK: '',
-    PROJECT_SPECIFIC: false,
-    TYPE: 'link',
-  },
-  {
-    ICON: 'developer_board',
-    NAME: 'Admin',
-    PATH: '/management',
-    NEW_TAB_LINK: '',
-    PROJECT_SPECIFIC: false,
-    TYPE: 'link',
-    REQUIRE_ADMIN: true,
-  },
-  {
-    ICON: 'settings_applications',
-    NAME: 'Service Admin',
-    PATH: '/admin',
-    NEW_TAB_LINK: ENDPOINTS.serviceAdmin.url,
-    PROJECT_SPECIFIC: false,
-    TYPE: 'link',
-    REQUIRE_ADMIN: true,
-  },
-  {
-    TYPE: 'divider',
     NAME: 'project-specific-divider',
+    APP_DRAWER_ITEM: true,
+    TYPE: APP_DRAWER_ITEM_TYPES.divider,
   },
   {
     ICON: 'folder',
     NAME: 'Datasets',
     PATH: '/datasets',
-    NEW_TAB_LINK: '',
+    REQUIRE_LOGIN: true,
+    APP_DRAWER_ITEM: true,
     PROJECT_SPECIFIC: false,
-    TYPE: 'link',
-  },
-  {
-    ICON: 'equalizer',
-    NAME: 'Experiments',
-    PATH: '/experiments',
-    NEW_TAB_LINK: '',
-    PROJECT_SPECIFIC: true,
-    TYPE: 'link',
-  },
-  {
-    ICON: 'layers',
-    NAME: 'Models',
-    PATH: '/models',
-    NEW_TAB_LINK: '',
-    PROJECT_SPECIFIC: false,
-    TYPE: 'link',
+    TYPE: APP_DRAWER_ITEM_TYPES.link,
+    COMPONENT: Datasets,
   },
   {
     ICON: 'apps',
     NAME: 'Services',
     PATH: '/services',
-    NEW_TAB_LINK: '',
+    REQUIRE_LOGIN: true,
+    APP_DRAWER_ITEM: true,
     PROJECT_SPECIFIC: false,
-    TYPE: 'link',
+    TYPE: APP_DRAWER_ITEM_TYPES.link,
+    COMPONENT: Services,
   },
   {
     ICON: 'next_week',
     NAME: 'Jobs',
     PATH: '/jobs',
-    NEW_TAB_LINK: '',
+    REQUIRE_LOGIN: true,
+    APP_DRAWER_ITEM: true,
     PROJECT_SPECIFIC: false,
-    TYPE: 'link',
+    TYPE: APP_DRAWER_ITEM_TYPES.link,
+    COMPONENT: Jobs,
+  },
+  {
+    NAME: 'login',
+    PATH: '/login',
+    REQUIRE_LOGIN: false,
+    APP_DRAWER_ITEM: false,
+    PROJECT_SPECIFIC: false,
+    TYPE: APP_DRAWER_ITEM_TYPES.link,
+    COMPONENT: Login,
   },
 ];

@@ -5,7 +5,7 @@ import Drawer from '@material-ui/core/Drawer';
 import Toolbar from '@material-ui/core/Toolbar';
 import List from '@material-ui/core/List';
 
-import { APP_DRAWER_ITEMS } from '../../utils/config';
+import { PAGES } from '../../utils/config';
 import AppDrawerItem from './AppDrawerItem';
 
 const DRAWER_WIDTH = 230;
@@ -13,8 +13,8 @@ const DRAWER_WIDTH = 230;
 function AppDrawer(props) {
   const { className, isAdmin, open } = props;
 
-  const linkItems = APP_DRAWER_ITEMS.filter(
-    (item) => isAdmin || !item.REQUIRE_ADMIN
+  const linkItems = PAGES.filter(
+    (item) => item.APP_DRAWER_ITEM && (isAdmin || !item.REQUIRE_ADMIN)
   ).map((item) => <AppDrawerItem key={item.NAME} item={item} />);
 
   return (
