@@ -13,6 +13,7 @@ function ContentContainer(props) {
     (item) => item.TYPE === APP_DRAWER_ITEM_TYPES.link
   ).map((item) => {
     const RouteElement = item.REQUIRE_LOGIN ? PrivateRoute : LoginRoute;
+
     return (
       <RouteElement
         key={item.NAME}
