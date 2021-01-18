@@ -9,8 +9,8 @@ import MenuIcon from '@material-ui/icons/Menu';
 
 import ProjectSelector from './ProjectSelector';
 import UserMenu from './UserMenu';
-import { APP_NAME } from '../utils/config';
-import { setActiveProject } from '../utils/project-utils';
+import { APP_NAME } from '../../utils/config';
+import { setActiveProject } from '../../utils/project-utils';
 
 function AppBar(props) {
   const { className, isAuthenticated, user, onDrawerOpen } = props;

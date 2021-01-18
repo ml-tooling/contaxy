@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 
 import './App.css';
 
-import AppBar from '../../components/AppBar';
+import AppBar from '../../components/AppBar/AppBar';
 import AppDrawer from '../../components/AppDrawer/AppDrawer';
 
 function App() {
