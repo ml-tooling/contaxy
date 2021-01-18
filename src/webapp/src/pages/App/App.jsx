@@ -23,7 +23,7 @@ function App() {
         open={isDrawerOpen}
         handleDrawerClose={onDrawerClick}
       />
-      <main>
+      <main className="main">
         <ContentContainer />
       </main>
     </div>

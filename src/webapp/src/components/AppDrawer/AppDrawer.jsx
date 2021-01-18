@@ -63,15 +63,15 @@ const StyledAppDrawer = styled(AppDrawer)`
     }
 
     &.drawerClose {
-        overflow-X: hidden;
-        transition: ${theme.transitions.create('width', {
-          easing: theme.transitions.easing.sharp,
-          duration: theme.transitions.duration.leavingScreen,
-        })};
-        width: ${theme.spacing(7)}px;
-        ${[theme.breakpoints.up('sm')]}: {
-            width: ${theme.spacing(9)}px;
-        }
+      overflow-X: hidden;
+      transition: ${theme.transitions.create('width', {
+        easing: theme.transitions.easing.sharp,
+        duration: theme.transitions.duration.leavingScreen,
+      })};
+      width: ${theme.spacing(7)}px;
+      ${theme.breakpoints.up('sm')} {
+          width: ${theme.spacing(9)}px;
+      }
     }
     `}
 `;
