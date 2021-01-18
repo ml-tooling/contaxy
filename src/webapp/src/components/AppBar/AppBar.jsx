@@ -69,7 +69,7 @@ const StyledAppBar = styled(AppBar)`
 
   &.title {
     flex: 1;
-    margin-left: ${(props) => (props.isAuthenticated ? '96px' : '0px')};
+    // margin-left: ${(props) => (props.isAuthenticated ? '96px' : '0px')};
     font-weight: 300;
     text-align: left;
   }

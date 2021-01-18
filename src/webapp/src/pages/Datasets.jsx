@@ -13,27 +13,46 @@ const COLUMNS = [
     field: 'name',
     title: 'Name',
     numeric: false,
+    align: 'center',
   },
   {
     field: 'modifiedAt',
     title: 'Last modified',
     numeric: false,
     type: 'date',
+    align: 'center',
   },
   {
     field: 'modifiedBy',
     title: 'Modified By',
+    align: 'center',
   },
   {
     field: 'version',
     title: 'Version',
     type: 'numeric',
+    align: 'center',
   },
   {
     field: 'size',
     title: 'Size',
+    align: 'center',
   },
 ];
+
+const onDatasetDelete = (rowData) => {
+  // TODO: add delete logic
+  return rowData;
+};
+
+const onDatasetDownload = (rowData) => {
+  const a = document.createElement('a');
+  // TODO: use correct URL
+  a.href = `http://localhost:30002/api/projects/ml-lab-demo/files/download?fileKey=datasets%2Fnews-categorized.csv.v1`;
+  a.target = '_blank';
+  a.download = rowData.name || 'download';
+  a.click();
+};
 
 function Datasets(props) {
   const { t } = useTranslation();
@@ -44,23 +63,9 @@ function Datasets(props) {
     return data;
   };
 
-  const onDatasetDelete = (rowData) => {
-    // TODO: add delete logic
-    return rowData;
-  };
-
-  const onDatasetDownload = (rowData) => {
-    const a = document.createElement('a');
-    // TODO: use correct URL
-    a.href = `http://localhost:30002/api/projects/ml-lab-demo/files/download?fileKey=datasets%2Fnews-categorized.csv.v1`;
-    a.target = '_blank';
-    a.download = rowData.name || 'download';
-    a.click();
-  };
-
   return (
     <MaterialTable
-      title="Datasets"
+      title={t('dataset_plural')}
       columns={COLUMNS}
       data={data}
       options={{
@@ -82,6 +87,7 @@ function Datasets(props) {
           fontFamily: 'Roboto',
         },
       }}
+      localization={{ header: { actions: '' } }} // disable localization header name
       actions={[
         {
           icon: 'autorenew',
@@ -95,7 +101,7 @@ function Datasets(props) {
           onClick: (event, rowData) => {
             onDatasetDownload(rowData);
           },
-          tooltip: 'Download dataset',
+          tooltip: `${t('download')} ${t('dataset')}`,
         },
         {
           icon: 'content_copy',
