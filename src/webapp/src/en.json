@@ -1,7 +1,12 @@
 {
   "change-language": "Switch to {{language}}",
+  "dataset": "Dataset",
+  "dataset_plural": "Datasets",
   "documentation": "Documentation",
+  "download": "Download",
   "edit-and-reload": "Edit {{file}} and save to reload.",
   "learn": "Learn",
-  "new_tab": "New Tab"
+  "new_tab": "New Tab",
+  "service": "Service",
+  "service_plural": "Services"
 }
