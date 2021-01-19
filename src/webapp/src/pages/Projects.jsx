@@ -21,7 +21,7 @@ function ProjectCard(props) {
 
   // TODO: add functionality to project card buttons
   return (
-    <Grid item spacing={3}>
+    <Grid item>
       <Card>
         <CardHeader
           avatar={
@@ -63,7 +63,7 @@ function Projects(props) {
   const { projects } = props;
 
   const projectElements = projects.map((project) => {
-    return <ProjectCard project={project} />;
+    return <ProjectCard key={project.id} project={project} />;
   });
 
   return (
