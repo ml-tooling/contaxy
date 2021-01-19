@@ -1,0 +1,87 @@
+import React from 'react';
+import PropTypes from 'prop-types';
+import styled from 'styled-components';
+
+import Icon from '@material-ui/core/Icon';
+import Link from '@material-ui/core/Link';
+import Typography from '@material-ui/core/Typography';
+
+import '../assets/colors.css';
+
+function Widget(props) {
+  const { className, color, icon, link, name, value } = props;
+
+  /* eslint-disable react/jsx-props-no-spreading */
+  const ContainerElement = link
+    ? ({ children, ..._props }) => (
+        <Link to={link} {..._props}>
+          {children}
+        </Link>
+      )
+    : ({ children, ..._props }) => <div {..._props}>{children}</div>;
+  /* eslint-enable react/jsx-props-no-spreading */
+
+  return (
+    <ContainerElement
+      className={`${className} root info-box hover-expand-effect bg-${color}`}
+    >
+      <div className={`${className} iconContainer`}>
+        <Icon className={`${className} icon widgetText`}>{icon}</Icon>
+      </div>
+      <div className={`${className} content widgetText`}>
+        <Typography variant="body1">{name}</Typography>
+        <Typography variant="h6">{value}</Typography>
+      </div>
+    </ContainerElement>
+  );
+}
+
+Widget.propTypes = {
+  className: PropTypes.string,
+  color: PropTypes.string,
+  icon: PropTypes.string,
+  link: PropTypes.string,
+  name: PropTypes.string.isRequired,
+  value: PropTypes.string.isRequired,
+};
+
+Widget.defaultProps = {
+  className: '',
+  color: 'white',
+  icon: '',
+  link: '',
+};
+
+const StyledWidget = styled(Widget)`
+  &.root {
+    position: relative;
+    display: flex;
+    height: 80px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    cursor: default;
+  }
+
+  &.iconContainer {
+    width: 80px;
+    text-align: center;
+    background-color: rgba(0, 0, 0, 0.12);
+  }
+
+  &.icon {
+    position: relative;
+    top: 16px;
+    font-size: 50px;
+  }
+
+  &.content {
+    display: inline-block;
+    padding: 18px 7px 10px 7px;
+  }
+
+  &.widgetText {
+    color: white;
+  }
+`;
+
+export default StyledWidget;
