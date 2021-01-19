@@ -34,6 +34,11 @@ const onShowLogs = (rowData) => {
   return rowData;
 };
 
+const onServiceDelete = (rowData) => {
+  // TODO: delete service
+  return rowData;
+};
+
 function Services(props) {
   const { t } = useTranslation();
   const { data } = props;
@@ -70,7 +75,7 @@ function Services(props) {
           onClick: (event, rowData) => {
             window.open(getServiceUrl(rowData), '_blank');
           },
-          tooltip: 'Download dataset',
+          tooltip: 'Access service',
         },
         {
           icon: 'code',
@@ -87,6 +92,14 @@ function Services(props) {
             onShowLogs(rowData);
           },
           tooltip: 'Display logs',
+        },
+        {
+          icon: 'delete',
+          iconProps: { className: `` },
+          onClick: (event, rowData) => {
+            onServiceDelete(rowData);
+          },
+          tooltip: 'Delete service',
         },
       ]}
     />

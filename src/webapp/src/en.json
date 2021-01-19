@@ -5,8 +5,10 @@
   "documentation": "Documentation",
   "download": "Download",
   "edit-and-reload": "Edit {{file}} and save to reload.",
-  "learn": "Learn",
+  "job": "Job",
+  "job_plural": "Jobs",
   "new_tab": "New Tab",
+  "run": "Run",
   "service": "Service",
   "service_plural": "Services"
 }
