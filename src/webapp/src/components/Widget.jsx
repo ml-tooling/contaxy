@@ -23,7 +23,7 @@ function Widget(props) {
 
   return (
     <ContainerElement
-      className={`${className} root info-box hover-expand-effect bg-${color}`}
+      className={`${className} root hover-expand-effect bg-${color}`}
     >
       <div className={`${className} iconContainer`}>
         <Icon className={`${className} icon widgetText`}>{icon}</Icon>
@@ -81,6 +81,25 @@ const StyledWidget = styled(Widget)`
 
   &.widgetText {
     color: white;
+  }
+
+  // adds ripple effect
+  &.hover-expand-effect:after {
+    position: absolute;
+    left: 80px; // same as iconContainer-width
+    width: 0;
+    height: 100%;
+    color: transparent;
+    background-color: rgba(0, 0, 0, 0.05);
+    -moz-transition: all 0.95s;
+    -o-transition: all 0.95s;
+    -webkit-transition: all 0.95s;
+    transition: all 0.95s;
+    content: '.';
+  }
+
+  &.hover-expand-effect:hover:after {
+    width: 100%;
   }
 `;
 

@@ -1,11 +1,13 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import styled from 'styled-components';
 import { useTranslation } from 'react-i18next';
 
 import MaterialTable from 'material-table';
 import Button from '@material-ui/core/Button';
 
 import Widget from '../components/Widget';
+import WidgetsGrid from '../components/WidgetsGrid';
 
 const PAGE_SIZES = [5, 10, 15, 30, 50, 75, 100];
 
@@ -53,12 +55,23 @@ const onJobAdd = () => {};
 
 function Jobs(props) {
   const { t } = useTranslation();
-  const { data } = props;
+  const { className, data } = props;
+
+  // TODO: set correct values in Widgets
 
   return (
     <>
-      <Widget name="Running" icon="loop" value="2" color="cyan" />
-      <Button variant="contained" color="primary" onClick={onJobAdd}>
+      <WidgetsGrid>
+        <Widget name="Running" icon="loop" value="2" color="cyan" />
+        <Widget name="Succeeded" icon="done" value="2" color="light-green" />
+        <Widget name="Failed" icon="done" value="2" color="pink" />
+      </WidgetsGrid>
+      <Button
+        variant="contained"
+        color="primary"
+        onClick={onJobAdd}
+        className={`${className} button`}
+      >
         {`${t('run')} ${t('job')}`}
       </Button>
       <MaterialTable
@@ -117,11 +130,19 @@ function Jobs(props) {
 }
 
 Jobs.propTypes = {
+  className: PropTypes.string,
   data: PropTypes.arrayOf(Object),
 };
 
 Jobs.defaultProps = {
+  className: '',
   data: [],
 };
 
-export default Jobs;
+const StyledJobs = styled(Jobs)`
+  &.button {
+    margin: 8px 0px;
+  }
+`;
+
+export default StyledJobs;
