@@ -1,21 +1,16 @@
-import React, { useRef, useState } from 'react';
+import React, { useState } from 'react';
 import PropTypes from 'prop-types';
 import styled from 'styled-components';
 import { useTranslation } from 'react-i18next';
 
 import AccountCircle from '@material-ui/icons/AccountCircle';
-import Button from '@material-ui/core/Button';
-import Dialog from '@material-ui/core/Dialog';
-import DialogActions from '@material-ui/core/DialogActions';
-import DialogTitle from '@material-ui/core/DialogTitle';
-import DialogContent from '@material-ui/core/DialogContent';
-import DialogContentText from '@material-ui/core/DialogContentText';
 import IconButton from '@material-ui/core/IconButton';
 import Menu from '@material-ui/core/Menu';
 import MenuItem from '@material-ui/core/MenuItem';
 
-import { DOCUMENTATION_URL } from '../../utils/config';
-import setClipboardText from '../../utils/clipboard';
+import { API_EXPLORER_URL, DOCUMENTATION_URL } from '../../utils/config';
+import { fetchAPIToken } from '../../services/lab-api';
+import useApiTokenDialog from '../../app/useApiTokenDialog';
 
 const ID_MENU_APPBAR = 'menu-appbar';
 const REL = 'noopener noreferrer';
@@ -23,37 +18,16 @@ const REL = 'noopener noreferrer';
 function UserMenu(props) {
   const { t } = useTranslation();
   const [anchorEl, setAnchorEl] = useState();
-  const textFieldRef = useRef();
-  const [DialogElement, setDialogElement] = useState();
-
+  const { showWithToken, ApiTokenDialog } = useApiTokenDialog();
   const { className } = props;
 
   const handleClose = () => setAnchorEl(null);
   const handleMenuClick = (event) => setAnchorEl(event.currentTarget);
 
-  const handleCopyClick = () => {
-    setClipboardText(null, textFieldRef.current);
-  };
-
-  const handleApiTokenClick = () => {
-    // TODO: fetch API token and set the value
-    const element = (
-      <Dialog open>
-        <DialogTitle>API TOKEN</DialogTitle>
-        <DialogContent>
-          <DialogContentText ref={textFieldRef}>FOOBAR</DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => handleCopyClick()} color="primary">
-            COPY
-          </Button>
-          <Button onClick={() => setDialogElement(null)} color="primary">
-            OK
-          </Button>
-        </DialogActions>
-      </Dialog>
-    );
-    setDialogElement(element);
+  const handleApiTokenClick = async () => {
+    // TODO: pass correct resource for which the API Token should be generated
+    const fetchedToken = await fetchAPIToken('foobar');
+    showWithToken(fetchedToken);
   };
 
   return (
@@ -87,10 +61,18 @@ function UserMenu(props) {
         >
           {t('documentation')}
         </MenuItem>
+        <MenuItem
+          className={`${className} menuItem`}
+          href={API_EXPLORER_URL}
+          rel={REL}
+          target="_blank"
+        >
+          {t('api_explorer')}
+        </MenuItem>
         <MenuItem onClick={handleApiTokenClick}>{t('Get API token')}</MenuItem>
       </Menu>
 
-      {false || DialogElement}
+      <ApiTokenDialog />
     </div>
   );
 }

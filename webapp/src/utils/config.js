@@ -9,6 +9,7 @@ import Login from '../pages/Login';
 export const APP_NAME = 'Machine Learning Lab';
 
 export const DOCUMENTATION_URL = '';
+export const API_EXPLORER_URL = '';
 
 export const ENDPOINT =
   process.env.REACT_APP_LAB_ENDPOINT === undefined

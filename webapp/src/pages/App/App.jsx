@@ -6,12 +6,11 @@ import './App.css';
 
 import AppBar from '../../components/AppBar/AppBar';
 import AppDrawer from '../../components/AppDrawer/AppDrawer';
-import ContentContainer from '../routing/ContentContainer';
+import ContentContainer from '../../app/routing/ContentContainer';
 
 function App() {
   // const { t } = useTranslation();
   const [isDrawerOpen, setDrawerOpen] = useState(false);
-
   const onDrawerClick = () => setDrawerOpen(!isDrawerOpen);
 
   // TODO: remove hardcoded isAuthenticated
@@ -26,6 +25,7 @@ function App() {
       <main className="main">
         <ContentContainer />
       </main>
+      <div id="app-dialog" />
     </div>
   );
 }
