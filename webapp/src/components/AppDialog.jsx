@@ -5,7 +5,6 @@ import ReactDOM from 'react-dom';
 import Button from '@material-ui/core/Button';
 
 const AppDialog = React.memo(({ children, onClose }) => {
-  console.log(children);
   const domEl = document.getElementById('app-dialog');
 
   if (!domEl) return null;

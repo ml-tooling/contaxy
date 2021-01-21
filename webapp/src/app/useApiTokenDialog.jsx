@@ -19,7 +19,7 @@ const useApiTokenDialog = () => {
     setClipboardText(null, textFieldRef.current);
   };
 
-  const showWithToken = (_token) => {
+  const showApiTokenDialog = (_token) => {
     setToken(_token);
     show();
   };
@@ -46,7 +46,7 @@ const useApiTokenDialog = () => {
   };
 
   return {
-    showWithToken,
+    showApiTokenDialog,
     ApiTokenDialog,
   };
 };

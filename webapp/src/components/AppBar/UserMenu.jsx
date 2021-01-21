@@ -18,7 +18,7 @@ const REL = 'noopener noreferrer';
 function UserMenu(props) {
   const { t } = useTranslation();
   const [anchorEl, setAnchorEl] = useState();
-  const { showWithToken, ApiTokenDialog } = useApiTokenDialog();
+  const { showApiTokenDialog, ApiTokenDialog } = useApiTokenDialog();
   const { className } = props;
 
   const handleClose = () => setAnchorEl(null);
@@ -27,7 +27,7 @@ function UserMenu(props) {
   const handleApiTokenClick = async () => {
     // TODO: pass correct resource for which the API Token should be generated
     const fetchedToken = await fetchAPIToken('foobar');
-    showWithToken(fetchedToken);
+    showApiTokenDialog(fetchedToken);
   };
 
   return (
