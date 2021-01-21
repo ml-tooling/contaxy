@@ -50,6 +50,12 @@ setup(
         "typer",
         "fastapi",
         "uvicorn",
+        # Required by fastapi.security OAuth2PasswordBearer & fastapi.UploadFile for example
+        "python-multipart",
+        # Used for jwt handling
+        "python-jose[cryptography]",
+        # Used for password hashing
+        "passlib[bcrypt]",
     ],
     # deprecated: dependency_links=dependency_links,
     extras_require={
