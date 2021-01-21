@@ -15,7 +15,6 @@ function App() {
   const { isAuthenticated } = GlobalStateContainer.useContainer();
   const onDrawerClick = () => setDrawerOpen(!isDrawerOpen);
 
-  // TODO: remove hardcoded isAuthenticated
   return (
     <div className="App">
       <AppBar isAuthenticated={isAuthenticated} onDrawerOpen={onDrawerClick} />
