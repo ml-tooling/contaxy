@@ -4,6 +4,8 @@ import styled from 'styled-components';
 import MaterialTable from 'material-table';
 import { useTranslation } from 'react-i18next';
 
+import Widget from '../components/Widget';
+import WidgetsGrid from '../components/WidgetsGrid';
 import setClipboardText from '../utils/clipboard';
 
 const PAGE_SIZES = [5, 10, 15, 30, 50, 75, 100];
@@ -63,64 +65,77 @@ function Datasets(props) {
     return data;
   };
 
+  // TODO: add correct value on Widget components
   return (
-    <MaterialTable
-      title={t('dataset_plural')}
-      columns={COLUMNS}
-      data={data}
-      options={{
-        filtering: true,
-        columnsButton: false,
-        exportButton: true,
-        exportFileName: 'data',
-        grouping: false,
-        pageSize: 5,
-        pageSizeOptions: PAGE_SIZES,
-        actionsColumnIndex: -1,
-        headerStyle: {
-          fontSize: '0.75rem',
-          fontWeight: 500,
-          fontFamily: 'Roboto',
-        },
-        rowStyle: {
-          fontSize: '0.75rem',
-          fontFamily: 'Roboto',
-        },
-      }}
-      localization={{ header: { actions: '' } }} // disable localization header name
-      actions={[
-        {
-          icon: 'autorenew',
-          isFreeAction: true,
-          onClick: onReload,
-          tooltip: t('reload'),
-        },
-        {
-          icon: 'download',
-          iconProps: { className: `${className} actionIcon` },
-          onClick: (event, rowData) => {
-            onDatasetDownload(rowData);
+    <>
+      <WidgetsGrid>
+        <Widget name="Datasets" icon="list" value="2" color="pink" />
+        <Widget name="Total Size" icon="cloud" value="2" color="cyan" />
+        <Widget
+          name="Last Modified"
+          icon="build"
+          value="2"
+          color="light-green"
+        />
+      </WidgetsGrid>
+      <MaterialTable
+        title={t('dataset_plural')}
+        columns={COLUMNS}
+        data={data}
+        options={{
+          filtering: true,
+          columnsButton: false,
+          exportButton: true,
+          exportFileName: 'data',
+          grouping: false,
+          pageSize: 5,
+          pageSizeOptions: PAGE_SIZES,
+          actionsColumnIndex: -1,
+          headerStyle: {
+            fontSize: '0.75rem',
+            fontWeight: 500,
+            fontFamily: 'Roboto',
           },
-          tooltip: `${t('download')} ${t('dataset')}`,
-        },
-        {
-          icon: 'content_copy',
-          iconProps: { className: `${className} actionIcon` },
-          onClick: (event, rowData) => {
-            setClipboardText(rowData.name);
+          rowStyle: {
+            fontSize: '0.75rem',
+            fontFamily: 'Roboto',
           },
-          tooltip: 'Copy dataset key',
-        },
-        {
-          icon: 'delete',
-          iconProps: { className: `${className} actionIcon` },
-          onClick: (event, rowData) => {
-            onDatasetDelete(rowData);
+        }}
+        localization={{ header: { actions: '' } }} // disable localization header name
+        actions={[
+          {
+            icon: 'autorenew',
+            isFreeAction: true,
+            onClick: onReload,
+            tooltip: t('reload'),
           },
-          tooltip: 'Delete dataset',
-        },
-      ]}
-    />
+          {
+            icon: 'download',
+            iconProps: { className: `${className} actionIcon` },
+            onClick: (event, rowData) => {
+              onDatasetDownload(rowData);
+            },
+            tooltip: `${t('download')} ${t('dataset')}`,
+          },
+          {
+            icon: 'content_copy',
+            iconProps: { className: `${className} actionIcon` },
+            onClick: (event, rowData) => {
+              setClipboardText(rowData.name);
+            },
+            tooltip: 'Copy dataset key',
+          },
+          {
+            icon: 'delete',
+            iconProps: { className: `${className} actionIcon` },
+            onClick: (event, rowData) => {
+              onDatasetDelete(rowData);
+            },
+            tooltip: 'Delete dataset',
+          },
+        ]}
+      />
+    </>
   );
 }
 
