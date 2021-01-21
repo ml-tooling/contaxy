@@ -1,11 +1,13 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
+import styled from 'styled-components';
+
 import Grid from '@material-ui/core/Grid';
 import Widget from './Widget';
 
 function WidgetsGrid(props) {
-  const { children, spacing } = props;
+  const { className, children, spacing } = props;
   const columnSize = 12 / children.length <= 3 ? 3 : 4;
   const widgets = !Array.isArray(children)
     ? children
@@ -23,7 +25,7 @@ function WidgetsGrid(props) {
       ));
 
   return (
-    <Grid container spacing={spacing}>
+    <Grid container spacing={spacing} className={`${className} root`}>
       {widgets}
     </Grid>
   );
@@ -40,11 +42,19 @@ WidgetsGrid.propTypes = {
       })
     ),
   ]).isRequired,
+  className: PropTypes.string,
   spacing: PropTypes.number,
 };
 
 WidgetsGrid.defaultProps = {
+  className: '',
   spacing: 3,
 };
 
-export default WidgetsGrid;
+const StyledWidgetsGrid = styled(WidgetsGrid)`
+  &.root {
+    margin-bottom: 8px;
+  }
+`;
+
+export default StyledWidgetsGrid;
