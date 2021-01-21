@@ -11,9 +11,15 @@ import ProjectSelector from './ProjectSelector';
 import UserMenu from './UserMenu';
 import { APP_NAME } from '../../utils/config';
 import { setActiveProject } from '../../utils/project-utils';
+import GlobalStateContainer from '../../app/store';
 
 function AppBar(props) {
-  const { className, isAuthenticated, user, onDrawerOpen } = props;
+  const { className, onDrawerOpen } = props;
+  const {
+    activeProject,
+    isAuthenticated,
+    user,
+  } = GlobalStateContainer.useContainer();
 
   const privateComponents = (
     <IconButton
@@ -38,12 +44,12 @@ function AppBar(props) {
           {APP_NAME}
         </Typography>
         <ProjectSelector
-          activeProject={{}}
+          activeProject={activeProject}
           projects={[]}
           onProjectChange={setActiveProject}
         />
-        <Typography className={`${className} user`}>{user}</Typography>
-        <UserMenu />
+        <Typography className={`${className} user`}>{user.name}</Typography>
+        <UserMenu user={user} />
       </Toolbar>
     </MaterialUiAppBar>
   );
@@ -51,15 +57,11 @@ function AppBar(props) {
 
 AppBar.propTypes = {
   className: PropTypes.string, // passed by styled-components
-  isAuthenticated: PropTypes.bool,
-  user: PropTypes.string,
   onDrawerOpen: PropTypes.func.isRequired,
 };
 
 AppBar.defaultProps = {
   className: '',
-  isAuthenticated: false,
-  user: '',
 };
 
 const StyledAppBar = styled(AppBar)`

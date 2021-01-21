@@ -19,15 +19,15 @@ function UserMenu(props) {
   const { t } = useTranslation();
   const [anchorEl, setAnchorEl] = useState();
   const { showApiTokenDialog, ApiTokenDialog } = useApiTokenDialog();
-  const { className } = props;
+  const { className, user } = props;
 
   const handleClose = () => setAnchorEl(null);
   const handleMenuClick = (event) => setAnchorEl(event.currentTarget);
 
   const handleApiTokenClick = async () => {
     // TODO: pass correct resource for which the API Token should be generated
-    const fetchedToken = await fetchAPIToken('foobar');
-    showApiTokenDialog(fetchedToken);
+    const fetchedToken = await fetchAPIToken(user);
+    showApiTokenDialog(JSON.stringify(fetchedToken));
   };
 
   return (
@@ -79,10 +79,12 @@ function UserMenu(props) {
 
 UserMenu.propTypes = {
   className: PropTypes.string,
+  user: PropTypes.instanceOf(Object),
 };
 
 UserMenu.defaultProps = {
   className: '',
+  user: {},
 };
 
 const StyledUserMenu = styled(UserMenu)`

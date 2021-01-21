@@ -11,6 +11,7 @@ import './index.css';
 import theme from './utils/theme';
 import App from './pages/App';
 import reportWebVitals from './utils/reportWebVitals';
+import GlobalStateContainer from './app/store';
 
 // import i18n (needs to be bundled ;))
 import './i18n';
@@ -23,7 +24,9 @@ ReactDOM.render(
         <ThemeProvider theme={theme}>
           <CookiesProvider>
             <HashRouter>
-              <App />
+              <GlobalStateContainer.Provider>
+                <App />
+              </GlobalStateContainer.Provider>
             </HashRouter>
           </CookiesProvider>
         </ThemeProvider>

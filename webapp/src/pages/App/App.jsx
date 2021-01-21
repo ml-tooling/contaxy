@@ -7,16 +7,18 @@ import './App.css';
 import AppBar from '../../components/AppBar/AppBar';
 import AppDrawer from '../../components/AppDrawer/AppDrawer';
 import ContentContainer from '../../app/routing/ContentContainer';
+import GlobalStateContainer from '../../app/store';
 
 function App() {
   // const { t } = useTranslation();
   const [isDrawerOpen, setDrawerOpen] = useState(false);
+  const { isAuthenticated } = GlobalStateContainer.useContainer();
   const onDrawerClick = () => setDrawerOpen(!isDrawerOpen);
 
   // TODO: remove hardcoded isAuthenticated
   return (
     <div className="App">
-      <AppBar isAuthenticated onDrawerOpen={onDrawerClick} />
+      <AppBar isAuthenticated={isAuthenticated} onDrawerOpen={onDrawerClick} />
       <AppDrawer
         isAdmin
         open={isDrawerOpen}
