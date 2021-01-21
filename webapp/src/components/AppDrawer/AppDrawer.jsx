@@ -26,7 +26,12 @@ function AppDrawer(props) {
       {/* Adding toolbar makes the drawer "clip" below the web app's top bar as the Toolbar has the same height */}
       <Toolbar />
       <div className={`${className} drawerInner`}>
-        <List>{linkItems}</List>
+        <List>
+          {linkItems}
+          <AppDrawerItem
+            item={{ TYPE: 'button', TOOLTIP: 'Add Plugin', NAME: 'Add Plugin' }}
+          />
+        </List>
       </div>
     </Drawer>
   );

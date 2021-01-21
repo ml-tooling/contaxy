@@ -12,10 +12,19 @@ import ListItemSecondaryAction from '@material-ui/core/ListItemSecondaryAction';
 import Icon from '@material-ui/core/Icon';
 import IconButton from '@material-ui/core/IconButton';
 import Tooltip from '@material-ui/core/Tooltip';
+import Button from '@material-ui/core/Button';
+import Dialog from '@material-ui/core/Dialog';
+import DialogActions from '@material-ui/core/DialogActions';
+import DialogTitle from '@material-ui/core/DialogTitle';
+import DialogContent from '@material-ui/core/DialogContent';
+import DialogContentText from '@material-ui/core/DialogContentText';
+
+import useAppDialog from '../../app/useAppDialog';
 
 function AppDrawerItem(props) {
   const { t } = useTranslation();
   const location = useLocation();
+  const { show, hide, RenderAppDialog } = useAppDialog();
   const { className, item } = props;
 
   const path = item.PATH ? item.PATH : '';
@@ -28,6 +37,8 @@ function AppDrawerItem(props) {
       )),
     [path]
   );
+
+  // TODO: split different types into different components
   let element = null;
   if (item.TYPE === 'link') {
     const isActive = location.pathname === item.PATH;
@@ -83,7 +94,43 @@ function AppDrawerItem(props) {
     );
   }
 
-  return <div>{element}</div>;
+  if (item.TYPE === 'button') {
+    // TODO: use dynamic information for content etc.
+    element = (
+      <>
+        <ListItem button onClick={show} className={`${className} listItem`}>
+          <Tooltip
+            title={<div className={`${className} tooltip`}>{item.TOOLTIP}</div>}
+            placement="bottom"
+          >
+            <ListItemIcon>
+              <Icon className={`${className} tooltipIcon addIcon`}>add</Icon>
+            </ListItemIcon>
+          </Tooltip>
+          <ListItemText
+            primaryTypographyProps={{ className: `${className} isInactive` }}
+          >
+            {item.NAME}
+          </ListItemText>
+        </ListItem>
+        <RenderAppDialog>
+          <Dialog open>
+            <DialogTitle>ADD PLUGIN</DialogTitle>
+            <DialogContent>
+              <DialogContentText>CONTENT HERE</DialogContentText>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={hide} color="primary">
+                OK
+              </Button>
+            </DialogActions>
+          </Dialog>
+        </RenderAppDialog>
+      </>
+    );
+  }
+
+  return <>{element}</>;
 }
 
 AppDrawerItem.propTypes = {
@@ -112,6 +159,10 @@ const StyledAppDrawerItem = styled(AppDrawerItem)`
 
   &.tooltipIcon {
     font-size: 18px;
+  }
+
+  &.addIcon {
+    padding-left: 3px;
   }
 
   @media (min-width: 600px) {
