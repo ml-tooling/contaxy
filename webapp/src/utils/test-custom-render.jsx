@@ -9,6 +9,7 @@ import { I18nextProvider } from 'react-i18next';
 import { ThemeProvider as MuiThemeProvider } from '@material-ui/core/styles';
 import { ThemeProvider } from 'styled-components';
 
+import GlobalStateContainer from '../app/store';
 import theme from './theme';
 
 i18n.init({
@@ -33,7 +34,11 @@ const Wrapper = ({ children }) => {
     <I18nextProvider i18n={i18n}>
       <MuiThemeProvider theme={theme}>
         <ThemeProvider theme={theme}>
-          <HashRouter>{children}</HashRouter>
+          <HashRouter>
+            <GlobalStateContainer.Provider>
+              {children}
+            </GlobalStateContainer.Provider>
+          </HashRouter>
         </ThemeProvider>
       </MuiThemeProvider>
     </I18nextProvider>
