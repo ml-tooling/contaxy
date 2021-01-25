@@ -66,7 +66,7 @@ function Files(props) {
   };
 
   // TODO: add correct value on Widget components
-  const filesPluralLiteral = t('files_plural');
+  const filesPluralLiteral = t('file_plural');
   return (
     <>
       <WidgetsGrid>
