@@ -27,6 +27,7 @@ function App() {
         <ContentContainer />
       </main>
       <div id="app-dialog" />
+      <div id="snackbar-container" />
     </div>
   );
 }

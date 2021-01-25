@@ -1,12 +1,15 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import styled from 'styled-components';
-import MaterialTable from 'material-table';
 import { useTranslation } from 'react-i18next';
+
+import MaterialTable from 'material-table';
 
 import Widget from '../components/Widget';
 import WidgetsGrid from '../components/WidgetsGrid';
 import setClipboardText from '../utils/clipboard';
+
+import showStandardSnackbar from '../app/showStandardSnackbar';
 
 const PAGE_SIZES = [5, 10, 15, 30, 50, 75, 100];
 
@@ -122,6 +125,7 @@ function Files(props) {
             icon: 'content_copy',
             iconProps: { className: `${className} actionIcon` },
             onClick: (event, rowData) => {
+              showStandardSnackbar('Copy data row');
               setClipboardText(rowData.name);
             },
             tooltip: 'Copy File Key',
@@ -130,6 +134,7 @@ function Files(props) {
             icon: 'delete',
             iconProps: { className: `${className} actionIcon` },
             onClick: (event, rowData) => {
+              showStandardSnackbar('Delete rowdata');
               onFileDelete(rowData);
             },
             tooltip: 'Delete File',
