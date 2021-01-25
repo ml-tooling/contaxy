@@ -11,19 +11,23 @@ function ProjectSelector(props) {
   const { activeProject, className, projects, onProjectChange } = props;
 
   const changeProject = (e) => {
-    const project = e.target.value;
+    const project = JSON.parse(e.target.value);
 
     // TODO: add project to cookie one level above
     onProjectChange(project);
   };
 
   const projectElements = projects.map((project) => (
-    <MenuItem value={project} key={project.id}>
+    <MenuItem value={JSON.stringify(project)} key={project.id}>
       {project.name}
     </MenuItem>
   ));
 
-  const selectId = activeProject.id ? activeProject.id : '';
+  // Material-UI throws a warning if the value is an empty object {}. So, it must either be one of the available options, e.g. {id: 'foo', name: 'foo'}, or ''.
+  const selectId =
+    Object.keys(activeProject).length === 0
+      ? ''
+      : JSON.stringify(activeProject);
   return (
     //   TODO: add div container?
     <FormControl className={`${className} formControl`}>
@@ -59,9 +63,8 @@ const StyledProjectSelector = styled(ProjectSelector)`
     margin-right: 24px;
   }
   &.select {
-    color: 'white';
+    color: white;
   }
 `;
 
-// TODO: connect to Redux!
 export default StyledProjectSelector;

@@ -10,7 +10,6 @@ import MenuIcon from '@material-ui/icons/Menu';
 import ProjectSelector from './ProjectSelector';
 import UserMenu from './UserMenu';
 import { APP_NAME } from '../../utils/config';
-import { setActiveProject } from '../../utils/project-utils';
 import GlobalStateContainer from '../../app/store';
 
 function AppBar(props) {
@@ -18,6 +17,8 @@ function AppBar(props) {
   const {
     activeProject,
     isAuthenticated,
+    projects,
+    setActiveProject,
     user,
   } = GlobalStateContainer.useContainer();
 
@@ -45,7 +46,7 @@ function AppBar(props) {
         </Typography>
         <ProjectSelector
           activeProject={activeProject}
-          projects={[]}
+          projects={projects}
           onProjectChange={setActiveProject}
         />
         <Typography className={`${className} user`}>{user.name}</Typography>

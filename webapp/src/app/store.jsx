@@ -36,6 +36,24 @@ import { createContainer } from 'unstated-next';
 export const initialState = {
   user: {},
   activeProject: {},
+  projects: [
+    {
+      id: 'foobar',
+      name: 'foobar',
+      description: '',
+      creator: 'admin',
+      visibility: 'private',
+      createdAt: 1606470094642,
+    },
+    {
+      id: 'ml-lab-demo',
+      name: 'ml-lab-demo',
+      description: '',
+      creator: 'admin',
+      visibility: 'private',
+      createdAt: 1607439288065,
+    },
+  ],
   isAuthenticated: true,
 };
 
@@ -44,6 +62,7 @@ const useGlobalState = (_initialState) => {
 
   const [user, setUser] = useState(state.user);
   const [activeProject, setActiveProject] = useState(state.activeProject);
+  const [projects, setProjects] = useState(state.projects);
   const [isAuthenticated, setIsAuthenticated] = useState(state.isAuthenticated);
 
   return {
@@ -51,6 +70,8 @@ const useGlobalState = (_initialState) => {
     setUser,
     activeProject,
     setActiveProject,
+    projects,
+    setProjects,
     isAuthenticated,
     setIsAuthenticated,
   };

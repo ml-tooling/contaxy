@@ -1,5 +1,4 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import { useTranslation } from 'react-i18next';
 
 import Grid from '@material-ui/core/Grid';
@@ -7,13 +6,20 @@ import Grid from '@material-ui/core/Grid';
 import ProjectCard from '../components/ProjectCard';
 import Widget from '../components/Widget';
 import WidgetsGrid from '../components/WidgetsGrid';
+import GlobalStateContainer from '../app/store';
 
-function Projects(props) {
+function Projects() {
   const { t } = useTranslation();
-  const { projects } = props;
+  const { projects, setActiveProject } = GlobalStateContainer.useContainer();
 
   const projectElements = projects.map((project) => {
-    return <ProjectCard key={project.id} project={project} />;
+    return (
+      <ProjectCard
+        key={project.id}
+        project={project}
+        onSelect={setActiveProject}
+      />
+    );
   });
 
   // TODO: add correct value to widget
@@ -34,30 +40,5 @@ function Projects(props) {
     </>
   );
 }
-
-Projects.propTypes = {
-  projects: PropTypes.arrayOf(Object),
-};
-
-Projects.defaultProps = {
-  projects: [
-    {
-      id: 'foobar',
-      name: 'foobar',
-      description: '',
-      creator: 'admin',
-      visibility: 'private',
-      createdAt: 1606470094642,
-    },
-    {
-      id: 'ml-lab-demo',
-      name: 'ml-lab-demo',
-      description: '',
-      creator: 'admin',
-      visibility: 'private',
-      createdAt: 1607439288065,
-    },
-  ],
-};
 
 export default Projects;

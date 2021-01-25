@@ -17,7 +17,7 @@ import { fetchAPIToken } from '../services/lab-api';
 
 function ProjectCard(props) {
   const { showApiTokenDialog, ApiTokenDialog } = useApiTokenDialog();
-  const { project } = props;
+  const { onSelect, project } = props;
   const svgRef = useRef(null);
   useEffect(() => {
     Jdenticon.update(svgRef.current);
@@ -27,6 +27,10 @@ function ProjectCard(props) {
     // TODO: pass correct resource for which the API Token should be generated
     const fetchedToken = await fetchAPIToken('foobar');
     showApiTokenDialog(fetchedToken);
+  };
+
+  const handleProjectSelectClick = () => {
+    onSelect(project);
   };
 
   // TODO: add functionality to project card buttons
@@ -56,7 +60,7 @@ function ProjectCard(props) {
             <Typography>{project.description}</Typography>
           </CardContent>
           <CardActions>
-            <Button>SELECT</Button>
+            <Button onClick={handleProjectSelectClick}>SELECT</Button>
             <Button>MEMBERS</Button>
             <Button onClick={handleApiTokenClick}>TOKEN</Button>
             <Button>DELETE</Button>
@@ -70,6 +74,7 @@ function ProjectCard(props) {
 }
 
 ProjectCard.propTypes = {
+  onSelect: PropTypes.func.isRequired,
   project: PropTypes.instanceOf(Object).isRequired,
 };
 
