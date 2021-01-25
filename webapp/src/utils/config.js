@@ -110,9 +110,10 @@ export const PAGES = [
     TYPE: APP_DRAWER_ITEM_TYPES.link,
     COMPONENT: Login,
   },
+  // TODO: remove this hard-coded embedding of Expyriments
   {
     ICON: 'data_usage',
-    NAME: 'iframe',
+    NAME: 'Expyriments',
     PATH: '/iframe',
     REQUIRE_LOGIN: true,
     APP_DRAWER_ITEM: true,
