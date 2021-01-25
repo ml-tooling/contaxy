@@ -1,5 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import { useTranslation } from 'react-i18next';
 
 import Grid from '@material-ui/core/Grid';
 
@@ -8,6 +9,7 @@ import Widget from '../components/Widget';
 import WidgetsGrid from '../components/WidgetsGrid';
 
 function Projects(props) {
+  const { t } = useTranslation();
   const { projects } = props;
 
   const projectElements = projects.map((project) => {
@@ -18,7 +20,12 @@ function Projects(props) {
   return (
     <>
       <WidgetsGrid>
-        <Widget name="Datasets" icon="folder" value="2" color="light-green" />
+        <Widget
+          name={t('file_plural')}
+          icon="folder"
+          value="2"
+          color="light-green"
+        />
         <Widget name="Services" icon="apps" value="2" color="orange" />
       </WidgetsGrid>
       <Grid container spacing={3}>

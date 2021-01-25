@@ -42,12 +42,12 @@ const COLUMNS = [
   },
 ];
 
-const onDatasetDelete = (rowData) => {
+const onFileDelete = (rowData) => {
   // TODO: add delete logic
   return rowData;
 };
 
-const onDatasetDownload = (rowData) => {
+const onFileDownload = (rowData) => {
   const a = document.createElement('a');
   // TODO: use correct URL
   a.href = `http://localhost:30002/api/projects/ml-lab-demo/files/download?fileKey=datasets%2Fnews-categorized.csv.v1`;
@@ -56,7 +56,7 @@ const onDatasetDownload = (rowData) => {
   a.click();
 };
 
-function Datasets(props) {
+function Files(props) {
   const { t } = useTranslation();
   const { className, data } = props;
 
@@ -66,10 +66,11 @@ function Datasets(props) {
   };
 
   // TODO: add correct value on Widget components
+  const filesPluralLiteral = t('files_plural');
   return (
     <>
       <WidgetsGrid>
-        <Widget name="Datasets" icon="list" value="2" color="pink" />
+        <Widget name={filesPluralLiteral} icon="list" value="2" color="pink" />
         <Widget name="Total Size" icon="cloud" value="2" color="cyan" />
         <Widget
           name="Last Modified"
@@ -79,7 +80,7 @@ function Datasets(props) {
         />
       </WidgetsGrid>
       <MaterialTable
-        title={t('dataset_plural')}
+        title={filesPluralLiteral}
         columns={COLUMNS}
         data={data}
         options={{
@@ -113,9 +114,9 @@ function Datasets(props) {
             icon: 'download',
             iconProps: { className: `${className} actionIcon` },
             onClick: (event, rowData) => {
-              onDatasetDownload(rowData);
+              onFileDownload(rowData);
             },
-            tooltip: `${t('download')} ${t('dataset')}`,
+            tooltip: `${t('download')} ${t('file')}`,
           },
           {
             icon: 'content_copy',
@@ -123,15 +124,15 @@ function Datasets(props) {
             onClick: (event, rowData) => {
               setClipboardText(rowData.name);
             },
-            tooltip: 'Copy dataset key',
+            tooltip: 'Copy File Key',
           },
           {
             icon: 'delete',
             iconProps: { className: `${className} actionIcon` },
             onClick: (event, rowData) => {
-              onDatasetDelete(rowData);
+              onFileDelete(rowData);
             },
-            tooltip: 'Delete dataset',
+            tooltip: 'Delete File',
           },
         ]}
       />
@@ -139,12 +140,12 @@ function Datasets(props) {
   );
 }
 
-Datasets.propTypes = {
+Files.propTypes = {
   className: PropTypes.string,
   data: PropTypes.arrayOf(Object),
 };
 
-Datasets.defaultProps = {
+Files.defaultProps = {
   className: '',
   data: [
     {
@@ -157,10 +158,10 @@ Datasets.defaultProps = {
   ],
 };
 
-const StyledDatasets = styled(Datasets)`
+const StyledFiles = styled(Files)`
   &.actionIcon {
     color: rgba(0, 0, 0, 0.54);
   }
 `;
 
-export default StyledDatasets;
+export default StyledFiles;

@@ -1,7 +1,7 @@
 /* eslint-disable import/prefer-default-export */
 
 import Projects from '../pages/Projects';
-import Datasets from '../pages/Datasets';
+import Datasets from '../pages/Files';
 import Services from '../pages/Services';
 import Jobs from '../pages/Jobs';
 import Login from '../pages/Login';

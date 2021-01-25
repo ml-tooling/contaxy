@@ -6,6 +6,8 @@
   "documentation": "Documentation",
   "download": "Download",
   "edit-and-reload": "Edit {{file}} and save to reload.",
+  "file:": "File",
+  "file_plural": "Files",
   "job": "Job",
   "job_plural": "Jobs",
   "new_tab": "New Tab",
