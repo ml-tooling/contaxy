@@ -3,22 +3,38 @@ import PropTypes from 'prop-types';
 import styled from 'styled-components';
 import ReactIframe from 'react-iframe';
 
+// import CircularProgress from '@material-ui/core/CircularProgress';
+
 import GlobalStateContainer from '../app/store';
 
 function Iframe(props) {
   const { className, url, projectSpecific } = props;
   const { activeProject } = GlobalStateContainer.useContainer();
+  // const [isLoading, setIsLoading] = useState(true);
+
   let iframeUrl = url;
   if (projectSpecific) {
     iframeUrl = `${url}?project=${activeProject.id}`;
   }
 
+  // const handleOnLoad = () => {
+  //   setIsLoading(false);
+  // };
+
+  // const ProgressComponent = isLoading ? (
+  //   <CircularProgress className={`${className} progress`} />
+  // ) : null;
+
   return (
-    <ReactIframe
-      url={iframeUrl}
-      allowFullScreen
-      className={`${className} root`}
-    />
+    <div className={`${className} root`}>
+      {/* {ProgressComponent} */}
+      <ReactIframe
+        url={iframeUrl}
+        allowFullScreen
+        className={`${className} iframe`}
+        // onLoad={handleOnLoad}
+      />
+    </div>
   );
 }
 
@@ -38,7 +54,18 @@ const StyledIframeComponent = styled(Iframe)`
     position: absolute;
     width: 100%;
     height: 100%;
+  }
+
+  &.iframe {
+    width: 100%;
+    height: 100%;
     border: none;
+  }
+
+  /* Shows the progress bar as an overlay */
+  &.progress {
+    position: absolute;
+    top: 80px;
   }
 `;
 
