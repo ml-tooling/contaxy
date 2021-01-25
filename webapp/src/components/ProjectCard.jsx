@@ -14,6 +14,7 @@ import * as Jdenticon from 'jdenticon';
 
 import useApiTokenDialog from '../app/useApiTokenDialog';
 import { fetchAPIToken } from '../services/lab-api';
+import showStandardSnackbar from '../app/showStandardSnackbar';
 
 function ProjectCard(props) {
   const { showApiTokenDialog, ApiTokenDialog } = useApiTokenDialog();
@@ -30,7 +31,12 @@ function ProjectCard(props) {
   };
 
   const handleProjectSelectClick = () => {
+    showStandardSnackbar(`Change to project '${project.name}'`);
     onSelect(project);
+  };
+
+  const handleDeleteClick = () => {
+    showStandardSnackbar(`Delete project '${project.name}'`);
   };
 
   // TODO: add functionality to project card buttons
@@ -63,7 +69,7 @@ function ProjectCard(props) {
             <Button onClick={handleProjectSelectClick}>SELECT</Button>
             <Button>MEMBERS</Button>
             <Button onClick={handleApiTokenClick}>TOKEN</Button>
-            <Button>DELETE</Button>
+            <Button onClick={handleDeleteClick}>DELETE</Button>
           </CardActions>
         </Card>
       </Grid>

@@ -117,6 +117,7 @@ function Files(props) {
             icon: 'download',
             iconProps: { className: `${className} actionIcon` },
             onClick: (event, rowData) => {
+              showStandardSnackbar('Download file');
               onFileDownload(rowData);
             },
             tooltip: `${t('download')} ${t('file')}`,
@@ -125,7 +126,7 @@ function Files(props) {
             icon: 'content_copy',
             iconProps: { className: `${className} actionIcon` },
             onClick: (event, rowData) => {
-              showStandardSnackbar('Copy data row');
+              showStandardSnackbar('Copy file key');
               setClipboardText(rowData.name);
             },
             tooltip: 'Copy File Key',
@@ -134,7 +135,7 @@ function Files(props) {
             icon: 'delete',
             iconProps: { className: `${className} actionIcon` },
             onClick: (event, rowData) => {
-              showStandardSnackbar('Delete rowdata');
+              showStandardSnackbar('Delete file');
               onFileDelete(rowData);
             },
             tooltip: 'Delete File',
