@@ -68,7 +68,7 @@ function Files(props) {
   // TODO: add correct value on Widget components
   const filesPluralLiteral = t('file_plural');
   return (
-    <>
+    <div className="pages-native-component">
       <WidgetsGrid>
         <Widget name={filesPluralLiteral} icon="list" value="2" color="pink" />
         <Widget name="Total Size" icon="cloud" value="2" color="cyan" />
@@ -136,7 +136,7 @@ function Files(props) {
           },
         ]}
       />
-    </>
+    </div>
   );
 }
 

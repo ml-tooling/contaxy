@@ -44,65 +44,67 @@ function Services(props) {
   const { data } = props;
 
   return (
-    <MaterialTable
-      title={t('service_plural')}
-      columns={COLUMNS}
-      data={data}
-      options={{
-        filtering: true,
-        columnsButton: false,
-        exportButton: true,
-        exportFileName: 'data',
-        grouping: false,
-        pageSize: 5,
-        pageSizeOptions: PAGE_SIZES,
-        actionsColumnIndex: -1,
-        headerStyle: {
-          fontSize: '0.75rem',
-          fontWeight: 500,
-          fontFamily: 'Roboto',
-        },
-        rowStyle: {
-          fontSize: '0.75rem',
-          fontFamily: 'Roboto',
-        },
-      }}
-      localization={{ header: { actions: '' } }} // disable localization header name
-      actions={[
-        {
-          icon: 'access',
-          iconProps: { className: `` },
-          onClick: (event, rowData) => {
-            window.open(getServiceUrl(rowData), '_blank');
+    <div className="pages-native-component">
+      <MaterialTable
+        title={t('service_plural')}
+        columns={COLUMNS}
+        data={data}
+        options={{
+          filtering: true,
+          columnsButton: false,
+          exportButton: true,
+          exportFileName: 'data',
+          grouping: false,
+          pageSize: 5,
+          pageSizeOptions: PAGE_SIZES,
+          actionsColumnIndex: -1,
+          headerStyle: {
+            fontSize: '0.75rem',
+            fontWeight: 500,
+            fontFamily: 'Roboto',
           },
-          tooltip: 'Access service',
-        },
-        {
-          icon: 'code',
-          iconProps: { className: `` },
-          onClick: (event, rowData) => {
-            onShowDeployCommand(rowData);
+          rowStyle: {
+            fontSize: '0.75rem',
+            fontFamily: 'Roboto',
           },
-          tooltip: 'Show deploy command',
-        },
-        {
-          icon: 'assignment',
-          iconProps: { className: `` },
-          onClick: (event, rowData) => {
-            onShowLogs(rowData);
+        }}
+        localization={{ header: { actions: '' } }} // disable localization header name
+        actions={[
+          {
+            icon: 'access',
+            iconProps: { className: `` },
+            onClick: (event, rowData) => {
+              window.open(getServiceUrl(rowData), '_blank');
+            },
+            tooltip: 'Access service',
           },
-          tooltip: 'Display logs',
-        },
-        {
-          icon: 'delete',
-          iconProps: { className: `` },
-          onClick: (event, rowData) => {
-            onServiceDelete(rowData);
+          {
+            icon: 'code',
+            iconProps: { className: `` },
+            onClick: (event, rowData) => {
+              onShowDeployCommand(rowData);
+            },
+            tooltip: 'Show deploy command',
           },
-          tooltip: 'Delete service',
-        },
-      ]}
-    />
+          {
+            icon: 'assignment',
+            iconProps: { className: `` },
+            onClick: (event, rowData) => {
+              onShowLogs(rowData);
+            },
+            tooltip: 'Display logs',
+          },
+          {
+            icon: 'delete',
+            iconProps: { className: `` },
+            onClick: (event, rowData) => {
+              onServiceDelete(rowData);
+            },
+            tooltip: 'Delete service',
+          },
+        ]}
+      />
+    </div>
   );
 }
 

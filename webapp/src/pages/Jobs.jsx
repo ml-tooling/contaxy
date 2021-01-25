@@ -60,7 +60,7 @@ function Jobs(props) {
   // TODO: set correct values in Widgets
 
   return (
-    <>
+    <div className="pages-native-component">
       <WidgetsGrid>
         <Widget name="Running" icon="loop" value="2" color="cyan" />
         <Widget name="Succeeded" icon="done" value="2" color="light-green" />
@@ -125,7 +125,7 @@ function Jobs(props) {
           },
         ]}
       />
-    </>
+    </div>
   );
 }
 

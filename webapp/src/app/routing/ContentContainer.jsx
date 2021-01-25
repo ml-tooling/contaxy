@@ -21,6 +21,7 @@ function ContentContainer(props) {
         exact
         component={item.COMPONENT}
         isAuthenticated
+        componentProps={item.PROPS}
       />
     );
   });
@@ -46,7 +47,7 @@ const StyledContentContainer = styled(ContentContainer)`
   &.root {
     position: relative;
     width: 100%;
-    padding: 24px;
+    // padding: 24px;
   }
 `;
 

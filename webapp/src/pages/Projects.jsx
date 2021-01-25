@@ -24,7 +24,7 @@ function Projects() {
 
   // TODO: add correct value to widget
   return (
-    <>
+    <div className="pages-native-component">
       <WidgetsGrid>
         <Widget
           name={t('file_plural')}
@@ -37,7 +37,7 @@ function Projects() {
       <Grid container spacing={3}>
         {projectElements}
       </Grid>
-    </>
+    </div>
   );
 }
 

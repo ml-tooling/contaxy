@@ -5,6 +5,7 @@ import Datasets from '../pages/Files';
 import Services from '../pages/Services';
 import Jobs from '../pages/Jobs';
 import Login from '../pages/Login';
+import Iframe from '../pages/Iframe';
 
 export const APP_NAME = 'Machine Learning Lab';
 
@@ -113,5 +114,16 @@ export const PAGES = [
     PROJECT_SPECIFIC: false,
     TYPE: APP_DRAWER_ITEM_TYPES.link,
     COMPONENT: Login,
+  },
+  {
+    ICON: 'data_usage',
+    NAME: 'iframe',
+    PATH: '/iframe',
+    REQUIRE_LOGIN: true,
+    APP_DRAWER_ITEM: true,
+    PROJECT_SPECIFIC: false,
+    TYPE: APP_DRAWER_ITEM_TYPES.link,
+    COMPONENT: Iframe,
+    PROPS: { url: 'http://localhost:8081' },
   },
 ];
