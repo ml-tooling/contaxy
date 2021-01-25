@@ -118,6 +118,9 @@ export const PAGES = [
     APP_DRAWER_ITEM: true,
     TYPE: APP_DRAWER_ITEM_TYPES.link,
     COMPONENT: Iframe,
-    PROPS: { url: 'http://localhost:8081', projectSpecific: true },
+    PROPS: {
+      url: 'http://localhost:8081/?appbar=false',
+      projectSpecific: true,
+    },
   },
 ];

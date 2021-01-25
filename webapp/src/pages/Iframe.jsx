@@ -14,7 +14,8 @@ function Iframe(props) {
 
   let iframeUrl = url;
   if (projectSpecific) {
-    iframeUrl = `${url}?project=${activeProject.id}`;
+    // TODO: this breaks the query string if there is no query param before
+    iframeUrl = `${url}&project=${activeProject.id}`;
   }
 
   // const handleOnLoad = () => {
