@@ -16,6 +16,7 @@ import { fetchAPIToken } from '../services/lab-api';
 import showStandardSnackbar from '../app/showStandardSnackbar';
 import { useShowAppDialog } from '../app/AppDialogServiceProvider';
 import ApiTokenDialog from './Dialogs/ApiTokenDialog';
+import ManageProjectDialog from './Dialogs/ManageProjectDialog';
 
 function ProjectCard(props) {
   const showAppDialog = useShowAppDialog();
@@ -32,7 +33,9 @@ function ProjectCard(props) {
     showAppDialog(ApiTokenDialog, { token: fetchedToken });
   };
 
-  // const handleManageMembersClick = () => {};
+  const handleManageMembersClick = () => {
+    showAppDialog(ManageProjectDialog, { project });
+  };
 
   const handleProjectSelectClick = () => {
     showStandardSnackbar(`Change to project '${project.name}'`);
@@ -68,7 +71,7 @@ function ProjectCard(props) {
           </CardContent>
           <CardActions>
             <Button onClick={handleProjectSelectClick}>SELECT</Button>
-            <Button>MEMBERS</Button>
+            <Button onClick={handleManageMembersClick}>MEMBERS</Button>
             <Button onClick={handleApiTokenClick}>TOKEN</Button>
             <Button onClick={handleDeleteClick}>DELETE</Button>
           </CardActions>
