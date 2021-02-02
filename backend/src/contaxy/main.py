@@ -30,7 +30,7 @@ def login_oauth(
 
 @app.get("/hello")
 async def hello(auth_user: User = Depends(get_authenticated_user)):
-    return {"message": f"Hello {auth_user.full_name}! The world is yours now!"}
+    return {"message": f"Hello {auth_user.display_name}! The world is yours now!"}
 
 
 # Patch Fastapi to allow relative path resolution.

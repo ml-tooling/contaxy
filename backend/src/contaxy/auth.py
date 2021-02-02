@@ -6,7 +6,7 @@ from passlib.context import CryptContext
 from pydantic import BaseModel
 
 from contaxy.config import Settings
-from contaxy.users import User, UserManager
+from contaxy.users import BaseUserManager, User
 
 
 class Token(BaseModel):
@@ -18,14 +18,14 @@ class Authenticator:
     def __init__(
         self,
         settings: Settings,
-        user_manager: UserManager,
+        user_manager: BaseUserManager,
     ) -> None:
         self.settings = settings
         self.user_manager = user_manager
         self.pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
     def authenticate_user(self, username: str, password: str) -> Optional[User]:
-        user = self.user_manager.get_user(username)
+        user = self.user_manager.get_user(username=username)
         if not user:
             return None
         if not self.verify_password(password, user.password):
@@ -36,7 +36,7 @@ class Authenticator:
         return self.pwd_context.verify(plain_password, hashed_password)
 
     def create_access_token(self, user: User) -> Token:
-        to_encode: dict = {"sub": user.username, "scopes": user.scopes}
+        to_encode: dict = {"sub": user.username, "scopes": user.permissions}
 
         if self.settings.acces_token_expiry_minutes:
             expire = datetime.utcnow() + timedelta(
@@ -62,4 +62,4 @@ class Authenticator:
         username: str = payload.get("sub")
         if not username:
             return None
-        return self.user_manager.get_user(username)
+        return self.user_manager.get_user(username=username)
