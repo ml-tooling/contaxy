@@ -10,6 +10,8 @@ import { ThemeProvider as MuiThemeProvider } from '@material-ui/core/styles';
 import { ThemeProvider } from 'styled-components';
 
 import GlobalStateContainer from '../app/store';
+import AppDialogServiceProvider from '../app/AppDialogServiceProvider';
+
 import theme from './theme';
 
 i18n.init({
@@ -36,7 +38,7 @@ const Wrapper = ({ children }) => {
         <ThemeProvider theme={theme}>
           <HashRouter>
             <GlobalStateContainer.Provider>
-              {children}
+              <AppDialogServiceProvider>{children}</AppDialogServiceProvider>
             </GlobalStateContainer.Provider>
           </HashRouter>
         </ThemeProvider>
