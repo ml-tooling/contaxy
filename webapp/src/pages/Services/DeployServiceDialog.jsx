@@ -53,6 +53,7 @@ function DeployServiceDialog(props) {
             isContainerImageInvalid ? 'Image Name is not valid' : null
           }
           fullWidth
+          margin="dense"
         />
         <TextField
           label="Service Name (optional)"
@@ -63,6 +64,7 @@ function DeployServiceDialog(props) {
           error={isServiceNameInvalid}
           helperText={isServiceNameInvalid ? 'Service Name is not valid' : null}
           fullWidth
+          margin="dense"
         />
         <KeyValueInputs
           onKeyValuePairChange={(keyValuePairs) => {

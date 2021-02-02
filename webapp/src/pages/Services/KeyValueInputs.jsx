@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import PropTypes from 'prop-types';
+import styled from 'styled-components';
 
 import Button from '@material-ui/core/Button';
 import TextField from '@material-ui/core/TextField';
@@ -11,12 +12,12 @@ const ENV_NAME_REGEX = new RegExp('^([a-zA-Z_]{1,}[a-zA-Z0-9_]{0,})?$');
 const FIELD_KEY = 'Key';
 const FIELD_VALUE = 'Value';
 
-function KeyValuePair(props) {
+function KeyValueInput(props) {
   const [key, setKey] = useState('');
   const [value, setValue] = useState('');
   const [isInvalid, setIsInvalid] = useState(false);
 
-  const { index, onChange } = props;
+  const { className, index, onChange } = props;
 
   const handleKeyChange = (e) => {
     setIsInvalid(!ENV_NAME_REGEX.test(e.target.value));
@@ -32,6 +33,7 @@ function KeyValuePair(props) {
   return (
     <>
       <TextField
+        className={`${className} inputField`}
         autoComplete="on"
         placeholder={FIELD_KEY}
         type="text"
@@ -42,6 +44,7 @@ function KeyValuePair(props) {
       />
 
       <TextField
+        className={`${className} inputField`}
         autoComplete="on"
         placeholder={FIELD_VALUE}
         type="text"
@@ -51,10 +54,22 @@ function KeyValuePair(props) {
     </>
   );
 }
-KeyValuePair.propTypes = {
+
+KeyValueInput.propTypes = {
+  className: PropTypes.string,
   index: PropTypes.number.isRequired,
   onChange: PropTypes.func.isRequired,
 };
+
+KeyValueInput.defaultProps = {
+  className: '',
+};
+
+const StyledKeyValueInput = styled(KeyValueInput)`
+  &.inputField {
+    margin: 10px 10px 10px 0px;
+  }
+`;
 
 function KeyValueInputs(props) {
   const [keyValuePairs, setKeyValuePairs] = useState([]);
@@ -101,7 +116,7 @@ function KeyValueInputs(props) {
     <>
       {keyValuePairs.map((keyValuePair) => (
         <div key={keyValuePair.index}>
-          <KeyValuePair
+          <StyledKeyValueInput
             index={keyValuePair.index}
             onChange={handleKeyValuePairChange}
           />
