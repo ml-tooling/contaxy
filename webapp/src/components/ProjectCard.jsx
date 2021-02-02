@@ -15,7 +15,7 @@ import * as Jdenticon from 'jdenticon';
 import { fetchAPIToken } from '../services/lab-api';
 import showStandardSnackbar from '../app/showStandardSnackbar';
 import { useShowAppDialog } from '../app/AppDialogServiceProvider';
-import ApiTokenDialog from './ApiTokenDialog';
+import ApiTokenDialog from './Dialogs/ApiTokenDialog';
 
 function ProjectCard(props) {
   const showAppDialog = useShowAppDialog();

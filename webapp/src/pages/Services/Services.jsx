@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import Button from '@material-ui/core/Button';
 
 import { useShowAppDialog } from '../../app/AppDialogServiceProvider';
-import DeployServiceDialog from './DeployServiceDialog';
+import DeployServiceDialog from '../../components/Dialogs/DeployContainerDialog';
 import ServicesContainer from './ServicesContainer';
 
 function Services(props) {
@@ -15,7 +15,7 @@ function Services(props) {
   const showAppDialog = useShowAppDialog();
 
   const onServiceDeploy = () => {
-    showAppDialog(DeployServiceDialog);
+    showAppDialog(DeployServiceDialog, { onDeploy: () => {} });
   };
 
   return (

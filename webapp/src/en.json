@@ -4,6 +4,7 @@
   "change-language": "Switch to {{language}}",
   "dataset": "Dataset",
   "dataset_plural": "Datasets",
+  "deployment": "Deployment",
   "documentation": "Documentation",
   "download": "Download",
   "edit-and-reload": "Edit {{file}} and save to reload.",

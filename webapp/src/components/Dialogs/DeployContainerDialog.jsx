@@ -18,26 +18,26 @@ const SERVICE_NAME_REGEX = new RegExp(
   '^([a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9])?$'
 );
 
-function DeployServiceDialog(props) {
+function DeployContainerDialog(props) {
   const { t } = useTranslation();
   const [containerImage, setContainerImage] = useState('');
-  const [serviceName, setServiceName] = useState('');
-  const [serviceParameters, setServiceParameters] = useState([]);
+  const [deploymentName, setDeploymentName] = useState('');
+  const [deploymentParameters, setDeploymentParameters] = useState([]);
 
   const handleContainerImageChange = (e) => setContainerImage(e.target.value);
-  const handleServiceNameChange = (e) => setServiceName(e.target.value);
+  const handleNameChange = (e) => setDeploymentName(e.target.value);
 
-  const { onClose } = props;
+  const { onClose, onDeploy } = props;
 
   const isContainerImageInvalid = IMAGE_NAME.test(containerImage);
-  const isServiceNameInvalid = !SERVICE_NAME_REGEX.test(serviceName);
+  const isDeploymentNameInvalid = !SERVICE_NAME_REGEX.test(deploymentName);
 
   return (
     <Dialog open>
-      <DialogTitle>{`${t('add')} ${t('service')}`}</DialogTitle>
+      <DialogTitle>{`${t('add')} ${t('deployment')}`}</DialogTitle>
       <DialogContent>
         <DialogContentText>
-          Deploy a new service to the selected project based on the specific
+          Make a new deployment in the selected project based on the specific
           Docker image. Please make sure that the image is a compatible ML Lab
           service.
         </DialogContentText>
@@ -56,19 +56,19 @@ function DeployServiceDialog(props) {
           margin="dense"
         />
         <TextField
-          label="Service Name (optional)"
+          label="Deployment Name (optional)"
           type="text"
-          value={serviceName}
-          onChange={handleServiceNameChange}
+          value={deploymentName}
+          onChange={handleNameChange}
           autoComplete="on"
-          error={isServiceNameInvalid}
-          helperText={isServiceNameInvalid ? 'Service Name is not valid' : null}
+          error={isDeploymentNameInvalid}
+          helperText={isDeploymentNameInvalid ? 'Name is not valid' : null}
           fullWidth
           margin="dense"
         />
         <KeyValueInputs
           onKeyValuePairChange={(keyValuePairs) => {
-            setServiceParameters(keyValuePairs);
+            setDeploymentParameters(keyValuePairs);
           }}
         />
       </DialogContent>
@@ -77,10 +77,9 @@ function DeployServiceDialog(props) {
           CANCEL
         </Button>
         <Button
-          onClick={() => {
-            // do something with the image, name and parameters
-            console.log(serviceParameters);
-          }}
+          onClick={() =>
+            onDeploy(containerImage, deploymentName, deploymentParameters)
+          }
           color="primary"
         >
           DEPLOY
@@ -90,8 +89,9 @@ function DeployServiceDialog(props) {
   );
 }
 
-DeployServiceDialog.propTypes = {
+DeployContainerDialog.propTypes = {
   onClose: PropTypes.func.isRequired,
+  onDeploy: PropTypes.func.isRequired,
 };
 
-export default DeployServiceDialog;
+export default DeployContainerDialog;

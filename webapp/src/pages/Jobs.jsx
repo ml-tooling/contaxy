@@ -9,6 +9,9 @@ import Button from '@material-ui/core/Button';
 import Widget from '../components/Widget';
 import WidgetsGrid from '../components/WidgetsGrid';
 
+import { useShowAppDialog } from '../app/AppDialogServiceProvider';
+import DeployServiceDialog from '../components/Dialogs/DeployContainerDialog';
+
 const PAGE_SIZES = [5, 10, 15, 30, 50, 75, 100];
 
 const COLUMNS = [
@@ -51,11 +54,14 @@ const onJobDelete = (rowData) => {
   return rowData;
 };
 
-const onJobAdd = () => {};
-
 function Jobs(props) {
   const { t } = useTranslation();
   const { className, data } = props;
+  const showAppDialog = useShowAppDialog();
+
+  const onJobDeploy = () => {
+    showAppDialog(DeployServiceDialog, { onDeploy: () => {} });
+  };
 
   // TODO: set correct values in Widgets
 
@@ -69,7 +75,7 @@ function Jobs(props) {
       <Button
         variant="contained"
         color="primary"
-        onClick={onJobAdd}
+        onClick={onJobDeploy}
         className={`${className} button`}
       >
         {`${t('run')} ${t('job')}`}
