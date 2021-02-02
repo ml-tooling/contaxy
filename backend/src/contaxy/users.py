@@ -26,11 +26,12 @@ fake_users_db: Dict[str, dict] = {
 
 
 class User(BaseModel):
+    id: str
     username: str
     password: str
     email: Optional[str]
-    full_name: Optional[str]
-    scopes: List[str] = []
+    display_name: Optional[str]
+    permissions: List[str] = []
 
 
 class UserManager:
