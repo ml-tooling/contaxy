@@ -10,7 +10,8 @@ import MenuItem from '@material-ui/core/MenuItem';
 
 import { API_EXPLORER_URL, DOCUMENTATION_URL } from '../../utils/config';
 import { fetchAPIToken } from '../../services/lab-api';
-import useApiTokenDialog from '../../app/useApiTokenDialog';
+import { useShowAppDialog } from '../../app/AppDialogServiceProvider';
+import ApiTokenDialog from '../ApiTokenDialog';
 
 const ID_MENU_APPBAR = 'menu-appbar';
 const REL = 'noopener noreferrer';
@@ -18,8 +19,8 @@ const REL = 'noopener noreferrer';
 function UserMenu(props) {
   const { t } = useTranslation();
   const [anchorEl, setAnchorEl] = useState();
-  const { showApiTokenDialog, ApiTokenDialog } = useApiTokenDialog();
   const { className, user } = props;
+  const showAppDialog = useShowAppDialog();
 
   const handleClose = () => setAnchorEl(null);
   const handleMenuClick = (event) => setAnchorEl(event.currentTarget);
@@ -27,7 +28,7 @@ function UserMenu(props) {
   const handleApiTokenClick = async () => {
     // TODO: pass correct resource for which the API Token should be generated
     const fetchedToken = await fetchAPIToken(user);
-    showApiTokenDialog(JSON.stringify(fetchedToken));
+    showAppDialog(ApiTokenDialog, { token: JSON.stringify(fetchedToken) });
   };
 
   return (
@@ -71,8 +72,6 @@ function UserMenu(props) {
         </MenuItem>
         <MenuItem onClick={handleApiTokenClick}>{t('Get API token')}</MenuItem>
       </Menu>
-
-      <ApiTokenDialog />
     </div>
   );
 }

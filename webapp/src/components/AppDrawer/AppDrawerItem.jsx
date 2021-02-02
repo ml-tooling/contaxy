@@ -19,13 +19,31 @@ import DialogTitle from '@material-ui/core/DialogTitle';
 import DialogContent from '@material-ui/core/DialogContent';
 import DialogContentText from '@material-ui/core/DialogContentText';
 
-import useAppDialog from '../../app/useAppDialog';
+import { useShowAppDialog } from '../../app/AppDialogServiceProvider';
+
+const PluginDialog = ({ onClose }) => (
+  <Dialog open>
+    <DialogTitle>ADD PLUGIN</DialogTitle>
+    <DialogContent>
+      <DialogContentText>CONTENT HERE</DialogContentText>
+    </DialogContent>
+    <DialogActions>
+      <Button onClick={onClose} color="primary">
+        OK
+      </Button>
+    </DialogActions>
+  </Dialog>
+);
+
+PluginDialog.propTypes = {
+  onClose: PropTypes.func.isRequired,
+};
 
 function AppDrawerItem(props) {
   const { t } = useTranslation();
   const location = useLocation();
-  const { show, hide, RenderAppDialog } = useAppDialog();
   const { className, item } = props;
+  const showAppDialog = useShowAppDialog();
 
   const path = item.PATH ? item.PATH : '';
 
@@ -40,6 +58,7 @@ function AppDrawerItem(props) {
 
   // TODO: split different types into different components
   let element = null;
+
   if (item.TYPE === 'link') {
     const isActive = location.pathname === item.PATH;
 
@@ -98,7 +117,11 @@ function AppDrawerItem(props) {
     // TODO: use dynamic information for content etc.
     element = (
       <>
-        <ListItem button onClick={show} className={`${className} listItem`}>
+        <ListItem
+          button
+          onClick={() => showAppDialog(PluginDialog)}
+          className={`${className} listItem`}
+        >
           <Tooltip
             title={<div className={`${className} tooltip`}>{item.TOOLTIP}</div>}
             placement="bottom"
@@ -113,19 +136,6 @@ function AppDrawerItem(props) {
             {item.NAME}
           </ListItemText>
         </ListItem>
-        <RenderAppDialog>
-          <Dialog open>
-            <DialogTitle>ADD PLUGIN</DialogTitle>
-            <DialogContent>
-              <DialogContentText>CONTENT HERE</DialogContentText>
-            </DialogContent>
-            <DialogActions>
-              <Button onClick={hide} color="primary">
-                OK
-              </Button>
-            </DialogActions>
-          </Dialog>
-        </RenderAppDialog>
       </>
     );
   }

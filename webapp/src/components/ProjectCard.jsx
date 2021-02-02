@@ -12,12 +12,14 @@ import Typography from '@material-ui/core/Typography';
 
 import * as Jdenticon from 'jdenticon';
 
-import useApiTokenDialog from '../app/useApiTokenDialog';
 import { fetchAPIToken } from '../services/lab-api';
 import showStandardSnackbar from '../app/showStandardSnackbar';
+import { useShowAppDialog } from '../app/AppDialogServiceProvider';
+import ApiTokenDialog from './ApiTokenDialog';
 
 function ProjectCard(props) {
-  const { showApiTokenDialog, ApiTokenDialog } = useApiTokenDialog();
+  const showAppDialog = useShowAppDialog();
+
   const { onSelect, project } = props;
   const svgRef = useRef(null);
   useEffect(() => {
@@ -27,8 +29,10 @@ function ProjectCard(props) {
   const handleApiTokenClick = async () => {
     // TODO: pass correct resource for which the API Token should be generated
     const fetchedToken = await fetchAPIToken('foobar');
-    showApiTokenDialog(fetchedToken);
+    showAppDialog(ApiTokenDialog, { token: fetchedToken });
   };
+
+  // const handleManageMembersClick = () => {};
 
   const handleProjectSelectClick = () => {
     showStandardSnackbar(`Change to project '${project.name}'`);
@@ -46,10 +50,7 @@ function ProjectCard(props) {
         <Card>
           <CardHeader
             avatar={
-              <Avatar
-                alt={project.name}
-                // src={imageUrl}
-              >
+              <Avatar alt={project.name}>
                 <svg
                   ref={svgRef}
                   width="60"
@@ -73,8 +74,6 @@ function ProjectCard(props) {
           </CardActions>
         </Card>
       </Grid>
-
-      <ApiTokenDialog />
     </>
   );
 }

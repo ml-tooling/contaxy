@@ -26,7 +26,6 @@ function App() {
       <main className="main">
         <ContentContainer />
       </main>
-      <div id="app-dialog" />
       <div id="snackbar-container" />
     </div>
   );
