@@ -34,6 +34,7 @@ function UserMenu(props) {
   return (
     <div className={`${className} container`}>
       <IconButton
+        aria-label="usermenu"
         aria-owns={ID_MENU_APPBAR}
         className={`${className} iconButton`}
         onClick={handleMenuClick}
