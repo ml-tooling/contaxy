@@ -34,6 +34,7 @@ function ProjectSelector(props) {
     //   TODO: add div container?
     <FormControl className={`${className} formControl`}>
       <Select
+        aria-label="projectselector"
         className={`${className} select`}
         value={selectId}
         input={<Input id="select-project" />}
