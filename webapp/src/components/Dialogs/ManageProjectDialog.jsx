@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
 import styled from 'styled-components';
 
+import AccountCircle from '@material-ui/icons/AccountCircle';
 import Autocomplete from '@material-ui/lab/Autocomplete';
 import Button from '@material-ui/core/Button';
 import Dialog from '@material-ui/core/Dialog';
@@ -15,6 +16,7 @@ import ListItem from '@material-ui/core/ListItem';
 import ListItemText from '@material-ui/core/ListItemText';
 import ListItemSecondaryAction from '@material-ui/core/ListItemSecondaryAction';
 import TextField from '@material-ui/core/TextField';
+import Typography from '@material-ui/core/Typography';
 
 import GlobalStateContainer from '../../app/store';
 
@@ -46,16 +48,18 @@ function ManageProjectDialog(props) {
 
   return (
     <Dialog open>
-      <DialogTitle>Members of Your Project</DialogTitle>
+      <DialogTitle>Manage Project {project.name}</DialogTitle>
       <DialogContent>
+        <Typography variant="subtitle1">Members of Your Project:</Typography>
         <List>
           {projectMembers.map((member) => {
             return (
               <ListItem key={member.id}>
+                <AccountCircle />
                 <ListItemText primary={member.name} />
                 <ListItemSecondaryAction>
                   <IconButton onClick={handleRemoveMemberFromProject}>
-                    <HighlightOff />
+                    <HighlightOff color="secondary" />
                   </IconButton>
                 </ListItemSecondaryAction>
               </ListItem>
@@ -63,6 +67,12 @@ function ManageProjectDialog(props) {
           })}
         </List>
         {/* <Input value={userToAdd} placeholder="Search users" /> */}
+        <Typography
+          className={`${className} addUserHeader`}
+          variant="subtitle1"
+        >
+          Add users:
+        </Typography>
         <div className={`${className} userInputContainer`}>
           <Autocomplete
             className={`${className} userInputField`}
@@ -70,6 +80,7 @@ function ManageProjectDialog(props) {
             onChange={handleSelectUser}
             openOnFocus
             options={users}
+            size="small"
             renderInput={(params) => (
               <TextField
                 {...params} // eslint-disable-line react/jsx-props-no-spreading
@@ -108,6 +119,10 @@ ManageProjectDialog.defaultProps = {
 };
 
 const StyledManageProjectDialog = styled(ManageProjectDialog)`
+  &.addUserHeader {
+    margin-top: 16px;
+  }
+
   &.userInputContainer {
     display: flex;
   }
