@@ -2,7 +2,7 @@ from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 
 from contaxy.auth import Authenticatable, AuthenticationManager, Token
-from contaxy.users import User
+from contaxy.user import User
 from contaxy.utils.api_utils import patch_fastapi
 
 from .dependencies import get_authenticatable, get_authenticated_user, get_authenticator

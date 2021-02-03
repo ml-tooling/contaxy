@@ -6,7 +6,7 @@ from passlib.context import CryptContext
 from pydantic import BaseModel
 
 from contaxy.config import Settings
-from contaxy.users import BaseUserManager, User
+from contaxy.user import BaseUserManager, User
 
 
 class Token(BaseModel):

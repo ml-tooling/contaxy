@@ -1,33 +1,8 @@
 from abc import ABC, abstractmethod
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 from pydantic import BaseModel
-
-fake_users_db: Dict[str, dict] = {
-    "1": {
-        "id": "1",
-        "username": "admin",
-        "email": "admin@mltooling.org",
-        "full_name": "Lukas Podolski",
-        "password": "$2b$12$zzWEQiyZ6BWAprjS9Wg90eOA3QlS1nBrKWVhhNKGR9rSNaY0Z6JZ.",
-        "scopes": ["admin"],
-    },
-    "2": {
-        "id": "2",
-        "username": "johndoe",
-        "full_name": "John Doe",
-        "email": "johndoe@example.com",
-        "password": "$2b$12$TMntBg236.H/HLDw/cIJY.pnE7JPBekI3Jlk5/Fb4Pq0ZRsr75hqG",
-    },
-    "3": {
-        "id": "3",
-        "username": "hanspeter",
-        "full_name": "Hans Peter",
-        "email": "hanspeter@example.com",
-        "password": "$2b$12$trFr5B9mpkghxqsoM2C8jOjTMil37Ohpmhh9p2dsx0EssTdb75Mo.",
-        "disabled": False,
-    },
-}
+from pymongo.database import Database
 
 
 class UserIn(BaseModel):
@@ -75,6 +50,13 @@ class BaseUserManager(ABC):
 
 
 class UserManager(BaseUserManager):
+
+    USERS_COLLECTION = "users"
+
+    def __init__(self, db: Database) -> None:
+        super().__init__()
+        self._db = db
+
     def create_user(self, user: UserIn) -> User:
         pass
 
@@ -84,15 +66,20 @@ class UserManager(BaseUserManager):
         username: Optional[str] = None,
         email: Optional[str] = None,
     ) -> Optional[User]:
-        # Todo: Implement
+        collection = self._db[self.USERS_COLLECTION]
         if id:
-            return User(**fake_users_db[id])
+            user_data = collection.find_one({"id": id})
+        elif username:
+            user_data = collection.find_one({"username": username})
+        elif email:
+            user_data = collection.find_one({"email": email})
+        else:
+            raise ValueError("Missing user identifier")
 
-        for user in fake_users_db.values():
-            if username == user.get("username"):
-                return User(**user)
-            if email == user.get("email"):
-                return User(**user)
+        if not user_data:
+            return None
+
+        return User(**user_data)
 
         return None
 

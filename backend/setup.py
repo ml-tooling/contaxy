@@ -56,6 +56,7 @@ setup(
         "python-jose[cryptography]",
         # Used for password hashing
         "passlib[bcrypt]",
+        "pymongo",
     ],
     # deprecated: dependency_links=dependency_links,
     extras_require={
