@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import List, Optional
 
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -14,7 +14,12 @@ class Token(BaseModel):
     token_type: str = "bearer"
 
 
-class Authenticator:
+class Authenticatable(BaseModel):
+    id: str
+    permissions: List[str] = []
+
+
+class AuthenticationManager:
     def __init__(
         self,
         settings: Settings,
@@ -36,7 +41,8 @@ class Authenticator:
         return self.pwd_context.verify(plain_password, hashed_password)
 
     def create_access_token(self, user: User) -> Token:
-        to_encode: dict = {"sub": user.username, "scopes": user.permissions}
+        # ? Should we use the user.id here?
+        to_encode: dict = {"sub": user.id, "scopes": user.permissions}
 
         if self.settings.acces_token_expiry_minutes:
             expire = datetime.utcnow() + timedelta(
@@ -50,7 +56,7 @@ class Authenticator:
 
         return Token(access_token=encoded_jwt)
 
-    def get_user(self, token: str) -> Optional[User]:
+    def get_authenticatable(self, token: str) -> Optional[Authenticatable]:
         try:
             payload = jwt.decode(
                 token,
@@ -59,7 +65,16 @@ class Authenticator:
             )
         except JWTError:
             return None
-        username: str = payload.get("sub")
-        if not username:
+
+        data = {"id": payload.get("sub"), "permissions": payload.get("scopes", [])}
+
+        if not data.get("id"):
             return None
-        return self.user_manager.get_user(username=username)
+
+        return Authenticatable(**data)
+
+    def get_user(self, token: str) -> Optional[User]:
+        auth = self.get_authenticatable(token)
+        if not auth:
+            return None
+        return self.user_manager.get_user(id=auth.id)

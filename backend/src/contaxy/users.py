@@ -4,21 +4,22 @@ from typing import Dict, List, Optional
 from pydantic import BaseModel
 
 fake_users_db: Dict[str, dict] = {
-    "admin": {
+    "1": {
         "id": "1",
         "username": "admin",
         "email": "admin@mltooling.org",
+        "full_name": "Lukas Podolski",
         "password": "$2b$12$zzWEQiyZ6BWAprjS9Wg90eOA3QlS1nBrKWVhhNKGR9rSNaY0Z6JZ.",
         "scopes": ["admin"],
     },
-    "johndoe": {
+    "2": {
         "id": "2",
         "username": "johndoe",
         "full_name": "John Doe",
         "email": "johndoe@example.com",
         "password": "$2b$12$TMntBg236.H/HLDw/cIJY.pnE7JPBekI3Jlk5/Fb4Pq0ZRsr75hqG",
     },
-    "hanspeter": {
+    "3": {
         "id": "3",
         "username": "hanspeter",
         "full_name": "Hans Peter",
@@ -57,7 +58,7 @@ class BaseUserManager(ABC):
         id: Optional[str] = None,
         username: Optional[str] = None,
         email: Optional[str] = None,
-    ) -> User:
+    ) -> Optional[User]:
         pass
 
     @abstractmethod
@@ -82,11 +83,18 @@ class UserManager(BaseUserManager):
         id: Optional[str] = None,
         username: Optional[str] = None,
         email: Optional[str] = None,
-    ) -> User:
-        assert username
-        user_data = fake_users_db.get(username)
-        assert user_data
-        return User(**user_data)
+    ) -> Optional[User]:
+        # Todo: Implement
+        if id:
+            return User(**fake_users_db[id])
+
+        for user in fake_users_db.values():
+            if username == user.get("username"):
+                return User(**user)
+            if email == user.get("email"):
+                return User(**user)
+
+        return None
 
     def get_users(self) -> List[User]:
         pass
