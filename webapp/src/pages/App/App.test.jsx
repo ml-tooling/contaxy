@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 
 import App from './App';
 import { fireEvent, render, screen } from '../../utils/test-custom-render';
-import { APP_NAME } from '../../utils/config';
+import { APP_DRAWER_ITEM_TYPES, APP_NAME, PAGES } from '../../utils/config';
 
 import GlobalStateContainer from '../../app/store';
 
@@ -19,6 +19,26 @@ test('tests the usermenu and its entries', () => {
   expect(screen.getByText(/documentation/i)).toBeInTheDocument();
   expect(screen.getByText(/api_explorer/i)).toBeInTheDocument();
   expect(screen.getByText(/get api token/i)).toBeInTheDocument();
+});
+
+test('test that all link app drawer link items exist', () => {
+  render(<App />);
+  PAGES.filter((page) => page.type === APP_DRAWER_ITEM_TYPES.link).forEach(
+    (page) => {
+      expect(screen.queryAllByText(page.NAME).length > 0);
+    }
+  );
+});
+
+test('add plugin dialog', () => {
+  render(<App />);
+  const addPluginDialogButton = screen.getByText(/add plugin/i);
+  fireEvent.click(addPluginDialogButton);
+  const addPluginDialog = screen.getByRole('dialog');
+  expect(addPluginDialog).toBeInTheDocument();
+  expect(
+    addPluginDialog.getElementsByTagName('h2')[0].innerText === /add plugin/i
+  );
 });
 
 test('tests global state', () => {
