@@ -5,7 +5,7 @@ from fastapi.security import OAuth2PasswordBearer
 from pymongo import MongoClient
 from pymongo.database import Database
 
-from contaxy.auth import Authenticatable, AuthenticationManager
+from contaxy.auth import Authenticatable, AuthManager
 from contaxy.config import Settings
 from contaxy.user import BaseUserManager, User, UserManager
 
@@ -30,19 +30,20 @@ def get_user_manager(db: Database = Depends(get_db)) -> BaseUserManager:
     return UserManager(db)
 
 
-def get_authenticator(
+def get_auth_manager(
     settings: Settings = Depends(get_settings),
     user_manager: UserManager = Depends(get_user_manager),
-) -> AuthenticationManager:
-    return AuthenticationManager(settings, user_manager)
+) -> AuthManager:
+    return AuthManager(settings, user_manager)
 
 
 def get_authenticatable(
     token: str = Depends(oauth2_scheme),
-    authenticator: AuthenticationManager = Depends(get_authenticator),
+    auth_manager: AuthManager = Depends(get_auth_manager),
 ) -> Authenticatable:
 
-    auth = authenticator.get_authenticatable(token)
+    auth = auth_manager.get_authenticatable(token)
+
     if auth:
         return auth
 
@@ -54,10 +55,9 @@ def get_authenticatable(
 
 def get_authenticated_user(
     token: str = Depends(oauth2_scheme),
-    authenticator: AuthenticationManager = Depends(get_authenticator),
+    auth_manager: AuthManager = Depends(get_auth_manager),
 ) -> User:
-
-    user = authenticator.get_user(token)
+    user = auth_manager.get_user(token)
     if user:
         return user
 

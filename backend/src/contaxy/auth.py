@@ -4,9 +4,11 @@ from typing import List, Optional
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel
+from pydantic.types import SecretStr
 
 from contaxy.config import Settings
-from contaxy.user import BaseUserManager, User
+from contaxy.exceptions import AuthenticationError
+from contaxy.user import BaseUserManager, User, UserIn
 
 
 class Token(BaseModel):
@@ -19,7 +21,7 @@ class Authenticatable(BaseModel):
     permissions: List[str] = []
 
 
-class AuthenticationManager:
+class AuthManager:
     def __init__(
         self,
         settings: Settings,
@@ -29,7 +31,25 @@ class AuthenticationManager:
         self.user_manager = user_manager
         self.pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-    def authenticate_user(self, username: str, password: str) -> Optional[User]:
+    def register_user(self, user: UserIn) -> User:
+        if self.settings.user_registration_disabled:
+            raise AuthenticationError(AuthenticationError.USER_REGISTRATION_DEACTIVATED)
+        if self.user_manager.get_user(user.username):
+            raise AuthenticationError(AuthenticationError.USERNAME_EXISTS)
+        if self.user_manager.get_user(email=user.email):
+            raise AuthenticationError(AuthenticationError.EMAIL_EXISTS)
+
+        user.password = SecretStr(
+            self.pwd_context.hash(user.password.get_secret_value())
+        )
+
+        # Todo: Enforce password policy here
+        new_user = self.user_manager.create_user(user)
+        if not new_user:
+            raise AuthenticationError(AuthenticationError.USER_REGISTRATION_FAILED)
+        return new_user
+
+    def authenticate_user(self, username: str, password: SecretStr) -> Optional[User]:
         user = self.user_manager.get_user(username=username)
         if not user:
             return None
@@ -37,11 +57,13 @@ class AuthenticationManager:
             return None
         return user
 
-    def verify_password(self, plain_password: str, hashed_password: str):
-        return self.pwd_context.verify(plain_password, hashed_password)
+    def verify_password(self, password: SecretStr, hashed_password: SecretStr):
+        return self.pwd_context.verify(
+            password.get_secret_value(), hashed_password.get_secret_value()
+        )
 
     def create_access_token(self, user: User) -> Token:
-        # ? Should we use the user.id here?
+        # Todo: Add dedicated field for the user id
         to_encode: dict = {"sub": user.id, "scopes": user.permissions}
 
         if self.settings.acces_token_expiry_minutes:
@@ -77,4 +99,4 @@ class AuthenticationManager:
         auth = self.get_authenticatable(token)
         if not auth:
             return None
-        return self.user_manager.get_user(id=auth.id)
+        return self.user_manager.get_user_by_id(auth.id)

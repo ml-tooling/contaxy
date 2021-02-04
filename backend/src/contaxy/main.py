@@ -1,13 +1,49 @@
-from fastapi import Depends, FastAPI, HTTPException, status
-from fastapi.security import OAuth2PasswordRequestForm
+from typing import Optional
 
-from contaxy.auth import Authenticatable, AuthenticationManager, Token
-from contaxy.user import User
+from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi.param_functions import Form
+from fastapi.security import OAuth2PasswordRequestForm
+from pydantic.networks import EmailStr
+from pydantic.types import SecretStr
+
+from contaxy.auth import Authenticatable, AuthManager, Token
+from contaxy.exceptions import AuthenticationError
+from contaxy.user import User, UserIn
 from contaxy.utils.api_utils import patch_fastapi
 
-from .dependencies import get_authenticatable, get_authenticated_user, get_authenticator
+from .dependencies import get_auth_manager, get_authenticatable, get_authenticated_user
 
 app = FastAPI()
+
+
+@app.post("/auth/register")
+def register(
+    username: str = Form(...),
+    password: str = Form(...),
+    email: Optional[str] = Form(None),
+    display_name: Optional[str] = Form(None),
+    auth_manager: AuthManager = Depends(get_auth_manager),
+) -> User:
+
+    user_data = {"username": username, "password": SecretStr(password)}
+
+    if email:
+        user_data.update({"email": EmailStr(email)})
+    if display_name:
+        user_data.update({"display_name": display_name})
+
+    user = UserIn(**user_data)
+
+    try:
+        # ? Shall the user be logged in directly in
+        return auth_manager.register_user(user)
+    except AuthenticationError as e:
+        status_code = (
+            status.HTTP_403_FORBIDDEN
+            if e.reason == AuthenticationError.USER_REGISTRATION_DEACTIVATED
+            else status.HTTP_409_CONFLICT
+        )
+        raise HTTPException(status_code, e.msg)
 
 
 @app.post(
@@ -15,14 +51,13 @@ app = FastAPI()
 )
 def login_oauth(
     data: OAuth2PasswordRequestForm = Depends(),
-    authenticator: AuthenticationManager = Depends(get_authenticator),
+    authenticator: AuthManager = Depends(get_auth_manager),
 ) -> Token:
-    user = authenticator.authenticate_user(data.username, data.password)
+    user = authenticator.authenticate_user(data.username, SecretStr(data.password))
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
-            headers={"WWW-Authenticate": "Bearer"},
         )
     token = authenticator.create_access_token(user)
     return token

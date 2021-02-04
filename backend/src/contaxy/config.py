@@ -10,3 +10,4 @@ class Settings(BaseSettings):
     mongo_host = "localhost"
     mongo_port = 27017
     mongo_db_name = "contaxy"
+    user_registration_disabled = False
