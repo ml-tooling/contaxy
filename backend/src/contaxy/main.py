@@ -1,14 +1,10 @@
-from typing import Optional
-
 from fastapi import Depends, FastAPI, HTTPException, status
-from fastapi.param_functions import Form
 from fastapi.security import OAuth2PasswordRequestForm
-from pydantic.networks import EmailStr
 from pydantic.types import SecretStr
 
-from contaxy.auth import Authenticatable, AuthManager, Token
+from contaxy.auth import Authenticatable, AuthManager, LoginForm, Token
 from contaxy.exceptions import AuthenticationError
-from contaxy.user import User, UserIn
+from contaxy.user import User, UserIn, UserOut
 from contaxy.utils.api_utils import patch_fastapi
 
 from .dependencies import get_auth_manager, get_authenticatable, get_authenticated_user
@@ -18,25 +14,26 @@ app = FastAPI()
 
 @app.post("/auth/register")
 def register(
-    username: str = Form(...),
-    password: str = Form(...),
-    email: Optional[str] = Form(None),
-    display_name: Optional[str] = Form(None),
+    login_data: LoginForm = Depends(),
     auth_manager: AuthManager = Depends(get_auth_manager),
-) -> User:
+) -> UserOut:
 
-    user_data = {"username": username, "password": SecretStr(password)}
+    user_data = {
+        "username": login_data.username,
+        "password": SecretStr(login_data.password),
+    }
 
-    if email:
-        user_data.update({"email": EmailStr(email)})
-    if display_name:
-        user_data.update({"display_name": display_name})
+    if login_data.email:
+        user_data.update({"email": login_data.email})
+    if login_data.display_name:
+        user_data.update({"display_name": login_data.display_name})
 
     user = UserIn(**user_data)
 
     try:
         # ? Shall the user be logged in directly in
-        return auth_manager.register_user(user)
+        new_user = auth_manager.register_user(user)
+        return new_user
     except AuthenticationError as e:
         status_code = (
             status.HTTP_403_FORBIDDEN
@@ -53,14 +50,13 @@ def login_oauth(
     data: OAuth2PasswordRequestForm = Depends(),
     authenticator: AuthManager = Depends(get_auth_manager),
 ) -> Token:
-    user = authenticator.authenticate_user(data.username, SecretStr(data.password))
-    if not user:
+    try:
+        return authenticator.authenticate_user(data.username, SecretStr(data.password))
+    except AuthenticationError as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
+            detail=e.msg,
         )
-    token = authenticator.create_access_token(user)
-    return token
 
 
 @app.get("/hello")

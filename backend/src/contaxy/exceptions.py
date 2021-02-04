@@ -26,6 +26,8 @@ class AuthenticationError(ContaxyBaseError):
     EMAIL_EXISTS = 2
     USER_REGISTRATION_DEACTIVATED = 3
     USER_REGISTRATION_FAILED = 4
+    UNKNOWN_USERNAME = 5
+    INCORRECT_PASSWORD = 6
 
     def __init__(self, reason: int, predecessor_excp: Optional[Exception] = None):
         self.reason = reason
@@ -41,6 +43,10 @@ class AuthenticationError(ContaxyBaseError):
         elif self.reason == self.USER_REGISTRATION_DEACTIVATED:
             return "User registration is not active. Please contact your administrator."
         elif self.reason == self.USER_REGISTRATION_FAILED:
-            return "User registration failed."
+            return "User registration failed"
+        elif self.reason == self.UNKNOWN_USERNAME:
+            return "Unknown username"
+        elif self.reason == self.INCORRECT_PASSWORD:
+            return "Incorrect password"
         else:
             return "Authorization error"
