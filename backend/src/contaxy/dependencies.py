@@ -9,7 +9,7 @@ from contaxy.auth import Authenticatable, AuthenticationManager
 from contaxy.config import Settings
 from contaxy.user import BaseUserManager, User, UserManager
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
 
 def get_settings():

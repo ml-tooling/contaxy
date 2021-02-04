@@ -11,7 +11,7 @@ app = FastAPI()
 
 
 @app.post(
-    "/login",
+    "/auth/login",
 )
 def login_oauth(
     data: OAuth2PasswordRequestForm = Depends(),
