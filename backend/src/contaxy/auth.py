@@ -1,9 +1,11 @@
 from datetime import datetime, timedelta
 from typing import List, Optional
 
+from fastapi.param_functions import Form
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel
+from pydantic.networks import EmailStr
 from pydantic.types import SecretStr
 
 from contaxy.config import Settings
@@ -100,3 +102,20 @@ class AuthManager:
         if not auth:
             return None
         return self.user_manager.get_user_by_id(auth.id)
+
+
+class LoginForm:
+    def __init__(
+        self,
+        username: str = Form(..., description="Username"),
+        password: str = Form(..., description="Password"),
+        email: Optional[EmailStr] = Form(None, description="Email"),
+        display_name: Optional[str] = Form(
+            None,
+            description="The display name can be chosen arbritarily. It can be changed anytime by updating the user data.",
+        ),
+    ):
+        self.username = username
+        self.password = password
+        self.email = email
+        self.display_name = display_name

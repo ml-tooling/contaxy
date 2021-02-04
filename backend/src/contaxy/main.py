@@ -1,12 +1,8 @@
-from typing import Optional
-
 from fastapi import Depends, FastAPI, HTTPException, status
-from fastapi.param_functions import Form
 from fastapi.security import OAuth2PasswordRequestForm
-from pydantic.networks import EmailStr
 from pydantic.types import SecretStr
 
-from contaxy.auth import Authenticatable, AuthManager, Token
+from contaxy.auth import Authenticatable, AuthManager, LoginForm, Token
 from contaxy.exceptions import AuthenticationError
 from contaxy.user import User, UserIn
 from contaxy.utils.api_utils import patch_fastapi
@@ -18,19 +14,19 @@ app = FastAPI()
 
 @app.post("/auth/register")
 def register(
-    username: str = Form(...),
-    password: str = Form(...),
-    email: Optional[str] = Form(None),
-    display_name: Optional[str] = Form(None),
+    login_data: LoginForm = Depends(),
     auth_manager: AuthManager = Depends(get_auth_manager),
 ) -> User:
 
-    user_data = {"username": username, "password": SecretStr(password)}
+    user_data = {
+        "username": login_data.username,
+        "password": SecretStr(login_data.password),
+    }
 
-    if email:
-        user_data.update({"email": EmailStr(email)})
-    if display_name:
-        user_data.update({"display_name": display_name})
+    if login_data.email:
+        user_data.update({"email": login_data.email})
+    if login_data.display_name:
+        user_data.update({"display_name": login_data.display_name})
 
     user = UserIn(**user_data)
 
