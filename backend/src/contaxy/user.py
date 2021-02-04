@@ -8,20 +8,19 @@ from pydantic.types import SecretStr
 from pymongo.database import Database
 
 
-class UserIn(BaseModel):
+class UserOut(BaseModel):
     username: str
-    password: SecretStr
     email: Optional[EmailStr]
     display_name: Optional[str]
-    permissions: List[str] = []
 
 
-class User(BaseModel):
+class UserIn(UserOut):
+    password: SecretStr
+
+
+class User(UserIn):
     id: str
-    username: str
     password: SecretStr
-    email: Optional[EmailStr]
-    display_name: Optional[str]
     permissions: List[str] = []
 
 
@@ -46,7 +45,7 @@ class BaseUserManager(ABC):
         pass
 
     @abstractmethod
-    def get_users(self) -> List[User]:
+    def get_users(self) -> List[UserOut]:
         pass
 
     @abstractmethod
@@ -87,7 +86,6 @@ class UserManager(BaseUserManager):
 
         if not username and not email:
             return None
-        collection = self._db[self.USERS_COLLECTION]
 
         filter = {}
 
@@ -96,11 +94,11 @@ class UserManager(BaseUserManager):
         if email:
             filter.update({"email": email})
 
-        user_data = collection.find_one(filter)
+        user_data = self._collection.find_one(filter)
 
         return User(**user_data) if user_data else None
 
-    def get_users(self) -> List[User]:
+    def get_users(self) -> List[UserOut]:
         pass
 
     def update_user(self, id: str, user: UserIn) -> Optional[User]:

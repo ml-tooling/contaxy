@@ -10,7 +10,7 @@ from pydantic.types import SecretStr
 
 from contaxy.config import Settings
 from contaxy.exceptions import AuthenticationError
-from contaxy.user import BaseUserManager, User, UserIn
+from contaxy.user import BaseUserManager, User, UserIn, UserOut
 
 
 class Token(BaseModel):
@@ -33,7 +33,7 @@ class AuthManager:
         self.user_manager = user_manager
         self.pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-    def register_user(self, user: UserIn) -> User:
+    def register_user(self, user: UserIn) -> UserOut:
         if self.settings.user_registration_disabled:
             raise AuthenticationError(AuthenticationError.USER_REGISTRATION_DEACTIVATED)
         if self.user_manager.get_user(user.username):
@@ -49,17 +49,17 @@ class AuthManager:
         new_user = self.user_manager.create_user(user)
         if not new_user:
             raise AuthenticationError(AuthenticationError.USER_REGISTRATION_FAILED)
-        return new_user
+        return UserOut(**new_user.dict())
 
-    def authenticate_user(self, username: str, password: SecretStr) -> Optional[User]:
-        user = self.user_manager.get_user(username=username)
+    def authenticate_user(self, username: str, password: SecretStr) -> Token:
+        user = self.user_manager.get_user(username)
         if not user:
-            return None
+            raise AuthenticationError(AuthenticationError.UNKNOWN_USERNAME)
         if not self.verify_password(password, user.password):
-            return None
-        return user
+            raise AuthenticationError(AuthenticationError.INCORRECT_PASSWORD)
+        return self.create_access_token(user)
 
-    def verify_password(self, password: SecretStr, hashed_password: SecretStr):
+    def verify_password(self, password: SecretStr, hashed_password: SecretStr) -> bool:
         return self.pwd_context.verify(
             password.get_secret_value(), hashed_password.get_secret_value()
         )
