@@ -56,6 +56,8 @@ setup(
         "python-jose[cryptography]",
         # Used for password hashing
         "passlib[bcrypt]",
+        # Required to use Pydantic's EmailStr type
+        "python-email-validator",
         "pymongo",
     ],
     # deprecated: dependency_links=dependency_links,

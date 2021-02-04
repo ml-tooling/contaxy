@@ -2,13 +2,15 @@ from abc import ABC, abstractmethod
 from typing import List, Optional
 
 from pydantic import BaseModel
+from pydantic.networks import EmailStr
+from pydantic.types import SecretStr
 from pymongo.database import Database
 
 
 class UserIn(BaseModel):
     username: str
-    password: str
-    email: Optional[str]
+    password: SecretStr
+    email: Optional[EmailStr]
     display_name: Optional[str]
     permissions: List[str] = []
 
@@ -16,8 +18,8 @@ class UserIn(BaseModel):
 class User(BaseModel):
     id: str
     username: str
-    password: str
-    email: Optional[str]
+    password: SecretStr
+    email: Optional[EmailStr]
     display_name: Optional[str]
     permissions: List[str] = []
 
