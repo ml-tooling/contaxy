@@ -348,7 +348,9 @@ def create_project(project: data_model.ProjectIn) -> Any:
     tags=["projects"],
     status_code=status.HTTP_200_OK,
 )
-def update_project(project: data_model.ProjectIn) -> Any:
+def update_project(
+    project: data_model.ProjectIn, project_id: str = PROJECT_ID_PARAM
+) -> Any:
     """TODO: add documentation."""
     raise NotImplementedError
 
@@ -790,7 +792,7 @@ def delete_job(
 )
 def get_job_logs(
     project_id: str = PROJECT_ID_PARAM,
-    service_id: str = SERVICE_ID_PARAM,
+    job_id: str = JOB_ID_PARAM,
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
     lines: Optional[int] = Query(None, description="Only show the last n lines."),
 ) -> Any:
@@ -1123,7 +1125,7 @@ def set_extension_defaults(
 @app.get(
     "/extensions/defaults",
     operation_id=data_model.CoreOperations.GET_EXTENSION_DEFAULTS.value,
-    summary="Get extension defaults.",
+    summary="Get extensions defaults.",
     response_model=List[Dict[data_model.TechnicalProject, str]],
     tags=["extensions"],
     status_code=status.HTTP_200_OK,

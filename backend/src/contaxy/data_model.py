@@ -3,16 +3,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Dict, List, Optional, Union
 
-from pydantic import (
-    UUID4,
-    BaseModel,
-    ByteSize,
-    EmailStr,
-    Field,
-    PositiveInt,
-    SecretStr,
-    constr,
-)
+from pydantic import UUID4, BaseModel, ByteSize, EmailStr, Field, constr
 
 MIN_DISPLAY_NAME_LENGTH = 4
 MAX_DISPLAY_NAME_LENGTH = 30
@@ -208,14 +199,16 @@ class User(UserIn):
 
 
 class Quota(BaseEntity):
-    max_cpus: Optional[PositiveInt] = Field(
+    max_cpus: Optional[int] = Field(
         None,
         example=52,
+        ge=1,
         description="Maximum number of CPU cores.",
     )
-    max_memory: Optional[PositiveInt] = Field(
+    max_memory: Optional[int] = Field(
         None,
         example=80000,
+        ge=1,
         description="Maximum amount of memory in Megabyte.",
     )
     max_gpus: Optional[int] = Field(
@@ -224,24 +217,28 @@ class Quota(BaseEntity):
         ge=0,
         description="Maximum number of GPUs.",
     )
-    max_deployment_storage: Optional[PositiveInt] = Field(
+    max_deployment_storage: Optional[int] = Field(
         None,
         example=800000,
+        ge=1,
         description="Maximum storage usage in Megabyte for all deployments.",
     )
-    max_file_storage: Optional[PositiveInt] = Field(
+    max_file_storage: Optional[int] = Field(
         None,
         example=100000,
+        ge=1,
         description="Maximum storage usage in Megabyte for all files.",
     )
-    max_files: Optional[PositiveInt] = Field(
+    max_files: Optional[int] = Field(
         None,
         example=1000,
+        ge=1,
         description="Maximum number of files on file storage.",
     )
-    max_deployments: Optional[PositiveInt] = Field(
+    max_deployments: Optional[int] = Field(
         None,
         example=20,
+        ge=1,
         description="Maximum number of deployments. This includes services, jobs, and extensions.",
     )
 
@@ -365,14 +362,16 @@ class Project(ProjectIn):
 
 
 class DeploymentCompute(BaseEntity):
-    max_cpus: Optional[PositiveInt] = Field(
+    max_cpus: Optional[int] = Field(
         None,
         example=4,
+        ge=1,
         description="Maximum number of CPU cores. Even so the system will try to provide the specified amount, it's only guaranteed that the deployment cannot use more.",
     )
-    max_memory: Optional[PositiveInt] = Field(
+    max_memory: Optional[int] = Field(
         None,
         example=8000,
+        ge=1,
         description="Maximum amount of memory in Megabyte. Even so the system will try to provide the specified amount, it's only guaranteed that the deployment cannot use more.",
     )  # in MB
     max_gpus: Optional[int] = Field(
@@ -387,19 +386,22 @@ class DeploymentCompute(BaseEntity):
         example="/path/to/data",
         description="Container internal directory that should mount a volume for data persistence.",
     )
-    max_volume_size: Optional[PositiveInt] = Field(
+    max_volume_size: Optional[int] = Field(
         None,
         example=32000,
+        ge=1,
         description="Maximum volume size in Megabyte. This is only applied in combination with volume_path.",
     )
-    max_container_size: Optional[PositiveInt] = Field(
+    max_container_size: Optional[int] = Field(
         None,
         example=32000,
+        ge=1,
         description="Maximum container size in Megabyte. The deployment will be killed if it grows above this limit.",
     )
-    max_replicas: Optional[PositiveInt] = Field(
+    max_replicas: Optional[int] = Field(
         1,
         example=2,
+        ge=1,
         description="Maximum number of replicas. The system will make sure to optimize the deployment based on the available resources and requests. Use 1 if the deployment is not scalable.",
     )
     min_lifetime: Optional[timedelta] = Field(
