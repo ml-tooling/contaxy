@@ -27,6 +27,11 @@ def main(args: dict) -> None:
     if args.get(build_utils.FLAG_MAKE):
         # Install pipenv dev requirements
         build_python.install_build_env(exit_on_error=True)
+
+        # Generate the OpenAPI spec so that clients can be generated
+        swagger_path = f"src/{MAIN_PACKAGE}/generate-openapi-specs.py"
+        build_utils.run(f"pipenv run python {swagger_path}")
+
         # Create API documentation via lazydocs
         build_python.generate_api_docs(
             github_url=GITHUB_URL, main_package=MAIN_PACKAGE, exit_on_error=True
