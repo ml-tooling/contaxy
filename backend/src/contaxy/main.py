@@ -2,12 +2,12 @@ from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic.types import SecretStr
 
-from contaxy.auth import Authenticatable, AuthManager, LoginForm, Token
+from contaxy.auth import AuthManager, LoginForm, Token
 from contaxy.exceptions import AuthenticationError
 from contaxy.user import User, UserIn, UserOut
 from contaxy.utils.api_utils import patch_fastapi
 
-from .dependencies import get_auth_manager, get_authenticatable, get_authenticated_user
+from .dependencies import get_auth_manager, get_authenticated_user
 
 app = FastAPI()
 
@@ -59,14 +59,9 @@ def login_oauth(
         )
 
 
-@app.get("/hello")
-async def hello(user: User = Depends(get_authenticated_user)):
-    return {"message": f"Hello {user.display_name}! The world is yours now!"}
-
-
-@app.get("/hello-auth")
-async def hello_auth(auth: Authenticatable = Depends(get_authenticatable)):
-    return {"message": f"Hello! Your ID is { auth.id }!"}
+@app.get("/users/me")
+def hello(user: User = Depends(get_authenticated_user)) -> UserOut:
+    return UserOut(**user.dict())
 
 
 # Patch Fastapi to allow relative path resolution.
