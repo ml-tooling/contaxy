@@ -1,5 +1,3 @@
-from typing import List
-
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from pymongo import MongoClient
@@ -22,7 +20,6 @@ def get_db(settings: Settings = Depends(get_settings)):
     dblist = client.list_database_names()
     if settings.mongo_db_name not in dblist:
         print(f"Seeding database {settings.mongo_db_name} ...")
-        seed_db(client, settings.mongo_db_name)
     return client["contaxy"]
 
 
@@ -65,18 +62,3 @@ def get_authenticated_user(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
     )
-
-
-def seed_db(client: MongoClient, db_name: str):
-    # Todo: Will be removed
-    fake_users_db: List[dict] = [
-        {
-            "id": "1",
-            "username": "admin",
-            "email": "admin@mltooling.org",
-            "display_name": "Lukas Podolski",
-            "password": "$2b$12$zzWEQiyZ6BWAprjS9Wg90eOA3QlS1nBrKWVhhNKGR9rSNaY0Z6JZ.",
-            "permissions": ["admin"],
-        },
-    ]
-    client[db_name].users.insert_many(fake_users_db)

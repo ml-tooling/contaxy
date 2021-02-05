@@ -77,6 +77,8 @@ setup(
             "pydocstyle",
             "isort",
             "lazydocs",
+            # Todo: Move to required when necessary
+            "docker",
         ],
     },
     include_package_data=True,
