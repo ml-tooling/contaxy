@@ -59,14 +59,9 @@ def login_oauth(
         )
 
 
-@app.get("/hello")
-async def hello(user: User = Depends(get_authenticated_user)):
-    return {"message": f"Hello {user.display_name}! The world is yours now!"}
-
-
-@app.get("/hello-auth")
-async def hello_auth(auth: Authenticatable = Depends(get_authenticatable)):
-    return {"message": f"Hello! Your ID is { auth.id }!"}
+@app.get("/users/me")
+def hello(user: User = Depends(get_authenticated_user)) -> UserOut:
+    return UserOut(**user.dict())
 
 
 # Patch Fastapi to allow relative path resolution.
