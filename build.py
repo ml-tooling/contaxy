@@ -1,10 +1,8 @@
-import glob
-import os
-import pathlib
-import shutil
+"""Root build.py for the Contaxy project. Will also execute the build.py in sub-directories."""
 
-import urllib3
-from universal_build import build_utils
+import os
+
+from universal_build import build_utils, openapi_utils
 from universal_build.helpers import build_docker, build_python
 
 HERE = os.path.abspath(os.path.dirname(__file__))
@@ -14,58 +12,6 @@ DOCS_COMPONENT = "docs"
 PYTHON_LIB_COMPONENT = "backend"
 DOCKER_IMAGE_PREFIX = "mltooling"
 COMPONENT_NAME = "contaxy"
-
-
-def check_and_download_swagger_cli(file_path: str) -> bool:
-    if not pathlib.Path(file_path).is_file():
-        # build_utils.run('wget https://repo1.maven.org/maven2/io/swagger/codegen/v3/swagger-codegen-cli/3.0.23/swagger-codegen-cli-3.0.23.jar -O ./swagger-codegen-cli.jar')
-        swagger_codegen_cli_download_url = "https://repo1.maven.org/maven2/io/swagger/codegen/v3/swagger-codegen-cli/3.0.23/swagger-codegen-cli-3.0.23.jar"
-        response = urllib3.PoolManager().request(
-            "GET", swagger_codegen_cli_download_url
-        )
-        if response.status == 200:
-            with open(file_path, "wb") as f:
-                f.write(response.data)
-        else:
-            return False
-    return True
-
-
-def generate_and_copy_js_client(swagger_path) -> bool:
-    temp_dir = "./temp"
-    pathlib.Path(temp_dir).mkdir(exist_ok=True)
-    swagger_codegen_cli = f"{temp_dir}/swagger-codegen-cli.jar"
-    is_successful = check_and_download_swagger_cli(swagger_codegen_cli)
-    if not is_successful:
-        return False
-    output_path = f"{temp_dir}/client"
-    if not pathlib.Path(swagger_path).is_file():
-        build_utils.log(f"The OpenAPI spec file {swagger_path} does not exist")
-        return False
-
-    build_utils.run(
-        f"java -jar {swagger_codegen_cli} generate -i {swagger_path} -l javascript -o {output_path} --additional-properties useES6=true"
-    )
-    # shutil.move(f"{output_path}/src/", "./webapp/src/services/mllab-client")
-    try:
-        for file in pathlib.Path(f"{output_path}/src/").iterdir():
-            file_name = str(file.parts[-1])
-            target_file_path = f"./webapp/src/services/contaxy-client/{file_name}"
-            print(target_file_path)
-            # Delete existing client files to be replaced with the new ones
-            path = pathlib.Path(target_file_path)
-            if path.exists():
-                if path.is_file():
-                    path.unlink()
-                elif path.is_dir():
-                    shutil.rmtree(target_file_path)
-            else:
-                path.mkdir(parents=True, exist_ok=True)
-            shutil.move(str(file), target_file_path)
-    except FileNotFoundError as e:
-        build_utils.log(str(e))
-        return False
-    return True
 
 
 def main(args: dict) -> None:
@@ -87,12 +33,19 @@ def main(args: dict) -> None:
             f"./{PYTHON_LIB_COMPONENT}/docs/", f"./{DOCS_COMPONENT}/docs/api-docs/"
         )
 
-        is_successful = generate_and_copy_js_client(
-            f"./{PYTHON_LIB_COMPONENT}/openapi.json"
+        output_path = openapi_utils.generate_openapi_js_client(
+            openapi_spec_file=f"./{PYTHON_LIB_COMPONENT}/openapi.json"
         )
+        is_successful = False
+        if output_path:
+            is_successful = openapi_utils.copy_openapi_client(
+                source_dir=f"{output_path}/src",
+                target_dir="./webapp/src/services/contaxy-client/",
+            )
+
         if not is_successful:
             build_utils.log("Error in generating the JavaScript client library")
-            build_utils.exit_process(1)
+            # build_utils.exit_process(1)
 
     build_utils.build(WEBAPP_COMPONENT, args)
 
