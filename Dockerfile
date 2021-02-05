@@ -46,7 +46,7 @@ COPY ./docker/server/gunicorn_conf.py /gunicorn_conf.py
 COPY docker/nginx /etc/nginx
 COPY docker/setup-certs.sh /resources/setup-certs.sh
 RUN chmod +x /resources/setup-certs.sh
-COPY webapp/ /resources/webapp
+COPY webapp/build /resources/webapp
 
 ENTRYPOINT ["/bin/bash"]
 CMD ["/resources/entrypoint.sh"]
