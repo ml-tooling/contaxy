@@ -3,9 +3,10 @@ from fastapi.security import OAuth2PasswordBearer
 from pymongo import MongoClient
 from pymongo.database import Database
 
-from contaxy.auth import Authenticatable, AuthManager
-from contaxy.config import Settings
-from contaxy.user import BaseUserManager, User, UserManager
+from .config import Settings
+from .managers.auth import Authenticatable, AuthManager
+from .managers.users import BaseUserManager, UserManager
+from .models.users import User
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 

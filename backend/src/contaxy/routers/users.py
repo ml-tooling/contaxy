@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 
-from contaxy.dependencies import get_authenticated_user
-from contaxy.user import User, UserOut
+from ..dependencies import get_authenticated_user
+from ..models.users import User, UserOut
 
 router = APIRouter(
     prefix="/users",
