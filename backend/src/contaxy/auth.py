@@ -19,7 +19,8 @@ class Token(BaseModel):
 
 
 class Authenticatable(BaseModel):
-    id: str
+    username: str
+    user_id: str
     permissions: List[str] = []
 
 
@@ -65,8 +66,11 @@ class AuthManager:
         )
 
     def create_access_token(self, user: User) -> Token:
-        # Todo: Add dedicated field for the user id
-        to_encode: dict = {"sub": user.id, "scopes": user.permissions}
+        to_encode: dict = {
+            "sub": user.username,
+            "user_id": user.id,
+            "scopes": user.permissions,
+        }
 
         if self.settings.acces_token_expiry_minutes:
             expire = datetime.utcnow() + timedelta(
@@ -90,9 +94,13 @@ class AuthManager:
         except JWTError:
             return None
 
-        data = {"id": payload.get("sub"), "permissions": payload.get("scopes", [])}
+        data = {
+            "username": payload.get("sub"),
+            "user_id": payload.get("sub"),
+            "permissions": payload.get("scopes", []),
+        }
 
-        if not data.get("id"):
+        if not data.get("id") and not data.get("user_id"):
             return None
 
         return Authenticatable(**data)
@@ -101,7 +109,7 @@ class AuthManager:
         auth = self.get_authenticatable(token)
         if not auth:
             return None
-        return self.user_manager.get_user_by_id(auth.id)
+        return self.user_manager.get_user_by_id(auth.user_id)
 
 
 class LoginForm:
