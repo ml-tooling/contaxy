@@ -4,12 +4,14 @@ from pydantic.types import SecretStr
 
 from contaxy.auth import AuthManager, LoginForm, Token
 from contaxy.exceptions import AuthenticationError
-from contaxy.user import User, UserIn, UserOut
+from contaxy.user import UserIn, UserOut
 from contaxy.utils.api_utils import patch_fastapi
 
-from .dependencies import get_auth_manager, get_authenticated_user
+from .dependencies import get_auth_manager
+from .routers import users
 
 app = FastAPI()
+app.include_router(users.router)
 
 
 @app.post("/auth/register")
@@ -57,11 +59,6 @@ def login_oauth(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=e.msg,
         )
-
-
-@app.get("/users/me")
-def hello(user: User = Depends(get_authenticated_user)) -> UserOut:
-    return UserOut(**user.dict())
 
 
 # Patch Fastapi to allow relative path resolution.
