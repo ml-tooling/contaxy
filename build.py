@@ -2,8 +2,8 @@
 
 import os
 
-from universal_build import build_utils, openapi_utils
-from universal_build.helpers import build_docker, build_python
+from universal_build import build_utils
+from universal_build.helpers import build_docker, build_python, openapi_utils
 
 HERE = os.path.abspath(os.path.dirname(__file__))
 
@@ -38,9 +38,10 @@ def main(args: dict) -> None:
         )
         is_successful = False
         if output_path:
-            is_successful = openapi_utils.copy_openapi_client(
-                source_dir=f"{output_path}/src",
-                target_dir="./webapp/src/services/contaxy-client/",
+            is_successful = build_utils.copy(
+                src_path=f"{output_path}/src",
+                target_path="./webapp/src/services/contaxy-client/",
+                preserve_target=True,
             )
 
         if not is_successful:
