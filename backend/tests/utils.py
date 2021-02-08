@@ -12,7 +12,10 @@ def start_mongo_db(settings: Settings) -> None:
     delete_container(settings.mongo_host, client)
     try:
         client.containers.run(
-            "mongo:4.2", name=settings.mongo_host, network="ml-workspace", detach=True
+            settings.mongo_db_name,
+            name=settings.mongo_host,
+            network="ml-workspace",
+            detach=True,
         )
         wait_until_container_started(settings.mongo_host, client)
     except docker.errors.APIError:
