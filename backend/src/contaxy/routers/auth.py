@@ -45,7 +45,7 @@ def register(
 
 
 @router.post(
-    "/auth/login",
+    "/login",
 )
 def login_oauth(
     data: OAuth2PasswordRequestForm = Depends(),

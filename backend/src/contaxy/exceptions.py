@@ -6,6 +6,7 @@ class ContaxyBaseError(Exception):
 
     def __init__(self, msg: str, predecessor_excp: Optional[Exception] = None):
         """Constructor method.
+
         Args:
             msg: The error message.
             predecessor_excp: Optionally, a predecessor exception can be passed on.

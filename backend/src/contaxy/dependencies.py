@@ -11,11 +11,11 @@ from .models.users import User
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
 
-def get_settings():
+def get_settings() -> Settings:
     return Settings()
 
 
-def get_db(settings: Settings = Depends(get_settings)):
+def get_db(settings: Settings = Depends(get_settings)) -> Database:
     # Todo: Convert to generator
     client = MongoClient(settings.mongo_host, settings.mongo_port)
     dblist = client.list_database_names()

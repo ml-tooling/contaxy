@@ -10,7 +10,9 @@ from pydantic.types import SecretStr
 
 from contaxy.config import Settings
 from contaxy.exceptions import AuthenticationError
-from contaxy.user import BaseUserManager, User, UserIn, UserOut
+
+from ..models.users import User, UserIn, UserOut
+from .users import BaseUserManager
 
 
 class Token(BaseModel):
