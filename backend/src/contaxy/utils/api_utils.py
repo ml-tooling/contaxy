@@ -61,4 +61,12 @@ def patch_fastapi(app: FastAPI) -> None:
 
     assert app.docs_url is not None
     app.add_route(app.docs_url, swagger_ui_html, include_in_schema=False)
+    assert app.redoc_url is not None
     app.add_route(app.redoc_url, redoc_ui_html, include_in_schema=False)
+
+    # Make graphql realtive
+    from starlette import graphql
+
+    graphql.GRAPHIQL = graphql.GRAPHIQL.replace(
+        "({{REQUEST_PATH}}", '("." + {{REQUEST_PATH}}'
+    )

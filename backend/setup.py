@@ -58,6 +58,8 @@ setup(
         "passlib[bcrypt]",
         # Email validation with pydantic
         "email-validator",
+        # GraphQL support
+        "graphene",
     ],
     # deprecated: dependency_links=dependency_links,
     extras_require={

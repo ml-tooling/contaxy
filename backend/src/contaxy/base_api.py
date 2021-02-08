@@ -1,7 +1,7 @@
 from typing import Any, Dict, List, Mapping, Optional, Tuple, Union
 
 from fastapi import Body, FastAPI, Path, Query, status
-from starlette.responses import RedirectResponse, Response
+from starlette.responses import HTMLResponse, RedirectResponse, Response
 
 from contaxy import __version__, data_model
 from contaxy.utils.api_utils import patch_fastapi
@@ -19,6 +19,7 @@ app = FastAPI(
 PROJECT_ID_PARAM = Path(
     ...,
     title="Project ID",
+    example="image-search-engine",
     description="A valid project ID.",
     min_length=data_model.MIN_PROJECT_ID_LENGTH,
     max_length=data_model.MAX_PROJECT_ID_LENGTH,
@@ -48,6 +49,7 @@ JOB_ID_PARAM = Path(
 FILE_KEY_PARAM = Query(
     ...,
     title="File Key",
+    example="datasets/customer-table.csv",
     description="A valid file key.",
     # TODO: add restriction
 )
@@ -81,6 +83,114 @@ def welcome() -> Any:
 @app.get("/", include_in_schema=False)
 def root() -> Any:
     return RedirectResponse("./docs")
+
+
+# Graphql test
+
+import graphene
+from starlette.graphql import GraphQLApp
+
+graphql_voyager = """
+<!DOCTYPE html>
+<html>
+  <head>
+    <style>
+      body {
+        height: 100%;
+        margin: 0;
+        width: 100%;
+        overflow: hidden;
+      }
+      #voyager {
+        height: 100vh;
+      }
+    </style>
+
+    <!--
+      This GraphQL Voyager example depends on Promise and fetch, which are available in
+      modern browsers, but can be "polyfilled" for older browsers.
+      GraphQL Voyager itself depends on React DOM.
+      If you do not want to rely on a CDN, you can host these files locally or
+      include them directly in your favored resource bunder.
+    -->
+    <script src="https://cdn.jsdelivr.net/es6-promise/4.0.5/es6-promise.auto.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/fetch/0.9.0/fetch.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react@16/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@16/umd/react-dom.production.min.js"></script>
+
+    <!--
+      These two files are served from jsDelivr CDN, however you may wish to
+      copy them directly into your environment, or perhaps include them in your
+      favored resource bundler.
+     -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/graphql-voyager/dist/voyager.css"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/graphql-voyager/dist/voyager.min.js"></script>
+  </head>
+  <body>
+    <div id="voyager">Loading...</div>
+    <script>
+      // Defines a GraphQL introspection fetcher using the fetch API. You're not required to
+      // use fetch, and could instead implement introspectionProvider however you like,
+      // as long as it returns a Promise
+      // Voyager passes introspectionQuery as an argument for this function
+      function introspectionProvider(introspectionQuery) {
+        // This example expects a GraphQL server at the path /graphql.
+        // Change this to point wherever you host your GraphQL server.
+        return fetch('./test-graphql', {
+          method: 'post',
+          headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ query: introspectionQuery }),
+          credentials: 'include',
+        })
+          .then(function (response) {
+            return response.text();
+          })
+          .then(function (responseBody) {
+            try {
+              return JSON.parse(responseBody);
+            } catch (error) {
+              return responseBody;
+            }
+          });
+      }
+
+      // Render <Voyager /> into the body.
+      GraphQLVoyager.init(document.getElementById('voyager'), {
+        introspection: introspectionProvider,
+      });
+    </script>
+  </body>
+</html>
+"""
+
+
+class GraphQlQuery(graphene.ObjectType):
+    hello = graphene.String(name=graphene.String(default_value="stranger"))
+
+    def resolve_hello(self, info, name) -> str:  # type: ignore
+        return "Hello " + name
+
+
+app.add_route("/test-graphql", GraphQLApp(schema=graphene.Schema(query=GraphQlQuery)))
+
+
+@app.get(
+    "/graphql-voyager",
+    status_code=status.HTTP_200_OK,
+    response_class=HTMLResponse,
+    include_in_schema=False,
+)
+def open_graphql_voyager() -> Any:
+    return HTMLResponse(
+        content=graphql_voyager,
+        status_code=status.HTTP_200_OK,
+    )
 
 
 # System Endpoints
@@ -161,7 +271,7 @@ def get_user(user_id: str = USER_ID_PARAM) -> Any:
     tags=["users"],
     status_code=status.HTTP_200_OK,
 )
-def update_user(user: data_model.UserIn, user_id: str = USER_ID_PARAM) -> Any:
+def update_user(user: data_model.UserInput, user_id: str = USER_ID_PARAM) -> Any:
     """TODO: add documentation."""
     raise NotImplementedError
 
@@ -189,7 +299,9 @@ def delete_user(user_id: str = USER_ID_PARAM) -> Any:
 def get_user_token(
     user_id: str = USER_ID_PARAM,
     token_type: data_model.TokenType = Query(
-        data_model.TokenType.SESSION_TOKEN, description="Type of the token."
+        data_model.TokenType.SESSION_TOKEN,
+        description="Type of the token.",
+        type="string",
     ),
 ) -> Any:
     """Returns a session or API token with permission to access all resources accesible by the given user."""
@@ -335,7 +447,7 @@ def open_login_page(
     tags=["projects"],
     status_code=status.HTTP_200_OK,
 )
-def create_project(project: data_model.ProjectIn) -> Any:
+def create_project(project: data_model.ProjectInput) -> Any:
     """TODO: add documentation."""
     raise NotImplementedError
 
@@ -349,7 +461,7 @@ def create_project(project: data_model.ProjectIn) -> Any:
     status_code=status.HTTP_200_OK,
 )
 def update_project(
-    project: data_model.ProjectIn, project_id: str = PROJECT_ID_PARAM
+    project: data_model.ProjectInput, project_id: str = PROJECT_ID_PARAM
 ) -> Any:
     """TODO: add documentation."""
     raise NotImplementedError
@@ -423,7 +535,9 @@ def delete_project(project_id: str = PROJECT_ID_PARAM) -> Any:
 def get_project_token(
     project_id: str = PROJECT_ID_PARAM,
     token_type: data_model.TokenType = Query(
-        data_model.TokenType.SESSION_TOKEN, description="Type of the token."
+        data_model.TokenType.SESSION_TOKEN,
+        description="Type of the token.",
+        type="string",
     ),
 ) -> Any:
     """Returns a session or API token with permission to access all project resources."""
@@ -453,7 +567,9 @@ def add_project_member(
     project_id: str = PROJECT_ID_PARAM,
     user_id: str = USER_ID_PARAM,
     role: Optional[data_model.ProjectRole] = Query(
-        data_model.ProjectRole.MEMBER, description="The permission level."
+        data_model.ProjectRole.MEMBER,
+        description="The permission level.",
+        type="string",
     ),
 ) -> Any:
     """TODO: add documentation."""
@@ -496,7 +612,7 @@ def list_services(
 @app.get(
     "/projects/{project_id}/services/suggest-config",
     operation_id=data_model.ExtensibleOperations.SUGGEST_SERVICE_CONFIG.value,
-    response_model=data_model.ServiceIn,
+    response_model=data_model.ServiceInput,
     summary="Suggest service configuration.",
     tags=["services"],
     status_code=status.HTTP_200_OK,
@@ -538,7 +654,7 @@ def get_service_metadata(
     status_code=status.HTTP_200_OK,
 )
 def list_service_deploy_options(
-    service: data_model.ServiceIn,
+    service: data_model.ServiceInput,
     project_id: str = PROJECT_ID_PARAM,
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
@@ -559,7 +675,7 @@ def list_service_deploy_options(
     responses={**OPEN_URL_REDIRECT},
 )
 def deploy_service(
-    service: data_model.ServiceIn,
+    service: data_model.ServiceInput,
     project_id: str = PROJECT_ID_PARAM,
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
     action_id: Optional[str] = Query(
@@ -618,7 +734,9 @@ def get_service_access_token(
     service_id: str = SERVICE_ID_PARAM,
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
     token_type: data_model.TokenType = Query(
-        data_model.TokenType.SESSION_TOKEN, description="Type of the token."
+        data_model.TokenType.SESSION_TOKEN,
+        description="Type of the token.",
+        type="string",
     ),
 ) -> Any:
     """Returns a session or API token with permission to access the service endpoints.
@@ -708,7 +826,7 @@ def get_job_metadata(
 @app.get(
     "/projects/{project_id}/jobs/suggest-config",
     operation_id=data_model.ExtensibleOperations.SUGGEST_JOB_CONFIG.value,
-    response_model=data_model.JobIn,
+    response_model=data_model.JobInput,
     summary="Suggest job configuration.",
     tags=["jobs"],
     status_code=status.HTTP_200_OK,
@@ -733,7 +851,7 @@ def suggest_job_config(
     status_code=status.HTTP_200_OK,
 )
 def list_job_deploy_options(
-    service: data_model.JobIn,
+    service: data_model.JobInput,
     project_id: str = PROJECT_ID_PARAM,
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
@@ -797,181 +915,6 @@ def get_job_logs(
     lines: Optional[int] = Query(None, description="Only show the last n lines."),
 ) -> Any:
     """Returns the stdout/stderr logs of the job."""
-    raise NotImplementedError
-
-
-# File Endpoints
-
-
-@app.get(
-    "/projects/{project_id}/files",
-    operation_id=data_model.ExtensibleOperations.LIST_FILES.value,
-    response_model=List[data_model.File],
-    summary="List all project files.",
-    tags=["files"],
-    status_code=status.HTTP_200_OK,
-)
-def list_files(
-    project_id: str = PROJECT_ID_PARAM,
-    extension_id: Optional[str] = EXTENSION_ID_PARAM,
-    filter: Optional[str] = Query(None),  # TODO: better definition
-    data_type: Optional[data_model.DataType] = Query(None),  # TODO: better definition
-) -> Any:
-    """TODO: add documentation."""
-    raise NotImplementedError
-
-
-@app.get(
-    "/projects/{project_id}/files/metadata",
-    operation_id=data_model.ExtensibleOperations.GET_FILE_METADATA.value,
-    response_model=data_model.File,
-    summary="Get file metadata.",
-    tags=["files"],
-    status_code=status.HTTP_200_OK,
-)
-def get_file_metadata(
-    project_id: str = PROJECT_ID_PARAM,
-    file_key: str = FILE_KEY_PARAM,
-    extension_id: Optional[str] = EXTENSION_ID_PARAM,
-) -> Any:
-    """TODO: add documentation."""
-    raise NotImplementedError
-
-
-@app.patch(
-    "/projects/{project_id}/files/metadata",
-    operation_id=data_model.ExtensibleOperations.UPDATE_FILE_METADATA.value,
-    response_model=data_model.File,
-    summary="Update file metadata.",
-    tags=["files"],
-    status_code=status.HTTP_200_OK,
-)
-def update_file_metadata(
-    file: data_model.FileIn,
-    project_id: str = PROJECT_ID_PARAM,
-    file_key: str = FILE_KEY_PARAM,
-    extension_id: Optional[str] = EXTENSION_ID_PARAM,
-) -> Any:
-    """Updates the file metadata. This will not change the actual content or the key of the file."""
-    raise NotImplementedError
-
-
-@app.post(
-    "/projects/{project_id}/files/upload",
-    operation_id=data_model.ExtensibleOperations.UPLOAD_FILE.value,
-    response_model=data_model.File,
-    summary="Upload a file.",
-    tags=["files"],
-    status_code=status.HTTP_200_OK,
-)
-def upload_file(
-    project_id: str = PROJECT_ID_PARAM,
-    data_type: Optional[data_model.DataType] = Query(
-        data_model.DataType.OTHER, description="The categorization of the file."
-    ),
-    file_name: Optional[str] = Query(None),
-    extension_id: Optional[str] = EXTENSION_ID_PARAM,
-) -> Any:
-    """TODO: add documentation."""
-    # TODO adapt upload implementation
-    raise NotImplementedError
-
-
-@app.get(
-    "/projects/{project_id}/files/download",
-    operation_id=data_model.ExtensibleOperations.DOWNLOAD_FILE.value,
-    response_model=data_model.File,
-    summary="Download a file.",
-    tags=["files"],
-    status_code=status.HTTP_200_OK,
-)
-def download_file(
-    project_id: str = PROJECT_ID_PARAM,
-    file_key: str = FILE_KEY_PARAM,
-    extension_id: Optional[str] = EXTENSION_ID_PARAM,
-) -> Any:
-    """TODO: add documentation."""
-    # TODO adapt download implementation
-    raise NotImplementedError
-
-
-@app.get(
-    "/projects/{project_id}/files/open/options",
-    operation_id=data_model.ExtensibleOperations.LIST_OPEN_FILE_ACTIONS.value,
-    response_model=List[data_model.ResourceAction],
-    summary="List open file actions.",
-    tags=["files"],
-    status_code=status.HTTP_200_OK,
-)
-def list_open_file_actions(
-    project_id: str = PROJECT_ID_PARAM,
-    file_key: str = FILE_KEY_PARAM,
-    extension_id: Optional[str] = EXTENSION_ID_PARAM,
-) -> Any:
-    """Lists all open file options for the given file.
-
-    The returned action IDs should be used when calling the open file operation.
-    """
-    raise NotImplementedError
-
-
-@app.get(
-    "/projects/{project_id}/files/open",
-    operation_id=data_model.ExtensibleOperations.OPEN_FILE.value,
-    # TODO: what is the response model? add additional status codes?
-    summary="Open the file.",
-    tags=["files"],
-    status_code=status.HTTP_200_OK,
-    responses={**OPEN_URL_REDIRECT},
-)
-def open_file(
-    project_id: str = PROJECT_ID_PARAM,
-    file_key: str = FILE_KEY_PARAM,
-    action_id: str = Query(
-        ..., description="The action ID from the open file options operation."
-    ),
-    extension_id: Optional[str] = EXTENSION_ID_PARAM,
-) -> Any:
-    """Opens the file with the specified action."""
-    raise NotImplementedError
-
-
-@app.delete(
-    "/projects/{project_id}/files",
-    operation_id=data_model.ExtensibleOperations.DELETE_FILE.value,
-    summary="Delete a file.",
-    tags=["files"],
-    status_code=status.HTTP_204_NO_CONTENT,
-)
-def delete_file(
-    project_id: str = PROJECT_ID_PARAM,
-    file_key: str = FILE_KEY_PARAM,
-    extension_id: Optional[str] = EXTENSION_ID_PARAM,
-) -> Any:
-    """TODO: add documentation."""
-    raise NotImplementedError
-
-
-@app.get(
-    "/projects/{project_id}/files/token",
-    operation_id=data_model.ExtensibleOperations.GET_FILE_ACCESS_TOKEN.value,
-    response_model=str,
-    summary="Get file access token.",
-    tags=["files"],
-    status_code=status.HTTP_200_OK,
-)
-def get_file_access_token(
-    project_id: str = PROJECT_ID_PARAM,
-    file_key: str = FILE_KEY_PARAM,
-    extension_id: Optional[str] = EXTENSION_ID_PARAM,
-    token_type: data_model.TokenType = Query(
-        data_model.TokenType.SESSION_TOKEN, description="Type of the token."
-    ),
-) -> Any:
-    """Returns a session or API token with permission to access given file.
-
-    This token is read-only and does not allow any action which would modify the given file.
-    """
     raise NotImplementedError
 
 
@@ -1054,7 +997,7 @@ def get_extension_metadata(
     status_code=status.HTTP_200_OK,
 )
 def install_extension(
-    extension: data_model.ExtensionIn,
+    extension: data_model.ExtensionInput,
     project_id: Union[data_model.TechnicalProject, str] = Query(
         ...,
         title="Project ID",
@@ -1071,7 +1014,7 @@ def install_extension(
 @app.get(
     "/extensions/suggest-config",
     operation_id=data_model.CoreOperations.SUGGEST_EXTENSION_CONFIG.value,
-    response_model=data_model.ExtensionIn,
+    response_model=data_model.ExtensionInput,
     summary="Suggest extension configuration.",
     tags=["extensions"],
     status_code=status.HTTP_200_OK,
@@ -1141,6 +1084,309 @@ def get_extension_defaults(
 ) -> Any:
     """Returns the list of extensible operation IDs and the configured default extension."""
     # TODO: only project admins or system admins should be able to call this
+    raise NotImplementedError
+
+
+# File Endpoints
+
+
+@app.get(
+    "/projects/{project_id}/data/files",
+    operation_id=data_model.ExtensibleOperations.LIST_FILES.value,
+    response_model=List[data_model.File],
+    summary="List all project files.",
+    tags=["files"],
+    status_code=status.HTTP_200_OK,
+)
+def list_files(
+    project_id: str = PROJECT_ID_PARAM,
+    extension_id: Optional[str] = EXTENSION_ID_PARAM,
+    filter: Optional[str] = Query(None),  # TODO: better definition
+    data_type: Optional[data_model.DataType] = Query(
+        None, type="string"
+    ),  # TODO: better definition
+) -> Any:
+    """TODO: add documentation."""
+    raise NotImplementedError
+
+
+@app.get(
+    "/projects/{project_id}/data/files/metadata",
+    operation_id=data_model.ExtensibleOperations.GET_FILE_METADATA.value,
+    response_model=data_model.File,
+    summary="Get file metadata.",
+    tags=["files"],
+    status_code=status.HTTP_200_OK,
+)
+def get_file_metadata(
+    project_id: str = PROJECT_ID_PARAM,
+    file_key: str = FILE_KEY_PARAM,
+    extension_id: Optional[str] = EXTENSION_ID_PARAM,
+) -> Any:
+    """TODO: add documentation."""
+    raise NotImplementedError
+
+
+@app.patch(
+    "/projects/{project_id}/data/files/metadata",
+    operation_id=data_model.ExtensibleOperations.UPDATE_FILE_METADATA.value,
+    response_model=data_model.File,
+    summary="Update file metadata.",
+    tags=["files"],
+    status_code=status.HTTP_200_OK,
+)
+def update_file_metadata(
+    file: data_model.FileInput,
+    project_id: str = PROJECT_ID_PARAM,
+    file_key: str = FILE_KEY_PARAM,
+    extension_id: Optional[str] = EXTENSION_ID_PARAM,
+) -> Any:
+    """Updates the file metadata. This will not change the actual content or the key of the file."""
+    raise NotImplementedError
+
+
+@app.post(
+    "/projects/{project_id}/data/files/upload",
+    operation_id=data_model.ExtensibleOperations.UPLOAD_FILE.value,
+    response_model=data_model.File,
+    summary="Upload a file.",
+    tags=["files"],
+    status_code=status.HTTP_200_OK,
+)
+def upload_file(
+    project_id: str = PROJECT_ID_PARAM,
+    data_type: Optional[data_model.DataType] = Query(
+        data_model.DataType.OTHER,
+        description="The categorization of the file.",
+        type="string",
+    ),
+    file_name: Optional[str] = Query(None),
+    extension_id: Optional[str] = EXTENSION_ID_PARAM,
+) -> Any:
+    """TODO: add documentation."""
+    # TODO adapt upload implementation
+    raise NotImplementedError
+
+
+@app.get(
+    "/projects/{project_id}/data/files/download",
+    operation_id=data_model.ExtensibleOperations.DOWNLOAD_FILE.value,
+    response_model=data_model.File,
+    summary="Download a file.",
+    tags=["files"],
+    status_code=status.HTTP_200_OK,
+)
+def download_file(
+    project_id: str = PROJECT_ID_PARAM,
+    file_key: str = FILE_KEY_PARAM,
+    extension_id: Optional[str] = EXTENSION_ID_PARAM,
+) -> Any:
+    """TODO: add documentation."""
+    # TODO adapt download implementation
+    raise NotImplementedError
+
+
+@app.get(
+    "/projects/{project_id}/data/files/open/options",
+    operation_id=data_model.ExtensibleOperations.LIST_OPEN_FILE_ACTIONS.value,
+    response_model=List[data_model.ResourceAction],
+    summary="List open file actions.",
+    tags=["files"],
+    status_code=status.HTTP_200_OK,
+)
+def list_open_file_actions(
+    project_id: str = PROJECT_ID_PARAM,
+    file_key: str = FILE_KEY_PARAM,
+    extension_id: Optional[str] = EXTENSION_ID_PARAM,
+) -> Any:
+    """Lists all open file options for the given file.
+
+    The returned action IDs should be used when calling the open file operation.
+    """
+    raise NotImplementedError
+
+
+@app.get(
+    "/projects/{project_id}/data/files/open",
+    operation_id=data_model.ExtensibleOperations.OPEN_FILE.value,
+    # TODO: what is the response model? add additional status codes?
+    summary="Open the file.",
+    tags=["files"],
+    status_code=status.HTTP_200_OK,
+    responses={**OPEN_URL_REDIRECT},
+)
+def open_file(
+    project_id: str = PROJECT_ID_PARAM,
+    file_key: str = FILE_KEY_PARAM,
+    action_id: str = Query(
+        ..., description="The action ID from the open file options operation."
+    ),
+    extension_id: Optional[str] = EXTENSION_ID_PARAM,
+) -> Any:
+    """Opens the file with the specified action."""
+    raise NotImplementedError
+
+
+@app.delete(
+    "/projects/{project_id}/data/files",
+    operation_id=data_model.ExtensibleOperations.DELETE_FILE.value,
+    summary="Delete a file.",
+    tags=["files"],
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def delete_file(
+    project_id: str = PROJECT_ID_PARAM,
+    file_key: str = FILE_KEY_PARAM,
+    extension_id: Optional[str] = EXTENSION_ID_PARAM,
+) -> Any:
+    """TODO: add documentation."""
+    raise NotImplementedError
+
+
+@app.get(
+    "/projects/{project_id}/data/files/token",
+    operation_id=data_model.ExtensibleOperations.GET_FILE_ACCESS_TOKEN.value,
+    response_model=str,
+    summary="Get file access token.",
+    tags=["files"],
+    status_code=status.HTTP_200_OK,
+)
+def get_file_access_token(
+    project_id: str = PROJECT_ID_PARAM,
+    file_key: str = FILE_KEY_PARAM,
+    extension_id: Optional[str] = EXTENSION_ID_PARAM,
+    token_type: data_model.TokenType = Query(
+        data_model.TokenType.SESSION_TOKEN,
+        description="Type of the token.",
+        type="string",
+    ),
+) -> Any:
+    """Returns a session or API token with permission to access given file.
+
+    This token is read-only and does not allow any action which would modify the given file.
+    """
+    raise NotImplementedError
+
+
+# Secrets Endpoints
+
+
+@app.get(
+    "/projects/{project_id}/data/secrets",
+    operation_id=data_model.ExtensibleOperations.LIST_SECRETS.value,
+    response_model=List[data_model.Secret],
+    summary="List all secrets.",
+    tags=["secrets"],
+    status_code=status.HTTP_200_OK,
+)
+def list_secrets(project_id: str = PROJECT_ID_PARAM) -> Any:
+    """TODO: add documentation."""
+    raise NotImplementedError
+
+
+@app.put(
+    "/projects/{project_id}/data/secrets",
+    operation_id=data_model.ExtensibleOperations.CREATE_SECRET.value,
+    summary="Create a sercret.",
+    tags=["secrets"],
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def create_secret(
+    secret: data_model.SecretInput,
+    project_id: str = PROJECT_ID_PARAM,
+    extension_id: Optional[str] = EXTENSION_ID_PARAM,
+) -> Any:
+    """TODO: add documentation."""
+    raise NotImplementedError
+
+
+@app.delete(
+    "/projects/{project_id}/data/secrets",
+    operation_id=data_model.ExtensibleOperations.DELETE_SECRET.value,
+    summary="Delete a sercret.",
+    tags=["secrets"],
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def delete_secret(
+    secret_name: str = Query(..., description="Name of the secret."),
+    project_id: str = PROJECT_ID_PARAM,
+    extension_id: Optional[str] = EXTENSION_ID_PARAM,
+) -> Any:
+    """TODO: add documentation."""
+    raise NotImplementedError
+
+
+# Json Document Endpoints
+
+
+@app.put(
+    "/projects/{project_id}/data/json/{table_id}/{key}",
+    operation_id=data_model.ExtensibleOperations.CREATE_JSON_DOCUMENT.value,
+    summary="Create a JSON document.",
+    tags=["json"],
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def create_json_document(
+    json_document: Dict,
+    project_id: str = PROJECT_ID_PARAM,
+    table_id: str = Path(..., description="ID of the table."),
+    key: str = Path(..., description="Key of the JSON document."),
+    extension_id: Optional[str] = EXTENSION_ID_PARAM,
+) -> Any:
+    """TODO: add documentation."""
+    raise NotImplementedError
+
+
+@app.get(
+    "/projects/{project_id}/data/json/{table_id}",
+    operation_id=data_model.ExtensibleOperations.LIST_JSON_DOCUMENTS.value,
+    response_model=List[data_model.JsonDocument],
+    summary="List all JSON documents.",
+    tags=["json"],
+    status_code=status.HTTP_200_OK,
+)
+def list_json_documents(
+    project_id: str = PROJECT_ID_PARAM,
+    table_id: str = Path(..., description="ID of the table."),
+    filter: Optional[str] = Query(None, description="Filter instructions."),
+    extension_id: Optional[str] = EXTENSION_ID_PARAM,
+) -> Any:
+    """TODO: add documentation."""
+    raise NotImplementedError
+
+
+@app.get(
+    "/projects/{project_id}/data/json/{table_id}/{key}",
+    operation_id=data_model.ExtensibleOperations.GET_JSON_DOCUMENT.value,
+    response_model=data_model.JsonDocument,
+    summary="Get JSON document.",
+    tags=["json"],
+    status_code=status.HTTP_200_OK,
+)
+def get_json_document(
+    project_id: str = PROJECT_ID_PARAM,
+    table_id: str = Path(..., description="ID of the table."),
+    key: str = Path(..., description="Key of the JSON document."),
+    extension_id: Optional[str] = EXTENSION_ID_PARAM,
+) -> Any:
+    """TODO: add documentation."""
+    raise NotImplementedError
+
+
+@app.delete(
+    "/projects/{project_id}/data/json/{table_id}/{key}",
+    operation_id=data_model.ExtensibleOperations.DELETE_JSON_DOCUMENT.value,
+    summary="Delete JSON document.",
+    tags=["json"],
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def delete_json_document(
+    project_id: str = PROJECT_ID_PARAM,
+    table_id: str = Path(..., description="ID of the table."),
+    key: str = Path(..., description="Key of the JSON document."),
+    extension_id: Optional[str] = EXTENSION_ID_PARAM,
+) -> Any:
+    """TODO: add documentation."""
     raise NotImplementedError
 
 

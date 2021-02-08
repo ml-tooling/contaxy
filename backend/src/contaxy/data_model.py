@@ -3,13 +3,15 @@ from enum import Enum
 from pathlib import Path
 from typing import Dict, List, Optional, Union
 
-from pydantic import UUID4, BaseModel, ByteSize, EmailStr, Field, constr
+from pydantic import UUID4, BaseModel, ByteSize, EmailStr, Field, Json, constr
 
 MIN_DISPLAY_NAME_LENGTH = 4
 MAX_DISPLAY_NAME_LENGTH = 30
 MAX_DESCRIPTION_LENGTH = 240
 MIN_PROJECT_ID_LENGTH = 4
 MAX_PROJECT_ID_LENGTH = 25
+
+# TODO: In to Input
 
 
 class CoreOperations(str, Enum):
@@ -87,6 +89,15 @@ class ExtensibleOperations(str, Enum):
     OPEN_LOGIN_PAGE = "open_login_page"
     LIST_API_TOKENS = "list_api_tokens"
     DELETE_API_TOKEN = "delete_api_token"
+    # Secrets Endpoints
+    CREATE_SECRET = "create_secret"
+    DELETE_SECRET = "delete_secret"
+    LIST_SECRETS = "list_secrets"
+    # JSON Document Endpoints
+    LIST_JSON_DOCUMENTS = "list_json_documents"
+    CREATE_JSON_DOCUMENT = "create_json_document"
+    DELETE_JSON_DOCUMENT = "delete_json_document"
+    GET_JSON_DOCUMENT = "get_json_document"
 
 
 class DeploymentType(str, Enum):
@@ -135,7 +146,7 @@ class ContainerOrchestrator(str, Enum):
 
 class DeploymentStatus(str, Enum):
     # Deployment created, but not ready for usage
-    PENDING = "pending"
+    PENDING = "pending"  # Alternative naming: waiting
     # Deployment is running.
     RUNNING = "running"
     # Deployment is paused (only on docker?)/
@@ -151,6 +162,11 @@ class DeploymentStatus(str, Enum):
     # STARTING("starting"),
     # STOPPPED("stopped"),
     # CREATED("created"),
+    # REBOOTING
+    # TERMINATED: Container is terminated. This container can’t be started later on.
+    # STOPPED:  Container is stopped. This container can be started later on.
+    # ERROR – Container is an error state. Usually no operations can be performed on the container once it ends up in the error state.
+    # SUSPENDED: Container is suspended.
 
 
 class ActionInstruction(str, Enum):
@@ -165,7 +181,7 @@ class BaseEntity(BaseModel):
         max_anystr_length = 20000
 
 
-class UserIn(BaseEntity):
+class UserInput(BaseEntity):
     username: str = Field(
         ...,
         example="john.doe@example.com",
@@ -176,7 +192,7 @@ class UserIn(BaseEntity):
     )
     permissions: Optional[List[str]] = Field(
         None,
-        example=["pm-image-search-engine"],
+        example=["pm-my-awesome-project"],
         description="List of user permissions.",
     )
     is_disabled: Optional[bool] = Field(
@@ -186,7 +202,7 @@ class UserIn(BaseEntity):
     # password: Optional[SecretStr] = None
 
 
-class User(UserIn):
+class User(UserInput):
     id: UUID4 = Field(
         ...,
         example="16fd2706-8baf-433b-82eb-8c7fada847da",
@@ -291,22 +307,20 @@ class Statistics(BaseEntity):
     )
 
 
-class ProjectIn(BaseEntity):
+class ProjectInput(BaseEntity):
     # TODO: add validation regex
-    id: str = Field(
-        ..., example="image-search-engine", description="ID of the project."
-    )
+    id: str = Field(..., example="my-awesome-project", description="ID of the project.")
     display_name: str = Field(
         ...,
         min_length=MIN_DISPLAY_NAME_LENGTH,
         max_length=MAX_DISPLAY_NAME_LENGTH,
-        example="Image Search Engine",
+        example="My Awesome Project",
         description="Display name of the project. This can be changed after creation.",
     )
     description: Optional[str] = Field(
         None,
         max_length=MAX_DESCRIPTION_LENGTH,
-        example="Building an awesome image search engine.",
+        example="Building an awesome ML model.",
         description="Short description of this project. This can be changed after creation.",
     )
     icon: Optional[str] = Field(
@@ -314,6 +328,10 @@ class ProjectIn(BaseEntity):
         max_length=1000,
         example="search",
         description="Material Design Icon name or image URL used for displaying this project.",
+    )
+    tags: Optional[List[str]] = Field(
+        None,
+        description="Tags associated with this project.",
     )
     additional_metadata: Optional[Dict[str, str]] = Field(
         None,
@@ -326,7 +344,7 @@ class ProjectIn(BaseEntity):
     )
 
 
-class Project(ProjectIn):
+class Project(ProjectInput):
     creation_date: Optional[datetime] = Field(
         None,
         example="2021-04-23T10:20:30.400+02:30",
@@ -404,14 +422,15 @@ class DeploymentCompute(BaseEntity):
         ge=1,
         description="Maximum number of replicas. The system will make sure to optimize the deployment based on the available resources and requests. Use 1 if the deployment is not scalable.",
     )
-    min_lifetime: Optional[timedelta] = Field(
+    # TODO: use timedelta
+    min_lifetime: Optional[int] = Field(
         None,
         example=86400,
         description="Minimum guaranteed lifetime in seconds. Once the lifetime is reached, the system is allowed to kill the deployment in case it requires additional resources.",
     )
 
 
-class DeploymentIn(BaseEntity):
+class DeploymentInput(BaseEntity):
     id: str = Field(...)
     container_image: Optional[str] = Field(
         None,
@@ -438,6 +457,10 @@ class DeploymentIn(BaseEntity):
         max_length=1000,
         description="Material Design Icon name or image URL used for displaying this deployment.",
     )
+    tags: Optional[List[str]] = Field(
+        None,
+        description="Tags associated with this deployment.",
+    )
     parameters: Optional[Dict[str, str]] = Field(
         None,
         example={"TEST_PARAM": "param-value"},
@@ -451,6 +474,10 @@ class DeploymentIn(BaseEntity):
         None,
         description="Compute instructions and limitations for this deployment.",
     )
+    command: Optional[str] = Field(
+        None,
+        description="Command to run within the deployment.",
+    )
     requirements: Optional[List[Union[DeploymentRequirement, str]]] = Field(
         None,
         description="Additional requirements for deployment.",
@@ -460,9 +487,14 @@ class DeploymentIn(BaseEntity):
         example={"additional-metadata": "value"},
         description="Additional key-value metadata for this deployment.",
     )
+    endpoints: Optional[List[str]] = Field(
+        None,
+        example=["8080", "9001/webapp/ui", "9002b"],
+        description="A list of HTTP endpoints that can be accessed. This should always have an internal port and can include additional instructions, such as the URL path.",
+    )
 
 
-class Deployment(DeploymentIn):
+class Deployment(DeploymentInput):
     started_at: Optional[datetime] = Field(
         None,
         description="Timestamp when the deployment was started.",
@@ -506,15 +538,11 @@ class Deployment(DeploymentIn):
     )
 
 
-class ServiceIn(DeploymentIn):
-    endpoints: Optional[List[str]] = Field(
-        None,
-        example=["8080", "9001/webapp/ui", "9002b"],
-        description="A list of HTTP endpoints that can be accessed. This should always have an internal port and can include additional instructions, such as the URL path.",
-    )
+class ServiceInput(DeploymentInput):
+    pass
 
 
-class Service(Deployment, ServiceIn):
+class Service(Deployment, ServiceInput):
     health_endpoint: Optional[str] = Field(
         None,
         example="8080/healthz",
@@ -526,18 +554,18 @@ class Service(Deployment, ServiceIn):
     )
 
 
-class JobIn(DeploymentIn):
+class JobInput(DeploymentInput):
     output_files: Optional[List[dict]] = Field(
         None,
         description="A list of container internal files that should be uploaded to the storage once the job has succeeded.",
     )
 
 
-class Job(Deployment, JobIn):
+class Job(Deployment, JobInput):
     pass
 
 
-class ExtensionIn(ServiceIn):
+class ExtensionInput(ServiceInput):
     capabilities: Optional[List[Union[ExtensibleOperations, str]]] = Field(
         None,
         # TODO: provide example
@@ -554,19 +582,20 @@ class ExtensionIn(ServiceIn):
         example="8080/extension/api",
         description="The endpoint instruction that provide . If this is provided, the extension will be integrated into the UI.",
     )
-    extension_type: ExtensionType = Field(
-        None,
-        example=ExtensionType.PROJECT_EXTENSION,
-        description="The type of the extension.",
-    )
+    # TODO: add again
+    # extension_type: ExtensionType = Field(
+    #    None,
+    #    example=ExtensionType.PROJECT_EXTENSION,
+    #    description="The type of the extension.",
+    # )
 
 
-class Extension(Service, ExtensionIn):
+class Extension(Service, ExtensionInput):
     pass
 
 
-class FileIn(BaseEntity):
-    # TODO: allow description and icon...
+class FileInput(BaseEntity):
+    # TODO: allow description and icon, tags
     filename: str = Field(  # TODO: renme to display name
         ...,
         example="customer-table.csv",
@@ -592,6 +621,22 @@ class FileIn(BaseEntity):
         example=False,
         description="Indicates if the file is an archive which can be unpacked.",
     )
+    description: Optional[str] = Field(
+        None,
+        max_length=MAX_DESCRIPTION_LENGTH,
+        example="CSV table that contains insights about our customers.",
+        description="Short description of this file.",
+    )
+    icon: Optional[str] = Field(
+        None,
+        example="table_chart",
+        max_length=1000,
+        description="Material Design Icon name or image URL used for displaying this file.",
+    )
+    tags: Optional[List[str]] = Field(
+        None,
+        description="Tags associated with this file.",
+    )
     additional_metadata: Optional[Dict[str, str]] = Field(
         None,
         example={"additional-metadata": "value"},
@@ -599,7 +644,7 @@ class FileIn(BaseEntity):
     )
 
 
-class File(FileIn):
+class File(FileInput):
     key: str = Field(
         ...,
         example="datasets/customer-table.csv.v1",
@@ -654,6 +699,7 @@ class File(FileIn):
         example="57f456164b0e5f365aaf9bb549731f32-95",
         description="The etag of the file (mainly used by S3 storage).",
     )
+    # Todo: tags
 
 
 class ApiToken(BaseEntity):
@@ -664,7 +710,7 @@ class ApiToken(BaseEntity):
     )
     permissions: List[str] = Field(
         ...,
-        example=["pm-image-search-engine"],
+        example=["pm-my-awesome-project"],
         description="List of permissions associated with the token.",
     )
     description: Optional[str] = Field(
@@ -685,9 +731,11 @@ class ApiToken(BaseEntity):
     )
     associated_project: Optional[str] = Field(
         None,
-        example="image-search-engine",
+        example="my-awesome-project",
         description="Project ID associated with this token.",
     )
+    # TODO: expiry_date
+    # TODO: token type: refresh, ,,,
 
 
 class ResourceAction(BaseEntity):
@@ -744,6 +792,67 @@ class SystemInfo(BaseEntity):
         None,
         example={"additional-metadata": "value"},
         description="Additional key-value metadata associated with this system.",
+    )
+
+
+class SecretInput(BaseEntity):
+    key: str = Field(
+        ...,
+        example="MY_API_TOKEN",
+        description="Name of the secret.",
+    )
+    value: str = Field(
+        ...,
+        example="f4528e540a133dd53ba6809e74e16774ebe4777a",
+        description="Platform version.",
+    )
+    # TODO: group_name -> group secrets together (e.g. all details for a db conenction)
+
+
+class Secret(SecretInput):
+    # == Shared Parameters
+    creation_date: Optional[datetime] = Field(
+        None,
+        example="2021-04-23T10:20:30.400+02:30",
+        description="Creation date of the secret.",
+    )
+    created_by: Optional[str] = Field(
+        None,
+        example="16fd2706-8baf-433b-82eb-8c7fada847da",
+        description="ID of the user that created this secret.",
+    )
+
+
+class JsonDocument(BaseEntity):
+    key: str = Field(
+        ...,
+        example="my-json-document",
+        description="Unique key of the document.",
+    )
+    json_value: Json = Field(
+        ...,
+        example="{'foo': 'bar'}",
+        description="JSON value of the document.",
+    )
+    creation_date: Optional[datetime] = Field(
+        None,
+        example="2021-04-23T10:20:30.400+02:30",
+        description="Creation date of the document.",
+    )
+    created_by: Optional[str] = Field(
+        None,
+        example="16fd2706-8baf-433b-82eb-8c7fada847da",
+        description="ID of the user that created this document.",
+    )
+    modification_date: Optional[datetime] = Field(
+        None,
+        example="2021-04-23T10:20:30.400+02:30",
+        description="Last date at which the document was modified.",
+    )
+    modified_by: Optional[str] = Field(
+        None,
+        example="16fd2706-8baf-433b-82eb-8c7fada847da",
+        description="ID of the user that has last modified this document.",
     )
 
 
