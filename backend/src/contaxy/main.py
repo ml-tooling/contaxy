@@ -1,8 +1,7 @@
 from fastapi import FastAPI
 
+from contaxy.routers import auth, users
 from contaxy.utils.api_utils import patch_fastapi
-
-from .routers import auth, users
 
 app = FastAPI()
 app.include_router(users.router)
