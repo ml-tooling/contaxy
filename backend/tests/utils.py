@@ -6,20 +6,29 @@ from pymongo import MongoClient
 
 from contaxy.config import Settings
 
+MONGO_CONTAINER_NAME = "contaxy-test-mongo"
+
 
 def start_mongo_db(settings: Settings) -> None:
+
     client = docker.from_env()
-    delete_container(settings.mongo_host, client)
+
+    delete_container(MONGO_CONTAINER_NAME, client)
+
+    container_config = {"name": MONGO_CONTAINER_NAME, "detach": True}
+
+    if settings.local_test_docker_network:
+        # Docker outside Docker case e.g. when developing in the workspace
+        container_config.update({"network": settings.local_test_docker_network})
+    else:
+        # Port needs to be exposed
+        container_config.update({"ports": {"27017": settings.mongo_port}})
+
     try:
-        client.containers.run(
-            settings.mongo_db_name,
-            name=settings.mongo_host,
-            network="ml-workspace",
-            detach=True,
-        )
-        wait_until_container_started(settings.mongo_host, client)
+        client.containers.run(settings.mongo_image, **container_config)
+        wait_until_container_started(MONGO_CONTAINER_NAME, client)
     except docker.errors.APIError:
-        delete_container(settings.mongo_host, client)
+        delete_container(MONGO_CONTAINER_NAME, client)
         sys.exit(-1)
 
     _seed_mongo_db(settings)
@@ -27,7 +36,7 @@ def start_mongo_db(settings: Settings) -> None:
 
 def remove_mongo_db(settings: Settings) -> None:
     client = docker.from_env()
-    delete_container(settings.mongo_host, client)
+    delete_container(MONGO_CONTAINER_NAME, client)
 
 
 def delete_container(

@@ -1,3 +1,5 @@
+import os
+
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -5,13 +7,20 @@ from fastapi.testclient import TestClient
 from contaxy import dependencies, main
 from contaxy.config import Settings
 
-from .utils import remove_mongo_db, start_mongo_db
-
-MONGO_CONTAINER_NAME = "contaxy-test-mongo"
+from .utils import MONGO_CONTAINER_NAME, remove_mongo_db, start_mongo_db
 
 
 def get_settings_override():
-    return Settings(mongo_host=MONGO_CONTAINER_NAME, acces_token_expiry_minutes=0)
+    if not os.getenv("LOCAL_TEST_RUN"):
+        return dependencies.get_settings
+
+    if os.getenv("LOCAL_TEST_DOCKER_NETWORK"):
+        # Docker outside Docker case e.g. when developing in the workspace
+        mongo_host = MONGO_CONTAINER_NAME
+        return Settings(mongo_host=mongo_host)
+    else:
+        # Change the default port, to prevent possible collisions with another running instance
+        return Settings(mongo_host="localhost", mongo_port=27018)
 
 
 main.app.dependency_overrides[dependencies.get_settings] = get_settings_override
@@ -20,6 +29,9 @@ main.app.dependency_overrides[dependencies.get_settings] = get_settings_override
 @pytest.fixture(autouse=True, scope="session")
 def mongodb():
     settings = get_settings_override()
+    if not settings.local_test_run:
+        # MongoDB should be existing already
+        return
     start_mongo_db(settings)
     yield
     remove_mongo_db(settings)

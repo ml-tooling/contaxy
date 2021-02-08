@@ -6,9 +6,13 @@ from pydantic import BaseSettings
 class Settings(BaseSettings):
     secret_key: str = "secret"
     acces_token_expiry_minutes: Optional[int] = 30
-    jwt_algorithm = "HS256"
-    mongo_host = "localhost"
-    mongo_port = 27017
-    mongo_db_name = "contaxy"
-    mongo_image = "mongo:4.2"
-    user_registration_disabled = False
+    jwt_algorithm: str = "HS256"
+    mongo_host: str = "localhost"
+    mongo_port: int = 27017
+    mongo_db_name: str = "contaxy"
+    mongo_image: str = "mongo:4.2"
+    user_registration_disabled: bool = False
+    local_test_run: bool = False
+    # Used for Docker outside Docker scenarios e.g. when developing in the
+    # workspace, all containers need to be in the same network
+    local_test_docker_network: Optional[str] = None
