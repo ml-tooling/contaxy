@@ -1320,7 +1320,7 @@ def delete_secret(
 
 
 @app.put(
-    "/projects/{project_id}/data/json/{table_id}/{key}",
+    "/projects/{project_id}/data/json/{collection_id}/{key}",
     operation_id=data_model.ExtensibleOperations.CREATE_JSON_DOCUMENT.value,
     summary="Create a JSON document.",
     tags=["json"],
@@ -1329,7 +1329,7 @@ def delete_secret(
 def create_json_document(
     json_document: Dict,
     project_id: str = PROJECT_ID_PARAM,
-    table_id: str = Path(..., description="ID of the table."),
+    collection_id: str = Path(..., description="ID of the collection."),
     key: str = Path(..., description="Key of the JSON document."),
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
@@ -1338,7 +1338,7 @@ def create_json_document(
 
 
 @app.get(
-    "/projects/{project_id}/data/json/{table_id}",
+    "/projects/{project_id}/data/json/{collection_id}",
     operation_id=data_model.ExtensibleOperations.LIST_JSON_DOCUMENTS.value,
     response_model=List[data_model.JsonDocument],
     summary="List all JSON documents.",
@@ -1347,8 +1347,8 @@ def create_json_document(
 )
 def list_json_documents(
     project_id: str = PROJECT_ID_PARAM,
-    table_id: str = Path(..., description="ID of the table."),
-    filter: Optional[str] = Query(None, description="Filter instructions."),
+    collection_id: str = Path(..., description="ID of the collection."),
+    filter: Optional[str] = Query(None, description="Filter instructions (JSON Path)."),
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
     """TODO: add documentation."""
@@ -1356,7 +1356,7 @@ def list_json_documents(
 
 
 @app.get(
-    "/projects/{project_id}/data/json/{table_id}/{key}",
+    "/projects/{project_id}/data/json/{collection_id}/{key}",
     operation_id=data_model.ExtensibleOperations.GET_JSON_DOCUMENT.value,
     response_model=data_model.JsonDocument,
     summary="Get JSON document.",
@@ -1365,7 +1365,7 @@ def list_json_documents(
 )
 def get_json_document(
     project_id: str = PROJECT_ID_PARAM,
-    table_id: str = Path(..., description="ID of the table."),
+    collection_id: str = Path(..., description="ID of the collection."),
     key: str = Path(..., description="Key of the JSON document."),
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
@@ -1374,7 +1374,7 @@ def get_json_document(
 
 
 @app.delete(
-    "/projects/{project_id}/data/json/{table_id}/{key}",
+    "/projects/{project_id}/data/json/{collection_id}/{key}",
     operation_id=data_model.ExtensibleOperations.DELETE_JSON_DOCUMENT.value,
     summary="Delete JSON document.",
     tags=["json"],
@@ -1382,7 +1382,7 @@ def get_json_document(
 )
 def delete_json_document(
     project_id: str = PROJECT_ID_PARAM,
-    table_id: str = Path(..., description="ID of the table."),
+    collection_id: str = Path(..., description="ID of the collection."),
     key: str = Path(..., description="Key of the JSON document."),
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
@@ -1401,5 +1401,5 @@ if __name__ == "__main__":
     import uvicorn
 
     uvicorn.run(
-        "contaxy.base_api:app", host="0.0.0.0", port=8081, log_level="info", reload=True
+        "contaxy.base_api:app", host="0.0.0.0", port=8082, log_level="info", reload=True
     )

@@ -13,6 +13,12 @@ MAX_PROJECT_ID_LENGTH = 25
 
 # TODO: In to Input
 
+# Update default fields
+# date_created
+# date_updated
+# user_created
+# user_updated
+
 
 class CoreOperations(str, Enum):
     # TODO: LIST API TOKENS
