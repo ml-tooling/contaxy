@@ -1,4 +1,4 @@
-FROM mltooling/build-environment:0.6.8
+FROM mltooling/build-environment:0.6.9
 
 # Install Java
 ENV JAVA_HOME="/usr/lib/jvm/java-1.14.0-openjdk-amd64"
