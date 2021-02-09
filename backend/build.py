@@ -66,13 +66,13 @@ def main(args: dict) -> None:
             # Activated Python Environment (3.8)
             build_python.install_build_env()
             # Run pytest in pipenv environment
-            build_utils.run("pipenv run pytest", exit_on_error=True)
+            build_utils.run("pipenv run pytest tests", exit_on_error=True)
 
             # Update pipfile.lock when all tests are successfull (lock environment)
             build_utils.run("pipenv lock", exit_on_error=True)
         else:
             # Run fast tests
-            build_utils.run('pipenv run pytest -m "not slow"', exit_on_error=True)
+            build_utils.run('pipenv run pytest tests -m "not slow"', exit_on_error=True)
 
     if args.get(build_utils.FLAG_RELEASE):
         # Publish distribution on pypi

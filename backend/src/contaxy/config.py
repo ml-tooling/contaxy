@@ -12,7 +12,6 @@ class Settings(BaseSettings):
     mongo_db_name: str = "contaxy"
     mongo_image: str = "mongo:4.2"
     user_registration_disabled: bool = False
-    local_test_run: bool = False
     # Used for Docker outside Docker scenarios e.g. when developing in the
     # workspace, all containers need to be in the same network
     local_test_docker_network: Optional[str] = None

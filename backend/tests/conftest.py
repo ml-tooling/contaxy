@@ -11,9 +11,6 @@ from .utils import MONGO_CONTAINER_NAME, remove_mongo_db, start_mongo_db
 
 
 def get_settings_override():
-    if not os.getenv("LOCAL_TEST_RUN"):
-        return dependencies.get_settings
-
     if os.getenv("LOCAL_TEST_DOCKER_NETWORK"):
         # Docker outside Docker case e.g. when developing in the workspace
         mongo_host = MONGO_CONTAINER_NAME
@@ -27,11 +24,8 @@ main.app.dependency_overrides[dependencies.get_settings] = get_settings_override
 
 
 @pytest.fixture(autouse=True, scope="session")
-def mongodb():
+def setup_mongodb():
     settings = get_settings_override()
-    if not settings.local_test_run:
-        # MongoDB should be existing already
-        return
     start_mongo_db(settings)
     yield
     remove_mongo_db(settings)
