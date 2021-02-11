@@ -1,4 +1,7 @@
-from fastapi import FastAPI
+from typing import Optional
+
+from fastapi import FastAPI, Query, params
+from pydantic.dataclasses import dataclass
 
 
 def patch_fastapi(app: FastAPI) -> None:
@@ -69,4 +72,31 @@ def patch_fastapi(app: FastAPI) -> None:
 
     graphql.GRAPHIQL = graphql.GRAPHIQL.replace(
         "({{REQUEST_PATH}}", '("." + {{REQUEST_PATH}}'
+    )
+
+
+# Pagination:
+# https://github.com/uriyyo/fastapi-pagination
+# https://jsonapi.org/format/#fetching-pagination
+# Github API: page, per_page
+# Alternative: limit, offset
+
+
+@dataclass
+class PaginationParams:
+    page: Optional[int] = Query(
+        None, ge=0, description="Page number of the results to fetch."
+    )
+    per_page: Optional[int] = Query(None, gt=0, description="Results per page.")
+
+
+# Sorting:
+# https://jsonapi.org/format/#fetching-sorting
+# direction or order as seperate field
+# Github API: sort and direction ( asc, desc)
+@dataclass
+class SortingParams:
+    sort: Optional[str] = Query(
+        ...,
+        description="Sort by the given value. Sort order is ascending, unless prefixed by `-`.",
     )

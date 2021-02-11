@@ -15,6 +15,8 @@ app = FastAPI(
     version=__version__,
 )
 
+# TODO: add prefix: /api/v1/
+
 # TODO: use custom type instead?
 PROJECT_ID_PARAM = Path(
     ...,
@@ -63,7 +65,7 @@ EXTENSION_ID_PARAM = Query(
 
 # TODO: evaluate status codes: 302,303,...
 OPEN_URL_REDIRECT: Mapping[Union[int, str], Dict[str, Any]] = {
-    status.HTTP_307_TEMPORARY_REDIRECT: {"description": "Redirecting to another URL"}
+    status.HTTP_307_TEMPORARY_REDIRECT: {"message": "Redirecting to another URL"}
 }
 
 # TODO: https://fastapi.tiangolo.com/advanced/additional-responses/#combine-predefined-responses-and-custom-ones
@@ -303,6 +305,11 @@ def get_user_token(
         description="Type of the token.",
         type="string",
     ),
+    permission_level: data_model.PermissionLevel = Query(
+        data_model.PermissionLevel.WRITE,
+        description="Permission level of the token.",
+        type="string",
+    ),
 ) -> Any:
     """Returns a session or API token with permission to access all resources accesible by the given user."""
     raise NotImplementedError
@@ -387,7 +394,7 @@ def refresh_token(
 @app.post(
     "/auth/tokens/verify",
     operation_id=data_model.CoreOperations.VERIFY_TOKEN.value,
-    response_model=str,
+    response_model=List[str],
     summary="Verify a Token.",
     tags=["auth"],
     status_code=status.HTTP_200_OK,
@@ -398,22 +405,25 @@ def verify_token(
         title="Token",
         description="Token to verify.",
     ),
-    permission: Optional[str] = Query(
+    resource_type: Optional[data_model.ResourceType] = Query(
         None,
-        title="Permission",
-        description="Permission to include in the verification.",
+        title="Resource Type ",
+        description="Type of the resource.",
     ),
-    return_token: bool = Query(
-        False,
-        title="Return Token",
-        description="If true, the session token is returned in the body.",
+    resource_id: Optional[str] = Query(
+        None,
+        title="Resource ID",
+        description="ID of the resource.",
     ),
-    extension_id: Optional[str] = EXTENSION_ID_PARAM,
+    permission_level: Optional[data_model.PermissionLevel] = Query(
+        None,
+        title="Permission Level",
+        description="Permission level to verify.",
+    ),
 ) -> Any:
     """Verifies a session or API token for its validity and - if provided - if it has the provided permisson.
 
-    If the verification is successful and return_token is True, a session token (JWT) will be returned.
-    If a permission was provided for verification, only this permission will be included in the session token.
+    If the verification is successful, a list of permssions will be returned associated with the given token.
     """
     raise NotImplementedError
 
@@ -471,7 +481,7 @@ def update_project(
     "/projects",
     operation_id=data_model.CoreOperations.LIST_PROJECTS.value,
     response_model=List[data_model.Project],
-    summary="List all available projects.",
+    summary="List all projects.",
     tags=["projects"],
     status_code=status.HTTP_200_OK,
 )
@@ -539,8 +549,13 @@ def get_project_token(
         description="Type of the token.",
         type="string",
     ),
+    permission_level: data_model.PermissionLevel = Query(
+        data_model.PermissionLevel.WRITE,
+        description="Permission level of the token.",
+        type="string",
+    ),
 ) -> Any:
-    """Returns a session or API token with permission to access all project resources."""
+    """Returns a session or API token with permission (read, write, or admin) to access all project resources."""
     raise NotImplementedError
 
 
@@ -566,8 +581,8 @@ def list_project_members(project_id: str = PROJECT_ID_PARAM) -> Any:
 def add_project_member(
     project_id: str = PROJECT_ID_PARAM,
     user_id: str = USER_ID_PARAM,
-    role: Optional[data_model.ProjectRole] = Query(
-        data_model.ProjectRole.MEMBER,
+    permission_level: Optional[data_model.PermissionLevel] = Query(
+        data_model.PermissionLevel.WRITE,
         description="The permission level.",
         type="string",
     ),
@@ -597,7 +612,7 @@ def remove_project_member(
     "/projects/{project_id}/services",
     operation_id=data_model.ExtensibleOperations.LIST_SERVICES.value,
     response_model=List[data_model.Service],
-    summary="List all project services.",
+    summary="List project services.",
     tags=["services"],
     status_code=status.HTTP_200_OK,
 )
@@ -729,7 +744,7 @@ def get_service_logs(
     tags=["services"],
     status_code=status.HTTP_200_OK,
 )
-def get_service_access_token(
+def get_service_token(
     project_id: str = PROJECT_ID_PARAM,
     service_id: str = SERVICE_ID_PARAM,
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
@@ -743,6 +758,7 @@ def get_service_access_token(
 
     This token is read-only and does not allow any other permission such as deleting or updating the service.
     """
+    # TODO: permission level: read
     raise NotImplementedError
 
 
@@ -794,7 +810,7 @@ def open_service(
     "/projects/{project_id}/jobs",
     operation_id=data_model.ExtensibleOperations.LIST_JOBS.value,
     response_model=List[data_model.Job],
-    summary="List all project jobs.",
+    summary="List project jobs.",
     tags=["jobs"],
     status_code=status.HTTP_200_OK,
 )
@@ -1094,7 +1110,7 @@ def get_extension_defaults(
     "/projects/{project_id}/data/files",
     operation_id=data_model.ExtensibleOperations.LIST_FILES.value,
     response_model=List[data_model.File],
-    summary="List all project files.",
+    summary="List project files.",
     tags=["files"],
     status_code=status.HTTP_200_OK,
 )
@@ -1265,6 +1281,7 @@ def get_file_access_token(
 
     This token is read-only and does not allow any action which would modify the given file.
     """
+    # TODO: permission level: read
     raise NotImplementedError
 
 
@@ -1275,7 +1292,7 @@ def get_file_access_token(
     "/projects/{project_id}/data/secrets",
     operation_id=data_model.ExtensibleOperations.LIST_SECRETS.value,
     response_model=List[data_model.Secret],
-    summary="List all secrets.",
+    summary="List project secrets.",
     tags=["secrets"],
     status_code=status.HTTP_200_OK,
 )
@@ -1285,9 +1302,9 @@ def list_secrets(project_id: str = PROJECT_ID_PARAM) -> Any:
 
 
 @app.put(
-    "/projects/{project_id}/data/secrets",
+    "/projects/{project_id}/data/secrets/{secret_name}",
     operation_id=data_model.ExtensibleOperations.CREATE_SECRET.value,
-    summary="Create a sercret.",
+    summary="Create or updated a sercret.",
     tags=["secrets"],
     status_code=status.HTTP_204_NO_CONTENT,
 )
@@ -1301,14 +1318,16 @@ def create_secret(
 
 
 @app.delete(
-    "/projects/{project_id}/data/secrets",
+    "/projects/{project_id}/data/secrets/{secret_name}",
     operation_id=data_model.ExtensibleOperations.DELETE_SECRET.value,
     summary="Delete a sercret.",
     tags=["secrets"],
     status_code=status.HTTP_204_NO_CONTENT,
 )
 def delete_secret(
-    secret_name: str = Query(..., description="Name of the secret."),
+    secret_name: str = Path(
+        ..., description="Name of the secret."
+    ),  # TODO add regex pattern
     project_id: str = PROJECT_ID_PARAM,
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
@@ -1324,9 +1343,29 @@ def delete_secret(
     operation_id=data_model.ExtensibleOperations.CREATE_JSON_DOCUMENT.value,
     summary="Create a JSON document.",
     tags=["json"],
-    status_code=status.HTTP_204_NO_CONTENT,
+    response_model=data_model.JsonDocument,
+    status_code=status.HTTP_200_OK,
 )
 def create_json_document(
+    json_document: Dict,
+    project_id: str = PROJECT_ID_PARAM,
+    collection_id: str = Path(..., description="ID of the collection."),
+    key: str = Path(..., description="Key of the JSON document."),
+    extension_id: Optional[str] = EXTENSION_ID_PARAM,
+) -> Any:
+    """TODO: add documentation."""
+    raise NotImplementedError
+
+
+@app.patch(
+    "/projects/{project_id}/data/json/{collection_id}/{key}",
+    operation_id=data_model.ExtensibleOperations.UPDATE_JSON_DOCUMENT.value,
+    summary="Update a JSON document.",
+    tags=["json"],
+    response_model=data_model.JsonDocument,
+    status_code=status.HTTP_200_OK,
+)
+def update_json_document(
     json_document: Dict,
     project_id: str = PROJECT_ID_PARAM,
     collection_id: str = Path(..., description="ID of the collection."),
@@ -1341,14 +1380,16 @@ def create_json_document(
     "/projects/{project_id}/data/json/{collection_id}",
     operation_id=data_model.ExtensibleOperations.LIST_JSON_DOCUMENTS.value,
     response_model=List[data_model.JsonDocument],
-    summary="List all JSON documents.",
+    summary="List JSON documents.",
     tags=["json"],
     status_code=status.HTTP_200_OK,
 )
 def list_json_documents(
     project_id: str = PROJECT_ID_PARAM,
     collection_id: str = Path(..., description="ID of the collection."),
-    filter: Optional[str] = Query(None, description="Filter instructions (JSON Path)."),
+    filter: Optional[str] = Query(
+        None, description="JSON Path query used to filter the results."
+    ),
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
     """TODO: add documentation."""

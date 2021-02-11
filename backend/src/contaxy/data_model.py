@@ -18,6 +18,8 @@ MAX_PROJECT_ID_LENGTH = 25
 # date_updated
 # user_created
 # user_updated
+# created_at
+# updated_at
 
 
 class CoreOperations(str, Enum):
@@ -102,6 +104,7 @@ class ExtensibleOperations(str, Enum):
     # JSON Document Endpoints
     LIST_JSON_DOCUMENTS = "list_json_documents"
     CREATE_JSON_DOCUMENT = "create_json_document"
+    UPDATE_JSON_DOCUMENT = "update_json_document"
     DELETE_JSON_DOCUMENT = "delete_json_document"
     GET_JSON_DOCUMENT = "get_json_document"
 
@@ -133,9 +136,13 @@ class TokenType(str, Enum):
     API_TOKEN = "api-token"
 
 
-class ProjectRole(str, Enum):
-    MEMBER = "member"
-    ADMIN = "admin"
+class ResourceType(str, Enum):
+    USER = "user"
+    PROJECT = "project"
+    DEPLOYMENT = "deployment"
+    FILE = "file"
+    SECRET = "secret"
+    JSON_DOCUMENT = "json-document"
 
 
 class DataType(str, Enum):
@@ -177,6 +184,13 @@ class DeploymentStatus(str, Enum):
 
 class ActionInstruction(str, Enum):
     NEW_TAB = "new-tab"
+
+
+class PermissionLevel(str, Enum):
+    READ = "read"
+    WRITE = "write"
+    ADMIN = "admin"
+    # none
 
 
 class BaseEntity(BaseModel):
@@ -802,20 +816,21 @@ class SystemInfo(BaseEntity):
 
 
 class SecretInput(BaseEntity):
-    key: str = Field(
-        ...,
-        example="MY_API_TOKEN",
-        description="Name of the secret.",
-    )
+    # TODO: Use value encryption like in Github API, but Vault is not encrypting
     value: str = Field(
         ...,
         example="f4528e540a133dd53ba6809e74e16774ebe4777a",
-        description="Platform version.",
+        description="Value of the secret.",
     )
     # TODO: group_name -> group secrets together (e.g. all details for a db conenction)
 
 
 class Secret(SecretInput):
+    key: str = Field(
+        ...,
+        example="MY_API_TOKEN",
+        description="Name of the secret.",
+    )
     # == Shared Parameters
     creation_date: Optional[datetime] = Field(
         None,
