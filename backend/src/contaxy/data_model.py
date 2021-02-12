@@ -11,8 +11,6 @@ MAX_DESCRIPTION_LENGTH = 240
 MIN_PROJECT_ID_LENGTH = 4
 MAX_PROJECT_ID_LENGTH = 25
 
-# TODO: In to Input
-
 # Update default fields
 # date_created
 # date_updated
@@ -20,6 +18,9 @@ MAX_PROJECT_ID_LENGTH = 25
 # user_updated
 # created_at
 # updated_at
+
+# TODO: List wrapper
+# data/items  + metadata
 
 
 class CoreOperations(str, Enum):
@@ -202,9 +203,9 @@ class BaseEntity(BaseModel):
 
 
 class UserInput(BaseEntity):
-    username: str = Field(
-        ...,
-        example="john.doe@example.com",
+    username: Optional[str] = Field(
+        None,
+        example="john-doe",
         description="A unique username on the system.",
     )
     email: Optional[EmailStr] = Field(
@@ -212,7 +213,7 @@ class UserInput(BaseEntity):
     )
     permissions: Optional[List[str]] = Field(
         None,
-        example=["pm-my-awesome-project"],
+        example=["project:my-awesome-project:write"],
         description="List of user permissions.",
     )
     is_disabled: Optional[bool] = Field(
@@ -238,13 +239,13 @@ class Quota(BaseEntity):
     max_cpus: Optional[int] = Field(
         None,
         example=52,
-        ge=1,
+        ge=0,
         description="Maximum number of CPU cores.",
     )
     max_memory: Optional[int] = Field(
         None,
         example=80000,
-        ge=1,
+        ge=0,
         description="Maximum amount of memory in Megabyte.",
     )
     max_gpus: Optional[int] = Field(
@@ -256,26 +257,32 @@ class Quota(BaseEntity):
     max_deployment_storage: Optional[int] = Field(
         None,
         example=800000,
-        ge=1,
+        ge=0,
         description="Maximum storage usage in Megabyte for all deployments.",
     )
     max_file_storage: Optional[int] = Field(
         None,
         example=100000,
-        ge=1,
+        ge=0,
         description="Maximum storage usage in Megabyte for all files.",
     )
     max_files: Optional[int] = Field(
         None,
         example=1000,
-        ge=1,
+        ge=0,
         description="Maximum number of files on file storage.",
     )
     max_deployments: Optional[int] = Field(
         None,
         example=20,
-        ge=1,
+        ge=0,
         description="Maximum number of deployments. This includes services, jobs, and extensions.",
+    )
+    max_collections: Optional[int] = Field(
+        None,
+        example=20,
+        ge=0,
+        description="Maximum number of JSON document collections.",
     )
 
 
@@ -313,12 +320,20 @@ class Statistics(BaseEntity):
     files: Optional[int] = Field(
         None,
         example=320,
+        ge=0,
         description="Number of files on file storage.",
     )
     deployments: Optional[int] = Field(
         None,
         example=10,
+        ge=0,
         description="Number of deployments. This includes services, jobs, and extensions.",
+    )
+    collections: Optional[int] = Field(
+        None,
+        example=10,
+        ge=0,
+        description="Number of JSON document collections.",
     )
     last_activity: Optional[datetime] = Field(
         None,
@@ -329,9 +344,11 @@ class Statistics(BaseEntity):
 
 class ProjectInput(BaseEntity):
     # TODO: add validation regex
-    id: str = Field(..., example="my-awesome-project", description="ID of the project.")
+    id: str = Field(
+        None, example="my-awesome-project", description="ID of the project."
+    )
     display_name: str = Field(
-        ...,
+        None,
         min_length=MIN_DISPLAY_NAME_LENGTH,
         max_length=MAX_DISPLAY_NAME_LENGTH,
         example="My Awesome Project",
@@ -365,12 +382,12 @@ class ProjectInput(BaseEntity):
 
 
 class Project(ProjectInput):
-    creation_date: Optional[datetime] = Field(
+    created_at: Optional[datetime] = Field(
         None,
         example="2021-04-23T10:20:30.400+02:30",
         description="Creation date of the project.",
     )
-    modification_date: Optional[datetime] = Field(
+    updated_at: Optional[datetime] = Field(
         None,
         example="2021-04-23T10:20:30.400+02:30",
         description="Last date at which the project metadata was modified.",
@@ -380,10 +397,10 @@ class Project(ProjectInput):
         example="16fd2706-8baf-433b-82eb-8c7fada847da",
         description="ID of the user that has created this project.",
     )
-    modified_by: Optional[str] = Field(
+    update_by: Optional[str] = Field(
         None,
         example="16fd2706-8baf-433b-82eb-8c7fada847da",
-        description="ID of the user that has last modified this projects metadata.",
+        description="ID of the user that has last updated this projects metadata.",
     )
     is_available: Optional[bool] = Field(
         False,
@@ -395,7 +412,7 @@ class Project(ProjectInput):
     )
     statistics: Optional[Statistics] = Field(
         None,
-        description="Indicates that this is a technical project created by the system.",
+        description="Project statistics.",
     )
 
 
@@ -527,7 +544,7 @@ class Deployment(DeploymentInput):
         None,
         description="The extension ID in case the deployment is deployed via an extension.",
     )
-    type: Optional[DeploymentType] = Field(
+    deployment_type: Optional[DeploymentType] = Field(
         None,
         description="The type of this deployment.",
     )
@@ -536,20 +553,15 @@ class Deployment(DeploymentInput):
         example=DeploymentStatus.RUNNING,
         description="The status of this deployment.",
     )
-    container_id: Optional[str] = Field(
+    internal_id: Optional[str] = Field(
         None,
         example="73d247087fea5bfb3a67e98da6a07f5bf4e2a90e5b52f3c12875a35600818376",
-        description="The ID of the container on the orchestration platform.",
+        description="The ID of the deployment on the orchestration platform.",
     )
-    container_name: Optional[str] = Field(
-        None,
-        example="hello-world-app",
-        description="The name of the container on the orchestration platform.",
-    )
-    container_labels: Optional[Dict[str, str]] = Field(
+    deployment_labels: Optional[Dict[str, str]] = Field(
         None,
         example={"foo.bar.label": "label-value"},
-        description="The labels of the container on the orchestration platform.",
+        description="The labels of the deployment on the orchestration platform.",
     )
     exit_code: Optional[int] = Field(
         None,
@@ -592,14 +604,19 @@ class ExtensionInput(ServiceInput):
         description="List of capabilities implemented by this extension.",
     )
     # TODO: do not use ui or api endpoint -> use endpoints list instead and provide metadata there
+    api_endpoint: Optional[str] = Field(
+        None,
+        example="8080/extension/api",
+        description="The endpoint base URL that implements the API operation stated in the capabilities property.",
+    )
     ui_endpoint: Optional[str] = Field(
         None,
         example="8080/webapp/ui",
         description="The endpoint instruction that provide a Web UI. If this is provided, the extension will be integrated into the UI.",
     )
-    api_endpoint: Optional[str] = Field(
+    graphql_endpoint: Optional[str] = Field(
         None,
-        example="8080/extension/api",
+        example="8080/graphql",
         description="The endpoint instruction that provide . If this is provided, the extension will be integrated into the UI.",
     )
     # TODO: add again
@@ -674,22 +691,22 @@ class File(FileInput):
         None,
         description="The extension ID in case the file is provided via an extension.",
     )
-    creation_date: Optional[datetime] = Field(
+    created_at: Optional[datetime] = Field(
         None,
         example="2021-04-23T10:20:30.400+02:30",
         description="Date when the file was uploaded.",
-    )
-    modification_date: Optional[datetime] = Field(
-        None,
-        example="2021-04-23T10:20:30.400+02:30",
-        description="Last date at which the file was modified.",
     )
     created_by: Optional[str] = Field(
         None,
         example="16fd2706-8baf-433b-82eb-8c7fada847da",
         description="ID of the user that has uploaded this file.",
     )
-    modified_by: Optional[str] = Field(
+    updated_at: Optional[datetime] = Field(
+        None,
+        example="2021-04-23T10:20:30.400+02:30",
+        description="Last date at which the file was updated.",
+    )
+    updated_by: Optional[str] = Field(
         None,
         example="16fd2706-8baf-433b-82eb-8c7fada847da",
         description="ID of the user that has last modified this file.",
@@ -739,7 +756,7 @@ class ApiToken(BaseEntity):
         max_length=MAX_DESCRIPTION_LENGTH,
         description="Short description about the context and usage of the token.",
     )
-    creation_date: Optional[datetime] = Field(
+    created_at: Optional[datetime] = Field(
         None,
         example="2021-04-23T10:20:30.400+02:30",
         description="Creation date of the token.",
@@ -832,7 +849,7 @@ class Secret(SecretInput):
         description="Name of the secret.",
     )
     # == Shared Parameters
-    creation_date: Optional[datetime] = Field(
+    created_at: Optional[datetime] = Field(
         None,
         example="2021-04-23T10:20:30.400+02:30",
         description="Creation date of the secret.",
@@ -855,7 +872,7 @@ class JsonDocument(BaseEntity):
         example="{'foo': 'bar'}",
         description="JSON value of the document.",
     )
-    creation_date: Optional[datetime] = Field(
+    created_at: Optional[datetime] = Field(
         None,
         example="2021-04-23T10:20:30.400+02:30",
         description="Creation date of the document.",
@@ -865,15 +882,15 @@ class JsonDocument(BaseEntity):
         example="16fd2706-8baf-433b-82eb-8c7fada847da",
         description="ID of the user that created this document.",
     )
-    modification_date: Optional[datetime] = Field(
+    updated_at: Optional[datetime] = Field(
         None,
         example="2021-04-23T10:20:30.400+02:30",
-        description="Last date at which the document was modified.",
+        description="Last date at which the document was updated.",
     )
-    modified_by: Optional[str] = Field(
+    updated_by: Optional[str] = Field(
         None,
         example="16fd2706-8baf-433b-82eb-8c7fada847da",
-        description="ID of the user that has last modified this document.",
+        description="ID of the user that has last updated this document.",
     )
 
 

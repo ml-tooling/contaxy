@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Any, Dict, List, Mapping, Optional, Tuple, Union
 
 from fastapi import Body, FastAPI, Path, Query, status
@@ -16,6 +17,10 @@ app = FastAPI(
 )
 
 # TODO: add prefix: /api/v1/
+
+# TODO: rename open?
+# /actions
+# /actions/{action_id}
 
 # TODO: use custom type instead?
 PROJECT_ID_PARAM = Path(
@@ -86,6 +91,8 @@ def welcome() -> Any:
 def root() -> Any:
     return RedirectResponse("./docs")
 
+
+# TODO define token names
 
 # Graphql test
 
@@ -214,7 +221,7 @@ def get_system_info() -> Any:
 
 @app.get(
     "/system/healthz",
-    status_code=status.HTTP_200_OK,
+    status_code=status.HTTP_204_NO_CONTENT,
     summary="Check server health status.",
     tags=["system"],
 )
@@ -247,7 +254,7 @@ def get_system_statistics() -> Any:
     status_code=status.HTTP_200_OK,
 )
 def list_users() -> Any:
-    """TODO: add documentation."""
+    """Lists all users that are visible to the authenticated user."""
     raise NotImplementedError
 
 
@@ -260,8 +267,10 @@ def list_users() -> Any:
     status_code=status.HTTP_200_OK,
 )
 def get_user(user_id: str = USER_ID_PARAM) -> Any:
-    """TODO: add documentation."""
-    # TODO: allow me as keyword to access own user info
+    """Returns the user metadata for a single user.
+
+    User `me` as `user_id` to get the metadata of the authenticated user.
+    """
     raise NotImplementedError
 
 
@@ -274,7 +283,11 @@ def get_user(user_id: str = USER_ID_PARAM) -> Any:
     status_code=status.HTTP_200_OK,
 )
 def update_user(user: data_model.UserInput, user_id: str = USER_ID_PARAM) -> Any:
-    """TODO: add documentation."""
+    """Updates the user metadata.
+
+    This will update only the properties that are explicitly set in the patch request.
+    The patching is based on the JSON Merge Patch Standard [RFC7396](https://tools.ietf.org/html/rfc7396).
+    """
     raise NotImplementedError
 
 
@@ -286,7 +299,10 @@ def update_user(user: data_model.UserInput, user_id: str = USER_ID_PARAM) -> Any
     status_code=status.HTTP_204_NO_CONTENT,
 )
 def delete_user(user_id: str = USER_ID_PARAM) -> Any:
-    """Deletes a user and all resources which are only accesible by this user. Shared project resources will not be deleted."""
+    """Deletes a user and all resources which are only accesible by this user.
+
+    Shared project resources will not be deleted.
+    """
     raise NotImplementedError
 
 
@@ -311,7 +327,11 @@ def get_user_token(
         type="string",
     ),
 ) -> Any:
-    """Returns a session or API token with permission to access all resources accesible by the given user."""
+    """Returns a session or API token with permission to access all resources accesible by the given user.
+
+    Depending on the provided permission level, this token also allows to create or update resources (`write`)
+    or delete projects or the user itself (`admin`).
+    """
     raise NotImplementedError
 
 
@@ -341,25 +361,34 @@ def list_api_token(
     ),
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
-    """Returns list of created API tokens for the specified user and/or project."""
+    """Returns list of created API tokens for the specified user or project.
+
+    If a user ID and a project ID is provided, a combined list will be returned.
+    """
     raise NotImplementedError
 
 
 @app.delete(
-    "/auth/tokens",
+    "/auth/tokens/{api_token}",
     operation_id=data_model.ExtensibleOperations.DELETE_API_TOKEN.value,
     summary="Delete API token.",
     tags=["auth"],
     status_code=status.HTTP_204_NO_CONTENT,
 )
 def delete_api_token(
-    api_token: str = Query(
+    api_token: str = Path(
         ...,
         title="API Token",
         description="API Token to delete.",
     ),
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
+    """Deletes an API token.
+
+    This will revoke the API token, preventing further requests with the given token.
+    Because of caching, the API token might still be usable under certain conditions
+    for some operations for a maximum of 15 minutes after deletion.
+    """
     raise NotImplementedError
 
 
@@ -458,7 +487,11 @@ def open_login_page(
     status_code=status.HTTP_200_OK,
 )
 def create_project(project: data_model.ProjectInput) -> Any:
-    """TODO: add documentation."""
+    """Creates a new project.
+
+    We suggest to use the `suggest_project_id` endpoint to get a valid and available ID.
+    The project ID might also be set manually, however, an error will be returned if it does not comply with the ID requirements or is already used.
+    """
     raise NotImplementedError
 
 
@@ -473,7 +506,11 @@ def create_project(project: data_model.ProjectInput) -> Any:
 def update_project(
     project: data_model.ProjectInput, project_id: str = PROJECT_ID_PARAM
 ) -> Any:
-    """TODO: add documentation."""
+    """Updates the metadata of the given project.
+
+    This will update only the properties that are explicitly set in the patch request.
+    The patching is based on the JSON Merge Patch Standard [RFC7396](https://tools.ietf.org/html/rfc7396).
+    """
     raise NotImplementedError
 
 
@@ -486,7 +523,11 @@ def update_project(
     status_code=status.HTTP_200_OK,
 )
 def list_projects() -> Any:
-    """TODO: add documentation."""
+    """Lists all projects visible to the authenticated user.
+
+    A project is visible to a user, if the user has the atleast a `read` permission for the project.
+    System adminstrators will also see technical projects, such as `system-internal` and `system-global`.
+    """
     raise NotImplementedError
 
 
@@ -499,7 +540,7 @@ def list_projects() -> Any:
     status_code=status.HTTP_200_OK,
 )
 def get_project(project_id: str = PROJECT_ID_PARAM) -> Any:
-    """TODO: add documentation."""
+    """Returns the metadata of a single project."""
     raise NotImplementedError
 
 
@@ -518,7 +559,11 @@ def suggest_project_id(
         max_length=data_model.MAX_DISPLAY_NAME_LENGTH,
     )
 ) -> Any:
-    """Suggests a valid and unique project ID for the given display name."""
+    """Suggests a valid and unique project ID for the given display name.
+
+    The project ID will be human-readable and resemble the provided display name,
+    but might be cut off or have an attached counter prefix.
+    """
     raise NotImplementedError
 
 
@@ -530,7 +575,10 @@ def suggest_project_id(
     status_code=status.HTTP_204_NO_CONTENT,
 )
 def delete_project(project_id: str = PROJECT_ID_PARAM) -> Any:
-    """Deletes a project and all its associated resources including deployments and files."""
+    """Deletes a project and all its associated resources including deployments and files.
+
+    A project can only be delete by a user with `admin` permission on the project.
+    """
     raise NotImplementedError
 
 
@@ -555,7 +603,12 @@ def get_project_token(
         type="string",
     ),
 ) -> Any:
-    """Returns a session or API token with permission (read, write, or admin) to access all project resources."""
+    """Returns a session or API token with permission (`read`, `write`, or `admin`) to access all project resources.
+
+    The `read` permission level allows read-only access on all resources.
+    The `write` permission level allows to create and delete project resources.
+    The `admin` permission level allows to delete the project or remove other users.
+    """
     raise NotImplementedError
 
 
@@ -567,7 +620,10 @@ def get_project_token(
     status_code=status.HTTP_204_NO_CONTENT,
 )
 def list_project_members(project_id: str = PROJECT_ID_PARAM) -> Any:
-    """TODO: add documentation."""
+    """Lists all project members.
+
+    This include all users that have atlease a `read` permission on the given project.
+    """
     raise NotImplementedError
 
 
@@ -587,7 +643,15 @@ def add_project_member(
         type="string",
     ),
 ) -> Any:
-    """TODO: add documentation."""
+    """Adds a user to the project.
+
+    This will add the permission for this project to the user item.
+    The `permission_level` defines what the user can do:
+
+    - The `read` permission level allows read-only access on all resources.
+    - The `write` permission level allows to create and delete project resources.
+    - The `admin` permission level allows to delete the project or remove other users.
+    """
     raise NotImplementedError
 
 
@@ -601,7 +665,10 @@ def add_project_member(
 def remove_project_member(
     project_id: str = PROJECT_ID_PARAM, user_id: str = USER_ID_PARAM
 ) -> Any:
-    """TODO: add documentation."""
+    """Removes a user from a project.
+
+    This will remove the permission for this project from the user item.
+    """
     raise NotImplementedError
 
 
@@ -620,7 +687,7 @@ def list_services(
     project_id: str = PROJECT_ID_PARAM,
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
-    """TODO: add documentation."""
+    """Lists all services associated with the given project."""
     raise NotImplementedError
 
 
@@ -639,7 +706,11 @@ def suggest_service_config(
     ),
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
-    """TODO: add documentation."""
+    """Suggests an input configuration based on the provided `container_image`.
+
+    The suggestion is based on metadata extracted from the container image (e.g. labels)
+    as well as suggestions based on previous project deployments with the same image.
+    """
     raise NotImplementedError
 
 
@@ -656,7 +727,10 @@ def get_service_metadata(
     service_id: str = SERVICE_ID_PARAM,
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
-    """TODO: add documentation."""
+    """Returns the metadata of a single service.
+
+    The returned metadata might be filtered based on the permission level of the authenticated user.s
+    """
     raise NotImplementedError
 
 
@@ -692,13 +766,16 @@ def list_service_deploy_options(
 def deploy_service(
     service: data_model.ServiceInput,
     project_id: str = PROJECT_ID_PARAM,
-    extension_id: Optional[str] = EXTENSION_ID_PARAM,
     action_id: Optional[str] = Query(
         None, description="The action ID from the service deploy options."
     ),
+    extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
-    """Deploy a service for the specified project."""
-    # TODO: add auto select provider option
+    """Deploy a service for the specified project.
+
+    If `action_id` is not provided, the service deployment will be automatically chosen.
+    """
+    # TODO: add auto select extension option?
     raise NotImplementedError
 
 
@@ -712,9 +789,15 @@ def deploy_service(
 def delete_service(
     project_id: str = PROJECT_ID_PARAM,
     service_id: str = SERVICE_ID_PARAM,
+    delete_volumes: Optional[bool] = Query(
+        False, description="Delete all volumes associated with the deployment."
+    ),
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
-    """TODO: add documentation."""
+    """Deletes a service.
+
+    This will kill and remove the container and all associated deployment artifacts.
+    """
     raise NotImplementedError
 
 
@@ -731,6 +814,9 @@ def get_service_logs(
     service_id: str = SERVICE_ID_PARAM,
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
     lines: Optional[int] = Query(None, description="Only show the last n lines."),
+    since: Optional[datetime] = Query(
+        None, description="Only show the logs generated after a given date."
+    ),
 ) -> Any:
     """Returns the stdout/stderr logs of the service."""
     raise NotImplementedError
@@ -756,9 +842,10 @@ def get_service_token(
 ) -> Any:
     """Returns a session or API token with permission to access the service endpoints.
 
-    This token is read-only and does not allow any other permission such as deleting or updating the service.
+    This token is read-only (permission level read) and does not allow any other permission such as deleting or updating the service.
+
+    The API token can be deleted (revoked) at any time. In comparison, the session token cannot be revoked but expires after a short time (a few minutes).
     """
-    # TODO: permission level: read
     raise NotImplementedError
 
 
@@ -854,7 +941,11 @@ def suggest_job_config(
     ),
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
-    """TODO: add documentation."""
+    """Suggests an input configuration based on the provided `container_image`.
+
+    The suggestion is based on metadata extracted from the container image (e.g. labels)
+    as well as suggestions based on previous project deployments with the same image.
+    """
     raise NotImplementedError
 
 
@@ -929,6 +1020,9 @@ def get_job_logs(
     job_id: str = JOB_ID_PARAM,
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
     lines: Optional[int] = Query(None, description="Only show the last n lines."),
+    since: Optional[datetime] = Query(
+        None, description="Only show the logs generated after a given date."
+    ),
 ) -> Any:
     """Returns the stdout/stderr logs of the job."""
     raise NotImplementedError
@@ -959,9 +1053,9 @@ def list_extensions(
         max_length=data_model.MAX_PROJECT_ID_LENGTH,
     ),
 ) -> Any:
-    """Returns all registered extensions accesible by the given user and/or project.
+    """Returns all installed extensions accesible by the given user or project.
 
-    If this method is called without authentication, only extensions that do not require authentication are returned.
+    If a user and project ID is provided, all extensions will be returned that are either accesible by the user or project.
     """
     raise NotImplementedError
 
@@ -980,7 +1074,10 @@ def delete_extension(
         description="A valid extension ID.",
     )
 ) -> Any:
-    """TODO: add documentation"""
+    """Deletes an extension.
+
+    This will delete the installation metadata as well as the service container.
+    """
     raise NotImplementedError
 
 
@@ -999,8 +1096,7 @@ def get_extension_metadata(
         description="A valid extension ID.",
     )
 ) -> Any:
-    """TODO: add documentation"""
-    # TODO: only return selected properties (e.g. no parameters)
+    """Returns the metadata of the given extension."""
     raise NotImplementedError
 
 
@@ -1022,7 +1118,10 @@ def install_extension(
         max_length=data_model.MAX_PROJECT_ID_LENGTH,
     ),
 ) -> Any:
-    """TODO: detailed description"""
+    """Installs an extension for the given project.
+
+    This will deploy the extension container for the selected project and register the extension for all the specified capabilities.
+    """
     # TODO: add additonal configuration
     raise NotImplementedError
 
@@ -1046,7 +1145,11 @@ def suggest_extension_config(
         max_length=data_model.MAX_PROJECT_ID_LENGTH,
     ),
 ) -> Any:
-    """TODO: add documentation."""
+    """Suggests an input configuration based on the provided `container_image`.
+
+    The suggestion is based on metadata extracted from the container image (e.g. labels)
+    as well as suggestions based on previous project deployments with the same image.
+    """
     raise NotImplementedError
 
 
@@ -1076,8 +1179,12 @@ def set_extension_defaults(
         max_length=data_model.MAX_PROJECT_ID_LENGTH,
     ),
 ) -> Any:
-    """Configured a set of operation IDs to use the given extension as default."""
-    # TODO: only project admins or system admins should be able to call this
+    """Configures the extension to be used as default for a set of operation IDs.
+
+    If no `project_id` is provided, the defaults will be set on a system level.
+
+    This operation can only be executed by project administrators (for setting project defaults) or system administrators.
+    """
     raise NotImplementedError
 
 
@@ -1098,8 +1205,10 @@ def get_extension_defaults(
         max_length=data_model.MAX_PROJECT_ID_LENGTH,
     ),
 ) -> Any:
-    """Returns the list of extensible operation IDs and the configured default extension."""
-    # TODO: only project admins or system admins should be able to call this
+    """Returns the list of extensible operation IDs with the configured default extension.
+
+    This operation can only be called by project administrators (to get project defaults) or system administrators.
+    """
     raise NotImplementedError
 
 
@@ -1179,7 +1288,7 @@ def upload_file(
     file_name: Optional[str] = Query(None),
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
-    """TODO: add documentation."""
+    """Uploads a file to the file storage."""
     # TODO adapt upload implementation
     raise NotImplementedError
 
@@ -1279,9 +1388,12 @@ def get_file_access_token(
 ) -> Any:
     """Returns a session or API token with permission to access given file.
 
-    This token is read-only and does not allow any action which would modify the given file.
+    This token is read-only and does not allow any action which would modify the given file (`read` permission level).
+
+    The API token can be deleted (revoked) at any time.
+    In comparison, the session token cannot be revoked but expires after a short time (a few minutes).
+    However, once the file is downloaded there is no way to prevent any further duplication or misuse.
     """
-    # TODO: permission level: read
     raise NotImplementedError
 
 
@@ -1297,7 +1409,7 @@ def get_file_access_token(
     status_code=status.HTTP_200_OK,
 )
 def list_secrets(project_id: str = PROJECT_ID_PARAM) -> Any:
-    """TODO: add documentation."""
+    """Lists all the secrets associated with the project."""
     raise NotImplementedError
 
 
@@ -1313,7 +1425,14 @@ def create_secret(
     project_id: str = PROJECT_ID_PARAM,
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
-    """TODO: add documentation."""
+    """Creates or updates (overwrites) a secret.
+
+    The secret value will be stored in an encrypted format
+    and hidden or removed in certain parts of the application (such as job or service logs).
+
+    However, all project members with atleast `read` permission on the project will be able to access and read the secret value.
+    Therefore, we cannot prevent any misuse with the secret caused by mishandling from a project member.
+    """
     raise NotImplementedError
 
 
@@ -1331,7 +1450,7 @@ def delete_secret(
     project_id: str = PROJECT_ID_PARAM,
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
-    """TODO: add documentation."""
+    """Deletes a secret."""
     raise NotImplementedError
 
 
@@ -1341,7 +1460,7 @@ def delete_secret(
 @app.put(
     "/projects/{project_id}/data/json/{collection_id}/{key}",
     operation_id=data_model.ExtensibleOperations.CREATE_JSON_DOCUMENT.value,
-    summary="Create a JSON document.",
+    summary="Create JSON document.",
     tags=["json"],
     response_model=data_model.JsonDocument,
     status_code=status.HTTP_200_OK,
@@ -1353,7 +1472,10 @@ def create_json_document(
     key: str = Path(..., description="Key of the JSON document."),
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
-    """TODO: add documentation."""
+    """Creates a JSON document. If a document already exists for the given key, the document will be overwritten.
+
+    If no collection exists in the project with the provided `collection_id`, a new collection will be created.
+    """
     raise NotImplementedError
 
 
@@ -1372,7 +1494,10 @@ def update_json_document(
     key: str = Path(..., description="Key of the JSON document."),
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
-    """TODO: add documentation."""
+    """Updates a JSON document.
+
+    The update is applied on the existing document based on the JSON Merge Patch Standard [RFC7396](https://tools.ietf.org/html/rfc7396).
+    """
     raise NotImplementedError
 
 
@@ -1392,7 +1517,14 @@ def list_json_documents(
     ),
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
-    """TODO: add documentation."""
+    """Lists all JSON documents for the given project collection.
+
+    If extensions are registered for this operation and no extension is selected via the `extension_id` parameter, the results from all extensions will be included in the returned list.
+
+    The `filter` parameter allows to filter the result documents based on a JSONPath expression ([JSON Path Specification](https://goessner.net/articles/JsonPath/)). The filter is only applied to filter documents in the list. It is not usable to extract specific properties.
+
+    # TODO: Add filter examples
+    """
     raise NotImplementedError
 
 
@@ -1410,7 +1542,7 @@ def get_json_document(
     key: str = Path(..., description="Key of the JSON document."),
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
-    """TODO: add documentation."""
+    """Returns a single JSON document."""
     raise NotImplementedError
 
 
@@ -1427,7 +1559,10 @@ def delete_json_document(
     key: str = Path(..., description="Key of the JSON document."),
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
-    """TODO: add documentation."""
+    """Deletes a single JSON document.
+
+    If no other document exists in the project collection, the collection will be deleted.
+    """
     raise NotImplementedError
 
 

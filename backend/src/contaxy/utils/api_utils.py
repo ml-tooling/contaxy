@@ -80,6 +80,8 @@ def patch_fastapi(app: FastAPI) -> None:
 # https://jsonapi.org/format/#fetching-pagination
 # Github API: page, per_page
 # Alternative: limit, offset
+# previous, next (URL)
+# https://fastapi-contrib.readthedocs.io/en/latest/_modules/fastapi_contrib/pagination.html
 
 
 @dataclass
