@@ -82,7 +82,7 @@ def patch_fastapi(app: FastAPI) -> None:
 # Alternative: limit, offset
 # previous, next (URL)
 # https://fastapi-contrib.readthedocs.io/en/latest/_modules/fastapi_contrib/pagination.html
-
+# cursor=Q1MjAwNz&limit=100
 
 @dataclass
 class PaginationParams:

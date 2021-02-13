@@ -21,6 +21,8 @@ MAX_PROJECT_ID_LENGTH = 25
 
 # TODO: List wrapper
 # data/items  + metadata
+#
+# "metadata": { "previous": null,  "next": "Q1MjAwNz", "count": 10 },
 
 
 class CoreOperations(str, Enum):
@@ -417,11 +419,23 @@ class Project(ProjectInput):
 
 
 class DeploymentCompute(BaseEntity):
+    min_cpus: Optional[int] = Field(
+        None,
+        example=2,
+        ge=0,
+        description="Minimum number of CPU cores required by this deployment. The system will make sure that atleast this amount is available to the deployment.",
+    )
     max_cpus: Optional[int] = Field(
         None,
         example=4,
         ge=1,
         description="Maximum number of CPU cores. Even so the system will try to provide the specified amount, it's only guaranteed that the deployment cannot use more.",
+    )
+    min_memory: Optional[int] = Field(
+        None,
+        example=4000,
+        ge=0,
+        description="Minimum amount of memory in Megabyte required by this deployment. The system will make sure that atleast this amount is available to the deployment.",
     )
     max_memory: Optional[int] = Field(
         None,
@@ -429,6 +443,12 @@ class DeploymentCompute(BaseEntity):
         ge=1,
         description="Maximum amount of memory in Megabyte. Even so the system will try to provide the specified amount, it's only guaranteed that the deployment cannot use more.",
     )  # in MB
+    min_gpus: Optional[int] = Field(
+        None,
+        example=1,
+        ge=0,
+        description="Minimum number of GPUs required by this deployments. The system will make sure that atleast this amount is available to the deployment.",
+    )
     max_gpus: Optional[int] = Field(
         None,
         example=2,
@@ -453,11 +473,12 @@ class DeploymentCompute(BaseEntity):
         ge=1,
         description="Maximum container size in Megabyte. The deployment will be killed if it grows above this limit.",
     )
+    # TODO: min_replicas
     max_replicas: Optional[int] = Field(
         1,
         example=2,
         ge=1,
-        description="Maximum number of replicas. The system will make sure to optimize the deployment based on the available resources and requests. Use 1 if the deployment is not scalable.",
+        description="Maximum number of deployment instances. The system will make sure to optimize the deployment based on the available resources and requests. Use 1 if the deployment is not scalable.",
     )
     # TODO: use timedelta
     min_lifetime: Optional[int] = Field(
@@ -513,7 +534,7 @@ class DeploymentInput(BaseEntity):
     )
     command: Optional[str] = Field(
         None,
-        description="Command to run within the deployment.",
+        description="Command to run within the deployment. This overwrites the existing command argument.",
     )
     requirements: Optional[List[Union[DeploymentRequirement, str]]] = Field(
         None,
