@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Union
 
 from pydantic import UUID4, BaseModel, ByteSize, EmailStr, Field, Json, constr
+from pydantic.errors import DateError
 
 MIN_DISPLAY_NAME_LENGTH = 4
 MAX_DISPLAY_NAME_LENGTH = 30
@@ -18,6 +19,29 @@ MAX_PROJECT_ID_LENGTH = 25
 # user_updated
 # created_at
 # updated_at
+
+# TODO: Globale unique ID:
+# UIDs: A Kubernetes systems-generated string to uniquely identify objects. Every object created over the whole lifetime of a Kubernetes cluster has a distinct UID. It is intended to distinguish between historical occurrences of similar entities. Kubernetes UIDs are universally unique identifiers (also known as UUIDs). UUIDs are standardized as ISO/IEC 9834-8 and as ITU-T X.667.
+# TODO: uri instead of id
+# ID prefixed with resource type (similary to slack):
+# C0G9QF9GW -> Channel
+# U0G9WFXNZ -> User
+
+# items
+# "response_metadata": {
+#    "next_cursor": "dGVhbTpDMUg5UkVTR0w="
+#  }
+
+# "kind": "drive#fileList",
+#  "nextPageToken": ""
+
+# "identities": {
+#    "extern_uid": "",
+#    "provider": ""
+#  },
+
+# TODO:
+# Set recommended labels: https://kubernetes.io/docs/concepts/overview/working-with-objects/common-labels/
 
 # TODO: List wrapper
 # data/items  + metadata
@@ -69,19 +93,21 @@ class ExtensibleOperations(str, Enum):
     # Service Endpoints
     LIST_SERVICES = "list_services"
     GET_SERVICE_METADATA = "get_service_metadata"
-    LIST_SERVICE_DEPLOY_OPTIONS = "list_service_deploy_options"
+    LIST_DEPLOY_SERVICE_ACTIONS = "list_deploy_service_actions"
     DEPLOY_SERVICE = "deploy_service"
     DELETE_SERVICE = "delete_service"
     UPDATE_SERVICE = "update_service"
     GET_SERVICE_LOGS = "get_service_logs"
     GET_SERVICE_ACCESS_TOKEN = "get_service_access_token"
-    LIST_OPEN_SERVICE_ACTIONS = "list_open_service_actions"
+    LIST_SERVICE_ACTIONS = "list_service_actions"
+    EXECUTE_SERVICE_ACTION = "execute_service_action"
     SUGGEST_SERVICE_CONFIG = "suggest_service_config"
-    OPEN_SERVICE = "open_service"
     # Job Endpoints
     LIST_JOBS = "list_jobs"
     GET_JOB_METADATA = "get_job_metadata"
-    LIST_JOB_DEPLOY_OPTIONS = "list_job_deploy_options"
+    LIST_DEPLOY_JOB_ACTIONS = "list_deploy_job_actions"
+    LIST_JOB_ACTIONS = "list_job_actions"
+    EXECUTE_JOB_ACTION = "execute_job_action"
     SUGGEST_JOB_CONFIG = "suggest_job_config"
     DEPLOY_JOB = "deploy_job"
     DELETE_JOB = "delete_job"
@@ -91,8 +117,8 @@ class ExtensibleOperations(str, Enum):
     GET_FILE_METADATA = "get_file_metadata"
     UPLOAD_FILE = "upload_file"
     DOWNLOAD_FILE = "download_file"
-    LIST_OPEN_FILE_ACTIONS = "list_open_file_actions"
-    OPEN_FILE = "open_file"
+    LIST_FILE_ACTIONS = "list_file_actions"
+    EXECUTE_FILE_ACTION = "execute_file_action"
     DELETE_FILE = "delete_file"
     GET_FILE_ACCESS_TOKEN = "get_file_access_token"
     UPDATE_FILE_METADATA = "update_file_metadata"
@@ -489,7 +515,6 @@ class DeploymentCompute(BaseEntity):
 
 
 class DeploymentInput(BaseEntity):
-    id: str = Field(...)
     container_image: Optional[str] = Field(
         None,
         example="hello-world:latest",
@@ -553,6 +578,7 @@ class DeploymentInput(BaseEntity):
 
 
 class Deployment(DeploymentInput):
+    id: str = Field(...)
     started_at: Optional[datetime] = Field(
         None,
         description="Timestamp when the deployment was started.",
@@ -792,7 +818,11 @@ class ApiToken(BaseEntity):
         example="my-awesome-project",
         description="Project ID associated with this token.",
     )
-    # TODO: expiry_date
+    expires_at: Optional[datetime] = Field(
+        None,
+        example="2021-04-25T10:20:30.400+02:30",
+        description="Date at which the token expires and, thereby, gets revoked.",
+    )
     # TODO: token type: refresh, ,,,
 
 

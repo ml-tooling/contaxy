@@ -607,7 +607,7 @@ def get_project_token(
 
     The `read` permission level allows read-only access on all resources.
     The `write` permission level allows to create and delete project resources.
-    The `admin` permission level allows to delete the project or remove other users.
+    The `admin` permission level allows to delete the project or add/remove other users.
     """
     raise NotImplementedError
 
@@ -650,7 +650,7 @@ def add_project_member(
 
     - The `read` permission level allows read-only access on all resources.
     - The `write` permission level allows to create and delete project resources.
-    - The `admin` permission level allows to delete the project or remove other users.
+    - The `admin` permission level allows to delete the project or add/remove other users.
     """
     raise NotImplementedError
 
@@ -735,21 +735,21 @@ def get_service_metadata(
 
 
 @app.post(
-    "/projects/{project_id}/services/deploy-options",
-    operation_id=data_model.ExtensibleOperations.LIST_SERVICE_DEPLOY_OPTIONS.value,
+    "/projects/{project_id}/services/deploy-actions",
+    operation_id=data_model.ExtensibleOperations.LIST_DEPLOY_SERVICE_ACTIONS.value,
     response_model=List[data_model.ResourceAction],
-    summary="List service deploy options.",
+    summary="List deploy service actions.",
     tags=["services"],
     status_code=status.HTTP_200_OK,
 )
-def list_service_deploy_options(
+def list_deploy_service_actions(
     service: data_model.ServiceInput,
     project_id: str = PROJECT_ID_PARAM,
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
-    """Lists all deployment options based on the given service configuration.
+    """Lists all available deployment actions (options) based on the given service configuration.
 
-    The returned action IDs should be used when calling the deploy service operation.
+    The returned action IDs should be used when calling the [deploy service operation](#services/deploy_service).
     """
     raise NotImplementedError
 
@@ -773,7 +773,7 @@ def deploy_service(
 ) -> Any:
     """Deploy a service for the specified project.
 
-    If `action_id` is not provided, the service deployment will be automatically chosen.
+    If `action_id` is not provided, the system will automatically choose how to deploy the service.
     """
     # TODO: add auto select extension option?
     raise NotImplementedError
@@ -850,14 +850,14 @@ def get_service_token(
 
 
 @app.get(
-    "/projects/{project_id}/services/{service_id}/open/options",
-    operation_id=data_model.ExtensibleOperations.LIST_OPEN_SERVICE_ACTIONS.value,
+    "/projects/{project_id}/services/{service_id}/actions",
+    operation_id=data_model.ExtensibleOperations.LIST_SERVICE_ACTIONS.value,
     response_model=List[data_model.ResourceAction],
-    summary="List open service actions.",
+    summary="List service actions.",
     tags=["services"],
     status_code=status.HTTP_200_OK,
 )
-def list_open_service_actions(
+def list_service_actions(
     project_id: str = PROJECT_ID_PARAM,
     service_id: str = SERVICE_ID_PARAM,
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
@@ -870,23 +870,23 @@ def list_open_service_actions(
 
 
 @app.get(
-    "/projects/{project_id}/services/{service_id}/open",
-    operation_id=data_model.ExtensibleOperations.OPEN_SERVICE.value,
+    "/projects/{project_id}/services/{service_id}/actions/{action_id}",
+    operation_id=data_model.ExtensibleOperations.EXECUTE_SERVICE_ACTION.value,
     # TODO: what is the response model? add additional status codes?
-    summary="Open the service.",
+    summary="Execute service action.",
     tags=["services"],
     status_code=status.HTTP_200_OK,
     responses={**OPEN_URL_REDIRECT},
 )
-def open_service(
+def execute_service_action(
     project_id: str = PROJECT_ID_PARAM,
     service_id: str = SERVICE_ID_PARAM,
-    action_id: str = Query(
-        ..., description="The action ID from the open service options operation."
+    action_id: str = Path(
+        ..., description="The action ID from the list_service_actions operation."
     ),
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
-    """Opens the service with the specified action."""
+    """Executes the specified service action."""
     raise NotImplementedError
 
 
@@ -950,21 +950,21 @@ def suggest_job_config(
 
 
 @app.post(
-    "/projects/{project_id}/jobs/deploy-options",
-    operation_id=data_model.ExtensibleOperations.LIST_JOB_DEPLOY_OPTIONS.value,
+    "/projects/{project_id}/jobs/deploy-actions",
+    operation_id=data_model.ExtensibleOperations.LIST_DEPLOY_JOB_ACTIONS.value,
     response_model=List[data_model.ResourceAction],
-    summary="List job deploy options.",
+    summary="List deploy job actions.",
     tags=["jobs"],
     status_code=status.HTTP_200_OK,
 )
-def list_job_deploy_options(
+def list_deploy_job_actions(
     service: data_model.JobInput,
     project_id: str = PROJECT_ID_PARAM,
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
-    """Lists all deployment options based on the given job configuration.
+    """Lists all deployment actions (options) based on the given job configuration.
 
-    The returned action IDs should be used when calling the deploy job operation.
+    The returned action IDs should be used when calling the [deploy job operation](#jobs/deploy_job).
     """
     raise NotImplementedError
 
@@ -1025,6 +1025,44 @@ def get_job_logs(
     ),
 ) -> Any:
     """Returns the stdout/stderr logs of the job."""
+    raise NotImplementedError
+
+
+@app.get(
+    "/projects/{project_id}/jobs/{job_id}/actions",
+    operation_id=data_model.ExtensibleOperations.LIST_JOB_ACTIONS.value,
+    response_model=List[data_model.ResourceAction],
+    summary="List job actions.",
+    tags=["jobs"],
+    status_code=status.HTTP_200_OK,
+)
+def list_job_actions(
+    project_id: str = PROJECT_ID_PARAM,
+    service_id: str = SERVICE_ID_PARAM,
+    extension_id: Optional[str] = EXTENSION_ID_PARAM,
+) -> Any:
+    """Lists all actions available for the given job."""
+    raise NotImplementedError
+
+
+@app.get(
+    "/projects/{project_id}/jobs/{job_id}/actions/{action_id}",
+    operation_id=data_model.ExtensibleOperations.EXECUTE_JOB_ACTION.value,
+    # TODO: what is the response model? add additional status codes?
+    summary="Execute job action.",
+    tags=["jobs"],
+    status_code=status.HTTP_200_OK,
+    responses={**OPEN_URL_REDIRECT},
+)
+def execute_job_action(
+    project_id: str = PROJECT_ID_PARAM,
+    service_id: str = SERVICE_ID_PARAM,
+    action_id: str = Path(
+        ..., description="The action ID from the list_job_actions operation."
+    ),
+    extension_id: Optional[str] = EXTENSION_ID_PARAM,
+) -> Any:
+    """Executes the specified job action."""
     raise NotImplementedError
 
 
@@ -1312,39 +1350,39 @@ def download_file(
 
 
 @app.get(
-    "/projects/{project_id}/data/files/open/options",
-    operation_id=data_model.ExtensibleOperations.LIST_OPEN_FILE_ACTIONS.value,
+    "/projects/{project_id}/data/files/actions",
+    operation_id=data_model.ExtensibleOperations.LIST_FILE_ACTIONS.value,
     response_model=List[data_model.ResourceAction],
-    summary="List open file actions.",
+    summary="List file actions.",
     tags=["files"],
     status_code=status.HTTP_200_OK,
 )
-def list_open_file_actions(
+def list_file_actions(
     project_id: str = PROJECT_ID_PARAM,
     file_key: str = FILE_KEY_PARAM,
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
-    """Lists all open file options for the given file.
+    """Lists all available file actions for the given file.
 
-    The returned action IDs should be used when calling the open file operation.
+    The returned action IDs should be used when calling the [execute file action operation](#files/execute_file_action).
     """
     raise NotImplementedError
 
 
 @app.get(
-    "/projects/{project_id}/data/files/open",
-    operation_id=data_model.ExtensibleOperations.OPEN_FILE.value,
+    "/projects/{project_id}/data/files/actions/{action_id}",
+    operation_id=data_model.ExtensibleOperations.EXECUTE_FILE_ACTION.value,
     # TODO: what is the response model? add additional status codes?
-    summary="Open the file.",
+    summary="Execute a file action.",
     tags=["files"],
     status_code=status.HTTP_200_OK,
     responses={**OPEN_URL_REDIRECT},
 )
-def open_file(
+def execute_file_action(
     project_id: str = PROJECT_ID_PARAM,
     file_key: str = FILE_KEY_PARAM,
-    action_id: str = Query(
-        ..., description="The action ID from the open file options operation."
+    action_id: str = Path(
+        ..., description="The action ID from the file actions operation."
     ),
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
