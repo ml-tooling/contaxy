@@ -17,7 +17,10 @@ app = FastAPI(
 )
 
 # TODO: add prefix: /api/v1/
-
+# TODO: add versioning later
+# location
+# kind
+# self: link to self
 # TODO: rename open?
 # /actions
 # /actions/{action_id}

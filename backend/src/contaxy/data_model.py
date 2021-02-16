@@ -40,6 +40,12 @@ MAX_PROJECT_ID_LENGTH = 25
 #    "provider": ""
 #  },
 
+# data: the document’s “primary data”
+# errors: an array of error objects
+# meta: a meta object that contains non-standard meta-information.
+
+# id
+# type
 # TODO:
 # Set recommended labels: https://kubernetes.io/docs/concepts/overview/working-with-objects/common-labels/
 
@@ -407,6 +413,10 @@ class ProjectInput(BaseEntity):
         None,
         description="Limitations for resource usage.",
     )
+    is_disabled: Optional[bool] = Field(
+        False,
+        description="Indicates that project is disabled.",
+    )
 
 
 class Project(ProjectInput):
@@ -487,12 +497,14 @@ class DeploymentCompute(BaseEntity):
         example="/path/to/data",
         description="Container internal directory that should mount a volume for data persistence.",
     )
+    # TODO: min_volume_size
     max_volume_size: Optional[int] = Field(
         None,
         example=32000,
         ge=1,
         description="Maximum volume size in Megabyte. This is only applied in combination with volume_path.",
     )
+    # TODO: min_container_size
     max_container_size: Optional[int] = Field(
         None,
         example=32000,

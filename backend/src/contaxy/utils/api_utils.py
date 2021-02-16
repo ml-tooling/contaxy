@@ -83,6 +83,9 @@ def patch_fastapi(app: FastAPI) -> None:
 # previous, next (URL)
 # https://fastapi-contrib.readthedocs.io/en/latest/_modules/fastapi_contrib/pagination.html
 # cursor=Q1MjAwNz&limit=100
+# https://docs.gitlab.com/ee/api/#pagination-link-header
+# Pagination Link header: Link headers are returned with each response. They have rel set to prev, next, first, or last and contain the relevant URL. Be sure to use these links instead of generating your own URLs.
+
 
 @dataclass
 class PaginationParams:
@@ -96,6 +99,7 @@ class PaginationParams:
 # https://jsonapi.org/format/#fetching-sorting
 # direction or order as seperate field
 # Github API: sort and direction ( asc, desc)
+# order_by, sort
 @dataclass
 class SortingParams:
     sort: Optional[str] = Query(
