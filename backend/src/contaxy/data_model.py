@@ -252,7 +252,7 @@ class UserInput(BaseEntity):
     )
     is_disabled: Optional[bool] = Field(
         False,
-        description="Indicates that user is disabled.",
+        description="Indicates that user is disabled. Disabling a user will prevent any access to user-accesible resources.",
     )
     # password: Optional[SecretStr] = None
 
@@ -415,7 +415,7 @@ class ProjectInput(BaseEntity):
     )
     is_disabled: Optional[bool] = Field(
         False,
-        description="Indicates that project is disabled.",
+        description="Indicates that project is disabled. Disabling a project will prevent any access to project resources.",
     )
 
 
