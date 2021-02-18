@@ -229,6 +229,7 @@ def get_system_info() -> Any:
     tags=["system"],
 )
 def check_health() -> Any:
+    """Returns a successful return code if the instance is healthy."""
     # TODO: this call can also be made without authentication
     raise NotImplementedError
 
@@ -242,6 +243,7 @@ def check_health() -> Any:
     status_code=status.HTTP_200_OK,
 )
 def get_system_statistics() -> Any:
+    """Returns statistics about this instance."""
     raise NotImplementedError
 
 
