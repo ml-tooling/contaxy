@@ -67,7 +67,7 @@ FILE_KEY_PARAM = Query(
 EXTENSION_ID_PARAM = Query(
     None,
     title="Extension ID",
-    description="A valid extension ID.",
+    description="Extension ID. If not specified, the system will decide. Use `core` to explicitly select the core platform.",
     # TODO: add length restriction
 )
 
@@ -732,7 +732,7 @@ def get_service_metadata(
 ) -> Any:
     """Returns the metadata of a single service.
 
-    The returned metadata might be filtered based on the permission level of the authenticated user.s
+    The returned metadata might be filtered based on the permission level of the authenticated user.
     """
     raise NotImplementedError
 
@@ -750,9 +750,20 @@ def list_deploy_service_actions(
     project_id: str = PROJECT_ID_PARAM,
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
-    """Lists all available deployment actions (options) based on the given service configuration.
+    """Lists all available service deployment options (actions).
 
-    The returned action IDs should be used when calling the [deploy service operation](#services/deploy_service).
+    The returned action IDs should be used when calling the [deploy_service](#services/deploy_service) operation.
+
+    The action mechanism allows extensions to provide additional deployment options for a service based on the provided configuration. It works the following way:
+
+    1. The user requests all available deployment options via the [list_deploy_service_actions](#services/list_deploy_service_actions) operation.
+    2. The operation will be forwarded to all installed extensions that have implemented the [list_deploy_service_actions](#services/list_deploy_service_actions) operation.
+    3. Extensions can run arbitrary code based on the provided service configuration and return a list of actions with self-defined action IDs.
+    4. The user selects one of those actions and triggers the [deploy_service](#services/deploy_service) operation by providing the selected action- and extension-ID.
+    5. The operation is forwarded to the selected extension, which can run arbitrary code to deploy the service based on the provided configuration.
+    6. The return value of the operation should be a `Service` object.
+
+    The same action mechanism is also used for other type of actions on resources.
     """
     raise NotImplementedError
 
@@ -776,7 +787,12 @@ def deploy_service(
 ) -> Any:
     """Deploy a service for the specified project.
 
-    If `action_id` is not provided, the system will automatically choose how to deploy the service.
+    If no `action_id` (and `extension_id`) is provided, the system will automatically select the best deployment option.
+
+    Available deployment options (actions) can be requested via the [list_deploy_service_actions](#services/list_deploy_service_actions) operation.
+    The `action_id` needs to be provided with the corresponding `extension_id`.
+
+    The action mechanism is further explained in the description of the [list_deploy_service_actions](#services/list_deploy_service_actions).
     """
     # TODO: add auto select extension option?
     raise NotImplementedError
@@ -865,9 +881,21 @@ def list_service_actions(
     service_id: str = SERVICE_ID_PARAM,
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
-    """Lists all actions available for the given service.
+    """Lists all actions available for the specified service.
 
-    This might include actions to access the service endpoints, dashboards for monitoring, adminsitration tools, and more...
+    The returned action IDs should be used when calling the [execute_service_action](#services/execute_service_action) operation.
+
+    The action mechanism allows extensions to provide additional functionality on services. It works the following way:
+
+    1. The user requests all available actions via the [list_service_actions](#services/list_service_actions) operation.
+    2. The operation will be forwarded to all installed extensions that have implemented the [list_service_actions](#services/list_service_actions) operation.
+    3. Extensions can run arbitrary code - e.g., request and check the service metadata for compatibility - and return a list of actions with self-defined action IDs.
+    4. The user selects one of those actions and triggers the [execute_service_action](#services/execute_service_action) operation by providing the selected action- and extension-ID.
+    5. The operation is forwarded to the selected extension, which can run arbitrary code to execute the selected action.
+    6. The return value of the operation can be either a simple message (shown to the user) or a redirect to another URL (e.g., to show a web UI).
+
+    The same action mechanism is also used for other resources (e.g., files, jobs).
+    It can support a very broad set of use-cases, for example: Access to service endpoints, dashboards for monitoring, adminsitration tools, and more...
     """
     raise NotImplementedError
 
@@ -889,7 +917,13 @@ def execute_service_action(
     ),
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
-    """Executes the specified service action."""
+    """Executes the selected service action.
+
+    The actions need to be first requested from the [list_service_actions](#services/list_service_actions) operation.
+    The `action_id` needs to be provided with the corresponding `extension_id`.
+
+    The action mechanism is further explained in the description of the [list_service_actions](#services/list_service_actions).
+    """
     raise NotImplementedError
 
 
@@ -908,7 +942,7 @@ def list_jobs(
     project_id: str = PROJECT_ID_PARAM,
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
-    """TODO: add documentation."""
+    """Lists all jobs associated with the given project."""
     raise NotImplementedError
 
 
@@ -925,7 +959,10 @@ def get_job_metadata(
     job_id: str = JOB_ID_PARAM,
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
-    """TODO: add documentation."""
+    """Returns the metadata of a single job.
+
+    The returned metadata might be filtered based on the permission level of the authenticated user.
+    """
     raise NotImplementedError
 
 
@@ -965,9 +1002,20 @@ def list_deploy_job_actions(
     project_id: str = PROJECT_ID_PARAM,
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
-    """Lists all deployment actions (options) based on the given job configuration.
+    """Lists all available job deployment options (actions).
 
-    The returned action IDs should be used when calling the [deploy job operation](#jobs/deploy_job).
+    The returned action IDs should be used when calling the [deploy_job](#job/deploy_job) operation.
+
+    The action mechanism allows extensions to provide additional deployment options for a job based on the provided configuration. It works the following way:
+
+    1. The user requests all available deployment options via the [list_deploy_job_actions](#jobs/list_deploy_job_actions) operation.
+    2. The operation will be forwarded to all installed extensions that have implemented the [list_deploy_job_actions](#jobs/list_deploy_job_actions) operation.
+    3. Extensions can run arbitrary code based on the provided job configuration and return a list of actions with self-defined action IDs.
+    4. The user selects one of those actions and triggers the [deploy_job](#jobs/deploy_job) operation by providing the selected action- and extension-ID.
+    5. The operation is forwarded to the selected extension, which can run arbitrary code to deploy the job based on the provided configuration.
+    6. The return value of the operation should be a `Job` object.
+
+    The same action mechanism is also used for other type of actions on resources.
     """
     raise NotImplementedError
 
@@ -989,8 +1037,15 @@ def deploy_job(
         None, description="The action ID from the job deploy options."
     ),
 ) -> Any:
-    """Deploy a job for the specified project."""
-    # TODO: add auto select provider option
+    """Deploy a job for the specified project.
+
+    If no `action_id` (and `extension_id`) is provided, the system will automatically select the best deployment option.
+
+    Available actions can be requested via the [list_deploy_job_actions](#jobs/list_deploy_job_actions) operation.
+    The `action_id` needs to be provided with the corresponding `extension_id`.
+
+    The action mechanism is further explained in the description of the [list_deploy_job_actions](#jobs/list_deploy_job_actions).
+    """
     raise NotImplementedError
 
 
@@ -1006,7 +1061,10 @@ def delete_job(
     job_id: str = JOB_ID_PARAM,
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
-    """TODO: add documentation."""
+    """Deletes a job.
+
+    This will kill and remove the container and all associated deployment artifacts.
+    """
     raise NotImplementedError
 
 
@@ -1041,10 +1099,25 @@ def get_job_logs(
 )
 def list_job_actions(
     project_id: str = PROJECT_ID_PARAM,
-    service_id: str = SERVICE_ID_PARAM,
+    job_id: str = JOB_ID_PARAM,
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
-    """Lists all actions available for the given job."""
+    """Lists all actions available for the specified job.
+
+    The returned action IDs should be used when calling the [execute_job_action](#jobs/execute_job_action) operation.
+
+    The action mechanism allows extensions to provide additional functionality on jobs. It works the following way:
+
+    1. The user requests all available actions via the [list_job_actions](#jobs/list_job_actions) operation.
+    2. The operation will be forwarded to all installed extensions that have implemented the [list_job_actions](#jobs/list_job_actions) operation.
+    3. Extensions can run arbitrary code - e.g., request and check the job metadata for compatibility - and return a list of actions with self-defined action IDs.
+    4. The user selects one of those actions and triggers the [execute_job_action](#jobs/execute_job_action) operation by providing the selected action- and extension-ID.
+    5. The operation is forwarded to the selected extension, which can run arbitrary code to execute the selected action.
+    6. The return value of the operation can be either a simple message (shown to the user) or a redirect to another URL (e.g., to show a web UI).
+
+    The same action mechanism is also used for other resources (e.g., files, services).
+    It can support a very broad set of use-cases, for example: Access to dashboards for monitoring, adminsitration tools, and more...
+    """
     raise NotImplementedError
 
 
@@ -1059,13 +1132,19 @@ def list_job_actions(
 )
 def execute_job_action(
     project_id: str = PROJECT_ID_PARAM,
-    service_id: str = SERVICE_ID_PARAM,
+    job_id: str = JOB_ID_PARAM,
     action_id: str = Path(
         ..., description="The action ID from the list_job_actions operation."
     ),
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
-    """Executes the specified job action."""
+    """Executes the selected job action.
+
+    The actions need to be first requested from the [list_job_actions](#jobs/list_job_actions) operation.
+    The `action_id` needs to be provided with the corresponding `extension_id`.
+
+    The action mechanism is further explained in the description of the [list_job_actions](#jobs/list_job_actions).
+    """
     raise NotImplementedError
 
 
@@ -1155,8 +1234,9 @@ def install_extension(
         ...,
         title="Project ID",
         description="Project to which install the extension.",
-        min_length=data_model.MIN_PROJECT_ID_LENGTH,
-        max_length=data_model.MAX_PROJECT_ID_LENGTH,
+        type="string",
+        # min_length=data_model.MIN_PROJECT_ID_LENGTH,
+        # max_length=data_model.MAX_PROJECT_ID_LENGTH,
     ),
 ) -> Any:
     """Installs an extension for the given project.
@@ -1182,8 +1262,9 @@ def suggest_extension_config(
     project_id: Optional[Union[data_model.TechnicalProject, str]] = Query(
         None,
         title="Project ID",
-        min_length=data_model.MIN_PROJECT_ID_LENGTH,
-        max_length=data_model.MAX_PROJECT_ID_LENGTH,
+        type="string",
+        # min_length=data_model.MIN_PROJECT_ID_LENGTH,
+        # max_length=data_model.MAX_PROJECT_ID_LENGTH,
     ),
 ) -> Any:
     """Suggests an input configuration based on the provided `container_image`.
@@ -1216,8 +1297,9 @@ def set_extension_defaults(
         None,
         title="Project ID",
         description="Set defaults for the given project.",
-        min_length=data_model.MIN_PROJECT_ID_LENGTH,
-        max_length=data_model.MAX_PROJECT_ID_LENGTH,
+        type="string",
+        # min_length=data_model.MIN_PROJECT_ID_LENGTH,
+        # max_length=data_model.MAX_PROJECT_ID_LENGTH,
     ),
 ) -> Any:
     """Configures the extension to be used as default for a set of operation IDs.
@@ -1242,8 +1324,9 @@ def get_extension_defaults(
         None,
         title="Project ID",
         description="Filter defaults by project.",
-        min_length=data_model.MIN_PROJECT_ID_LENGTH,
-        max_length=data_model.MAX_PROJECT_ID_LENGTH,
+        type="string",
+        # min_length=data_model.MIN_PROJECT_ID_LENGTH,
+        # max_length=data_model.MAX_PROJECT_ID_LENGTH,
     ),
 ) -> Any:
     """Returns the list of extensible operation IDs with the configured default extension.
@@ -1266,13 +1349,23 @@ def get_extension_defaults(
 )
 def list_files(
     project_id: str = PROJECT_ID_PARAM,
+    virtual_path: Optional[Union[data_model.DataType, str]] = Query(
+        None,
+        description="A virtual path to use for filtering.",
+        type="string",
+    ),
+    filter: Optional[str] = Query(
+        None, description="A file-storage (extension) specific filter. "
+    ),
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
-    filter: Optional[str] = Query(None),  # TODO: better definition
-    data_type: Optional[data_model.DataType] = Query(
-        None, type="string"
-    ),  # TODO: better definition
 ) -> Any:
-    """TODO: add documentation."""
+    """Lists all available files for the project.
+
+    The files can be filtered either by using the `virtual_path` with a path prefix
+    or by providing a filter instruction via `filter`.
+    The `filter` parameter is specific to the file-storage implementation (extension).
+    and can be implemented diffently by extensions.
+    """
     raise NotImplementedError
 
 
@@ -1287,9 +1380,13 @@ def list_files(
 def get_file_metadata(
     project_id: str = PROJECT_ID_PARAM,
     file_key: str = FILE_KEY_PARAM,
+    file_version: Optional[str] = Query(
+        None,
+        description="Version tag. If not specified, the latest version will be used.",
+    ),
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
-    """TODO: add documentation."""
+    """Returns metadata about the specified file."""
     raise NotImplementedError
 
 
@@ -1305,9 +1402,19 @@ def update_file_metadata(
     file: data_model.FileInput,
     project_id: str = PROJECT_ID_PARAM,
     file_key: str = FILE_KEY_PARAM,
+    file_version: Optional[str] = Query(
+        None,
+        description="Version tag. If not specified, the latest version will be used.",
+    ),
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
-    """Updates the file metadata. This will not change the actual content or the key of the file."""
+    """Updates the file metadata.
+
+    This will not change the actual content or the key of the file.
+
+    The update is applied on the existing metadata based on the JSON Merge Patch Standard ([RFC7396](https://tools.ietf.org/html/rfc7396)).
+    Thereby, only the specified properties will be updated.
+    """
     raise NotImplementedError
 
 
@@ -1321,15 +1428,33 @@ def update_file_metadata(
 )
 def upload_file(
     project_id: str = PROJECT_ID_PARAM,
-    data_type: Optional[data_model.DataType] = Query(
-        data_model.DataType.OTHER,
-        description="The categorization of the file.",
+    virtual_path: Optional[Union[data_model.DataType, str]] = Query(
+        None,
+        description="The virtual path to use for this file.",
         type="string",
     ),
-    file_name: Optional[str] = Query(None),
+    file_name: Optional[str] = Query(
+        None, description="The filename to use instead of the one from the form data."
+    ),
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
-    """Uploads a file to the file storage."""
+    """Uploads a file to a file storage.
+
+    The file will be streamed to the selected file storage (core platform or extension).
+
+    This upload operation only supports to attach a limited set of file metadata.
+    Once the upload is finished, you can use the [update_file_metadata operation](#files/update_file_metadata)
+    to add or update the metadata of the files.
+
+    The `virtual_path` allows to categorize the uploaded file under a virtual file structure managed by the core platform.
+    This allows to create a directory-like structure for files from different extensions and file-storage types.
+    The actual file path on the file storage might not (and doesn't need to) correspond to the virutal path.
+    This allows to move files (via [update_file_metadata operation](#files/update_file_metadata)) into differnt paths
+    without any changes on the file storage (depending on the implementation).
+
+    Additional file metadata (`additional_metadata`) can be set by using the `x-amz-meta-` prefix for HTTP header keys (e.g. `x-amz-meta-my-metadata`).
+    This corresponds to how AWS S3 handles [custom metadata](https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingMetadata.html).
+    """
     # TODO adapt upload implementation
     raise NotImplementedError
 
@@ -1345,9 +1470,16 @@ def upload_file(
 def download_file(
     project_id: str = PROJECT_ID_PARAM,
     file_key: str = FILE_KEY_PARAM,
+    file_version: Optional[str] = Query(
+        None,
+        description="Version tag. If not specified, the latest version will be used.",
+    ),
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
-    """TODO: add documentation."""
+    """Downloads the selected file.
+
+    If the file storage supports versioning and no `file_version` is specified, the latest version will be downloaded.
+    """
     # TODO adapt download implementation
     raise NotImplementedError
 
@@ -1363,11 +1495,27 @@ def download_file(
 def list_file_actions(
     project_id: str = PROJECT_ID_PARAM,
     file_key: str = FILE_KEY_PARAM,
+    file_version: Optional[str] = Query(
+        None,
+        description="Version tag. If not specified, the latest version will be used.",
+    ),
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
-    """Lists all available file actions for the given file.
+    """Lists all actions available for the specified file.
 
-    The returned action IDs should be used when calling the [execute file action operation](#files/execute_file_action).
+    The returned action IDs should be used when calling the [execute_file_action](#files/execute_file_action) operation.
+
+    The action mechanism allows extensions to provide additional functionality on files. It works the following way:
+
+    1. The user requests all available actions via the [list_file_actions](#files/list_file_actions) operation.
+    2. The operation will be forwarded to all installed extensions that have implemented the [list_file_actions](#files/list_file_actions) operation.
+    3. Extensions can run arbitrary code - e.g., request and check the file metadata for compatibility - and return a list of actions with self-defined action IDs.
+    4. The user selects one of those actions and triggers the [execute_file_action](#files/execute_file_action) operation by providing the selected action- and extension-ID.
+    5. The operation is forwarded to the selected extension, which can run arbitrary code to execute the selected action.
+    6. The return value of the operation can be either a simple message  (shown to the user) or a redirect to another URL (e.g., to show a web UI).
+
+    The same action mechanism is also used for other resources (e.g., services, jobs).
+    It can support a very broad set of use-cases, for example: CSV Viewer, Tensorflow Model Deployment, ZIP Archive Explorer ...
     """
     raise NotImplementedError
 
@@ -1387,9 +1535,19 @@ def execute_file_action(
     action_id: str = Path(
         ..., description="The action ID from the file actions operation."
     ),
+    file_version: Optional[str] = Query(
+        None,
+        description="Version tag. If not specified, the latest version will be used.",
+    ),
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
-    """Opens the file with the specified action."""
+    """Executes the selected action.
+
+    The actions need to be first requested from the [list_file_actions](#files/list_file_actions) operation.
+    The `action_id` needs to be provided with the corresponding `extension_id`.
+
+    The action mechanism is further explained in the description of the [list_file_actions](#files/list_file_actions).
+    """
     raise NotImplementedError
 
 
@@ -1403,9 +1561,16 @@ def execute_file_action(
 def delete_file(
     project_id: str = PROJECT_ID_PARAM,
     file_key: str = FILE_KEY_PARAM,
+    file_version: Optional[str] = Query(
+        None,
+        description="Version tag. If not specified, all versions of the file will be deleted.",
+    ),
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
-    """TODO: add documentation."""
+    """Deletes the specified file.
+
+    If the file storage supports versioning and no `file_version` is specified, all versions of the file will be deleted.
+    """
     raise NotImplementedError
 
 
@@ -1420,6 +1585,10 @@ def delete_file(
 def get_file_access_token(
     project_id: str = PROJECT_ID_PARAM,
     file_key: str = FILE_KEY_PARAM,
+    file_version: Optional[str] = Query(
+        None,
+        description="Version tag. If not specified, all versions of the key are allowed for download.",
+    ),
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
     token_type: data_model.TokenType = Query(
         data_model.TokenType.SESSION_TOKEN,
@@ -1434,6 +1603,8 @@ def get_file_access_token(
     The API token can be deleted (revoked) at any time.
     In comparison, the session token cannot be revoked but expires after a short time (a few minutes).
     However, once the file is downloaded there is no way to prevent any further duplication or misuse.
+
+    If the file storage supports versioning and no `file_version` is specified, all .
     """
     raise NotImplementedError
 
@@ -1463,6 +1634,9 @@ def list_secrets(project_id: str = PROJECT_ID_PARAM) -> Any:
 )
 def create_secret(
     secret: data_model.SecretInput,
+    secret_name: str = Path(
+        ..., description="Name of the secret."
+    ),  # TODO add regex pattern
     project_id: str = PROJECT_ID_PARAM,
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:

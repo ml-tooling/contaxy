@@ -691,16 +691,15 @@ class Extension(Service, ExtensionInput):
 
 
 class FileInput(BaseEntity):
-    # TODO: allow description and icon, tags
     filename: str = Field(  # TODO: renme to display name
         ...,
         example="customer-table.csv",
         description="The filename.",
     )
-    data_type: Optional[DataType] = Field(
+    virtual_path: Optional[Union[DataType, str]] = Field(
         None,
         example=DataType.DATASET,
-        description="The categorization of the file.",
+        description="The virtual path of this file. This path might not correspond to the actual path on the file storage.",
     )
     file_extension: Optional[str] = Field(  # TODO: remove file extension?
         None,
@@ -777,8 +776,13 @@ class File(FileInput):
     )
     version: Optional[str] = Field(
         None,
-        example="1",
-        description="Version information of the file.",
+        example="3",
+        description="Version tag of this file.",
+    )
+    available_versions: Optional[List[str]] = Field(
+        None,
+        example=["1", "2", "3"],
+        description="All version tags available for the given file.",
     )
     is_latest_version: Optional[bool] = Field(
         None,
