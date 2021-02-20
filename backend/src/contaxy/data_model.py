@@ -12,7 +12,35 @@ MAX_DESCRIPTION_LENGTH = 240
 MIN_PROJECT_ID_LENGTH = 4
 MAX_PROJECT_ID_LENGTH = 25
 
+# Configurations / Secrets
+
+# use kind instead of type
+# versionsin for deployments?
+# add organization/team concept
+# uuid instead of id
+# Readme markdown string
+# use name as a default
+# /auth/login
+# /auth/signup
+# /auth/change-password
+# /auth/reset-password
+# artifact instead of file?
+# name vs display name
+# reference secrets everywhere: {{ secrets.MY_SECRET }}
+# use kind for type (job,service, file...) and type for subtype
+
+# Secret should have multiple key value pairs
+
 # Update default fields
+
+# TODO: open questions:
+# Use list wrapper with meta object
+# Support paging for all
+# Better seperation of extensible and core methods
+# Move all token methods to /auth/token (core)
+# What to do with suggest methods?
+# Change extension_id to component_id
+
 # date_created
 # date_updated
 # user_created
@@ -136,6 +164,13 @@ class ExtensibleOperations(str, Enum):
     CREATE_SECRET = "create_secret"
     DELETE_SECRET = "delete_secret"
     LIST_SECRETS = "list_secrets"
+    # JSON Document Endpoints
+    LIST_CONFIGURATIONS = "list_configurations"
+    CREATE_CONFIGURATION = "create_configuration"
+    UPDATE_CONFIGURATION = "update_configuration"
+    DELETE_CONFIGURATION = "delete_configuration"
+    GET_CONFIGURATION = "get_configuration"
+    GET_CONFIGURATION_PARAMETER = "get_configuration_parameter"
     # JSON Document Endpoints
     LIST_JSON_DOCUMENTS = "list_json_documents"
     CREATE_JSON_DOCUMENT = "create_json_document"
@@ -571,7 +606,11 @@ class DeploymentInput(BaseEntity):
     )
     command: Optional[str] = Field(
         None,
-        description="Command to run within the deployment. This overwrites the existing command argument.",
+        description="Command to run within the deployment. This overwrites the existing command.",
+    )
+    command_args: Optional[List[str]] = Field(
+        None,
+        description="Arguments to use for the command of the deployment. This overwrites the existing arguments.",
     )
     requirements: Optional[List[Union[DeploymentRequirement, str]]] = Field(
         None,
@@ -602,6 +641,26 @@ class Deployment(DeploymentInput):
     extensions_id: Optional[str] = Field(
         None,
         description="The extension ID in case the deployment is deployed via an extension.",
+    )
+    created_at: Optional[datetime] = Field(
+        None,
+        example="2021-04-23T10:20:30.400+02:30",
+        description="Date when the deployment was created.",
+    )
+    created_by: Optional[str] = Field(
+        None,
+        example="16fd2706-8baf-433b-82eb-8c7fada847da",
+        description="ID of the user that has created this deployment.",
+    )
+    updated_at: Optional[datetime] = Field(
+        None,
+        example="2021-04-23T10:20:30.400+02:30",
+        description="Last date at which the deployment was updated.",
+    )
+    updated_by: Optional[str] = Field(
+        None,
+        example="16fd2706-8baf-433b-82eb-8c7fada847da",
+        description="ID of the user that has last modified this deployment.",
     )
     deployment_type: Optional[DeploymentType] = Field(
         None,
@@ -896,6 +955,73 @@ class SystemInfo(BaseEntity):
         None,
         example={"additional-metadata": "value"},
         description="Additional key-value metadata associated with this system.",
+    )
+
+
+class ConfigurationType(str, Enum):
+    MONGO_DB_CONNECTION = "mongo-db-connection"
+    SSH_CONNECTION = "ssh-connection"
+    POSTGRES_DB_CONNECTION = "postgres-connection"
+
+
+class ConfigurationInput(BaseEntity):
+    id: str = Field(
+        ...,
+        example="customer-mongo-db",
+        description="ID of the configuration.",
+    )
+    configuration_type: Optional[ConfigurationType] = Field(
+        None,
+        example=ConfigurationType.MONGO_DB_CONNECTION,
+        description="Predefined type of this configuration.",
+    )
+    parameters: Optional[Dict[str, str]] = Field(
+        None,
+        example={
+            "MONGO_DB_URI": "mongodb://mongodb0.example.com:27017",
+            "MONGO_DB_USER": "admin",
+            "MONGO_DB_PASSWORD": "f4528e540a133dd53ba6809e74e16774ebe4777a",
+        },
+        description="Parmeters (enviornment variables) shared with this configuration.",
+    )
+    description: Optional[str] = Field(
+        None,
+        max_length=MAX_DESCRIPTION_LENGTH,
+        example="Mongo DB connection to customer database.",
+        description="Short description about this configuration.",
+    )
+    icon: Optional[str] = Field(
+        None,
+        example="table_chart",
+        max_length=1000,
+        description="Material Design Icon name or image URL used for displaying this configuration.",
+    )
+    tags: Optional[List[str]] = Field(
+        None,
+        description="Tags associated with this configuration.",
+    )
+
+
+class Configuration(ConfigurationInput):
+    created_at: Optional[datetime] = Field(
+        None,
+        example="2021-04-23T10:20:30.400+02:30",
+        description="Date when the configuration was created.",
+    )
+    created_by: Optional[str] = Field(
+        None,
+        example="16fd2706-8baf-433b-82eb-8c7fada847da",
+        description="ID of the user that created this configuration.",
+    )
+    updated_at: Optional[datetime] = Field(
+        None,
+        example="2021-04-23T10:20:30.400+02:30",
+        description="Last date at which the configuration was updated.",
+    )
+    updated_by: Optional[str] = Field(
+        None,
+        example="16fd2706-8baf-433b-82eb-8c7fada847da",
+        description="ID of the user that has last modified this configuration.",
     )
 
 

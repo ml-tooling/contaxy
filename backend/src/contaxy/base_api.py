@@ -1621,6 +1621,7 @@ def get_file_access_token(
     summary="List project secrets.",
     tags=["secrets"],
     status_code=status.HTTP_200_OK,
+    include_in_schema=False,
 )
 def list_secrets(project_id: str = PROJECT_ID_PARAM) -> Any:
     """Lists all the secrets associated with the project."""
@@ -1633,6 +1634,7 @@ def list_secrets(project_id: str = PROJECT_ID_PARAM) -> Any:
     summary="Create or updated a sercret.",
     tags=["secrets"],
     status_code=status.HTTP_204_NO_CONTENT,
+    include_in_schema=False,
 )
 def create_secret(
     secret: data_model.SecretInput,
@@ -1659,6 +1661,7 @@ def create_secret(
     summary="Delete a sercret.",
     tags=["secrets"],
     status_code=status.HTTP_204_NO_CONTENT,
+    include_in_schema=False,
 )
 def delete_secret(
     secret_name: str = Path(
@@ -1668,6 +1671,122 @@ def delete_secret(
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
     """Deletes a secret."""
+    raise NotImplementedError
+
+
+# Configuration Endpoints
+
+
+@app.put(
+    "/projects/{project_id}/data/configurations/{configuration_id}",
+    operation_id=data_model.ExtensibleOperations.CREATE_CONFIGURATION.value,
+    summary="Create a configuration.",
+    tags=["configurations"],
+    response_model=data_model.Configuration,
+    status_code=status.HTTP_200_OK,
+)
+def create_configuration(
+    configuration: data_model.ConfigurationInput,
+    project_id: str = PROJECT_ID_PARAM,
+    configuration_id: str = Path(..., description="ID of the configuration."),
+    extension_id: Optional[str] = EXTENSION_ID_PARAM,
+) -> Any:
+    """Creates a configuration.
+
+    If a configuration already exists for the given id, the configuration will be overwritten.
+    """
+    raise NotImplementedError
+
+
+@app.patch(
+    "/projects/{project_id}/data/configurations/{configuration_id}",
+    operation_id=data_model.ExtensibleOperations.UPDATE_CONFIGURATION.value,
+    summary="Update a configuration.",
+    tags=["configurations"],
+    response_model=data_model.Configuration,
+    status_code=status.HTTP_200_OK,
+)
+def update_configuration(
+    configuration: data_model.ConfigurationInput,
+    project_id: str = PROJECT_ID_PARAM,
+    configuration_id: str = Path(..., description="ID of the configuration."),
+    extension_id: Optional[str] = EXTENSION_ID_PARAM,
+) -> Any:
+    """Updates a configuration.
+
+    The update is applied on the existing configuration based on the JSON Merge Patch Standard [RFC7396](https://tools.ietf.org/html/rfc7396).
+    """
+    raise NotImplementedError
+
+
+@app.get(
+    "/projects/{project_id}/data/configurations/{configuration_id}",
+    operation_id=data_model.ExtensibleOperations.LIST_CONFIGURATIONS.value,
+    response_model=List[data_model.Configuration],
+    summary="List configuration.",
+    tags=["configurations"],
+    status_code=status.HTTP_200_OK,
+)
+def list_configurations(
+    project_id: str = PROJECT_ID_PARAM,
+    configuration_id: str = Path(..., description="ID of the configuration."),
+    extension_id: Optional[str] = EXTENSION_ID_PARAM,
+) -> Any:
+    """Lists all configuration associated with the project.
+
+    If extensions are registered for this operation and no extension is selected via the `extension_id`
+    """
+    raise NotImplementedError
+
+
+@app.get(
+    "/projects/{project_id}/data/configurations/{configuration_id}",
+    operation_id=data_model.ExtensibleOperations.GET_CONFIGURATION.value,
+    response_model=data_model.Configuration,
+    summary="Get a configuration.",
+    tags=["configurations"],
+    status_code=status.HTTP_200_OK,
+)
+def get_configuration(
+    project_id: str = PROJECT_ID_PARAM,
+    configuration_id: str = Path(..., description="ID of the configuration."),
+    extension_id: Optional[str] = EXTENSION_ID_PARAM,
+) -> Any:
+    """Returns a single configuration."""
+    raise NotImplementedError
+
+
+@app.get(
+    "/projects/{project_id}/data/configurations/{configuration_id}/{parameter_key}",
+    operation_id=data_model.ExtensibleOperations.GET_CONFIGURATION_PARAMETER.value,
+    response_model=str,
+    summary="Get a configuration parameter.",
+    tags=["configurations"],
+    status_code=status.HTTP_200_OK,
+)
+def get_configuration_parameter(
+    project_id: str = PROJECT_ID_PARAM,
+    configuration_id: str = Path(..., description="ID of the configuration."),
+    paramter_key: str = Path(..., description="Key of the paramter."),
+    extension_id: Optional[str] = EXTENSION_ID_PARAM,
+) -> Any:
+    """Returns a the value of a single parameter from a configuration."""
+    raise NotImplementedError
+
+
+@app.delete(
+    "/projects/{project_id}/data/configurations/{configuration_id}",
+    operation_id=data_model.ExtensibleOperations.DELETE_CONFIGURATION.value,
+    summary="Delete a configuration.",
+    tags=["configurations"],
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def delete_configuration(
+    project_id: str = PROJECT_ID_PARAM,
+    configuration_id: str = Path(..., description="ID of the configuration."),
+    extension_id: Optional[str] = EXTENSION_ID_PARAM,
+) -> Any:
+    """Deletes a single configuration."""
     raise NotImplementedError
 
 
