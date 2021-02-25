@@ -16,15 +16,6 @@ app = FastAPI(
     version=__version__,
 )
 
-# TODO: add prefix: /api/v1/
-# TODO: add versioning later
-# location
-# kind
-# self: link to self
-# TODO: rename open?
-# /actions
-# /actions/{action_id}
-
 # TODO: use custom type instead?
 PROJECT_ID_PARAM = Path(
     ...,
@@ -56,19 +47,21 @@ JOB_ID_PARAM = Path(
     # TODO: add length restriction
 )
 
-FILE_KEY_PARAM = Query(
+FILE_KEY_PARAM = Path(
     ...,
     title="File Key",
     example="datasets/customer-table.csv",
     description="A valid file key.",
-    # TODO: add restriction
+    regex=data_model.FILE_KEY_REGEX,
+    min_length=1,
+    max_length=1024,
 )
 
 EXTENSION_ID_PARAM = Query(
     None,
     title="Extension ID",
     description="Extension ID. If not specified, the system will decide. Use `core` to explicitly select the core platform.",
-    # TODO: add length restriction
+    regex=data_model.QUALIFIED_RESOURCE_ID_REGEX,
 )
 
 # TODO: evaluate status codes: 302,303,...
@@ -83,7 +76,7 @@ OPEN_URL_REDIRECT: Mapping[Union[int, str], Dict[str, Any]] = {
 #    403: {"description": "Not enough privileges"},
 # }
 
-# TODO: just for debugging purpose
+# TEMP: for debugging purpose
 @app.get("/welcome", include_in_schema=False)
 def welcome() -> Any:
     return {"Hello": "World"}
@@ -95,9 +88,7 @@ def root() -> Any:
     return RedirectResponse("./docs")
 
 
-# TODO define token names
-
-# Graphql test
+# TEMP: Graphql test
 
 import graphene
 from starlette.graphql import GraphQLApp
@@ -363,6 +354,44 @@ def list_api_token(
         description="Return API tokens associated with this project.",
         min_length=data_model.MIN_PROJECT_ID_LENGTH,
         max_length=data_model.MAX_PROJECT_ID_LENGTH,
+    ),
+    extension_id: Optional[str] = EXTENSION_ID_PARAM,
+) -> Any:
+    """Returns list of created API tokens for the specified user or project.
+
+    If a user ID and a project ID is provided, a combined list will be returned.
+    """
+    raise NotImplementedError
+
+
+@app.post(
+    "/auth/tokens",
+    operation_id=data_model.ExtensibleOperations.CREATE_TOKEN.value,
+    response_model=str,
+    summary="Create token.",
+    tags=["auth"],
+    status_code=status.HTTP_200_OK,
+)
+def create_token(
+    resource_type: Optional[data_model.ResourceType] = Query(
+        None,
+        title="Resource Type ",
+        description="Type of the resource.",
+    ),
+    resource_id: Optional[str] = Query(
+        None,
+        title="Resource ID",
+        description="ID of the resource.",
+    ),
+    permission_level: Optional[data_model.PermissionLevel] = Query(
+        None,
+        title="Permission Level",
+        description="Permission level of the token.",
+    ),
+    token_type: data_model.TokenType = Query(
+        data_model.TokenType.SESSION_TOKEN,
+        description="Type of the token.",
+        type="string",
     ),
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
@@ -783,7 +812,9 @@ def deploy_service(
     service: data_model.ServiceInput,
     project_id: str = PROJECT_ID_PARAM,
     action_id: Optional[str] = Query(
-        None, description="The action ID from the service deploy options."
+        None,
+        description="The action ID from the service deploy options.",
+        regex=data_model.RESOURCE_ID_REGEX,
     ),
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
@@ -915,7 +946,9 @@ def execute_service_action(
     project_id: str = PROJECT_ID_PARAM,
     service_id: str = SERVICE_ID_PARAM,
     action_id: str = Path(
-        ..., description="The action ID from the list_service_actions operation."
+        ...,
+        description="The action ID from the list_service_actions operation.",
+        regex=data_model.RESOURCE_ID_REGEX,
     ),
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
@@ -1025,7 +1058,7 @@ def list_deploy_job_actions(
 @app.post(
     "/projects/{project_id}/jobs",
     operation_id=data_model.ExtensibleOperations.DEPLOY_JOB.value,
-    response_model=data_model.Job,
+    response_model=data_model.JobInput,
     summary="Deploy a job.",
     tags=["jobs"],
     status_code=status.HTTP_200_OK,
@@ -1036,7 +1069,9 @@ def deploy_job(
     project_id: str = PROJECT_ID_PARAM,
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
     action_id: Optional[str] = Query(
-        None, description="The action ID from the job deploy options."
+        None,
+        description="The action ID from the job deploy options.",
+        regex=data_model.RESOURCE_ID_REGEX,
     ),
 ) -> Any:
     """Deploy a job for the specified project.
@@ -1136,7 +1171,9 @@ def execute_job_action(
     project_id: str = PROJECT_ID_PARAM,
     job_id: str = JOB_ID_PARAM,
     action_id: str = Path(
-        ..., description="The action ID from the list_job_actions operation."
+        ...,
+        description="The action ID from the list_job_actions operation.",
+        regex=data_model.RESOURCE_ID_REGEX,
     ),
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
@@ -1351,71 +1388,27 @@ def get_extension_defaults(
 )
 def list_files(
     project_id: str = PROJECT_ID_PARAM,
-    virtual_path: Optional[Union[data_model.DataType, str]] = Query(
+    prefix: Optional[str] = Query(
         None,
-        description="A virtual path to use for filtering.",
-        type="string",
+        description="Filter results to include only files whose names begin with this prefix.",
     ),
-    filter: Optional[str] = Query(
-        None, description="A file-storage (extension) specific filter. "
+    recursive: Optional[bool] = Query(
+        True, description="Include all content of subfolders."
+    ),
+    include_versions: Optional[bool] = Query(
+        False,
+        description="Include all versions of all files.",
     ),
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
     """Lists all available files for the project.
 
-    The files can be filtered either by using the `virtual_path` with a path prefix
-    or by providing a filter instruction via `filter`.
-    The `filter` parameter is specific to the file-storage implementation (extension).
-    and can be implemented diffently by extensions.
-    """
-    raise NotImplementedError
+    The files can be filtered by using a `prefix`. The prefix is applied on the full path (directory path + filename).
 
+    All versions of the files can be included by setting `versions` to `true` (default is `false`).
 
-@app.get(
-    "/projects/{project_id}/data/files/metadata",
-    operation_id=data_model.ExtensibleOperations.GET_FILE_METADATA.value,
-    response_model=data_model.File,
-    summary="Get file metadata.",
-    tags=["files"],
-    status_code=status.HTTP_200_OK,
-)
-def get_file_metadata(
-    project_id: str = PROJECT_ID_PARAM,
-    file_key: str = FILE_KEY_PARAM,
-    file_version: Optional[str] = Query(
-        None,
-        description="Version tag. If not specified, the latest version will be used.",
-    ),
-    extension_id: Optional[str] = EXTENSION_ID_PARAM,
-) -> Any:
-    """Returns metadata about the specified file."""
-    raise NotImplementedError
-
-
-@app.patch(
-    "/projects/{project_id}/data/files/metadata",
-    operation_id=data_model.ExtensibleOperations.UPDATE_FILE_METADATA.value,
-    response_model=data_model.File,
-    summary="Update file metadata.",
-    tags=["files"],
-    status_code=status.HTTP_200_OK,
-)
-def update_file_metadata(
-    file: data_model.FileInput,
-    project_id: str = PROJECT_ID_PARAM,
-    file_key: str = FILE_KEY_PARAM,
-    file_version: Optional[str] = Query(
-        None,
-        description="Version tag. If not specified, the latest version will be used.",
-    ),
-    extension_id: Optional[str] = EXTENSION_ID_PARAM,
-) -> Any:
-    """Updates the file metadata.
-
-    This will not change the actual content or the key of the file.
-
-    The update is applied on the existing metadata based on the JSON Merge Patch Standard ([RFC7396](https://tools.ietf.org/html/rfc7396)).
-    Thereby, only the specified properties will be updated.
+    Set `recursive` to `false` to only show files and folders (prefixes) of the current folder.
+    The current folder is either the root folder (`/`) or the folder selected by the `prefix` parameter (has to end with `/`).
     """
     raise NotImplementedError
 
@@ -1462,7 +1455,58 @@ def upload_file(
 
 
 @app.get(
-    "/projects/{project_id}/data/files/download",
+    "/projects/{project_id}/data/files/{file_key:path}/metadata",
+    operation_id=data_model.ExtensibleOperations.GET_FILE_METADATA.value,
+    response_model=data_model.File,
+    summary="Get file metadata.",
+    tags=["files"],
+    status_code=status.HTTP_200_OK,
+)
+def get_file_metadata(
+    project_id: str = PROJECT_ID_PARAM,
+    file_key: str = FILE_KEY_PARAM,
+    version: Optional[str] = Query(
+        None,
+        description="File version tag. If not specified, the latest version will be used.",
+    ),
+    extension_id: Optional[str] = EXTENSION_ID_PARAM,
+) -> Any:
+    """Returns metadata about the specified file."""
+    print(file_key)
+    return None
+    # raise NotImplementedError
+
+
+@app.patch(
+    "/projects/{project_id}/data/files/{file_key:path}/metadata",
+    operation_id=data_model.ExtensibleOperations.UPDATE_FILE_METADATA.value,
+    response_model=data_model.File,
+    summary="Update file metadata.",
+    tags=["files"],
+    status_code=status.HTTP_200_OK,
+)
+def update_file_metadata(
+    file: data_model.FileInput,
+    project_id: str = PROJECT_ID_PARAM,
+    file_key: str = FILE_KEY_PARAM,
+    version: Optional[str] = Query(
+        None,
+        description="File version tag. If not specified, the latest version will be used.",
+    ),
+    extension_id: Optional[str] = EXTENSION_ID_PARAM,
+) -> Any:
+    """Updates the file metadata.
+
+    This will not change the actual content or the key of the file.
+
+    The update is applied on the existing metadata based on the JSON Merge Patch Standard ([RFC7396](https://tools.ietf.org/html/rfc7396)).
+    Thereby, only the specified properties will be updated.
+    """
+    raise NotImplementedError
+
+
+@app.get(
+    "/projects/{project_id}/data/files/{file_key:path}/download",
     operation_id=data_model.ExtensibleOperations.DOWNLOAD_FILE.value,
     response_model=data_model.File,
     summary="Download a file.",
@@ -1472,22 +1516,23 @@ def upload_file(
 def download_file(
     project_id: str = PROJECT_ID_PARAM,
     file_key: str = FILE_KEY_PARAM,
-    file_version: Optional[str] = Query(
+    version: Optional[str] = Query(
         None,
-        description="Version tag. If not specified, the latest version will be used.",
+        description="File version tag. If not specified, the latest version will be used.",
     ),
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
     """Downloads the selected file.
 
-    If the file storage supports versioning and no `file_version` is specified, the latest version will be downloaded.
+    If the file storage supports versioning and no `version` is specified, the latest version will be downloaded.
     """
     # TODO adapt download implementation
-    raise NotImplementedError
+    print(file_key)
+    return None
 
 
 @app.get(
-    "/projects/{project_id}/data/files/actions",
+    "/projects/{project_id}/data/files/{file_key:path}/actions",
     operation_id=data_model.ExtensibleOperations.LIST_FILE_ACTIONS.value,
     response_model=List[data_model.ResourceAction],
     summary="List file actions.",
@@ -1497,9 +1542,9 @@ def download_file(
 def list_file_actions(
     project_id: str = PROJECT_ID_PARAM,
     file_key: str = FILE_KEY_PARAM,
-    file_version: Optional[str] = Query(
+    version: Optional[str] = Query(
         None,
-        description="Version tag. If not specified, the latest version will be used.",
+        description="File version tag. If not specified, the latest version will be used.",
     ),
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
@@ -1519,11 +1564,12 @@ def list_file_actions(
     The same action mechanism is also used for other resources (e.g., services, jobs).
     It can support a very broad set of use-cases, for example: CSV Viewer, Tensorflow Model Deployment, ZIP Archive Explorer ...
     """
-    raise NotImplementedError
+    print(file_key)
+    return None
 
 
 @app.get(
-    "/projects/{project_id}/data/files/actions/{action_id}",
+    "/projects/{project_id}/data/files/{file_key:path}/actions/{action_id}",
     operation_id=data_model.ExtensibleOperations.EXECUTE_FILE_ACTION.value,
     # TODO: what is the response model? add additional status codes?
     summary="Execute a file action.",
@@ -1535,11 +1581,13 @@ def execute_file_action(
     project_id: str = PROJECT_ID_PARAM,
     file_key: str = FILE_KEY_PARAM,
     action_id: str = Path(
-        ..., description="The action ID from the file actions operation."
+        ...,
+        description="The action ID from the file actions operation.",
+        regex=data_model.RESOURCE_ID_REGEX,
     ),
-    file_version: Optional[str] = Query(
+    version: Optional[str] = Query(
         None,
-        description="Version tag. If not specified, the latest version will be used.",
+        description="File version tag. If not specified, the latest version will be used.",
     ),
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
@@ -1550,11 +1598,14 @@ def execute_file_action(
 
     The action mechanism is further explained in the description of the [list_file_actions](#files/list_file_actions).
     """
-    raise NotImplementedError
+    print(file_key)
+    print(action_id)
+    return None
+    # raise NotImplementedError
 
 
 @app.delete(
-    "/projects/{project_id}/data/files",
+    "/projects/{project_id}/data/files/{file_key:path}",
     operation_id=data_model.ExtensibleOperations.DELETE_FILE.value,
     summary="Delete a file.",
     tags=["files"],
@@ -1563,21 +1614,26 @@ def execute_file_action(
 def delete_file(
     project_id: str = PROJECT_ID_PARAM,
     file_key: str = FILE_KEY_PARAM,
-    file_version: Optional[str] = Query(
+    version: Optional[str] = Query(
         None,
-        description="Version tag. If not specified, all versions of the file will be deleted.",
+        description="File version tag. If not specified, all versions of the file will be deleted.",
+    ),
+    keep_latest_version: Optional[bool] = Query(
+        False, description="Keep the latest version of the file."
     ),
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
     """Deletes the specified file.
 
-    If the file storage supports versioning and no `file_version` is specified, all versions of the file will be deleted.
+    If the file storage supports versioning and no `version` is specified, all versions of the file will be deleted.
+
+    The parameter `keep_latest_version` is useful if you want to delete all older versions of a file.
     """
     raise NotImplementedError
 
 
 @app.get(
-    "/projects/{project_id}/data/files/token",
+    "/projects/{project_id}/data/files/{file_key:path}/token",
     operation_id=data_model.ExtensibleOperations.GET_FILE_ACCESS_TOKEN.value,
     response_model=str,
     summary="Get file access token.",
@@ -1587,9 +1643,9 @@ def delete_file(
 def get_file_access_token(
     project_id: str = PROJECT_ID_PARAM,
     file_key: str = FILE_KEY_PARAM,
-    file_version: Optional[str] = Query(
+    version: Optional[str] = Query(
         None,
-        description="Version tag. If not specified, all versions of the key are allowed for download.",
+        description="File version tag. If not specified, all versions of the key are allowed for download.",
     ),
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
     token_type: data_model.TokenType = Query(
@@ -1606,7 +1662,7 @@ def get_file_access_token(
     In comparison, the session token cannot be revoked but expires after a short time (a few minutes).
     However, once the file is downloaded there is no way to prevent any further duplication or misuse.
 
-    If the file storage supports versioning and no `file_version` is specified, all .
+    If the file storage supports versioning and no `version` is specified, all .
     """
     raise NotImplementedError
 
@@ -1912,6 +1968,7 @@ patch_fastapi(app)
 if __name__ == "__main__":
     import uvicorn
 
+    # TODO: Run with: Run with: PYTHONASYNCIODEBUG=1
     uvicorn.run(
         "contaxy.base_api:app", host="0.0.0.0", port=8082, log_level="info", reload=True
     )

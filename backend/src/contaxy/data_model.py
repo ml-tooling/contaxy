@@ -3,7 +3,16 @@ from enum import Enum
 from pathlib import Path
 from typing import Dict, List, Optional, Union
 
-from pydantic import UUID4, BaseModel, ByteSize, EmailStr, Field, Json, constr
+from pydantic import (
+    UUID4,
+    BaseModel,
+    BaseSettings,
+    ByteSize,
+    EmailStr,
+    Field,
+    Json,
+    constr,
+)
 from pydantic.errors import DateError
 
 MIN_DISPLAY_NAME_LENGTH = 4
@@ -12,82 +21,23 @@ MAX_DESCRIPTION_LENGTH = 240
 MIN_PROJECT_ID_LENGTH = 4
 MAX_PROJECT_ID_LENGTH = 25
 
-# Configurations / Secrets
 
-# use kind instead of type
-# versionsin for deployments?
-# add organization/team concept
-# uuid instead of id
-# Readme markdown string
-# use name as a default
-# /auth/login
-# /auth/signup
-# /auth/change-password
-# /auth/reset-password
-# artifact instead of file?
-# name vs display name
-# reference secrets everywhere: {{ secrets.MY_SECRET }}
-# use kind for type (job,service, file...) and type for subtype
+RESOURCE_ID_REGEX = r"^(?!.*--)[a-zA-Z0-9](?:[a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?$"
+QUALIFIED_RESOURCE_ID_REGEX = (
+    r"^(?!.*--)[a-z0-9\-]{1,61}[a-z0-9]$"  # TODO: start with [a-z]
+)
+FILE_KEY_REGEX = r"^(?!.*(\r|\n|\.\.)).{1,1024}$"  # no new lines or consecutive dots
 
-# Secret should have multiple key value pairs
 
-# Update default fields
+class Settings(BaseSettings):
+    """Platform Settings."""
 
-# TODO: open questions:
-# Use list wrapper with meta object
-# Support paging for all
-# Better seperation of extensible and core methods
-# Move all token methods to /auth/token (core)
-# What to do with suggest methods?
-# Change extension_id to component_id
-
-# date_created
-# date_updated
-# user_created
-# user_updated
-# created_at
-# updated_at
-
-# TODO: Globale unique ID:
-# UIDs: A Kubernetes systems-generated string to uniquely identify objects. Every object created over the whole lifetime of a Kubernetes cluster has a distinct UID. It is intended to distinguish between historical occurrences of similar entities. Kubernetes UIDs are universally unique identifiers (also known as UUIDs). UUIDs are standardized as ISO/IEC 9834-8 and as ITU-T X.667.
-# TODO: uri instead of id
-# ID prefixed with resource type (similary to slack):
-# C0G9QF9GW -> Channel
-# U0G9WFXNZ -> User
-
-# items
-# "response_metadata": {
-#    "next_cursor": "dGVhbTpDMUg5UkVTR0w="
-#  }
-
-# "kind": "drive#fileList",
-#  "nextPageToken": ""
-
-# "identities": {
-#    "extern_uid": "",
-#    "provider": ""
-#  },
-
-# data: the document’s “primary data”
-# errors: an array of error objects
-# meta: a meta object that contains non-standard meta-information.
-
-# id
-# type
-# TODO:
-# Set recommended labels: https://kubernetes.io/docs/concepts/overview/working-with-objects/common-labels/
-
-# TODO: List wrapper
-# data/items  + metadata
-#
-# "metadata": { "previous": null,  "next": "Q1MjAwNz", "count": 10 },
+    # Deactivate Setting or changing password from user accounts
+    # Admins can still set and change passwords for users, or use the basic auth authentication login page
+    DISABLE_BASIC_AUTH: str
 
 
 class CoreOperations(str, Enum):
-    # TODO: LIST API TOKENS
-    # LIST_PROJECT_API_TOKENS = "list_user_api_tokens"
-    # LIST_USER_API_TOKENS = "list_user_api_tokens"
-
     # Project Endpoints
     LIST_PROJECTS = "list_projects"
     CREATE_PROJECT = "create_project"
@@ -120,7 +70,6 @@ class CoreOperations(str, Enum):
     GET_SYSTEM_INFO = "get_system_info"
     GET_SYSTEM_STATISTICS = "get_system_statistics"
     LIST_SYSTEM_NODES = "list_system_nodes"
-    # TODO: Implement get_system_events
 
 
 class ExtensibleOperations(str, Enum):
@@ -160,6 +109,7 @@ class ExtensibleOperations(str, Enum):
     OPEN_LOGIN_PAGE = "open_login_page"
     LIST_API_TOKENS = "list_api_tokens"
     DELETE_API_TOKEN = "delete_api_token"
+    CREATE_TOKEN = "create_token"
     # Secrets Endpoints
     CREATE_SECRET = "create_secret"
     DELETE_SECRET = "delete_secret"
@@ -257,9 +207,9 @@ class ActionInstruction(str, Enum):
 
 
 class PermissionLevel(str, Enum):
-    READ = "read"
-    WRITE = "write"
-    ADMIN = "admin"
+    READ = "read"  # Viewer
+    WRITE = "write"  # Editor
+    ADMIN = "admin"  # Owner
     # none
 
 
@@ -285,7 +235,7 @@ class UserInput(BaseEntity):
         example=["project:my-awesome-project:write"],
         description="List of user permissions.",
     )
-    is_disabled: Optional[bool] = Field(
+    disabled: Optional[bool] = Field(
         False,
         description="Indicates that user is disabled. Disabling a user will prevent any access to user-accesible resources.",
     )
@@ -298,7 +248,7 @@ class User(UserInput):
         example="16fd2706-8baf-433b-82eb-8c7fada847da",
         description="Unique ID of the user.",
     )
-    is_technical_user: Optional[bool] = Field(
+    technical_user: Optional[bool] = Field(
         False,
         description="Indicates if the user is a technical user created by the system.",
     )
@@ -448,7 +398,7 @@ class ProjectInput(BaseEntity):
         None,
         description="Limitations for resource usage.",
     )
-    is_disabled: Optional[bool] = Field(
+    disabled: Optional[bool] = Field(
         False,
         description="Indicates that project is disabled. Disabling a project will prevent any access to project resources.",
     )
@@ -475,11 +425,11 @@ class Project(ProjectInput):
         example="16fd2706-8baf-433b-82eb-8c7fada847da",
         description="ID of the user that has last updated this projects metadata.",
     )
-    is_available: Optional[bool] = Field(
+    available: Optional[bool] = Field(
         False,
         description="Indicates that this project is ready for usage.",
     )
-    is_technical_project: Optional[bool] = Field(
+    technical_project: Optional[bool] = Field(
         False,
         description="Indicates that this is a technical project created by the system.",
     )
@@ -505,7 +455,7 @@ class DeploymentCompute(BaseEntity):
     min_memory: Optional[int] = Field(
         None,
         example=4000,
-        ge=0,
+        ge=5,  # 4 is the minimal RAM needed for containers
         description="Minimum amount of memory in Megabyte required by this deployment. The system will make sure that atleast this amount is available to the deployment.",
     )
     max_memory: Optional[int] = Field(
@@ -638,7 +588,7 @@ class Deployment(DeploymentInput):
         None,
         description="Timestamp when the container has stopped.",
     )
-    extensions_id: Optional[str] = Field(
+    extension_id: Optional[str] = Field(
         None,
         description="The extension ID in case the deployment is deployed via an extension.",
     )
@@ -698,7 +648,7 @@ class Service(Deployment, ServiceInput):
         example="8080/healthz",
         description="The endpoint instruction that can be used for checking the deployment health.",
     )
-    is_healthy: Optional[bool] = Field(
+    healthy: Optional[bool] = Field(
         True,
         description="Indicates if the deployment is healthy.",
     )
@@ -750,30 +700,36 @@ class Extension(Service, ExtensionInput):
 
 
 class FileInput(BaseEntity):
-    filename: str = Field(  # TODO: renme to display name
+    key: str = Field(
         ...,
+        example="datasets/customer-table.csv",
+        description="The (virtual) path of the file. This path might not correspond to the actual path on the file storage.",
+        min_length=1,
+        max_length=1024,  # Keys can only be 1024 chars long
+        regex=FILE_KEY_REGEX,
+    )
+    display_name: str = Field(
+        None,
         example="customer-table.csv",
-        description="The filename.",
-    )
-    virtual_path: Optional[Union[DataType, str]] = Field(
-        None,
-        example=DataType.DATASET,
-        description="The virtual path of this file. This path might not correspond to the actual path on the file storage.",
-    )
-    file_extension: Optional[str] = Field(  # TODO: remove file extension?
-        None,
-        example="csv",
-        description="The file extension (suffix).",
+        description="The display name of the file. This will be automtically set to the filename.",
     )
     content_type: Optional[str] = Field(
         None,
         example="text/csv",
-        description="The content type of the file.",
+        description="A standard MIME type describing the format of the contents. If an file is stored without a Content-Type, it is served as application/octet-stream.",
     )
-    is_archive: Optional[bool] = Field(
+    # TODO: content_encoding: Specifies what content encodings have been applied to the object and thus what decoding mechanisms must be applied to obtain the media-type referenced by the Content-Type header field.
+    # TODO: content_disposition: Specifies presentational information for the object.
+    # TODO: content_language: The language the content is in.
+    external_id: Optional[str] = Field(
+        None,
+        example="datasets/customer-table.csv",
+        description="The ID (or access instruction) of the file on the file storage provider.",
+    )
+    disabled: Optional[bool] = Field(
         None,
         example=False,
-        description="Indicates if the file is an archive which can be unpacked.",
+        description="Indicates that file is disabled. Disabling a file will prevent any access to the resource.",
     )
     description: Optional[str] = Field(
         None,
@@ -799,14 +755,12 @@ class FileInput(BaseEntity):
 
 
 class File(FileInput):
-    key: str = Field(
+    id: str = Field(
         ...,
-        example="datasets/customer-table.csv.v1",
-        description="The key of the file.",
-    )
-    extensions_id: Optional[str] = Field(
-        None,
-        description="The extension ID in case the file is provided via an extension.",
+        example="f2c9e99a23b7ca50df0d5cb52023c583abf88a57",
+        description="File ID. Guaranteed to be unique within the scope of the resource type and extension.",
+        regex=RESOURCE_ID_REGEX,
+        max_length=63,
     )
     created_at: Optional[datetime] = Field(
         None,
@@ -828,6 +782,11 @@ class File(FileInput):
         example="16fd2706-8baf-433b-82eb-8c7fada847da",
         description="ID of the user that has last modified this file.",
     )
+    file_extension: Optional[str] = Field(
+        None,
+        example="csv",
+        description="The full file extension extracted from the key field. May contain multiple concatenated extensions, such as `tar.gz`.",
+    )
     file_size: Optional[ByteSize] = Field(
         None,
         example=1073741824,
@@ -835,30 +794,33 @@ class File(FileInput):
     )
     version: Optional[str] = Field(
         None,
-        example="3",
-        description="Version tag of this file.",
+        example="1614204512210009",
+        description="Version tag of this file. The version order might not be inferable from the version tag/",
     )
     available_versions: Optional[List[str]] = Field(
         None,
-        example=["1", "2", "3"],
+        example=["1614204512210009", "23424512210009", "6144204512210009"],
         description="All version tags available for the given file.",
     )
-    is_latest_version: Optional[bool] = Field(
+    latest_version: Optional[bool] = Field(
         None,
         example=True,
         description="Indicates if this is the latest available version of the file.",
     )
-    checksum: Optional[str] = Field(
+    md5_hash: Optional[str] = Field(
         None,
         example="2a53375ff139d9837e93a38a279d63e5",
-        description="The md5 checksum of the file for checking integrity.",
+        description="The base64-encoded 128-bit MD5 digest of the file. This can be used for checking the file integrity.",
     )
     etag: Optional[str] = Field(
         None,
         example="57f456164b0e5f365aaf9bb549731f32-95",
-        description="The etag of the file (mainly used by S3 storage).",
+        description="The etag of the file (mainly used by S3 storage). An entity-tag is an opaque validator for differentiating between multiple representations of the same resource",
     )
-    # Todo: tags
+    extension_id: Optional[str] = Field(
+        None,
+        description="The extension ID in case the file is provided via an extension.",
+    )
 
 
 class ApiToken(BaseEntity):
@@ -906,6 +868,7 @@ class ResourceAction(BaseEntity):
         ...,
         example="access-8080",
         description="ID used to identify this action.",
+        regex=RESOURCE_ID_REGEX,
     )
     display_name: Optional[str] = Field(
         None,
@@ -920,7 +883,7 @@ class ResourceAction(BaseEntity):
         example="open_in_new",
         description="Material Design Icon name or image URL used for displaying this action.",
     )
-    extensions_id: Optional[str] = Field(
+    extension_id: Optional[str] = Field(
         None,
         description="The extension ID associated with this action.",
     )

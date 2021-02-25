@@ -73,36 +73,3 @@ def patch_fastapi(app: FastAPI) -> None:
     graphql.GRAPHIQL = graphql.GRAPHIQL.replace(
         "({{REQUEST_PATH}}", '("." + {{REQUEST_PATH}}'
     )
-
-
-# Pagination:
-# https://github.com/uriyyo/fastapi-pagination
-# https://jsonapi.org/format/#fetching-pagination
-# Github API: page, per_page
-# Alternative: limit, offset
-# previous, next (URL)
-# https://fastapi-contrib.readthedocs.io/en/latest/_modules/fastapi_contrib/pagination.html
-# cursor=Q1MjAwNz&limit=100
-# https://docs.gitlab.com/ee/api/#pagination-link-header
-# Pagination Link header: Link headers are returned with each response. They have rel set to prev, next, first, or last and contain the relevant URL. Be sure to use these links instead of generating your own URLs.
-
-
-@dataclass
-class PaginationParams:
-    page: Optional[int] = Query(
-        None, ge=0, description="Page number of the results to fetch."
-    )
-    per_page: Optional[int] = Query(None, gt=0, description="Results per page.")
-
-
-# Sorting:
-# https://jsonapi.org/format/#fetching-sorting
-# direction or order as seperate field
-# Github API: sort and direction ( asc, desc)
-# order_by, sort
-@dataclass
-class SortingParams:
-    sort: Optional[str] = Query(
-        ...,
-        description="Sort by the given value. Sort order is ascending, unless prefixed by `-`.",
-    )
