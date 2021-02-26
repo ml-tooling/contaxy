@@ -11,6 +11,7 @@ from pydantic import (
     EmailStr,
     Field,
     Json,
+    SecretStr,
     constr,
 )
 from pydantic.errors import DateError
@@ -58,6 +59,16 @@ class CoreOperations(str, Enum):
     # Auth Endpoints
     REFRESH_TOKEN = "refresh_token"
     VERIFY_TOKEN = "verify_token"
+    LIST_API_TOKENS = "list_api_tokens"
+    CREATE_TOKEN = "create_token"
+    LOGOUT_SESSION = "logout_session"
+    # OAuth2 Endpoints
+    AUTHORIZE_CLIENT = "authorize_client"
+    REQUEST_TOKEN = "request_token"
+    REVOKE_TOKEN = "revoke_token"
+    INTROSPECT_TOKEN = "introspect_token"
+    LOGIN_CALLBACK = "login_callback"
+    GET_USERINFO = "get_userinfo"
     # Extension Endpoints
     INSTALL_EXTENSION = "install_extension"
     LIST_EXTENSIONS = "list_extensions"
@@ -107,9 +118,6 @@ class ExtensibleOperations(str, Enum):
     UPDATE_FILE_METADATA = "update_file_metadata"
     # Auth Endpoints
     OPEN_LOGIN_PAGE = "open_login_page"
-    LIST_API_TOKENS = "list_api_tokens"
-    DELETE_API_TOKEN = "delete_api_token"
-    CREATE_TOKEN = "create_token"
     # Secrets Endpoints
     CREATE_SECRET = "create_secret"
     DELETE_SECRET = "delete_secret"
@@ -207,10 +215,110 @@ class ActionInstruction(str, Enum):
 
 
 class PermissionLevel(str, Enum):
-    READ = "read"  # Viewer
-    WRITE = "write"  # Editor
-    ADMIN = "admin"  # Owner
+    READ = "read"  # Viewer, view: Allows admin access
+    WRITE = "write"  # Editor, edit : Allows read/write access.
+    ADMIN = "admin"  # Owner : Allows read-only access.
     # none
+
+
+class OauthToken(BaseModel):
+    token_type: str = Field(
+        ..., description="The type of token this is, typically just the string `bearer`"
+    )
+    access_token: str = Field(..., description="The access token string.")
+    expires_in: Optional[int] = Field(
+        None,
+        description="The expiration time of the access token in seconds.",
+    )
+    refresh_token: Optional[str] = Field(
+        None, description="API token to refresh the sesion token (if it expires)."
+    )
+    scope: Optional[str] = Field(
+        None, description="The scopes contained in the access token."
+    )
+    id_token: Optional[str] = Field(
+        None,
+        description="OpenID Connect ID Token that encodes the user’s authentication information.",
+    )
+
+
+class OpenIDUserInfo(BaseModel):
+    # Based on: https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims
+    sub: str = Field(
+        ..., description="Subject - Identifier for the End-User at the Issuer."
+    )
+    name: Optional[str] = Field(
+        None,
+        description="End-User's full name in displayable form including all name parts, possibly including titles and suffixes, ordered according to the End-User's locale and preferences.",
+    )
+    # TODO: this is actually
+    preferred_username: Optional[str] = Field(
+        None,
+        description="Shorthand name by which the End-User wishes to be referred to.",
+    )
+    email: Optional[str] = Field(
+        None,
+        description="End-User's preferred e-mail address",
+    )
+    updated_at: Optional[int] = Field(
+        None,
+        description="Time the End-User's information was last updated. Number of seconds from 1970-01-01T0:0:0Z as measured in UTC until the date/time.",
+    )
+
+
+class TokenIntrospection(BaseModel):
+    active: bool = Field(
+        ...,
+        description="Indicator of whether or not the presented token is currently active.",
+    )
+    scope: Optional[str] = Field(
+        None,
+        description="A space-delimited list of scopes.",
+    )
+    client_id: Optional[str] = Field(
+        None,
+        description="Client identifier for the OAuth 2.0 client that requested this token.",
+    )
+    username: Optional[str] = Field(
+        None,
+        description="Human-readable identifier for the resource owner who authorized this token.",
+    )
+    token_type: Optional[str] = Field(
+        None,
+        description="Type of the token as defined in Section 5.1 of OAuth 2.0 [RFC6749].",
+    )
+    exp: Optional[int] = Field(
+        None,
+        description="Timestamp, measured in the number of seconds since January 1 1970 UTC, indicating when this token will expire, as defined in JWT [RFC7519].",
+    )
+    iat: Optional[int] = Field(
+        None,
+        description="Timestamp, measured in the number of seconds since January 1 1970 UTC, indicating when this token was originally issued, as defined in JWT [RFC7519].",
+    )
+    nbf: Optional[int] = Field(
+        None,
+        description="Timestamp, measured in the number of seconds since January 1 1970 UTC, indicating when this token is not to be used before, as defined in JWT [RFC7519].",
+    )
+    sub: Optional[str] = Field(
+        None,
+        description="Subject of the token, as defined in JWT [RFC7519]. Usually a machine-readable identifier of the resource owner who authorized this token.",
+    )
+    aud: Optional[str] = Field(
+        None,
+        description="Service-specific string identifier or list of string identifiers representing the intended audience for this token, as defined in JWT [RFC7519].",
+    )
+    iss: Optional[str] = Field(
+        None,
+        description="String representing the issuer of this token, as defined in JWT [RFC7519].",
+    )
+    jti: Optional[str] = Field(
+        None,
+        description="String identifier for the token, as defined in JWT [RFC7519].",
+    )
+    uid: Optional[str] = Field(
+        None,
+        description="The user ID. This parameter is returned only if the token is an access token and the subject is an end user.",
+    )
 
 
 class BaseEntity(BaseModel):
@@ -230,6 +338,7 @@ class UserInput(BaseEntity):
     email: Optional[EmailStr] = Field(
         None, example="john.doe@example.com", description="User email address."
     )
+    # TODO: this field should be only usable by system administrators
     permissions: Optional[List[str]] = Field(
         None,
         example=["project:my-awesome-project:write"],
@@ -239,7 +348,10 @@ class UserInput(BaseEntity):
         False,
         description="Indicates that user is disabled. Disabling a user will prevent any access to user-accesible resources.",
     )
-    # password: Optional[SecretStr] = None
+    # TODO: never return a password
+    # TODO: a password can only be changed when used via oauth password bearer
+    # TODO: System admin can change passwords for all users
+    password: Optional[SecretStr] = None
 
 
 class User(UserInput):

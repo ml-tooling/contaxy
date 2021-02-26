@@ -1,7 +1,9 @@
 from datetime import datetime
+from enum import Enum
 from typing import Any, Dict, List, Mapping, Optional, Tuple, Union
 
-from fastapi import Body, FastAPI, Path, Query, status
+from fastapi import Body, Cookie, Depends, FastAPI, Form, Path, Query, status
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from starlette.responses import HTMLResponse, RedirectResponse, Response
 
 from contaxy import __version__, data_model
@@ -302,41 +304,45 @@ def delete_user(user_id: str = USER_ID_PARAM) -> Any:
     raise NotImplementedError
 
 
-@app.get(
-    "/users/{user_id}/token",
-    operation_id=data_model.CoreOperations.GET_USER_TOKEN.value,
-    response_model=str,
-    summary="Get a user token.",
-    tags=["users"],
-    status_code=status.HTTP_200_OK,
-)
-def get_user_token(
-    user_id: str = USER_ID_PARAM,
-    token_type: data_model.TokenType = Query(
-        data_model.TokenType.SESSION_TOKEN,
-        description="Type of the token.",
-        type="string",
-    ),
-    permission_level: data_model.PermissionLevel = Query(
-        data_model.PermissionLevel.WRITE,
-        description="Permission level of the token.",
-        type="string",
-    ),
-) -> Any:
-    """Returns a session or API token with permission to access all resources accesible by the given user.
-
-    Depending on the provided permission level, this token also allows to create or update resources (`write`)
-    or delete projects or the user itself (`admin`).
-    """
-    raise NotImplementedError
-
-
 # Auth Endpoints
 
 
 @app.get(
+    "/auth/login",
+    operation_id=data_model.ExtensibleOperations.OPEN_LOGIN_PAGE.value,
+    summary="Open the login page.",
+    tags=["auth"],
+    status_code=status.HTTP_200_OK,
+    responses={**OPEN_URL_REDIRECT},
+)
+def open_login_page(
+    extension_id: Optional[str] = EXTENSION_ID_PARAM,
+) -> Any:
+    """Returns or redirect to the login-page."""
+    rr = RedirectResponse("/welcome", status_code=307)
+    rr.set_cookie(key="session_token", value="test-token", path="/welcome")
+    rr.set_cookie(key="user_token", value="test-user-token", path="/users/me")
+    return rr
+
+
+@app.get(
+    "/auth/logout",
+    operation_id=data_model.CoreOperations.LOGOUT_SESSION.value,
+    summary="Logout a user session.",
+    tags=["auth"],
+    status_code=status.HTTP_307_TEMPORARY_REDIRECT,
+)
+def logout_session() -> Any:
+    """Removes all session token cookies and redirects to the login page.
+
+    When making requests to the this endpoint, the browser should be redirected to this endpoint.
+    """
+    return RedirectResponse("./login", status_code=307)
+
+
+@app.get(
     "/auth/tokens",
-    operation_id=data_model.ExtensibleOperations.LIST_API_TOKENS.value,
+    operation_id=data_model.CoreOperations.LIST_API_TOKENS.value,
     response_model=List[data_model.ApiToken],
     summary="List API tokens.",
     tags=["auth"],
@@ -355,7 +361,6 @@ def list_api_token(
         min_length=data_model.MIN_PROJECT_ID_LENGTH,
         max_length=data_model.MAX_PROJECT_ID_LENGTH,
     ),
-    extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
     """Returns list of created API tokens for the specified user or project.
 
@@ -366,90 +371,54 @@ def list_api_token(
 
 @app.post(
     "/auth/tokens",
-    operation_id=data_model.ExtensibleOperations.CREATE_TOKEN.value,
+    operation_id=data_model.CoreOperations.CREATE_TOKEN.value,
     response_model=str,
-    summary="Create token.",
+    summary="Create API or session token.",
     tags=["auth"],
     status_code=status.HTTP_200_OK,
 )
 def create_token(
-    resource_type: Optional[data_model.ResourceType] = Query(
+    permission: Optional[List[str]] = Query(
         None,
-        title="Resource Type ",
-        description="Type of the resource.",
-    ),
-    resource_id: Optional[str] = Query(
-        None,
-        title="Resource ID",
-        description="ID of the resource.",
-    ),
-    permission_level: Optional[data_model.PermissionLevel] = Query(
-        None,
-        title="Permission Level",
-        description="Permission level of the token.",
+        title="Permissions",
+        description="Permissions granted to the token. If none specified, the token will be generated with the same permissions as the one used to call this method.",
     ),
     token_type: data_model.TokenType = Query(
         data_model.TokenType.SESSION_TOKEN,
         description="Type of the token.",
         type="string",
     ),
-    extension_id: Optional[str] = EXTENSION_ID_PARAM,
-) -> Any:
-    """Returns list of created API tokens for the specified user or project.
-
-    If a user ID and a project ID is provided, a combined list will be returned.
-    """
-    raise NotImplementedError
-
-
-@app.delete(
-    "/auth/tokens/{api_token}",
-    operation_id=data_model.ExtensibleOperations.DELETE_API_TOKEN.value,
-    summary="Delete API token.",
-    tags=["auth"],
-    status_code=status.HTTP_204_NO_CONTENT,
-)
-def delete_api_token(
-    api_token: str = Path(
-        ...,
-        title="API Token",
-        description="API Token to delete.",
-    ),
-    extension_id: Optional[str] = EXTENSION_ID_PARAM,
-) -> Any:
-    """Deletes an API token.
-
-    This will revoke the API token, preventing further requests with the given token.
-    Because of caching, the API token might still be usable under certain conditions
-    for some operations for a maximum of 15 minutes after deletion.
-    """
-    raise NotImplementedError
-
-
-@app.get(
-    "/auth/tokens/refresh",
-    operation_id=data_model.CoreOperations.REFRESH_TOKEN.value,
-    response_model=str,
-    summary="Refresh Session Token.",
-    tags=["auth"],
-    status_code=status.HTTP_200_OK,
-)
-def refresh_token(
-    api_token: Optional[str] = Query(
-        None,
-        title="API Token",
-        description="Token to use for refresh.",
-    ),
-    return_token: bool = Query(
-        False,
-        title="Return Token",
-        description="If true, the session token is returned also in the body.",
+    description: Optional[str] = Query(
+        None, description="Attach a short description to the generated token."
     ),
 ) -> Any:
-    """Refreshes the session token.
+    """Returns a session or API token with access on the specified resource.
 
-    This requires an API token sent either as query parameter (not recommended), header, or cookie.
-    If successful, the JWT token will be set as session_token cookie and - if requested - returned in the body.
+    A permission is a single string that combines a global ID of a resource with a permission level:
+
+    `{global_id}.{permission_level}`
+
+    Permission levels are a hierarchical system that determines the kind of access that is granted to the resource.
+    Permission levels are interpreted and applied inside resource operations. There are three permission levels:
+
+    1. `admin` permission level allows read, write, and administrative access to the resource.
+    2. `write` permission level allows read and write (edit) access to the resource.
+    3. `read` permission level allows read-only (view) access to the resource.
+
+    The permission level can also be suffixed with an optional restriction defined by the resource:
+    `{global_id}.{permission_level}.{custom_restriction}`
+
+    If no permissions are specified, the token will be generated with the same permissions as the authorized token.
+
+    The API token can be deleted (revoked) at any time.
+    In comparison, the session token cannot be revoked but expires after a short time (a few minutes).
+
+    This operation can only be called with API tokens (or refresh tokens) due to security aspects.
+    Session tokens are not allowed to create other tokens.
+    Furthermore, tokens can only be created if the API token used for authorization is granted at least
+    the same permission level on the given resource. For example, a token with `write` permission level on a given resource
+    allows to create new tokens with `write` or `read` permission on that resource.
+    If a restriction is attached to the permission, created tokens on the same permission level require the same restriction.
     """
     raise NotImplementedError
 
@@ -457,10 +426,10 @@ def refresh_token(
 @app.post(
     "/auth/tokens/verify",
     operation_id=data_model.CoreOperations.VERIFY_TOKEN.value,
-    response_model=List[str],
-    summary="Verify a Token.",
+    # response_model=List[str],
+    summary="Verify a Session or API Token.",
     tags=["auth"],
-    status_code=status.HTTP_200_OK,
+    status_code=status.HTTP_204_NO_CONTENT,
 )
 def verify_token(
     token: Optional[str] = Body(
@@ -468,44 +437,285 @@ def verify_token(
         title="Token",
         description="Token to verify.",
     ),
-    resource_type: Optional[data_model.ResourceType] = Query(
+    permission: Optional[str] = Query(
         None,
         title="Resource Type ",
-        description="Type of the resource.",
-    ),
-    resource_id: Optional[str] = Query(
-        None,
-        title="Resource ID",
-        description="ID of the resource.",
-    ),
-    permission_level: Optional[data_model.PermissionLevel] = Query(
-        None,
-        title="Permission Level",
-        description="Permission level to verify.",
+        description="The token is checked if is granted this permission. If none specified, only the existence or validity of the token itself is checked.",
     ),
 ) -> Any:
-    """Verifies a session or API token for its validity and - if provided - if it has the provided permisson.
+    """Verifies a session or API token for its validity and - if provided - if it has the specified permission.
 
-    If the verification is successful, a list of permssions will be returned associated with the given token.
+    Returns an successful HTTP Status code if verification was successful, otherwise an error is returned.
+    """
+    raise NotImplementedError
+
+
+class AuthorizeResponseType(str, Enum):
+    TOKEN = "token"
+    CODE = "code"
+
+
+class OAuth2AuthorizeRequestForm:
+    """OAuth2 Authorize Endpoint Request Form."""
+
+    def __init__(
+        self,
+        response_type: AuthorizeResponseType = Form(
+            ...,
+            description="Either code for requesting an authorization code or token for requesting an access token (implicit grant).",
+        ),
+        client_id: Optional[str] = Form(
+            None, description="The public identifier of the client."
+        ),
+        redirect_uri: Optional[str] = Form(None, description="Redirection URL."),
+        scope: Optional[str] = Form(
+            None, description="The scope of the access request."
+        ),
+        state: Optional[str] = Form(
+            None,
+            description="An opaque value used by the client to maintain state between the request and callback. The parameter SHOULD be used for preventing cross-site request forgery",
+        ),
+        nonce: Optional[str] = Form(None),
+    ):
+        self.response_type = response_type
+        self.client_id = client_id
+        self.redirect_uri = redirect_uri
+        self.scope = scope
+        self.state = state
+        self.nonce = nonce
+
+
+class OAuth2TokenGrantTypes(str, Enum):
+    PASSWORD = "password"
+    REFRESH_TOKEN = "refresh_token"
+    CLIENT_CREDENTIALS = "client_credentials"
+    AUTHORIZATION_CODE = "authorization_code"
+
+
+class OAuth2TokenRequestForm:
+    """OAuth2 Token Endpoint Request Form."""
+
+    def __init__(
+        self,
+        grant_type: OAuth2TokenGrantTypes = Form(
+            ...,
+            description="Grant type. Determines the mechanism used to authorize the creation of the tokens.",
+        ),
+        username: Optional[str] = Form(
+            None, description="Required for `password` grant type. The user’s username."
+        ),
+        password: Optional[str] = Form(
+            None, description="Required for `password` grant type. The user’s password."
+        ),
+        scope: Optional[str] = Form(
+            None,
+            description="Scopes that the client wants to be included in the access token. List of space-delimited, case-sensitive strings",
+        ),
+        client_id: Optional[str] = Form(
+            None,
+            description="The client identifier issued to the client during the registration process",
+        ),
+        client_secret: Optional[str] = Form(
+            None,
+            description=" The client secret. The client MAY omit the parameter if the client secret is an empty string.",
+        ),
+        code: Optional[str] = Form(
+            None,
+            description="Required for `authorization_code` grant type. The value is what was returned from the authorization endpoint.",
+        ),
+        redirect_uri: Optional[str] = Form(
+            None,
+            description="Required for `authorization_code` grant type. Specifies the callback location where the authorization was sent. This value must match the `redirect_uri` used to generate the original authorization_code.",
+        ),
+        refresh_token: Optional[str] = Form(
+            None,
+            description="Required for `refresh_token` grant type. The refresh token previously issued to the client.",
+        ),
+        state: Optional[str] = Form(
+            None,
+            description="An opaque value used by the client to maintain state between the request and callback. The parameter SHOULD be used for preventing cross-site request forgery.",
+        ),
+        set_as_cookie: Optional[bool] = Form(
+            False,
+            description="If `true`, the access (and refresh) token will be set as cookie instead of the response body.",
+        ),
+    ):
+        self.grant_type = grant_type
+        self.username = username
+        self.password = password
+        self.scopes = []
+        if scope:
+            self.scopes = scope.split()
+        self.client_id = client_id
+        self.client_secret = client_secret
+        self.code = code
+        self.redirect_uri = redirect_uri
+        self.refresh_token = refresh_token
+        self.state = state
+        self.set_as_cookie = set_as_cookie
+
+
+@app.post(
+    "/auth/oauth/authorize",
+    operation_id=data_model.CoreOperations.AUTHORIZE_CLIENT.value,
+    summary="Authorize a client (OAuth2 Endpoint).",
+    tags=["auth"],
+    status_code=status.HTTP_302_FOUND,
+)
+def authorize_client(form_data: OAuth2AuthorizeRequestForm = Depends()) -> Any:
+    """Authorizes a client.
+
+    The authorization endpoint is used by the client to obtain authorization from the resource owner via user-agent redirection.
+
+    The authorization server redirects the user-agent to the client's redirection endpoint previously established with the
+    authorization server during the client registration process or when making the authorization request.
+
+    This endpoint implements the [OAuth2 Authorization Endpoint](https://tools.ietf.org/html/rfc6749#section-3.1).
+    """
+    pass
+
+
+@app.post(
+    "/auth/oauth/token",
+    operation_id=data_model.CoreOperations.REQUEST_TOKEN.value,
+    response_model=data_model.OauthToken,
+    summary="Request a token (OAuth2 Endpoint).",
+    tags=["auth"],
+    status_code=status.HTTP_200_OK,
+)
+def request_token(form_data: OAuth2TokenRequestForm = Depends()) -> Any:
+    """Returns an access tokens, ID tokens, or refresh tokens depending on the request parameters.
+
+     The token endpoint is used by the client to obtain an access token by
+     presenting its authorization grant or refresh token.
+
+     The token endpoint supports the following grant types:
+     - [Password Grant](https://tools.ietf.org/html/rfc6749#section-4.3.2): Used when the application exchanges the user’s username and password for an access token.
+         - `grant_type` must be set to `password`
+         - `username` (required): The user’s username.
+         - `password` (required): The user’s password.
+         - `scope` (optional): Optional requested scope values for the access token.
+     - [Refresh Token Grant](https://tools.ietf.org/html/rfc6749#section-6): Allows to use refresh tokens to obtain new access tokens.
+         - `grant_type` must be set to `refresh_token`
+         - `refresh_token` (required): The refresh token previously issued to the client.
+         - `scope` (optional): Requested scope values for the new access token. Must not include any scope values not originally granted by the resource owner, and if omitted is treated as equal to the originally granted scope.
+     - [Client Credentials Grant](https://tools.ietf.org/html/rfc6749#section-4.4.2): Request an access token using only its client
+    credentials.
+         - `grant_type` must be set to `client_credentials`
+         - `scope` (optional): Optional requested scope values for the access token.
+         - Client Authentication required (e.g. via client_id and client_secret or auth header)
+     - [Authorization Code Grant](https://tools.ietf.org/html/rfc6749#section-4.1): Used to obtain both access tokens and refresh tokens based on an authorization code from the `/authorize` endpoint.
+         - `grant_type` must be set to `authorization_code`
+         - `code` (required): The authorization code that the client previously received from the authorization server.
+         - `redirect_uri` (required): The redirect_uri parameter included in the original authorization request.
+         - Client Authentication required (e.g. via client_id and client_secret or auth header)
+
+    For password, client credentials, and refresh token flows, calling this endpoint is the only step of the flow.
+    For the authorization code flow, calling this endpoint is the second step of the flow.
+
+    This endpoint implements the [OAuth2 Token Endpoint](https://tools.ietf.org/html/rfc6749#section-3.2).
+    """
+    raise NotImplementedError
+
+
+@app.post(
+    "/auth/oauth/revoke",
+    operation_id=data_model.CoreOperations.REVOKE_TOKEN.value,
+    response_model=List[str],
+    summary="Revoke a token (OAuth2 Endpoint).",
+    tags=["auth"],
+    status_code=status.HTTP_200_OK,
+)
+def revoke_token(
+    token: str = Form(..., description="The token that should be revoked."),
+    token_type_hint: Optional[str] = Form(
+        None,
+        description="A hint about the type of the token submitted for revokation.",
+    ),
+) -> Any:
+    """Revokes a given token.
+
+    This will delete the API token, preventing further requests with the given token.
+    Because of caching, the API token might still be usable under certain conditions
+    for some operations for a maximum of 15 minutes after deletion.
+
+    This endpoint implements the OAuth2 Revocation Flow ([RFC7009](https://tools.ietf.org/html/rfc7009)).
+    """
+    raise NotImplementedError
+
+
+@app.post(
+    "/auth/oauth/introspect",
+    operation_id=data_model.CoreOperations.INTROSPECT_TOKEN.value,
+    response_model=data_model.TokenIntrospection,
+    summary="Introspect a token (OAuth2 Endpoint).",
+    tags=["auth"],
+    status_code=status.HTTP_200_OK,
+)
+def introspect_token(
+    token: str = Form(
+        ..., description="The token that should be instrospected revoked."
+    ),
+    token_type_hint: Optional[str] = Form(
+        None,
+        description="A hint about the type of the token submitted for introspection (e.g. `access_token`, `id_token` and `refresh_token`).",
+    ),
+) -> Any:
+    """Introspects a given token.
+
+    Returns a boolean that indicates whether it is active or not.
+    If the token is active, additional data about the token is also returned.
+    If the token is invalid, expired, or revoked, it is considered inactive.
+
+    This endpoint implements the [OAuth2 Introspection Flow](https://www.oauth.com/oauth2-servers/token-introspection-endpoint/) ([RFC7662](https://tools.ietf.org/html/rfc7662)).
     """
     raise NotImplementedError
 
 
 @app.get(
-    "/auth/login-page",
-    operation_id=data_model.ExtensibleOperations.OPEN_LOGIN_PAGE.value,
+    "/auth/oauth/userinfo",
+    operation_id=data_model.CoreOperations.GET_USERINFO.value,
+    response_model=data_model.OpenIDUserInfo,
+    summary="Get userinfo (OpenID Endpoint).",
+    tags=["auth"],
+    status_code=status.HTTP_200_OK,
+)
+def get_userinfo() -> Any:
+    """Returns information about the authenticated user.
+
+    The access token obtained must be sent as a bearer token in the `Authorization` header.
+
+    This endpoint implements the [OpenID UserInfo Endpoint](https://openid.net/specs/openid-connect-core-1_0.html#UserInfo).
+    """
+    return None
+
+
+@app.get(
+    "/auth/oauth/callback",
+    operation_id=data_model.CoreOperations.LOGIN_CALLBACK.value,
     summary="Open the login page.",
     tags=["auth"],
     status_code=status.HTTP_200_OK,
-    responses={**OPEN_URL_REDIRECT},
 )
-def open_login_page(
-    extension_id: Optional[str] = EXTENSION_ID_PARAM,
+def login_callback(
+    code: str = Query(
+        ..., description="The authorization code generated by the authorization server."
+    ),
+    state: Optional[str] = Query(None),
 ) -> Any:
-    """Returns or redirect to the login-page."""
-    rr = RedirectResponse("/welcome", status_code=307)
-    rr.set_cookie(key="session_token", value="test-token", path="/welcome")
-    rr.set_cookie(key="user_token", value="test-user-token", path="/users/me")
+    """Callback to finish the login process (OAuth2 Client Endpoint).
+
+    The authorization `code` is exchanged for an access and ID token.
+    The ID token contains all relevant user information and is used to login the user.
+    If the user does not exist, a new user will be created with the information from the ID token.
+
+    Finally, the user is redirected to the webapp and a session/refresh token is set in the cookies.
+
+    This method implements the [Authorization Response](https://tools.ietf.org/html/rfc6749#section-4.1.2) from RFC6749.
+    """
+    rr = RedirectResponse("/webapp", status_code=307)
+    rr.set_cookie(key="session_token", value="test-token")
+    rr.set_cookie(key="refresh-token", value="test-refresh-token")
     return rr
 
 
@@ -612,36 +822,6 @@ def delete_project(project_id: str = PROJECT_ID_PARAM) -> Any:
     """Deletes a project and all its associated resources including deployments and files.
 
     A project can only be delete by a user with `admin` permission on the project.
-    """
-    raise NotImplementedError
-
-
-@app.get(
-    "/projects/{project_id}/token",
-    operation_id=data_model.CoreOperations.GET_PROJECT_TOKEN.value,
-    response_model=str,
-    summary="Get a project token.",
-    tags=["projects"],
-    status_code=status.HTTP_200_OK,
-)
-def get_project_token(
-    project_id: str = PROJECT_ID_PARAM,
-    token_type: data_model.TokenType = Query(
-        data_model.TokenType.SESSION_TOKEN,
-        description="Type of the token.",
-        type="string",
-    ),
-    permission_level: data_model.PermissionLevel = Query(
-        data_model.PermissionLevel.WRITE,
-        description="Permission level of the token.",
-        type="string",
-    ),
-) -> Any:
-    """Returns a session or API token with permission (`read`, `write`, or `admin`) to access all project resources.
-
-    The `read` permission level allows read-only access on all resources.
-    The `write` permission level allows to create and delete project resources.
-    The `admin` permission level allows to delete the project or add/remove other users.
     """
     raise NotImplementedError
 
@@ -871,33 +1051,6 @@ def get_service_logs(
     ),
 ) -> Any:
     """Returns the stdout/stderr logs of the service."""
-    raise NotImplementedError
-
-
-@app.get(
-    "/projects/{project_id}/services/{service_id}/token",
-    operation_id=data_model.ExtensibleOperations.GET_SERVICE_ACCESS_TOKEN.value,
-    response_model=str,
-    summary="Get service access token.",
-    tags=["services"],
-    status_code=status.HTTP_200_OK,
-)
-def get_service_token(
-    project_id: str = PROJECT_ID_PARAM,
-    service_id: str = SERVICE_ID_PARAM,
-    extension_id: Optional[str] = EXTENSION_ID_PARAM,
-    token_type: data_model.TokenType = Query(
-        data_model.TokenType.SESSION_TOKEN,
-        description="Type of the token.",
-        type="string",
-    ),
-) -> Any:
-    """Returns a session or API token with permission to access the service endpoints.
-
-    This token is read-only (permission level read) and does not allow any other permission such as deleting or updating the service.
-
-    The API token can be deleted (revoked) at any time. In comparison, the session token cannot be revoked but expires after a short time (a few minutes).
-    """
     raise NotImplementedError
 
 
@@ -1414,7 +1567,7 @@ def list_files(
 
 
 @app.post(
-    "/projects/{project_id}/data/files/upload",
+    "/projects/{project_id}/data/files/{file_key}/upload",
     operation_id=data_model.ExtensibleOperations.UPLOAD_FILE.value,
     response_model=data_model.File,
     summary="Upload a file.",
@@ -1423,14 +1576,7 @@ def list_files(
 )
 def upload_file(
     project_id: str = PROJECT_ID_PARAM,
-    virtual_path: Optional[Union[data_model.DataType, str]] = Query(
-        None,
-        description="The virtual path to use for this file.",
-        type="string",
-    ),
-    file_name: Optional[str] = Query(
-        None, description="The filename to use instead of the one from the form data."
-    ),
+    file_key: str = FILE_KEY_PARAM,
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
     """Uploads a file to a file storage.
@@ -1441,9 +1587,9 @@ def upload_file(
     Once the upload is finished, you can use the [update_file_metadata operation](#files/update_file_metadata)
     to add or update the metadata of the files.
 
-    The `virtual_path` allows to categorize the uploaded file under a virtual file structure managed by the core platform.
+    The `file_key` allows to categorize the uploaded file under a virtual file structure managed by the core platform.
     This allows to create a directory-like structure for files from different extensions and file-storage types.
-    The actual file path on the file storage might not (and doesn't need to) correspond to the virutal path.
+    The actual file path on the file storage might not (and doesn't need to) correspond to the provided `file_key`.
     This allows to move files (via [update_file_metadata operation](#files/update_file_metadata)) into differnt paths
     without any changes on the file storage (depending on the implementation).
 
@@ -1628,41 +1774,6 @@ def delete_file(
     If the file storage supports versioning and no `version` is specified, all versions of the file will be deleted.
 
     The parameter `keep_latest_version` is useful if you want to delete all older versions of a file.
-    """
-    raise NotImplementedError
-
-
-@app.get(
-    "/projects/{project_id}/data/files/{file_key:path}/token",
-    operation_id=data_model.ExtensibleOperations.GET_FILE_ACCESS_TOKEN.value,
-    response_model=str,
-    summary="Get file access token.",
-    tags=["files"],
-    status_code=status.HTTP_200_OK,
-)
-def get_file_access_token(
-    project_id: str = PROJECT_ID_PARAM,
-    file_key: str = FILE_KEY_PARAM,
-    version: Optional[str] = Query(
-        None,
-        description="File version tag. If not specified, all versions of the key are allowed for download.",
-    ),
-    extension_id: Optional[str] = EXTENSION_ID_PARAM,
-    token_type: data_model.TokenType = Query(
-        data_model.TokenType.SESSION_TOKEN,
-        description="Type of the token.",
-        type="string",
-    ),
-) -> Any:
-    """Returns a session or API token with permission to access given file.
-
-    This token is read-only and does not allow any action which would modify the given file (`read` permission level).
-
-    The API token can be deleted (revoked) at any time.
-    In comparison, the session token cannot be revoked but expires after a short time (a few minutes).
-    However, once the file is downloaded there is no way to prevent any further duplication or misuse.
-
-    If the file storage supports versioning and no `version` is specified, all .
     """
     raise NotImplementedError
 
