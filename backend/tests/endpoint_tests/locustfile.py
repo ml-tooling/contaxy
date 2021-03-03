@@ -20,6 +20,7 @@ class QuickstartUser(HttpUser):
     wait_time = between(1, 2.5)
 
     def on_start(self):
+        # TODO: replace by endpoint call?
         token: Token = Authenticator(Settings(), UserManager()).create_access_token(
             user=User(username="admin", password="admin", scopes=["admin"])
         )
