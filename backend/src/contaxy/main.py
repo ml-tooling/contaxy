@@ -10,9 +10,7 @@ from .dependencies import get_authenticated_user, get_authenticator
 app = FastAPI()
 
 
-@app.post(
-    "/login",
-)
+@app.post("/login")
 def login_oauth(
     data: OAuth2PasswordRequestForm = Depends(),
     auth: Authenticator = Depends(get_authenticator),
@@ -31,6 +29,11 @@ def login_oauth(
 @app.get("/hello")
 async def hello(auth_user: User = Depends(get_authenticated_user)):
     return {"message": f"Hello {auth_user.full_name}! The world is yours now!"}
+
+
+@app.get("/echo")
+async def echo(input: str, auth_user: User = Depends(get_authenticated_user)):
+    return input
 
 
 # Patch Fastapi to allow relative path resolution.
