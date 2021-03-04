@@ -7,3 +7,16 @@ RUN \
     && apt-get update \
     && apt-get install -y openjdk-14-jdk \
     && dpkg-query -l
+
+# Install kind for Kubernetes testing
+RUN \
+    curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.9.0/kind-linux-amd64 \
+    && chmod +x ./kind \
+    && mv ./kind /usr/bin/kind
+COPY kind-config.yaml /kind-config.yaml
+
+COPY extended-entrypoint.sh /extended-entrypoint.sh
+
+RUN chmod +x /extended-entrypoint.sh
+
+ENTRYPOINT ["/tini", "-g", "--", "/extended-entrypoint.sh"]
