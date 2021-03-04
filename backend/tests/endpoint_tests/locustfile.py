@@ -12,12 +12,7 @@ from locust import HttpUser, between, task
 # sys.path.append(os.getcwd())
 # from src.contaxy.managers.auth import Authenticator, Token
 # from src.contaxy.managers.users import User, UserManager
-from tests.endpoint_tests.shared import (
-    ADMIN_API_TOKEN,
-    BackendClient,
-    request_echo,
-    request_hello,
-)
+from tests.endpoint_tests.shared import ADMIN_API_TOKEN, BackendClient, request_echo
 
 # from src.contaxy.config import Settings
 
@@ -35,7 +30,7 @@ class QuickstartUser(HttpUser):
 
         if client_config.endpoint == "":
             error(
-                "For stress testing, the endpoint and an API Token with admin permissions have to be defined"
+                "For stress testing, the endpoint has to be defined by setting `CONTAXY_ENDPOINT` (e.g `CONTAXY_ENDPOINT=http://localhost:8000`)."
             )
             self.environment.runner.quit()
 
@@ -43,10 +38,6 @@ class QuickstartUser(HttpUser):
         if client_config.root_path != "":
             self.host = urljoin(self.host, client_config.root_path)
         self.client.headers.update({"Authorization": f"Bearer {ADMIN_API_TOKEN}"})
-
-    @task
-    def test_hello(self):
-        request_hello(client=self.client)
 
     @task
     def test_echo(self):

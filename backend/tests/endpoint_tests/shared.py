@@ -2,7 +2,10 @@ import os
 from typing import Dict
 from urllib.parse import urljoin
 
+import pytest
 from requests import Response, Session
+
+pytestmark = pytest.mark.integration
 
 ADMIN_API_TOKEN = os.getenv(
     "CONTAXY_ADMIN_API_TOKEN",
@@ -25,6 +28,10 @@ class BackendClient:
 
 def request_echo(client: Session, input: str = "") -> Response:
     return client.get("/echo", params={"input": input})
+
+
+def request_authorized_echo(client: Session, input: str = "") -> Response:
+    return client.get("/authorized-echo", params={"input": input})
 
 
 def request_login(client: Session, form_data: Dict[str, str] = {}) -> Response:

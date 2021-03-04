@@ -2,9 +2,12 @@ import sys
 import time
 
 import docker
+import pytest
 from pymongo import MongoClient
 
 from contaxy.config import Settings
+
+pytestmark = pytest.mark.unit
 
 MONGO_CONTAINER_NAME = "contaxy-test-mongo"
 
@@ -79,6 +82,6 @@ def _seed_mongo_db(settings: Settings):
             "display_name": "Lukas Podolski",
             "password": "$2b$12$zzWEQiyZ6BWAprjS9Wg90eOA3QlS1nBrKWVhhNKGR9rSNaY0Z6JZ.",
             "permissions": ["admin"],
-        },
+        }
     ]
     client[settings.mongo_db_name].users.insert_many(fake_users_db)

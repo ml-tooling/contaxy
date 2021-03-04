@@ -1,11 +1,12 @@
 from typing import Generator, Union
-from urllib.parse import urljoin
 
 import pytest
 import requests
 from fastapi.testclient import TestClient
 
 from .shared import ADMIN_API_TOKEN, BackendClient
+
+pytestmark = pytest.mark.integration
 
 
 class BaseUrlSession(requests.Session):
@@ -14,7 +15,7 @@ class BaseUrlSession(requests.Session):
         self.base_url = base_url
 
     def request(self, method, url, *args, **kwargs):
-        url = urljoin(self.base_url, url)
+        url = self.base_url + url
         return super(BaseUrlSession, self).request(method, url, *args, **kwargs)
 
 
@@ -23,6 +24,7 @@ def client() -> Generator[requests.Session, None, None]:
     print("Create client fixture")
     client_config = BackendClient()
     test_client: Union[requests.Session, None] = None
+
     if client_config.base_url == "":
         print("Use FastAPI.TestClient as client_config.endpoint is empty.")
         from ...src.contaxy.dependencies import get_authenticated_user

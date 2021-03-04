@@ -2,6 +2,8 @@ import os
 
 import pytest
 
+pytestmark = pytest.mark.unit
+
 from ...src.contaxy import dependencies, main
 from ...src.contaxy.config import Settings
 from .utils import MONGO_CONTAINER_NAME, remove_mongo_db, start_mongo_db

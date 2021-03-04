@@ -3,6 +3,8 @@ from typing import Union
 
 import pytest
 
+pytestmark = pytest.mark.unit
+
 TEST_SPAWNER = os.getenv("TEST_SPAWNER", "docker")
 
 
@@ -36,17 +38,22 @@ class KubeTestHandler:
         pass
 
 
+is_kube_available = os.getenv("KUBE_AVAILABLE", False)
+pytest_handler_param = [
+    DockerTestHandler(),
+    pytest.param(
+        KubeTestHandler(),
+        marks=pytest.mark.skipif(
+            not is_kube_available,
+            reason="A Kubernetes cluster must be accessible to run the KubeSpawner tests",
+        ),
+    ),
+]
+
+
 @pytest.mark.unit
 class TestSpawner:
-    @pytest.fixture(scope="session")
-    def handler(self) -> Union[DockerTestHandler, KubeTestHandler]:
-        if "kube" == TEST_SPAWNER:
-            print("Use KubeSpawner")
-            return KubeTestHandler()
-
-        print("Use DockerSpawner")
-        return DockerTestHandler()
-
+    @pytest.mark.parametrize("handler", pytest_handler_param)
     def test_hello(self, handler: Union[DockerTestHandler, KubeTestHandler]) -> None:
         res = handler.spawner.hello()
         assert res == "hello"

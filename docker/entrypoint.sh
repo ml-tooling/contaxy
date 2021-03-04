@@ -20,15 +20,17 @@ if [[ "${SERVICES_RUNTIME,,}" == k8s || "${SERVICES_RUNTIME,,}" == kubernetes ]]
     service_suffix="${cat /var/run/secrets/kubernetes.io/serviceaccount/namespace}.svc.cluster.local";
     resolver="kube-dns.kube-system.svc.cluster.local valid=10s"
 fi
-sed -s -i "s/\${LAB_NAMESPACE}/${lab_namespace}/g" /etc/nginx/*.conf;
-sed -s -i "s/\${LAB_BASE_URL}/${lab_base_url}/g" /etc/nginx/*.conf;
-sed -s -i "s@\${SERVICE_SUFFIX}@${service_suffix}@g" /etc/nginx/*.conf;
-sed -s -i "s/\${RESOLVER}/${resolver}/g" /etc/nginx/*.conf;
+
+# Substitute variables in all nginx config files including subdirectories
+find /etc/nginx/ -name "*.conf" -exec sed -s -i "s/\${LAB_NAMESPACE}/${lab_namespace}/g" {} +
+find /etc/nginx/ -name "*.conf" -exec sed -s -i "s/\${LAB_BASE_URL}/${lab_base_url}/g" {} +
+find /etc/nginx/ -name "*.conf" -exec  sed -s -i "s@\${SERVICE_SUFFIX}@${service_suffix}@g" {} +
+find /etc/nginx/ -name "*.conf" -exec  sed -s -i "s/\${RESOLVER}/${resolver}/g" {} +
 
 # Configure SSL variables in nginx
 # When SSL is enabled, the Stream port is used as the entry port and for the main port ssl is enabled (the stream port forwards https to the ssl-enabled main port and ssh traffic to the OpenSSH server). In this case, switch the ports so that the user does not have to consider this.
-main_port=8091
-stream_port=8092
+main_port=8080
+stream_port=8081
 if [[ "${SERVICE_SSL_ENABLED,,}" == true ]]; then
     temp=$stream_port
     stream_port=$main_port
@@ -43,6 +45,7 @@ sed -i "s/\${STREAM_PORT}/$stream_port/g" /etc/nginx/nginx.conf;
 # Start nginx
 nginx -c /etc/nginx/nginx.conf
 
+# Set the gunicorn / fastAPI port
 export PORT=8090
 # Start the backend server
 /resources/start.sh

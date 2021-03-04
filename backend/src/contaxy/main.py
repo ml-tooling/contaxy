@@ -11,7 +11,14 @@ app.include_router(auth.router)
 
 
 @app.get("/echo")
-async def echo(input: str, auth_user: User = Depends(get_authenticated_user)):
+async def echo(input: str):
+    return input
+
+
+@app.get("/authorized-echo")
+async def authorized_echo(
+    input: str, auth_user: User = Depends(get_authenticated_user)
+):
     return input
 
 
