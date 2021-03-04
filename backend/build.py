@@ -23,13 +23,18 @@ def main(args: dict) -> None:
         # Update version in _about.py
         build_python.update_version(
             os.path.join(HERE, f"src/{MAIN_PACKAGE}/_about.py"),
-            str(version),
+            build_utils._Version.get_pip_compatible_string(str(version)),
             exit_on_error=True,
         )
 
     if args.get(build_utils.FLAG_MAKE):
         # Install pipenv dev requirements
         build_python.install_build_env(exit_on_error=True)
+
+        # Generate the OpenAPI spec so that clients can be generated
+        swagger_path = f"src/{MAIN_PACKAGE}/generate-openapi-specs.py"
+        build_utils.run(f"pipenv run python {swagger_path}")
+
         # Create API documentation via lazydocs
         build_python.generate_api_docs(
             github_url=GITHUB_URL, main_package=MAIN_PACKAGE, exit_on_error=True
@@ -57,11 +62,13 @@ def main(args: dict) -> None:
             # Activated Python Environment (3.8)
             build_python.install_build_env()
             # Run pytest in pipenv environment
-            pytest_marker = f"-m {test_markers[0]}" if test_markers else ""
-            build_utils.run(f"pipenv run pytest {pytest_marker}", exit_on_error=True)
+            build_utils.run("pipenv run pytest tests", exit_on_error=True)
 
             # Update pipfile.lock when all tests are successfull (lock environment)
             build_utils.run("pipenv lock", exit_on_error=True)
+        else:
+            # Run fast tests
+            build_utils.run('pipenv run pytest tests -m "not slow"', exit_on_error=True)
 
     if args.get(build_utils.FLAG_RELEASE):
         # Publish distribution on pypi

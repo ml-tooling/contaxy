@@ -11,7 +11,7 @@ import MenuItem from '@material-ui/core/MenuItem';
 import { API_EXPLORER_URL, DOCUMENTATION_URL } from '../../utils/config';
 import { fetchAPIToken } from '../../services/lab-api';
 import { useShowAppDialog } from '../../app/AppDialogServiceProvider';
-import ApiTokenDialog from '../ApiTokenDialog';
+import ApiTokenDialog from '../Dialogs/ApiTokenDialog';
 
 const ID_MENU_APPBAR = 'menu-appbar';
 const REL = 'noopener noreferrer';
@@ -34,6 +34,7 @@ function UserMenu(props) {
   return (
     <div className={`${className} container`}>
       <IconButton
+        aria-label="usermenu"
         aria-owns={ID_MENU_APPBAR}
         className={`${className} iconButton`}
         onClick={handleMenuClick}

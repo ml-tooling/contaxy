@@ -7,6 +7,7 @@ from os.path import basename, splitext
 
 from setuptools import find_packages, setup  # type: ignore
 
+# TODO: Update the package meta-data
 NAME = "contaxy"
 MAIN_PACKAGE = NAME  # Change if main package != NAME
 DESCRIPTION = "Python package template."
@@ -14,7 +15,7 @@ URL = "https://github.com/ml-tooling/contaxy"
 EMAIL = "team@mltooling.org"
 AUTHOR = "ML Tooling Team"
 LICENSE = "MIT"
-REQUIRES_PYTHON = ">=3.8"
+REQUIRES_PYTHON = ">=3.6"
 VERSION = None  # Only set version if you like to overwrite the version in _about.py
 
 PWD = os.path.abspath(os.path.dirname(__file__))
@@ -45,9 +46,8 @@ setup(
     py_modules=[splitext(basename(path))[0] for path in glob("src/*.py")],
     zip_safe=False,
     install_requires=[
-        # Add all the runtime requirements here:
-        "typer",  # TODO: remove typer?
-        "pydantic",
+        # TODO: Add all the runtime requirements here:
+        "typer",
         "fastapi",
         "uvicorn",
         # Required by fastapi.security OAuth2PasswordBearer & fastapi.UploadFile for example
@@ -56,14 +56,13 @@ setup(
         "python-jose[cryptography]",
         # Used for password hashing
         "passlib[bcrypt]",
-        # Email validation with pydantic
-        "email-validator",
-        # GraphQL support
-        "graphene",
+        # Required to use Pydantic's EmailStr type (installs python-email-validator)
+        "pydantic[email]",
+        "pymongo",
     ],
     # deprecated: dependency_links=dependency_links,
     extras_require={
-        # Add all extras (e.g. for build and test) here:
+        # TODO: Add all extras (e.g. for build and test) here:
         # extras can be installed via: pip install package[dev]
         "dev": [
             "setuptools",
@@ -78,10 +77,8 @@ setup(
             "pydocstyle",
             "isort",
             "lazydocs",
-            # For better print debugging via debug
-            "devtools[pygments]",
-            # For Jupyter Kernel support
-            "ipykernel",
+            # Todo: Move to required when necessary
+            "docker",
         ],
     },
     include_package_data=True,

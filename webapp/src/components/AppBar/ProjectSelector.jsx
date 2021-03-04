@@ -7,12 +7,14 @@ import FormControl from '@material-ui/core/FormControl';
 import MenuItem from '@material-ui/core/MenuItem';
 import Select from '@material-ui/core/Select';
 
+import showStandardSnackbar from '../../app/showStandardSnackbar';
+
 function ProjectSelector(props) {
   const { activeProject, className, projects, onProjectChange } = props;
 
   const changeProject = (e) => {
     const project = JSON.parse(e.target.value);
-
+    showStandardSnackbar(`Change to project '${project.name}'`);
     // TODO: add project to cookie one level above
     onProjectChange(project);
   };
@@ -32,6 +34,7 @@ function ProjectSelector(props) {
     //   TODO: add div container?
     <FormControl className={`${className} formControl`}>
       <Select
+        aria-label="projectselector"
         className={`${className} select`}
         value={selectId}
         input={<Input id="select-project" />}

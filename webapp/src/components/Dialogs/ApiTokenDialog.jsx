@@ -8,7 +8,7 @@ import DialogTitle from '@material-ui/core/DialogTitle';
 import DialogContent from '@material-ui/core/DialogContent';
 import DialogContentText from '@material-ui/core/DialogContentText';
 
-import setClipboardText from '../utils/clipboard';
+import setClipboardText from '../../utils/clipboard';
 
 function ApiTokenDialog({ token, onClose }) {
   const textFieldRef = useRef();
