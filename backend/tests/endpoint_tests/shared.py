@@ -1,31 +1,35 @@
 import os
+from typing import Dict
 from urllib.parse import urljoin
 
 from requests import Response, Session
 
-
-class MissingTokenException(Exception):
-    pass
+ADMIN_API_TOKEN = os.getenv(
+    "CONTAXY_ADMIN_API_TOKEN",
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwic2NvcGVzIjpbImFkbWluIl19.CU7bQ1g_ygvhRNnnc0BTwNn54NHY5Yj4SugF1G2_hvA",
+)
 
 
 class BackendClient:
-    def __init__(self, admin_api_token: str = ""):
+    def __init__(self):
         self.endpoint = os.getenv("CONTAXY_ENDPOINT", "")
         self.root_path = os.getenv("CONTAXY_ROOT_PATH", "/")
         self.base_url = self.endpoint
         if self.endpoint != "":
             self.base_url = urljoin(self.endpoint, self.root_path)
 
-        self.admin_api_token = os.getenv("CONTAXY_ADMIN_API_TOKEN", admin_api_token)
-
         if self.endpoint != "":
             # TODO: make a request to one of the endpoints to check whether it is reachable (e.g. the health endpoint). If not, abort the test here
             pass
 
 
-def request_hello(client: Session) -> Response:
-    return client.get("/hello")
-
-
 def request_echo(client: Session, input: str = "") -> Response:
     return client.get("/echo", params={"input": input})
+
+
+def request_login(client: Session, form_data: Dict[str, str] = {}) -> Response:
+    return client.post("/auth/login", data=form_data)
+
+
+def request_user_profile(client: Session) -> Response:
+    return client.get("/users/me")

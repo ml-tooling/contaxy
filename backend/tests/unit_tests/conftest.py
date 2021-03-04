@@ -1,12 +1,9 @@
 import os
 
 import pytest
-from fastapi import FastAPI
-from fastapi.testclient import TestClient
 
-from contaxy import dependencies, main
-from contaxy.config import Settings
-
+from ...src.contaxy import dependencies, main
+from ...src.contaxy.config import Settings
 from .utils import MONGO_CONTAINER_NAME, remove_mongo_db, start_mongo_db
 
 
@@ -29,21 +26,3 @@ def setup_mongodb():
     start_mongo_db(settings)
     yield
     remove_mongo_db(settings)
-
-
-@pytest.fixture(scope="session")
-def api_app() -> FastAPI:
-    print("Create api_app fixture")
-    return main.app
-
-
-@pytest.fixture(scope="session")
-def client(api_app: FastAPI) -> TestClient:
-    print("Create client fixture")
-    return TestClient(api_app)
-
-
-@pytest.fixture(scope="session")
-def admin_token() -> str:
-    # Token with username admin and no expiry time
-    return "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwic2NvcGVzIjpbImFkbWluIl19.CU7bQ1g_ygvhRNnnc0BTwNn54NHY5Yj4SugF1G2_hvA"

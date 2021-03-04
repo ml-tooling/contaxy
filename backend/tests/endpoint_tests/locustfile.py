@@ -10,10 +10,16 @@ from locust import HttpUser, between, task
 
 # Unfortunately, Locust does not allow relative imports
 # sys.path.append(os.getcwd())
-from src.contaxy.auth import Authenticator, Token
-from src.contaxy.config import Settings
-from src.contaxy.users import User, UserManager
-from tests.endpoint_tests.shared import BackendClient, request_echo, request_hello
+# from src.contaxy.managers.auth import Authenticator, Token
+# from src.contaxy.managers.users import User, UserManager
+from tests.endpoint_tests.shared import (
+    ADMIN_API_TOKEN,
+    BackendClient,
+    request_echo,
+    request_hello,
+)
+
+# from src.contaxy.config import Settings
 
 
 class QuickstartUser(HttpUser):
@@ -21,13 +27,13 @@ class QuickstartUser(HttpUser):
 
     def on_start(self):
         # TODO: replace by endpoint call?
-        token: Token = Authenticator(Settings(), UserManager()).create_access_token(
-            user=User(username="admin", password="admin", scopes=["admin"])
-        )
-        print(token)
-        client_config = BackendClient(admin_api_token=token.access_token)
+        # token: Token = Authenticator(Settings(), UserManager()).create_access_token(
+        #     user=User(username="admin", password="admin", scopes=["admin"])
+        # )
+        # print(token)
+        client_config = BackendClient()
 
-        if client_config.endpoint == "" or client_config.admin_api_token == "":
+        if client_config.endpoint == "":
             error(
                 "For stress testing, the endpoint and an API Token with admin permissions have to be defined"
             )
@@ -36,9 +42,7 @@ class QuickstartUser(HttpUser):
         # For Locust, the base_url is set via the `--host` flag when running `locust`
         if client_config.root_path != "":
             self.host = urljoin(self.host, client_config.root_path)
-        self.client.headers.update(
-            {"Authorization": f"Bearer {client_config.admin_api_token}"}
-        )
+        self.client.headers.update({"Authorization": f"Bearer {ADMIN_API_TOKEN}"})
 
     @task
     def test_hello(self):

@@ -1,7 +1,9 @@
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 
-from contaxy.routers import auth, users
-from contaxy.utils.api_utils import patch_fastapi
+from .dependencies import get_authenticated_user
+from .models.users import User
+from .routers import auth, users
+from .utils.api_utils import patch_fastapi
 
 app = FastAPI()
 app.include_router(users.router)
