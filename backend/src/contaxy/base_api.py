@@ -38,7 +38,7 @@ USER_ID_PARAM = Path(
 SERVICE_ID_PARAM = Path(
     ...,
     title="Service ID",
-    description="A valid service ID.",
+    description="A valid Service ID.",
     # TODO: add length restriction
 )
 
@@ -198,6 +198,23 @@ def open_graphql_voyager() -> Any:
     )
 
 
+@app.get(
+    "/search",
+    operation_id="search_resources",
+    # response_model=data_model.Resource,
+    summary="Search resources.",
+    # tags=,
+    status_code=status.HTTP_200_OK,
+)
+def search_resources(
+    q: str = Query(..., description="Search query."),
+    type: Optional[str] = Query(
+        None, description="Resource type to use for filtering search results."
+    ),
+) -> Any:
+    raise NotImplementedError
+
+
 # System Endpoints
 
 
@@ -257,6 +274,20 @@ def list_users() -> Any:
 
 
 @app.get(
+    "/users/me",
+    operation_id=data_model.CoreOperations.GET_MY_USER.value,
+    response_model=data_model.User,
+    summary="Get my user metadata.",
+    tags=["users"],
+    status_code=status.HTTP_200_OK,
+)
+def get_my_user() -> Any:
+    """Returns the user metadata from the authenticated user."""
+    # TODO: not a manager operation -> just forward to the get_user operation
+    raise NotImplementedError
+
+
+@app.get(
     "/users/{user_id}",
     operation_id=data_model.CoreOperations.GET_USER.value,
     response_model=data_model.User,
@@ -265,10 +296,7 @@ def list_users() -> Any:
     status_code=status.HTTP_200_OK,
 )
 def get_user(user_id: str = USER_ID_PARAM) -> Any:
-    """Returns the user metadata for a single user.
-
-    User `me` as `user_id` to get the metadata of the authenticated user.
-    """
+    """Returns the user metadata for a single user."""
     raise NotImplementedError
 
 
@@ -398,7 +426,7 @@ def create_token(
 
     `{global_id}.{permission_level}`
 
-    Permission levels are a hierarchical system that determines the kind of access that is granted to the resource.
+    Permission levels are a hierarchical system that determines the kind of access that is granted on the resource.
     Permission levels are interpreted and applied inside resource operations. There are three permission levels:
 
     1. `admin` permission level allows read, write, and administrative access to the resource.
@@ -693,7 +721,7 @@ def get_userinfo() -> Any:
 @app.get(
     "/auth/oauth/callback",
     operation_id=data_model.CoreOperations.LOGIN_CALLBACK.value,
-    summary="Open the login page.",
+    summary="Open the login page (OAuth2 Client Endpoint).",
     tags=["auth"],
     status_code=status.HTTP_200_OK,
 )
@@ -785,11 +813,13 @@ def list_projects() -> Any:
 )
 def get_project(project_id: str = PROJECT_ID_PARAM) -> Any:
     """Returns the metadata of a single project."""
-    raise NotImplementedError
+    test = list_projects
+    print("get project")
+    return None
 
 
 @app.get(
-    "/projects/suggest-id",
+    "/projects:suggest-id",
     operation_id=data_model.CoreOperations.SUGGEST_PROJECT_ID.value,
     response_model=str,
     summary="Suggest project ID.",
@@ -808,7 +838,8 @@ def suggest_project_id(
     The project ID will be human-readable and resemble the provided display name,
     but might be cut off or have an attached counter prefix.
     """
-    raise NotImplementedError
+    print("Suggest ID")
+    return None
 
 
 @app.delete(
@@ -906,7 +937,7 @@ def list_services(
 
 
 @app.get(
-    "/projects/{project_id}/services/suggest-config",
+    "/projects/{project_id}/services:suggest-config",
     operation_id=data_model.ExtensibleOperations.SUGGEST_SERVICE_CONFIG.value,
     response_model=data_model.ServiceInput,
     summary="Suggest service configuration.",
@@ -939,7 +970,6 @@ def suggest_service_config(
 def get_service_metadata(
     project_id: str = PROJECT_ID_PARAM,
     service_id: str = SERVICE_ID_PARAM,
-    extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
     """Returns the metadata of a single service.
 
@@ -949,7 +979,7 @@ def get_service_metadata(
 
 
 @app.post(
-    "/projects/{project_id}/services/deploy-actions",
+    "/projects/{project_id}/services:deploy-actions",
     operation_id=data_model.ExtensibleOperations.LIST_DEPLOY_SERVICE_ACTIONS.value,
     response_model=List[data_model.ResourceAction],
     summary="List deploy service actions.",
@@ -970,7 +1000,7 @@ def list_deploy_service_actions(
     1. The user requests all available deployment options via the [list_deploy_service_actions](#services/list_deploy_service_actions) operation.
     2. The operation will be forwarded to all installed extensions that have implemented the [list_deploy_service_actions](#services/list_deploy_service_actions) operation.
     3. Extensions can run arbitrary code based on the provided service configuration and return a list of actions with self-defined action IDs.
-    4. The user selects one of those actions and triggers the [deploy_service](#services/deploy_service) operation by providing the selected action- and extension-ID.
+    4. The user selects one of those actions and triggers the [deploy_service](#services/deploy_service) operation by providing the selected action ID. The `action_id` from an extension contains the extension ID.
     5. The operation is forwarded to the selected extension, which can run arbitrary code to deploy the service based on the provided configuration.
     6. The return value of the operation should be a `Service` object.
 
@@ -996,14 +1026,13 @@ def deploy_service(
         description="The action ID from the service deploy options.",
         regex=data_model.RESOURCE_ID_REGEX,
     ),
-    extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
     """Deploy a service for the specified project.
 
-    If no `action_id` (and `extension_id`) is provided, the system will automatically select the best deployment option.
+    If no `action_id` is provided, the system will automatically select the best deployment option.
 
     Available deployment options (actions) can be requested via the [list_deploy_service_actions](#services/list_deploy_service_actions) operation.
-    The `action_id` needs to be provided with the corresponding `extension_id`.
+    If the action is from an extension, the `action_id` must be a composite ID with the following format: `{extension_id}~{action_id}`.
 
     The action mechanism is further explained in the description of the [list_deploy_service_actions](#services/list_deploy_service_actions).
     """
@@ -1024,7 +1053,6 @@ def delete_service(
     delete_volumes: Optional[bool] = Query(
         False, description="Delete all volumes associated with the deployment."
     ),
-    extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
     """Deletes a service.
 
@@ -1044,7 +1072,6 @@ def delete_service(
 def get_service_logs(
     project_id: str = PROJECT_ID_PARAM,
     service_id: str = SERVICE_ID_PARAM,
-    extension_id: Optional[str] = EXTENSION_ID_PARAM,
     lines: Optional[int] = Query(None, description="Only show the last n lines."),
     since: Optional[datetime] = Query(
         None, description="Only show the logs generated after a given date."
@@ -1076,7 +1103,7 @@ def list_service_actions(
     1. The user requests all available actions via the [list_service_actions](#services/list_service_actions) operation.
     2. The operation will be forwarded to all installed extensions that have implemented the [list_service_actions](#services/list_service_actions) operation.
     3. Extensions can run arbitrary code - e.g., request and check the service metadata for compatibility - and return a list of actions with self-defined action IDs.
-    4. The user selects one of those actions and triggers the [execute_service_action](#services/execute_service_action) operation by providing the selected action- and extension-ID.
+    4. The user selects one of those actions and triggers the [execute_service_action](#services/execute_service_action) operation by providing the selected action ID.  The `action_id` from an extension contains the extension ID.
     5. The operation is forwarded to the selected extension, which can run arbitrary code to execute the selected action.
     6. The return value of the operation can be either a simple message (shown to the user) or a redirect to another URL (e.g., to show a web UI).
 
@@ -1090,7 +1117,7 @@ def list_service_actions(
     "/projects/{project_id}/services/{service_id}/actions/{action_id}",
     operation_id=data_model.ExtensibleOperations.EXECUTE_SERVICE_ACTION.value,
     # TODO: what is the response model? add additional status codes?
-    summary="Execute service action.",
+    summary="Execute a service action.",
     tags=["services"],
     status_code=status.HTTP_200_OK,
     responses={**OPEN_URL_REDIRECT},
@@ -1103,14 +1130,40 @@ def execute_service_action(
         description="The action ID from the list_service_actions operation.",
         regex=data_model.RESOURCE_ID_REGEX,
     ),
-    extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
     """Executes the selected service action.
 
     The actions need to be first requested from the [list_service_actions](#services/list_service_actions) operation.
-    The `action_id` needs to be provided with the corresponding `extension_id`.
+    If the action is from an extension, the `action_id` must be a composite ID with the following format: `{extension_id}~{action_id}`.
 
     The action mechanism is further explained in the description of the [list_service_actions](#services/list_service_actions).
+    """
+    raise NotImplementedError
+
+
+@app.get(
+    "/projects/{project_id}/services/{service_id}/access/{endpoint:path}",
+    operation_id=data_model.ExtensibleOperations.ACCESS_SERVICE.value,
+    # TODO: what is the response model? add additional status codes?
+    summary="Access a service endpoint.",
+    tags=["services"],
+    status_code=status.HTTP_200_OK,
+    responses={**OPEN_URL_REDIRECT},
+)
+def access_service(
+    project_id: str = PROJECT_ID_PARAM,
+    service_id: str = SERVICE_ID_PARAM,
+    endpoint: str = Path(
+        ..., description="The port and base path of the service endpoint."
+    ),
+) -> Any:
+    """Accesses the specified HTTP endpoint of the given service.
+
+    The endpoint should be based on the endpoint information from the service metadata.
+    This is usually a combination of port and URL path information.
+
+    The user is expected to be redirected to the specified endpoint.
+    If required, cookies can be attached to the response with session tokens to authorize access.
     """
     raise NotImplementedError
 
@@ -1143,9 +1196,7 @@ def list_jobs(
     status_code=status.HTTP_200_OK,
 )
 def get_job_metadata(
-    project_id: str = PROJECT_ID_PARAM,
-    job_id: str = JOB_ID_PARAM,
-    extension_id: Optional[str] = EXTENSION_ID_PARAM,
+    project_id: str = PROJECT_ID_PARAM, job_id: str = JOB_ID_PARAM
 ) -> Any:
     """Returns the metadata of a single job.
 
@@ -1155,7 +1206,7 @@ def get_job_metadata(
 
 
 @app.get(
-    "/projects/{project_id}/jobs/suggest-config",
+    "/projects/{project_id}/jobs:suggest-config",
     operation_id=data_model.ExtensibleOperations.SUGGEST_JOB_CONFIG.value,
     response_model=data_model.JobInput,
     summary="Suggest job configuration.",
@@ -1178,7 +1229,7 @@ def suggest_job_config(
 
 
 @app.post(
-    "/projects/{project_id}/jobs/deploy-actions",
+    "/projects/{project_id}/jobs:deploy-actions",
     operation_id=data_model.ExtensibleOperations.LIST_DEPLOY_JOB_ACTIONS.value,
     response_model=List[data_model.ResourceAction],
     summary="List deploy job actions.",
@@ -1199,7 +1250,7 @@ def list_deploy_job_actions(
     1. The user requests all available deployment options via the [list_deploy_job_actions](#jobs/list_deploy_job_actions) operation.
     2. The operation will be forwarded to all installed extensions that have implemented the [list_deploy_job_actions](#jobs/list_deploy_job_actions) operation.
     3. Extensions can run arbitrary code based on the provided job configuration and return a list of actions with self-defined action IDs.
-    4. The user selects one of those actions and triggers the [deploy_job](#jobs/deploy_job) operation by providing the selected action- and extension-ID.
+    4. The user selects one of those actions and triggers the [deploy_job](#jobs/deploy_job) operation by providing the selected action ID. The `action_id` from an extension contains the extension ID.
     5. The operation is forwarded to the selected extension, which can run arbitrary code to deploy the job based on the provided configuration.
     6. The return value of the operation should be a `Job` object.
 
@@ -1220,7 +1271,6 @@ def list_deploy_job_actions(
 def deploy_job(
     job: data_model.Job,
     project_id: str = PROJECT_ID_PARAM,
-    extension_id: Optional[str] = EXTENSION_ID_PARAM,
     action_id: Optional[str] = Query(
         None,
         description="The action ID from the job deploy options.",
@@ -1229,10 +1279,10 @@ def deploy_job(
 ) -> Any:
     """Deploy a job for the specified project.
 
-    If no `action_id` (and `extension_id`) is provided, the system will automatically select the best deployment option.
+    If no `action_id` is provided, the system will automatically select the best deployment option.
 
     Available actions can be requested via the [list_deploy_job_actions](#jobs/list_deploy_job_actions) operation.
-    The `action_id` needs to be provided with the corresponding `extension_id`.
+    If the action is from an extension, the `action_id` must be a composite ID with the following format: `{extension_id}~{action_id}`.
 
     The action mechanism is further explained in the description of the [list_deploy_job_actions](#jobs/list_deploy_job_actions).
     """
@@ -1246,11 +1296,7 @@ def deploy_job(
     tags=["jobs"],
     status_code=status.HTTP_204_NO_CONTENT,
 )
-def delete_job(
-    project_id: str = PROJECT_ID_PARAM,
-    job_id: str = JOB_ID_PARAM,
-    extension_id: Optional[str] = EXTENSION_ID_PARAM,
-) -> Any:
+def delete_job(project_id: str = PROJECT_ID_PARAM, job_id: str = JOB_ID_PARAM) -> Any:
     """Deletes a job.
 
     This will kill and remove the container and all associated deployment artifacts.
@@ -1269,7 +1315,6 @@ def delete_job(
 def get_job_logs(
     project_id: str = PROJECT_ID_PARAM,
     job_id: str = JOB_ID_PARAM,
-    extension_id: Optional[str] = EXTENSION_ID_PARAM,
     lines: Optional[int] = Query(None, description="Only show the last n lines."),
     since: Optional[datetime] = Query(
         None, description="Only show the logs generated after a given date."
@@ -1301,7 +1346,7 @@ def list_job_actions(
     1. The user requests all available actions via the [list_job_actions](#jobs/list_job_actions) operation.
     2. The operation will be forwarded to all installed extensions that have implemented the [list_job_actions](#jobs/list_job_actions) operation.
     3. Extensions can run arbitrary code - e.g., request and check the job metadata for compatibility - and return a list of actions with self-defined action IDs.
-    4. The user selects one of those actions and triggers the [execute_job_action](#jobs/execute_job_action) operation by providing the selected action- and extension-ID.
+    4. The user selects one of those actions and triggers the [execute_job_action](#jobs/execute_job_action) operation by providing the selected action ID. The `action_id` from an extension contains the extension ID.
     5. The operation is forwarded to the selected extension, which can run arbitrary code to execute the selected action.
     6. The return value of the operation can be either a simple message (shown to the user) or a redirect to another URL (e.g., to show a web UI).
 
@@ -1315,7 +1360,7 @@ def list_job_actions(
     "/projects/{project_id}/jobs/{job_id}/actions/{action_id}",
     operation_id=data_model.ExtensibleOperations.EXECUTE_JOB_ACTION.value,
     # TODO: what is the response model? add additional status codes?
-    summary="Execute job action.",
+    summary="Execute a job action.",
     tags=["jobs"],
     status_code=status.HTTP_200_OK,
     responses={**OPEN_URL_REDIRECT},
@@ -1328,12 +1373,11 @@ def execute_job_action(
         description="The action ID from the list_job_actions operation.",
         regex=data_model.RESOURCE_ID_REGEX,
     ),
-    extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
     """Executes the selected job action.
 
     The actions need to be first requested from the [list_job_actions](#jobs/list_job_actions) operation.
-    The `action_id` needs to be provided with the corresponding `extension_id`.
+    If the action is from an extension, the `action_id` must be a composite ID with the following format: `{extension_id}~{action_id}`.
 
     The action mechanism is further explained in the description of the [list_job_actions](#jobs/list_job_actions).
     """
@@ -1344,47 +1388,36 @@ def execute_job_action(
 
 
 @app.get(
-    "/extensions",
+    "/projects/{project_id}/extensions",
     operation_id=data_model.CoreOperations.LIST_EXTENSIONS.value,
     response_model=List[data_model.Extension],
     summary="List extensions.",
     tags=["extensions"],
     status_code=status.HTTP_200_OK,
 )
-def list_extensions(
-    user_id: Optional[str] = Query(
-        None,
-        title="User ID",
-        description="Return extensions associated with this user.",
-    ),
-    project_id: Optional[str] = Query(
-        None,
-        title="Project ID",
-        description="Return extensions associated with this project.",
-        min_length=data_model.MIN_PROJECT_ID_LENGTH,
-        max_length=data_model.MAX_PROJECT_ID_LENGTH,
-    ),
-) -> Any:
-    """Returns all installed extensions accesible by the given user or project.
+def list_extensions(project_id: str = PROJECT_ID_PARAM) -> Any:
+    """Returns all installed extensions accesible by the specified project.
 
-    If a user and project ID is provided, all extensions will be returned that are either accesible by the user or project.
+    This also includes all extensions which are installed globally as well as
+    extensions installed by the authorized user.
     """
     raise NotImplementedError
 
 
 @app.delete(
-    "/extensions/{extension_id}",
+    "/projects/{project_id}/extensions/{extension_id}",
     operation_id=data_model.CoreOperations.DELETE_EXTENSION.value,
     summary="Delete extension.",
     tags=["extensions"],
     status_code=status.HTTP_204_NO_CONTENT,
 )
 def delete_extension(
+    project_id: str = PROJECT_ID_PARAM,
     extension_id: Optional[str] = Path(
         ...,
         title="Extension ID",
         description="A valid extension ID.",
-    )
+    ),
 ) -> Any:
     """Deletes an extension.
 
@@ -1394,7 +1427,7 @@ def delete_extension(
 
 
 @app.get(
-    "/extensions/{extension_id}",
+    "/projects/{project_id}/extensions/{extension_id}",
     operation_id=data_model.CoreOperations.GET_EXTENSION_METADATA.value,
     response_model=data_model.Extension,
     summary="Get extension metadata.",
@@ -1402,18 +1435,19 @@ def delete_extension(
     status_code=status.HTTP_200_OK,
 )
 def get_extension_metadata(
+    project_id: str = PROJECT_ID_PARAM,
     extension_id: str = Path(
         ...,
         title="Extension ID",
         description="A valid extension ID.",
-    )
+    ),
 ) -> Any:
     """Returns the metadata of the given extension."""
     raise NotImplementedError
 
 
 @app.post(
-    "/extensions",
+    "/projects/{project_id}/extensions",
     operation_id=data_model.CoreOperations.INSTALL_EXTENSION.value,
     response_model=data_model.Extension,
     summary="Install extension.",
@@ -1421,26 +1455,19 @@ def get_extension_metadata(
     status_code=status.HTTP_200_OK,
 )
 def install_extension(
-    extension: data_model.ExtensionInput,
-    project_id: Union[data_model.TechnicalProject, str] = Query(
-        ...,
-        title="Project ID",
-        description="Project to which install the extension.",
-        type="string",
-        # min_length=data_model.MIN_PROJECT_ID_LENGTH,
-        # max_length=data_model.MAX_PROJECT_ID_LENGTH,
-    ),
+    extension: data_model.ExtensionInput, project_id: str = PROJECT_ID_PARAM
 ) -> Any:
     """Installs an extension for the given project.
 
-    This will deploy the extension container for the selected project and register the extension for all the specified capabilities.
+    This will deploy the extension container for the selected project and
+    registers the extension for all the specified capabilities.
     """
     # TODO: add additonal configuration
     raise NotImplementedError
 
 
 @app.get(
-    "/extensions/suggest-config",
+    "/projects/{project_id}/extensions:suggest-config",
     operation_id=data_model.CoreOperations.SUGGEST_EXTENSION_CONFIG.value,
     response_model=data_model.ExtensionInput,
     summary="Suggest extension configuration.",
@@ -1451,13 +1478,7 @@ def suggest_extension_config(
     container_image: str = Query(
         ..., description="Container image to use for suggestion."
     ),
-    project_id: Optional[Union[data_model.TechnicalProject, str]] = Query(
-        None,
-        title="Project ID",
-        type="string",
-        # min_length=data_model.MIN_PROJECT_ID_LENGTH,
-        # max_length=data_model.MAX_PROJECT_ID_LENGTH,
-    ),
+    project_id: str = PROJECT_ID_PARAM,
 ) -> Any:
     """Suggests an input configuration based on the provided `container_image`.
 
@@ -1468,7 +1489,7 @@ def suggest_extension_config(
 
 
 @app.put(
-    "/extensions/defaults",
+    "/projects/{project_id}/extensions:defaults",
     operation_id=data_model.CoreOperations.SET_EXTENSION_DEFAULTS.value,
     summary="Set extension defaults.",
     tags=["extensions"],
@@ -1485,18 +1506,9 @@ def set_extension_defaults(
         title="Operation IDs",
         description="Set extension as default for those operation IDs.",
     ),
-    project_id: Union[data_model.TechnicalProject, str] = Query(
-        None,
-        title="Project ID",
-        description="Set defaults for the given project.",
-        type="string",
-        # min_length=data_model.MIN_PROJECT_ID_LENGTH,
-        # max_length=data_model.MAX_PROJECT_ID_LENGTH,
-    ),
+    project_id: str = PROJECT_ID_PARAM,
 ) -> Any:
     """Configures the extension to be used as default for a set of operation IDs.
-
-    If no `project_id` is provided, the defaults will be set on a system level.
 
     This operation can only be executed by project administrators (for setting project defaults) or system administrators.
     """
@@ -1504,7 +1516,7 @@ def set_extension_defaults(
 
 
 @app.get(
-    "/extensions/defaults",
+    "/projects/{project_id}/extensions:defaults",
     operation_id=data_model.CoreOperations.GET_EXTENSION_DEFAULTS.value,
     summary="Get extensions defaults.",
     response_model=List[Dict[data_model.TechnicalProject, str]],
@@ -1512,14 +1524,7 @@ def set_extension_defaults(
     status_code=status.HTTP_200_OK,
 )
 def get_extension_defaults(
-    project_id: Union[data_model.TechnicalProject, str] = Query(
-        None,
-        title="Project ID",
-        description="Filter defaults by project.",
-        type="string",
-        # min_length=data_model.MIN_PROJECT_ID_LENGTH,
-        # max_length=data_model.MAX_PROJECT_ID_LENGTH,
-    ),
+    project_id: str = PROJECT_ID_PARAM,
 ) -> Any:
     """Returns the list of extensible operation IDs with the configured default extension.
 
@@ -1532,7 +1537,7 @@ def get_extension_defaults(
 
 
 @app.get(
-    "/projects/{project_id}/data/files",
+    "/projects/{project_id}/files",
     operation_id=data_model.ExtensibleOperations.LIST_FILES.value,
     response_model=List[data_model.File],
     summary="List project files.",
@@ -1567,7 +1572,7 @@ def list_files(
 
 
 @app.post(
-    "/projects/{project_id}/data/files/{file_key}/upload",
+    "/projects/{project_id}/files/{file_key:path}",
     operation_id=data_model.ExtensibleOperations.UPLOAD_FILE.value,
     response_model=data_model.File,
     summary="Upload a file.",
@@ -1575,9 +1580,9 @@ def list_files(
     status_code=status.HTTP_200_OK,
 )
 def upload_file(
+    body: str = Body(...),
     project_id: str = PROJECT_ID_PARAM,
     file_key: str = FILE_KEY_PARAM,
-    extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
     """Uploads a file to a file storage.
 
@@ -1597,11 +1602,12 @@ def upload_file(
     This corresponds to how AWS S3 handles [custom metadata](https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingMetadata.html).
     """
     # TODO adapt upload implementation
-    raise NotImplementedError
+    print("Upload file")
+    return None
 
 
 @app.get(
-    "/projects/{project_id}/data/files/{file_key:path}/metadata",
+    "/projects/{project_id}/files/{file_key:path}:metadata",
     operation_id=data_model.ExtensibleOperations.GET_FILE_METADATA.value,
     response_model=data_model.File,
     summary="Get file metadata.",
@@ -1615,16 +1621,16 @@ def get_file_metadata(
         None,
         description="File version tag. If not specified, the latest version will be used.",
     ),
-    extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
     """Returns metadata about the specified file."""
+    print("file metadata")
     print(file_key)
     return None
     # raise NotImplementedError
 
 
 @app.patch(
-    "/projects/{project_id}/data/files/{file_key:path}/metadata",
+    "/projects/{project_id}/files/{file_key:path}",
     operation_id=data_model.ExtensibleOperations.UPDATE_FILE_METADATA.value,
     response_model=data_model.File,
     summary="Update file metadata.",
@@ -1639,7 +1645,6 @@ def update_file_metadata(
         None,
         description="File version tag. If not specified, the latest version will be used.",
     ),
-    extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
     """Updates the file metadata.
 
@@ -1648,11 +1653,12 @@ def update_file_metadata(
     The update is applied on the existing metadata based on the JSON Merge Patch Standard ([RFC7396](https://tools.ietf.org/html/rfc7396)).
     Thereby, only the specified properties will be updated.
     """
-    raise NotImplementedError
+    print("Update file metadata.")
+    return None
 
 
 @app.get(
-    "/projects/{project_id}/data/files/{file_key:path}/download",
+    "/projects/{project_id}/files/{file_key:path}:download",
     operation_id=data_model.ExtensibleOperations.DOWNLOAD_FILE.value,
     response_model=data_model.File,
     summary="Download a file.",
@@ -1666,19 +1672,19 @@ def download_file(
         None,
         description="File version tag. If not specified, the latest version will be used.",
     ),
-    extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
     """Downloads the selected file.
 
     If the file storage supports versioning and no `version` is specified, the latest version will be downloaded.
     """
     # TODO adapt download implementation
+    print("download")
     print(file_key)
     return None
 
 
 @app.get(
-    "/projects/{project_id}/data/files/{file_key:path}/actions",
+    "/projects/{project_id}/files/{file_key:path}/actions",
     operation_id=data_model.ExtensibleOperations.LIST_FILE_ACTIONS.value,
     response_model=List[data_model.ResourceAction],
     summary="List file actions.",
@@ -1710,12 +1716,13 @@ def list_file_actions(
     The same action mechanism is also used for other resources (e.g., services, jobs).
     It can support a very broad set of use-cases, for example: CSV Viewer, Tensorflow Model Deployment, ZIP Archive Explorer ...
     """
+    print("get file actions")
     print(file_key)
     return None
 
 
 @app.get(
-    "/projects/{project_id}/data/files/{file_key:path}/actions/{action_id}",
+    "/projects/{project_id}/files/{file_key:path}/actions/{action_id}",
     operation_id=data_model.ExtensibleOperations.EXECUTE_FILE_ACTION.value,
     # TODO: what is the response model? add additional status codes?
     summary="Execute a file action.",
@@ -1735,15 +1742,15 @@ def execute_file_action(
         None,
         description="File version tag. If not specified, the latest version will be used.",
     ),
-    extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
     """Executes the selected action.
 
     The actions need to be first requested from the [list_file_actions](#files/list_file_actions) operation.
-    The `action_id` needs to be provided with the corresponding `extension_id`.
+    If the action is from an extension, the `action_id` must be a composite ID with the following format: `{extension_id}~{action_id}`.
 
     The action mechanism is further explained in the description of the [list_file_actions](#files/list_file_actions).
     """
+    print("execute file action")
     print(file_key)
     print(action_id)
     return None
@@ -1751,7 +1758,7 @@ def execute_file_action(
 
 
 @app.delete(
-    "/projects/{project_id}/data/files/{file_key:path}",
+    "/projects/{project_id}/files/{file_key:path}",
     operation_id=data_model.ExtensibleOperations.DELETE_FILE.value,
     summary="Delete a file.",
     tags=["files"],
@@ -1767,7 +1774,6 @@ def delete_file(
     keep_latest_version: Optional[bool] = Query(
         False, description="Keep the latest version of the file."
     ),
-    extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
     """Deletes the specified file.
 
@@ -1775,15 +1781,17 @@ def delete_file(
 
     The parameter `keep_latest_version` is useful if you want to delete all older versions of a file.
     """
-    raise NotImplementedError
+    print("delete file")
+    print(file_key)
+    return None
 
 
 # Secrets Endpoints
 
 
 @app.get(
-    "/projects/{project_id}/data/secrets",
-    operation_id=data_model.ExtensibleOperations.LIST_SECRETS.value,
+    "/projects/{project_id}/secrets",
+    operation_id=data_model.CoreOperations.LIST_SECRETS.value,
     response_model=List[data_model.Secret],
     summary="List project secrets.",
     tags=["secrets"],
@@ -1796,8 +1804,8 @@ def list_secrets(project_id: str = PROJECT_ID_PARAM) -> Any:
 
 
 @app.put(
-    "/projects/{project_id}/data/secrets/{secret_name}",
-    operation_id=data_model.ExtensibleOperations.CREATE_SECRET.value,
+    "/projects/{project_id}/secrets/{secret_name}",
+    operation_id=data_model.CoreOperations.CREATE_SECRET.value,
     summary="Create or updated a sercret.",
     tags=["secrets"],
     status_code=status.HTTP_204_NO_CONTENT,
@@ -1809,7 +1817,6 @@ def create_secret(
         ..., description="Name of the secret."
     ),  # TODO add regex pattern
     project_id: str = PROJECT_ID_PARAM,
-    extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
     """Creates or updates (overwrites) a secret.
 
@@ -1823,8 +1830,8 @@ def create_secret(
 
 
 @app.delete(
-    "/projects/{project_id}/data/secrets/{secret_name}",
-    operation_id=data_model.ExtensibleOperations.DELETE_SECRET.value,
+    "/projects/{project_id}/secrets/{secret_name}",
+    operation_id=data_model.CoreOperations.DELETE_SECRET.value,
     summary="Delete a sercret.",
     tags=["secrets"],
     status_code=status.HTTP_204_NO_CONTENT,
@@ -1835,7 +1842,6 @@ def delete_secret(
         ..., description="Name of the secret."
     ),  # TODO add regex pattern
     project_id: str = PROJECT_ID_PARAM,
-    extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
     """Deletes a secret."""
     raise NotImplementedError
@@ -1845,8 +1851,8 @@ def delete_secret(
 
 
 @app.put(
-    "/projects/{project_id}/data/configurations/{configuration_id}",
-    operation_id=data_model.ExtensibleOperations.CREATE_CONFIGURATION.value,
+    "/projects/{project_id}/configurations/{configuration_id}",
+    operation_id=data_model.CoreOperations.CREATE_CONFIGURATION.value,
     summary="Create a configuration.",
     tags=["configurations"],
     response_model=data_model.Configuration,
@@ -1856,7 +1862,6 @@ def create_configuration(
     configuration: data_model.ConfigurationInput,
     project_id: str = PROJECT_ID_PARAM,
     configuration_id: str = Path(..., description="ID of the configuration."),
-    extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
     """Creates a configuration.
 
@@ -1866,8 +1871,8 @@ def create_configuration(
 
 
 @app.patch(
-    "/projects/{project_id}/data/configurations/{configuration_id}",
-    operation_id=data_model.ExtensibleOperations.UPDATE_CONFIGURATION.value,
+    "/projects/{project_id}/configurations/{configuration_id}",
+    operation_id=data_model.CoreOperations.UPDATE_CONFIGURATION.value,
     summary="Update a configuration.",
     tags=["configurations"],
     response_model=data_model.Configuration,
@@ -1877,7 +1882,6 @@ def update_configuration(
     configuration: data_model.ConfigurationInput,
     project_id: str = PROJECT_ID_PARAM,
     configuration_id: str = Path(..., description="ID of the configuration."),
-    extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
     """Updates a configuration.
 
@@ -1887,8 +1891,8 @@ def update_configuration(
 
 
 @app.get(
-    "/projects/{project_id}/data/configurations/{configuration_id}",
-    operation_id=data_model.ExtensibleOperations.LIST_CONFIGURATIONS.value,
+    "/projects/{project_id}/configurations/{configuration_id}",
+    operation_id=data_model.CoreOperations.LIST_CONFIGURATIONS.value,
     response_model=List[data_model.Configuration],
     summary="List configuration.",
     tags=["configurations"],
@@ -1897,7 +1901,6 @@ def update_configuration(
 def list_configurations(
     project_id: str = PROJECT_ID_PARAM,
     configuration_id: str = Path(..., description="ID of the configuration."),
-    extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
     """Lists all configuration associated with the project.
 
@@ -1907,8 +1910,8 @@ def list_configurations(
 
 
 @app.get(
-    "/projects/{project_id}/data/configurations/{configuration_id}",
-    operation_id=data_model.ExtensibleOperations.GET_CONFIGURATION.value,
+    "/projects/{project_id}/configurations/{configuration_id}",
+    operation_id=data_model.CoreOperations.GET_CONFIGURATION.value,
     response_model=data_model.Configuration,
     summary="Get a configuration.",
     tags=["configurations"],
@@ -1917,15 +1920,14 @@ def list_configurations(
 def get_configuration(
     project_id: str = PROJECT_ID_PARAM,
     configuration_id: str = Path(..., description="ID of the configuration."),
-    extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
     """Returns a single configuration."""
     raise NotImplementedError
 
 
 @app.get(
-    "/projects/{project_id}/data/configurations/{configuration_id}/{parameter_key}",
-    operation_id=data_model.ExtensibleOperations.GET_CONFIGURATION_PARAMETER.value,
+    "/projects/{project_id}/configurations/{configuration_id}/{parameter_key}",
+    operation_id=data_model.CoreOperations.GET_CONFIGURATION_PARAMETER.value,
     response_model=str,
     summary="Get a configuration parameter.",
     tags=["configurations"],
@@ -1935,15 +1937,14 @@ def get_configuration_parameter(
     project_id: str = PROJECT_ID_PARAM,
     configuration_id: str = Path(..., description="ID of the configuration."),
     paramter_key: str = Path(..., description="Key of the paramter."),
-    extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
     """Returns a the value of a single parameter from a configuration."""
     raise NotImplementedError
 
 
 @app.delete(
-    "/projects/{project_id}/data/configurations/{configuration_id}",
-    operation_id=data_model.ExtensibleOperations.DELETE_CONFIGURATION.value,
+    "/projects/{project_id}/configurations/{configuration_id}",
+    operation_id=data_model.CoreOperations.DELETE_CONFIGURATION.value,
     summary="Delete a configuration.",
     tags=["configurations"],
     status_code=status.HTTP_204_NO_CONTENT,
@@ -1951,7 +1952,6 @@ def get_configuration_parameter(
 def delete_configuration(
     project_id: str = PROJECT_ID_PARAM,
     configuration_id: str = Path(..., description="ID of the configuration."),
-    extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
     """Deletes a single configuration."""
     raise NotImplementedError
@@ -1961,8 +1961,8 @@ def delete_configuration(
 
 
 @app.put(
-    "/projects/{project_id}/data/json/{collection_id}/{key}",
-    operation_id=data_model.ExtensibleOperations.CREATE_JSON_DOCUMENT.value,
+    "/projects/{project_id}/json/{collection_id}/{key}",
+    operation_id=data_model.CoreOperations.CREATE_JSON_DOCUMENT.value,
     summary="Create JSON document.",
     tags=["json"],
     response_model=data_model.JsonDocument,
@@ -1973,7 +1973,6 @@ def create_json_document(
     project_id: str = PROJECT_ID_PARAM,
     collection_id: str = Path(..., description="ID of the collection."),
     key: str = Path(..., description="Key of the JSON document."),
-    extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
     """Creates a JSON document. If a document already exists for the given key, the document will be overwritten.
 
@@ -1983,8 +1982,8 @@ def create_json_document(
 
 
 @app.patch(
-    "/projects/{project_id}/data/json/{collection_id}/{key}",
-    operation_id=data_model.ExtensibleOperations.UPDATE_JSON_DOCUMENT.value,
+    "/projects/{project_id}/json/{collection_id}/{key}",
+    operation_id=data_model.CoreOperations.UPDATE_JSON_DOCUMENT.value,
     summary="Update a JSON document.",
     tags=["json"],
     response_model=data_model.JsonDocument,
@@ -1995,7 +1994,6 @@ def update_json_document(
     project_id: str = PROJECT_ID_PARAM,
     collection_id: str = Path(..., description="ID of the collection."),
     key: str = Path(..., description="Key of the JSON document."),
-    extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
     """Updates a JSON document.
 
@@ -2005,8 +2003,8 @@ def update_json_document(
 
 
 @app.get(
-    "/projects/{project_id}/data/json/{collection_id}",
-    operation_id=data_model.ExtensibleOperations.LIST_JSON_DOCUMENTS.value,
+    "/projects/{project_id}/json/{collection_id}",
+    operation_id=data_model.CoreOperations.LIST_JSON_DOCUMENTS.value,
     response_model=List[data_model.JsonDocument],
     summary="List JSON documents.",
     tags=["json"],
@@ -2018,7 +2016,6 @@ def list_json_documents(
     filter: Optional[str] = Query(
         None, description="JSON Path query used to filter the results."
     ),
-    extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
     """Lists all JSON documents for the given project collection.
 
@@ -2032,8 +2029,8 @@ def list_json_documents(
 
 
 @app.get(
-    "/projects/{project_id}/data/json/{collection_id}/{key}",
-    operation_id=data_model.ExtensibleOperations.GET_JSON_DOCUMENT.value,
+    "/projects/{project_id}/json/{collection_id}/{key}",
+    operation_id=data_model.CoreOperations.GET_JSON_DOCUMENT.value,
     response_model=data_model.JsonDocument,
     summary="Get JSON document.",
     tags=["json"],
@@ -2043,15 +2040,14 @@ def get_json_document(
     project_id: str = PROJECT_ID_PARAM,
     collection_id: str = Path(..., description="ID of the collection."),
     key: str = Path(..., description="Key of the JSON document."),
-    extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
     """Returns a single JSON document."""
     raise NotImplementedError
 
 
 @app.delete(
-    "/projects/{project_id}/data/json/{collection_id}/{key}",
-    operation_id=data_model.ExtensibleOperations.DELETE_JSON_DOCUMENT.value,
+    "/projects/{project_id}/json/{collection_id}/{key}",
+    operation_id=data_model.CoreOperations.DELETE_JSON_DOCUMENT.value,
     summary="Delete JSON document.",
     tags=["json"],
     status_code=status.HTTP_204_NO_CONTENT,
@@ -2060,7 +2056,6 @@ def delete_json_document(
     project_id: str = PROJECT_ID_PARAM,
     collection_id: str = Path(..., description="ID of the collection."),
     key: str = Path(..., description="Key of the JSON document."),
-    extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
     """Deletes a single JSON document.
 

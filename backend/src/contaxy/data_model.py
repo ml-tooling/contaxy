@@ -1,5 +1,5 @@
 from datetime import date, datetime, time, timedelta
-from enum import Enum
+from enum import Enum, IntEnum
 from pathlib import Path
 from typing import Dict, List, Optional, Union
 
@@ -52,6 +52,7 @@ class CoreOperations(str, Enum):
     REMOVE_PROJECT_MEMBER = "remove_project_member"
     # User Endpoints
     LIST_USERS = "list_users"
+    GET_MY_USER = "get_my_user"
     GET_USER = "get_user"
     UPDATE_USER = "update_user"
     DELETE_USER = "delete_user"
@@ -81,6 +82,23 @@ class CoreOperations(str, Enum):
     GET_SYSTEM_INFO = "get_system_info"
     GET_SYSTEM_STATISTICS = "get_system_statistics"
     LIST_SYSTEM_NODES = "list_system_nodes"
+    # Secrets Endpoints
+    CREATE_SECRET = "create_secret"
+    DELETE_SECRET = "delete_secret"
+    LIST_SECRETS = "list_secrets"
+    # Configuration Endpoints
+    LIST_CONFIGURATIONS = "list_configurations"
+    CREATE_CONFIGURATION = "create_configuration"
+    UPDATE_CONFIGURATION = "update_configuration"
+    DELETE_CONFIGURATION = "delete_configuration"
+    GET_CONFIGURATION = "get_configuration"
+    GET_CONFIGURATION_PARAMETER = "get_configuration_parameter"
+    # JSON Document Endpoints
+    LIST_JSON_DOCUMENTS = "list_json_documents"
+    CREATE_JSON_DOCUMENT = "create_json_document"
+    UPDATE_JSON_DOCUMENT = "update_json_document"
+    DELETE_JSON_DOCUMENT = "delete_json_document"
+    GET_JSON_DOCUMENT = "get_json_document"
 
 
 class ExtensibleOperations(str, Enum):
@@ -96,6 +114,7 @@ class ExtensibleOperations(str, Enum):
     LIST_SERVICE_ACTIONS = "list_service_actions"
     EXECUTE_SERVICE_ACTION = "execute_service_action"
     SUGGEST_SERVICE_CONFIG = "suggest_service_config"
+    ACCESS_SERVICE = "access_service"
     # Job Endpoints
     LIST_JOBS = "list_jobs"
     GET_JOB_METADATA = "get_job_metadata"
@@ -118,23 +137,6 @@ class ExtensibleOperations(str, Enum):
     UPDATE_FILE_METADATA = "update_file_metadata"
     # Auth Endpoints
     OPEN_LOGIN_PAGE = "open_login_page"
-    # Secrets Endpoints
-    CREATE_SECRET = "create_secret"
-    DELETE_SECRET = "delete_secret"
-    LIST_SECRETS = "list_secrets"
-    # JSON Document Endpoints
-    LIST_CONFIGURATIONS = "list_configurations"
-    CREATE_CONFIGURATION = "create_configuration"
-    UPDATE_CONFIGURATION = "update_configuration"
-    DELETE_CONFIGURATION = "delete_configuration"
-    GET_CONFIGURATION = "get_configuration"
-    GET_CONFIGURATION_PARAMETER = "get_configuration_parameter"
-    # JSON Document Endpoints
-    LIST_JSON_DOCUMENTS = "list_json_documents"
-    CREATE_JSON_DOCUMENT = "create_json_document"
-    UPDATE_JSON_DOCUMENT = "update_json_document"
-    DELETE_JSON_DOCUMENT = "delete_json_document"
-    GET_JSON_DOCUMENT = "get_json_document"
 
 
 class DeploymentType(str, Enum):
@@ -215,9 +217,10 @@ class ActionInstruction(str, Enum):
 
 
 class PermissionLevel(str, Enum):
-    READ = "read"  # Viewer, view: Allows admin access
-    WRITE = "write"  # Editor, edit : Allows read/write access.
-    ADMIN = "admin"  # Owner : Allows read-only access.
+    # Map to: select, insert, update, delete
+    READ = "read"  # Viewer, view: Allows admin access , Can only view existing resources. Permissions for read-only actions that do not affect state, such as viewing (but not modifying) existing resources or data.
+    WRITE = "write"  # Editor, edit, Contributor : Allows read/write access , Can create and manage all types of resources but can’t grant access to others.  All viewer permissions, plus permissions for actions that modify state, such as changing existing resources.
+    ADMIN = "admin"  # Owner : Allows read-only access. Has full access to all resources including the right to edit IAM, invite users, edit roles. All editor permissions and permissions for the following actions:
     # none
 
 
@@ -329,12 +332,32 @@ class BaseEntity(BaseModel):
         max_anystr_length = 20000
 
 
+class GlobalID(BaseEntity):
+    format_version: int = Field(1, description="Version of the ID structure.")
+    resource_type: str = Field(..., description="Type of the resource")
+    subject_id: str = Field(...)
+    project_id: Optional[str] = Field(None)
+    extension_id: Optional[str] = Field(
+        None,
+        example="john-doe",
+        description="The extension ID in case the deployment is deployed via an extension.",
+    )
+
+
+class Permission(BaseEntity):
+    global_id: GlobalID = Field(..., description="The global ID of the entity ")
+    permission_level: PermissionLevel = Field(
+        ..., description="The kind of access that is granted on the resource."
+    )
+    restriction: Optional[str] = Field(None)
+
+
 class UserInput(BaseEntity):
     username: Optional[str] = Field(
         None,
         example="john-doe",
         description="A unique username on the system.",
-    )
+    )  # nickname
     email: Optional[EmailStr] = Field(
         None, example="john.doe@example.com", description="User email address."
     )
@@ -537,10 +560,10 @@ class Project(ProjectInput):
         example="16fd2706-8baf-433b-82eb-8c7fada847da",
         description="ID of the user that has last updated this projects metadata.",
     )
-    available: Optional[bool] = Field(
-        False,
-        description="Indicates that this project is ready for usage.",
-    )
+    # available: Optional[bool] = Field(
+    #    False,
+    #    description="Indicates that this project is ready for usage.",
+    # )
     technical_project: Optional[bool] = Field(
         False,
         description="Indicates that this is a technical project created by the system.",
@@ -751,6 +774,16 @@ class Deployment(DeploymentInput):
 
 
 class ServiceInput(DeploymentInput):
+    graphql_endpoint: Optional[str] = Field(
+        None,
+        example="8080/graphql",
+        description="GraphQL endpoint.",
+    )
+    openapi_endpoint: Optional[str] = Field(
+        None,
+        example="8080/openapi.yaml",
+        description="Endpoint that prorvides an OpenAPI schema definition..",
+    )
     pass
 
 
@@ -794,11 +827,7 @@ class ExtensionInput(ServiceInput):
         example="8080/webapp/ui",
         description="The endpoint instruction that provide a Web UI. If this is provided, the extension will be integrated into the UI.",
     )
-    graphql_endpoint: Optional[str] = Field(
-        None,
-        example="8080/graphql",
-        description="The endpoint instruction that provide . If this is provided, the extension will be integrated into the UI.",
-    )
+
     # TODO: add again
     # extension_type: ExtensionType = Field(
     #    None,
@@ -935,6 +964,12 @@ class File(FileInput):
     )
 
 
+class TokenPurpose(str, Enum):
+    USER_GENERATED = "user-generated"
+    REFRESH_TOKEN = "refresh-token"  # For user sessions
+    DEPLOYMENT_TOKEN = "deployment-token"
+
+
 class ApiToken(BaseEntity):
     token: str = Field(
         ...,
@@ -972,7 +1007,11 @@ class ApiToken(BaseEntity):
         example="2021-04-25T10:20:30.400+02:30",
         description="Date at which the token expires and, thereby, gets revoked.",
     )
-    # TODO: token type: refresh, ,,,
+    token_purpose: Optional[TokenPurpose] = Field(
+        None,
+        example=TokenPurpose.REFRESH_TOKEN,
+        description="The purpose of the token.",
+    )
 
 
 class ResourceAction(BaseEntity):
