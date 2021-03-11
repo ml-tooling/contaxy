@@ -27,7 +27,9 @@ test_service_id = normalize_service_name(
     project_id=test_project_name, display_name=test_service_display_name
 )
 
-is_kube_available = os.getenv("KUBE_AVAILABLE", False)
+is_kube_available = os.getenv("KUBE_AVAILABLE", "")
+if is_kube_available != "true":
+    is_kube_available = ""
 
 
 def create_test_service_input(_service_id: str = test_service_id) -> ServiceInput:
@@ -53,7 +55,12 @@ class DockerTestHandler:
         return test_service_id
 
     def cleanup(self, setup_id: str) -> None:
-        self.deployment_manager.delete_service(service_id=setup_id)
+        try:
+            self.deployment_manager.delete_service(service_id=setup_id)
+        except RuntimeError:
+            # service not found
+            return
+
         time.sleep(2.5)
         # Wait until container is deleted
         while True:
@@ -77,9 +84,11 @@ class DockerTestHandler:
             pass
 
     def deploy_service(self, service: ServiceInput, project_id: str) -> Any:
-        return self.deployment_manager.deploy_service(
+        deployed_service = self.deployment_manager.deploy_service(
             service=service, project_id=project_id
         )
+        time.sleep(2)
+        return deployed_service
 
     def deploy_job(self, job: JobInput, project_id: str) -> Any:
         deployed_job = self.deployment_manager.deploy_job(
@@ -184,11 +193,8 @@ class TestDeploymentManagers:
 
         self.handler.deployment_manager.delete_service(service_id=service.id)
 
-        queried_service = self.handler.deployment_manager.get_service_metadata(
-            service.id
-        )
-
-        assert queried_service is None
+        with pytest.raises(RuntimeError):
+            self.handler.deployment_manager.get_service_metadata(service.id)
 
     def test_list_services(self) -> None:
         test_service_input = create_test_service_input()

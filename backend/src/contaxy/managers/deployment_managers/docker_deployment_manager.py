@@ -19,6 +19,7 @@ from .utils import (
     DEFAULT_DEPLOYMENT_ACTION_ID,
     HOST_DATA_ROOT_PATH,
     NAMESPACE,
+    NO_LOGS_MESSAGE,
     ComputeResourcesError,
     DeploymentError,
     Labels,
@@ -36,20 +37,23 @@ class DockerDeploymentManager(ServiceDeploymentManager, JobDeploymentManager):
         self.system_gpu_count = get_gpu_info()
 
     def list_services(self, project_id: str) -> Any:
-        containers = self.client.containers.list(
-            filters={
-                "label": [
-                    get_label_string(Labels.NAMESPACE.value, NAMESPACE),
-                    get_label_string(Labels.PROJECT_NAME.value, project_id),
-                    get_label_string(
-                        Labels.DEPLOYMENT_TYPE.value,
-                        data_model.DeploymentType.SERVICE.value,
-                    ),
-                ]
-            }
-        )
+        try:
+            containers = self.client.containers.list(
+                filters={
+                    "label": [
+                        get_label_string(Labels.NAMESPACE.value, NAMESPACE),
+                        get_label_string(Labels.PROJECT_NAME.value, project_id),
+                        get_label_string(
+                            Labels.DEPLOYMENT_TYPE.value,
+                            data_model.DeploymentType.SERVICE.value,
+                        ),
+                    ]
+                }
+            )
 
-        return [transform_service(container) for container in containers]
+            return [transform_service(container) for container in containers]
+        except docker.errors.APIError:
+            return []
 
     def list_service_deploy_actions(
         self, service: Union[data_model.JobInput, data_model.ServiceInput]
@@ -76,7 +80,7 @@ class DockerDeploymentManager(ServiceDeploymentManager, JobDeploymentManager):
         try:
             container = self.client.containers.get(service_id)
         except docker.errors.NotFound:
-            return None
+            raise RuntimeError(f"Could not get metadata of service '{service_id}'.")
 
         return transform_service(container)
 
@@ -285,25 +289,31 @@ class DockerDeploymentManager(ServiceDeploymentManager, JobDeploymentManager):
             Labels.DEPLOYMENT_TYPE.value
         ] = data_model.DeploymentType.SERVICE.value
         self.handle_network(project_id=project_id)
-        container = self.client.containers.run(**container_config)
+
+        try:
+            container = self.client.containers.run(**container_config)
+        except docker.errors.APIError:
+            raise DeploymentError(f"Could not deploy service '{service.display_name}'.")
+
         return transform_service(container)
 
     def delete_service(
         self, service_id: str, delete_volumes: Optional[bool] = False
-    ) -> Any:
+    ) -> None:
         try:
             container = self.client.containers.get(service_id)
         except docker.errors.NotFound:
-            return False
+            raise RuntimeError(f"Could not find service '{service_id}' to delete.")
 
         try:
             container.stop()
         except docker.errors.APIError:
             pass
 
-        container.remove(v=delete_volumes)
-
-        return True
+        try:
+            container.remove(v=delete_volumes)
+        except docker.errors.APIError:
+            raise RuntimeError(f"Could not delete service {service_id}")
 
     def get_service_logs(
         self,
@@ -314,12 +324,19 @@ class DockerDeploymentManager(ServiceDeploymentManager, JobDeploymentManager):
         try:
             container = self.client.containers.get(service_id)
         except docker.errors.NotFound:
-            return ""
+            raise RuntimeError(
+                f"Could not find service {service_id} to read logs from."
+            )
 
-        logs = container.logs(tail=lines or "all", since=since)
+        try:
+            logs = container.logs(tail=lines or "all", since=since)
+        except docker.errors.APIError:
+            raise RuntimeError(f"Could not read logs of service {service_id}.")
 
         if logs:
             logs = logs.decode("utf-8")
+        else:
+            logs = NO_LOGS_MESSAGE
 
         return logs
 
@@ -356,14 +373,22 @@ class DockerDeploymentManager(ServiceDeploymentManager, JobDeploymentManager):
             Labels.DEPLOYMENT_TYPE.value
         ] = data_model.DeploymentType.JOB.value
         self.handle_network(project_id=project_id)
-        container = self.client.containers.run(**container_config)
+
+        try:
+            container = self.client.containers.run(**container_config)
+        except docker.errrors.APIError:
+            raise DeploymentError(f"Could not deploy job '{job.display_name}'.")
+
         response_service = transform_job(container)
         return response_service
 
-    def delete_job(self, job_id: str) -> Any:
+    def delete_job(self, job_id: str) -> None:
         return self.delete_service(service_id=job_id, delete_volumes=True)
 
     def get_job_logs(
         self, job_id: str, lines: Optional[int] = None, since: Optional[datetime] = None
     ) -> Any:
         return self.get_service_logs(service_id=job_id, lines=lines, since=since)
+
+    def get_job_metadata(self, job_id: str) -> Any:
+        return self.get_service_metadata(job_id)

@@ -16,7 +16,7 @@ NAMESPACE = os.getenv(ENV_NAMESPACE, APP_NAME)
 
 DEFAULT_DEPLOYMENT_ACTION_ID = "default"
 
-
+NO_LOGS_MESSAGE = "No logs available"
 class Labels(Enum):
     DEPLOYMENT_NAME = f"{APP_NAME}.deploymentName"
     DEPLOYMENT_TYPE = f"{APP_NAME}.deploymentType"

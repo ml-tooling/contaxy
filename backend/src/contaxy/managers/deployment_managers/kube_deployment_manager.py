@@ -42,6 +42,7 @@ from .utils import (
     EntityNotFoundError,
     Labels,
     log,
+    NO_LOGS_MESSAGE,
     normalize_service_name,
 )
 
@@ -106,11 +107,13 @@ class KubernetesDeploymentManager(ServiceDeploymentManager, JobDeploymentManager
             ]
         )
 
-        deployments: V1DeploymentList = self.apps_api.list_namespaced_deployment(
-            namespace=self.kube_namespace, label_selector=label_selector
-        )
-
-        return [transform_kube_service(deployment) for deployment in deployments.items]
+        try:
+            deployments: V1DeploymentList = self.apps_api.list_namespaced_deployment(
+                namespace=self.kube_namespace, label_selector=label_selector
+            )
+            return [transform_kube_service(deployment) for deployment in deployments.items]
+        except ApiException:
+            return []
 
     def get_service_metadata(self, service_id: str) -> Any:
         try:
@@ -119,7 +122,7 @@ class KubernetesDeploymentManager(ServiceDeploymentManager, JobDeploymentManager
             )
             return transform_kube_service(deployment)
         except ApiException:
-            return None
+            raise RuntimeError(f"Could not get metadata of service '{service_id}'.")
 
     def build_kube_service_config(
         self, service_id: str, service: data_model.ServiceInput, project_id: str
@@ -455,7 +458,7 @@ class KubernetesDeploymentManager(ServiceDeploymentManager, JobDeploymentManager
         service_id: str,
         delete_volumes: Optional[bool] = False,
         retries: int = 0,
-    ) -> Any:
+    ) -> None:
 
         try:
             status: V1Status = self.core_api.delete_namespaced_service(
@@ -507,8 +510,6 @@ class KubernetesDeploymentManager(ServiceDeploymentManager, JobDeploymentManager
                 except ApiException:
                     # Deployment is deleted
                     break
-
-            return True
         except Exception as e:
             log(e.__repr__())
             # TODO: add resources to delete to a queue instead of deleting directly? This would have the advantage that even if an operation failes, it is repeated. Also, if the delete endpoint is called multiple times, it is only added once to the queue
@@ -527,15 +528,18 @@ class KubernetesDeploymentManager(ServiceDeploymentManager, JobDeploymentManager
         lines: Optional[int] = None,
         since: Optional[datetime] = None,
     ) -> Any:
-        no_logs_message = "No logs available"
         try:
             pod = self.get_pod(service_id=service_id)
         except Exception as e:
             log(e.__repr__())
-            return no_logs_message
+            raise RuntimeError(
+                f"Could not find service {service_id} to read logs from."
+            )
 
         if pod is None:
-            return no_logs_message
+            raise RuntimeError(
+                f"Could not find service {service_id} to read logs from."
+            )
 
         # Give some time to let the container within the pod start
         start = time.time()
@@ -551,17 +555,22 @@ class KubernetesDeploymentManager(ServiceDeploymentManager, JobDeploymentManager
                 break
 
             if time.time() - start > timeout:
-                return no_logs_message
+                raise RuntimeError(
+                    f"Could not read logs from service {service_id} due to status error."
+                )
 
-        return self.core_api.read_namespaced_pod_log(
-            name=pod.metadata.name,
-            namespace=self.kube_namespace,
-            pretty="true",
-            tail_lines=lines if lines else None,
-            since_seconds=(int((datetime.now() - since).total_seconds()) + 1)
-            if since is not None
-            else None,
-        )
+        try:
+            return self.core_api.read_namespaced_pod_log(
+                name=pod.metadata.name,
+                namespace=self.kube_namespace,
+                pretty="true",
+                tail_lines=lines if lines else None,
+                since_seconds=(int((datetime.now() - since).total_seconds()) + 1)
+                if since is not None
+                else None,
+            )
+        except ApiException:
+            raise RuntimeError(f"Could not read logs of service {service_id}.")
 
     def cleanup(self) -> None:
         raise NotImplementedError
@@ -575,9 +584,12 @@ class KubernetesDeploymentManager(ServiceDeploymentManager, JobDeploymentManager
             ]
         )
 
-        jobs: V1JobList = self.batch_api.list_namespaced_job(
-            namespace=self.kube_namespace, label_selector=label_selector
-        )
+        try:
+            jobs: V1JobList = self.batch_api.list_namespaced_job(
+                namespace=self.kube_namespace, label_selector=label_selector
+            )
+        except ApiException:
+            return []
 
         return [transform_kube_job(job) for job in jobs.items]
 
@@ -588,7 +600,7 @@ class KubernetesDeploymentManager(ServiceDeploymentManager, JobDeploymentManager
             )
             return transform_kube_service(job)
         except ApiException:
-            return None
+            raise RuntimeError(f"Could not get metadata of job '{job_id}'.")
 
     def list_job_deploy_actions(self, job_input: data_model.JobInput) -> Any:
         raise NotImplementedError
@@ -620,16 +632,19 @@ class KubernetesDeploymentManager(ServiceDeploymentManager, JobDeploymentManager
         pod_spec.spec.restart_policy = "OnFailure"
 
         _job = V1Job(metadata=metadata, spec=V1JobSpec(template=pod_spec))
-        deployed_job = self.batch_api.create_namespaced_job(
-            namespace=self.kube_namespace, body=_job
-        )
+        try:
+            deployed_job = self.batch_api.create_namespaced_job(
+                namespace=self.kube_namespace, body=_job
+            )
+        except ApiException:
+            raise DeploymentError(f"Could not deploy job '{job.id}'.")
 
         if wait:
             self.wait_for_job(job_name=deployed_job.metadata.name)
 
         return transform_kube_job(job=deployed_job)
 
-    def delete_job(self, job_id: str) -> Any:
+    def delete_job(self, job_id: str) -> None:
         try:
             self.batch_api.delete_namespaced_job(
                 name=job_id,
@@ -637,9 +652,7 @@ class KubernetesDeploymentManager(ServiceDeploymentManager, JobDeploymentManager
                 propagation_policy="Foreground",
             )
         except ApiException as e:
-            log(f"Could not delete job '{job_id}' with reason: {e}")
-            return False
-        return True
+            raise RuntimeError(f"Could not delete job '{job_id}' with reason: {e}")
 
     def get_job_logs(
         self, job_id: str, lines: Optional[int] = None, since: Optional[datetime] = None
