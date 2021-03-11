@@ -49,6 +49,9 @@ setup(
         "typer",  # TODO: remove typer?
         "pydantic",
         "fastapi",
+        "kubernetes",
+        "docker",
+        "psutil",
         "uvicorn",
         "addict",
         # Better logging
@@ -87,6 +90,8 @@ setup(
             "devtools[pygments]",
             # For Jupyter Kernel support
             "ipykernel",
+            # Todo: Move to required when necessary
+            "universal-build",
         ],
     },
     include_package_data=True,
