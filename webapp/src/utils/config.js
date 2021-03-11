@@ -124,4 +124,17 @@ export const PAGES = [
       projectSpecific: true,
     },
   },
+  {
+    ICON: 'data_usage',
+    NAME: 'Login',
+    PATH: '/login-test',
+    REQUIRE_LOGIN: true,
+    APP_DRAWER_ITEM: true,
+    TYPE: APP_DRAWER_ITEM_TYPES.link,
+    COMPONENT: Iframe,
+    PROPS: {
+      url: 'http://localhost:8000/login?connector_id=local',
+      projectSpecific: false,
+    },
+  },
 ];
