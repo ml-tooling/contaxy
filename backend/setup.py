@@ -49,6 +49,8 @@ setup(
         # TODO: Add all the runtime requirements here:
         "typer",
         "fastapi",
+        "kubernetes",
+        "psutil",
         "uvicorn",
         # Required by fastapi.security OAuth2PasswordBearer & fastapi.UploadFile for example
         "python-multipart",

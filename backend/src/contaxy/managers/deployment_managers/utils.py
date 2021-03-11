@@ -30,7 +30,7 @@ class Labels(Enum):
     VOLUME_PATH = f"{APP_NAME}.volumePath"
 
 
-class ComputeRessourcesError(Exception):
+class ComputeResourcesError(Exception):
     pass
 
 
