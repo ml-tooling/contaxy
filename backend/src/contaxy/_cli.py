@@ -1,26 +1,32 @@
 """Command line interface."""
 
 import typer
-
-from contaxy import main
+from loguru import logger
 
 cli = typer.Typer()
 
 
 @cli.command()
-def hello(name: str) -> None:
-    typer.echo(f"Hello {name}")
+def install_contaxy() -> None:
+    from contaxy.managers.components import install_components
+
+    install_components()
 
 
 @cli.command()
-def start_api_server(host: str = "0.0.0.0", port: int = 8000) -> None:
+def start_dev_server(host: str = "0.0.0.0", port: int = 8082) -> None:
+    import sys
+
     import uvicorn
 
-    typer.echo("Starting API Server.")
+    logger.add(
+        sys.stderr, format="{time} {level} {message}", filter="my_module", level="INFO"
+    )
 
-    uvicorn.run(
-        main.app, host=host, port=port, log_level="info"
-    )  # cannot use reload=True anymore
+    typer.echo("Starting Dev Server.")
+
+    # TODO: Run with: Run with: PYTHONASYNCIODEBUG=1
+    uvicorn.run("contaxy.api:app", host=host, port=port, log_level="info", reload=True)
 
 
 if __name__ == "__main__":

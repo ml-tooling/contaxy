@@ -22,6 +22,7 @@ RUN pip install --no-cache-dir "uvicorn[standard]" gunicorn fastapi
 
 ENV PYTHONPATH=/resources/app \
     MODULE_NAME=contaxy \
+    IS_CONTAXY_CONTAINER=true \
     LAB_BASE_URL= \
     LAB_NAMESPACE=lab \
     _SSL_RESOURCES_PATH=/resources/ssl
