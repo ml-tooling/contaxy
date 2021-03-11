@@ -29,7 +29,7 @@ from .utils import (
 
 
 class DockerDeploymentManager(ServiceDeploymentManager, JobDeploymentManager):
-    def __init__(self):
+    def __init__(self) -> None:
         self.client = docker.from_env()
         self.system_cpu_count = psutil.cpu_count()
         self.system_memory_in_mb = round(psutil.virtual_memory().total / 1024 / 1024, 1)
@@ -103,7 +103,7 @@ class DockerDeploymentManager(ServiceDeploymentManager, JobDeploymentManager):
         min_memory: int,
         min_gpus: int,
         compute_resources: data_model.DeploymentCompute = None,
-    ):
+    ) -> None:
         if min_cpus > self.system_cpu_count:
             raise ComputeResourcesError(
                 f"The minimal amount of cpus of {min_cpus} cannot be fulfilled as the system has only {self.system_cpu_count} cpus."

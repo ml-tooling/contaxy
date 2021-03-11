@@ -177,7 +177,8 @@ def get_this_container(client: docker.client) -> docker.models.containers.Contai
         docker.models.containers.Container: If this code runs in a container, it returns this container otherwise None
     """
 
-    hostname = os.getenv("HOSTNAME", None)
-    if hostname is None:
+    # "Detect" whether it runs in a container by checking the following environment variables
+    hostname = os.getenv("HOSTNAME", False)
+    if not os.getenv("IS_CONTAXY_CONTAINER", False) or hostname is None:
         return None
     return client.containers.get(hostname)

@@ -62,7 +62,7 @@ def main(args: dict) -> None:
 
         # if the test_markers list exists, join those markers via "or". pytest will ignore markers it does not know
         pytest_marker = (
-            "unit" if not isinstance(test_markers, list) else " or ".join(test_markers)
+            "unit" if (not isinstance(test_markers, list) or test_markers == []) else " or ".join(test_markers)
         )
         if isinstance(test_markers, list) and INTEGRATION_TEST_MARKER in test_markers:
             pytest_marker = "integration"

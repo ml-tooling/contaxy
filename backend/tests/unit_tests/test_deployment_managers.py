@@ -1,11 +1,12 @@
 import os
 import time
-from typing import Generator, Union
+from typing import Any, Generator, Union
 
 import pytest
 from kubernetes.client.models import V1Namespace, V1Status
+from kubernetes.client.rest import ApiException
 
-from contaxy.data_model import DeploymentType, ServiceInput
+from contaxy.data_model import DeploymentType, JobInput, ServiceInput
 from contaxy.managers.deployment_managers import (
     DockerDeploymentManager,
     KubernetesDeploymentManager,
@@ -22,7 +23,6 @@ pytestmark = pytest.mark.unit
 uid = str(int(time.time()))
 test_project_name = f"test-project-{uid}"
 test_service_display_name = f"Test Service-{uid}"
-test_namespace = f"test-namespace-{int(time.time())}"
 test_service_id = normalize_service_name(
     project_id=test_project_name, display_name=test_service_display_name
 )
@@ -76,37 +76,68 @@ class DockerTestHandler:
         except Exception:
             pass
 
+    def deploy_service(self, service: ServiceInput, project_id: str) -> Any:
+        return self.deployment_manager.deploy_service(
+            service=service, project_id=project_id
+        )
+
+    def deploy_job(self, job: JobInput, project_id: str) -> Any:
+        return self.deployment_manager.deploy_job(job=job, project_id=project_id)
+
 
 class KubeTestHandler:
-    def __init__(self, test_kube_namespace: str) -> None:
+    def __init__(self) -> None:
         # Don't try to instantiate the Kubernetes Manager if Kubernetes is not available
         if not is_kube_available:
             return
 
-        self.deployment_manager = KubernetesDeploymentManager(
-            kube_namespace=test_kube_namespace
-        )
-
     def setup(self) -> str:
-        namespace = V1Namespace(metadata={"name": test_namespace})
+        test_namespace_name = f"test-namespace-{int(time.time())}"
+        self.deployment_manager = KubernetesDeploymentManager(
+            kube_namespace=test_namespace_name
+        )
+        namespace = V1Namespace(metadata={"name": test_namespace_name})
         self.deployment_manager.core_api.create_namespace(body=namespace)
-        return test_namespace
+        return test_namespace_name
 
     def cleanup(self, setup_id: str) -> None:
         if self.deployment_manager is None:
             return
 
-        status: V1Status = self.deployment_manager.core_api.delete_namespace(setup_id)
+        status: V1Status = self.deployment_manager.core_api.delete_namespace(
+            setup_id, propagation_policy="Foreground"
+        )
 
-        if status.code != 200:
-            # Try again
-            self.deployment_manager.core_api.delete_namespace(setup_id)
+        # if status.code != 200:
+        #     # Try again
+        #     self.deployment_manager.core_api.delete_namespace(
+        #         setup_id, propagation_policy="Foreground"
+        #     )
+
+        start = time.time()
+        timeout = 60
+        while time.time() - start < timeout:
+            try:
+                self.deployment_manager.core_api.read_namespace(name=setup_id)
+                time.sleep(2)
+            except ApiException:
+                break
+
+    def deploy_service(self, service: ServiceInput, project_id: str) -> Any:
+        return self.deployment_manager.deploy_service(
+            service=service, project_id=project_id, wait=True
+        )
+
+    def deploy_job(self, job: JobInput, project_id: str) -> Any:
+        return self.deployment_manager.deploy_job(
+            job=job, project_id=project_id, wait=True
+        )
 
 
 pytest_handler_param = [
     DockerTestHandler(),
     pytest.param(
-        KubeTestHandler(test_kube_namespace=test_namespace),
+        KubeTestHandler(),
         marks=pytest.mark.skipif(
             not is_kube_available,
             reason="A Kubernetes cluster must be accessible to run the KubeSpawner tests",
@@ -127,9 +158,7 @@ class TestDeploymentManagers:
 
     def test_deploy_service(self) -> None:
         test_service_input = create_test_service_input()
-        service = self.handler.deployment_manager.deploy_service(
-            test_service_input, test_project_name
-        )
+        service = self.handler.deploy_service(test_service_input, test_project_name)
         assert service.display_name == test_service_input.display_name
         assert service.internal_id != ""
         assert (
@@ -145,12 +174,10 @@ class TestDeploymentManagers:
 
     def test_get_service_metadata(self) -> None:
         test_service_input = create_test_service_input()
-        service = self.handler.deployment_manager.deploy_service(
-            test_service_input, test_project_name
-        )
+        service = self.handler.deploy_service(test_service_input, test_project_name)
 
         queried_service = self.handler.deployment_manager.get_service_metadata(
-            service.internal_id
+            service.id
         )
 
         assert queried_service is not None
@@ -158,25 +185,22 @@ class TestDeploymentManagers:
         assert "some-metadata" in queried_service.additional_metadata
 
         self.handler.deployment_manager.delete_service(service_id=service.id)
-        time.sleep(5)
+
         queried_service = self.handler.deployment_manager.get_service_metadata(
-            service.internal_id
+            service.id
         )
 
         assert queried_service is None
 
     def test_list_services(self) -> None:
         test_service_input = create_test_service_input()
-        service = self.handler.deployment_manager.deploy_service(
-            test_service_input, test_project_name
-        )
+        service = self.handler.deploy_service(test_service_input, test_project_name)
         services = self.handler.deployment_manager.list_services(
             project_id=test_project_name
         )
         assert len(services) == 1
 
         self.handler.deployment_manager.delete_service(service_id=service.id)
-        time.sleep(5)
         services = self.handler.deployment_manager.list_services(
             project_id=test_project_name
         )
@@ -184,7 +208,7 @@ class TestDeploymentManagers:
 
     def test_get_logs(self) -> None:
         log_input = "foobar"
-        service_input = ServiceInput(
+        job_input = JobInput(
             container_image="ubuntu:20.04",
             command=f"/bin/bash -c 'echo {log_input}'",
             deployment_type=DeploymentType.SERVICE.value,
@@ -193,10 +217,8 @@ class TestDeploymentManagers:
             parameters={"FOO": "bar", "FOO2": "bar2"},
         )
 
-        service = self.handler.deployment_manager.deploy_service(
-            service=service_input, project_id=test_project_name
-        )
-        time.sleep(3)
+        service = self.handler.deploy_job(job=job_input, project_id=test_project_name)
+
         logs = self.handler.deployment_manager.get_service_logs(
             service_id=service.internal_id
         )
@@ -210,9 +232,7 @@ class TestDockerDeploymentManager:
         _service_name = f"test-project-{int(time.time())}"
         test_service_input = create_test_service_input(_service_name)
 
-        service = handler.deployment_manager.deploy_service(
-            test_service_input, test_project_name
-        )
+        service = handler.deploy_service(test_service_input, test_project_name)
         container = handler.deployment_manager.client.containers.get(service.id)
         assert container is not None
         labels = container.labels

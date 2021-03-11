@@ -1,4 +1,5 @@
 import shlex
+import time
 from datetime import datetime
 from typing import Any, Dict, Optional, Tuple, Union
 
@@ -324,7 +325,7 @@ class KubernetesDeploymentManager(ServiceDeploymentManager, JobDeploymentManager
 
         return deployment, pvc
 
-    def create_pvc(self, pvc: Optional[V1PersistentVolumeClaim]):
+    def create_pvc(self, pvc: Optional[V1PersistentVolumeClaim]) -> None:
         if pvc is None:
             return
 
@@ -339,7 +340,9 @@ class KubernetesDeploymentManager(ServiceDeploymentManager, JobDeploymentManager
                     f"Could not create persistent volume claim for service '{pvc.metadata.name}' with reason: {e}"
                 )
 
-    def create_service(self, service_config: Optional[kube_client.models.V1Service]):
+    def create_service(
+        self, service_config: Optional[kube_client.models.V1Service]
+    ) -> None:
         if service_config is None:
             return
 
@@ -352,11 +355,45 @@ class KubernetesDeploymentManager(ServiceDeploymentManager, JobDeploymentManager
                 f"Could not create namespaced service '{service_config.metadata.name}' with reason: {e}"
             )
 
-    def create_deployment(self, deployment_config):
-        if deployment_config is None:
-            return
+    def wait_for_deployment(self, deployment_name: str, timeout: int = 60) -> None:
+        start = time.time()
+        while time.time() - start < timeout:
+            time.sleep(2)
+            response = self.apps_api.read_namespaced_deployment_status(
+                namespace=self.kube_namespace, name=deployment_name
+            )
+            s = response.status
+            if (
+                s.updated_replicas == response.spec.replicas
+                and s.replicas == response.spec.replicas
+                and s.available_replicas == response.spec.replicas
+                and s.observed_generation >= response.metadata.generation
+            ):
+                return
+            else:
+                # print(
+                #     f"[updated_replicas:{s.updated_replicas},replicas:{s.replicas}"
+                #     ",available_replicas:{s.available_replicas},observed_generation:{s.observed_generation}] waiting..."
+                # )
+                pass
 
-    def deploy_service(self, service: data_model.ServiceInput, project_id: str) -> Any:
+        raise DeploymentError(f"Waiting timeout for deployment {deployment_name}")
+
+    def wait_for_job(self, job_name: str, timeout: int = 60) -> None:
+        start = time.time()
+        while time.time() - start < timeout:
+            response = self.batch_api.read_namespaced_job_status(
+                namespace=self.kube_namespace, name=job_name
+            )
+            s = response.status
+            if (s.active and s.active > 0) or (s.succeeded and s.succeeded > 0):
+                return
+
+        raise DeploymentError(f"Waiting timeout for job {job_name}")
+
+    def deploy_service(
+        self, service: data_model.ServiceInput, project_id: str, wait: bool = False
+    ) -> Any:
         normalized_service_name = normalize_service_name(
             project_id=project_id, display_name=service.display_name
         )
@@ -375,15 +412,21 @@ class KubernetesDeploymentManager(ServiceDeploymentManager, JobDeploymentManager
             deployment: V1Deployment = self.apps_api.create_namespaced_deployment(
                 namespace=self.kube_namespace, body=kube_deployment_config
             )
+
+            if wait:
+                self.wait_for_deployment(deployment_name=deployment.metadata.name)
+
         except (ApiException, Exception) as e:
             # Delete service again as the belonging deployment could not be created, but only when status code is not 409 as 409 indicates that the deployment already exists
-            if hasattr(e, "status") and e.status != 409:  # type: ignore
+            if not hasattr(e, "status") or e.status != 409:  # type: ignore
                 try:
                     self.core_api.delete_namespaced_service(
                         namespace=self.kube_namespace, name=normalized_service_name
                     )
                 except ApiException:
                     pass
+
+                # TODO: delete pvc here
 
             raise DeploymentError(
                 f"Could not create namespaced deployment '{service.display_name}' with reason: {e}"
@@ -407,6 +450,8 @@ class KubernetesDeploymentManager(ServiceDeploymentManager, JobDeploymentManager
             except ApiException:
                 pass
 
+            # TODO: delete pvc here
+
             raise DeploymentError(
                 f"Could not transform deployment '{service.display_name}' with reason: {e}"
             )
@@ -414,7 +459,10 @@ class KubernetesDeploymentManager(ServiceDeploymentManager, JobDeploymentManager
         return transformed_service
 
     def delete_service(
-        self, service_id: str, delete_volumes: Optional[bool] = False, retries: int = 0
+        self,
+        service_id: str,
+        delete_volumes: Optional[bool] = False,
+        retries: int = 0,
     ) -> Any:
 
         try:
@@ -452,6 +500,20 @@ class KubernetesDeploymentManager(ServiceDeploymentManager, JobDeploymentManager
                     return False
 
             # TODO: raise exception instead of return?
+
+            # wait some time for the deployment to be deleted
+            start = time.time()
+            timeout = 60
+            while time.time() - start < timeout:
+                try:
+                    self.apps_api.read_namespaced_deployment_status(
+                        namespace=self.kube_namespace, name=service_id
+                    )
+                    time.sleep(2)
+                except ApiException:
+                    # Deployment is deleted
+                    break
+
             return True
         except Exception as e:
             log(e.__repr__())
@@ -476,6 +538,22 @@ class KubernetesDeploymentManager(ServiceDeploymentManager, JobDeploymentManager
         if pod is None:
             return no_logs_message
 
+        # Give some time to let the container within the pod start
+        start = time.time()
+        timeout = 60
+        while True:
+            if pod.status.phase in ["Pending", "ContainerCreating"]:
+                try:
+                    pod = self.get_pod(service_id=service_id)
+                    time.sleep(1)
+                except Exception:
+                    pass
+            else:
+                break
+
+            if time.time() - start > timeout:
+                return no_logs_message
+
         return self.core_api.read_namespaced_pod_log(
             name=pod.metadata.name,
             namespace=self.kube_namespace,
@@ -486,7 +564,7 @@ class KubernetesDeploymentManager(ServiceDeploymentManager, JobDeploymentManager
             else None,
         )
 
-    def cleanup(self):
+    def cleanup(self) -> None:
         raise NotImplementedError
 
     def list_jobs(self, project_id: str) -> Any:
@@ -504,7 +582,7 @@ class KubernetesDeploymentManager(ServiceDeploymentManager, JobDeploymentManager
 
         return [transform_kube_job(job) for job in jobs.items]
 
-    def get_job_metadata(self, job_id: str):
+    def get_job_metadata(self, job_id: str) -> Union[data_model.Service, None]:
         try:
             job: V1Job = self.batch_api.read_namespaced_job(
                 name=job_id, namespace=self.kube_namespace
@@ -516,7 +594,9 @@ class KubernetesDeploymentManager(ServiceDeploymentManager, JobDeploymentManager
     def list_job_deploy_actions(self, job_input: data_model.JobInput) -> Any:
         raise NotImplementedError
 
-    def deploy_job(self, job: data_model.JobInput, project_id: str) -> Any:
+    def deploy_job(
+        self, job: data_model.JobInput, project_id: str, wait: bool = False
+    ) -> Any:
         normalized_service_name = normalize_service_name(
             project_id=project_id, display_name=job.display_name
         )
@@ -541,10 +621,14 @@ class KubernetesDeploymentManager(ServiceDeploymentManager, JobDeploymentManager
         pod_spec.spec.restart_policy = "OnFailure"
 
         _job = V1Job(metadata=metadata, spec=V1JobSpec(template=pod_spec))
-        job = self.batch_api.create_namespaced_job(
+        deployed_job = self.batch_api.create_namespaced_job(
             namespace=self.kube_namespace, body=_job
         )
-        return transform_kube_job(job=job)
+
+        if wait:
+            self.wait_for_job(job_name=deployed_job.metadata.name)
+
+        return transform_kube_job(job=deployed_job)
 
     def delete_job(self, job_id: str) -> Any:
         try:
