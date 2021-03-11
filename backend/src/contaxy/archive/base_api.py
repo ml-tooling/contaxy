@@ -7,7 +7,7 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from starlette.responses import HTMLResponse, RedirectResponse, Response
 
 from contaxy import __version__, data_model
-from contaxy.utils.api_utils import patch_fastapi
+from contaxy.utils.fastapi_utils import patch_fastapi
 
 app = FastAPI()
 
@@ -201,7 +201,7 @@ def open_graphql_voyager() -> Any:
 @app.get(
     "/search",
     operation_id="search_resources",
-    # response_model=data_model.Resource,
+    response_model=data_model.Resource,
     summary="Search resources.",
     # tags=,
     status_code=status.HTTP_200_OK,
@@ -270,6 +270,22 @@ def get_system_statistics() -> Any:
 )
 def list_users() -> Any:
     """Lists all users that are visible to the authenticated user."""
+    raise NotImplementedError
+
+
+@app.post(
+    "/users",
+    operation_id=data_model.CoreOperations.CREATE_USER.value,
+    response_model=data_model.User,
+    summary="Create a user.",
+    tags=["users"],
+    status_code=status.HTTP_200_OK,
+)
+def create_user(user: data_model.UserRegistration) -> Any:
+    """Creates a user.
+
+    If the `password` is not provided, the user can only login by using other methods (social login).
+    """
     raise NotImplementedError
 
 
@@ -406,10 +422,10 @@ def list_api_token(
     status_code=status.HTTP_200_OK,
 )
 def create_token(
-    permission: Optional[List[str]] = Query(
+    scopes: Optional[List[str]] = Query(
         None,
-        title="Permissions",
-        description="Permissions granted to the token. If none specified, the token will be generated with the same permissions as the one used to call this method.",
+        title="Scopes",
+        description="Scopes requested for this token. If none specified, the token will be generated with same set of scopes as the authorized token.",
     ),
     token_type: data_model.TokenType = Query(
         data_model.TokenType.SESSION_TOKEN,
@@ -763,6 +779,8 @@ def create_project(project: data_model.ProjectInput) -> Any:
 
     We suggest to use the `suggest_project_id` endpoint to get a valid and available ID.
     The project ID might also be set manually, however, an error will be returned if it does not comply with the ID requirements or is already used.
+
+    TODO: put method?
     """
     raise NotImplementedError
 
@@ -861,8 +879,9 @@ def delete_project(project_id: str = PROJECT_ID_PARAM) -> Any:
     "/projects/{project_id}/users",
     operation_id=data_model.CoreOperations.LIST_PROJECT_MEMBERS.value,
     summary="List project members.",
+    response_model=List[data_model.User],
     tags=["projects"],
-    status_code=status.HTTP_204_NO_CONTENT,
+    status_code=status.HTTP_200_OK,
 )
 def list_project_members(project_id: str = PROJECT_ID_PARAM) -> Any:
     """Lists all project members.
@@ -876,8 +895,9 @@ def list_project_members(project_id: str = PROJECT_ID_PARAM) -> Any:
     "/projects/{project_id}/users/{user_id}",
     operation_id=data_model.CoreOperations.ADD_PROJECT_MEMBER.value,
     summary="Add user to project.",
+    response_model=List[data_model.User],
     tags=["projects"],
-    status_code=status.HTTP_204_NO_CONTENT,
+    status_code=status.HTTP_200_OK,
 )
 def add_project_member(
     project_id: str = PROJECT_ID_PARAM,
@@ -904,8 +924,9 @@ def add_project_member(
     "/projects/{project_id}/users/{user_id}",
     operation_id=data_model.CoreOperations.REMOVE_PROJECT_MEMBER.value,
     summary="Remove user from project.",
+    response_model=List[data_model.User],
     tags=["projects"],
-    status_code=status.HTTP_204_NO_CONTENT,
+    status_code=status.HTTP_200_OK,
 )
 def remove_project_member(
     project_id: str = PROJECT_ID_PARAM, user_id: str = USER_ID_PARAM
@@ -1016,7 +1037,6 @@ def list_deploy_service_actions(
     summary="Deploy a service.",
     tags=["services"],
     status_code=status.HTTP_200_OK,
-    responses={**OPEN_URL_REDIRECT},
 )
 def deploy_service(
     service: data_model.ServiceInput,
@@ -1237,7 +1257,7 @@ def suggest_job_config(
     status_code=status.HTTP_200_OK,
 )
 def list_deploy_job_actions(
-    service: data_model.JobInput,
+    job: data_model.JobInput,
     project_id: str = PROJECT_ID_PARAM,
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
@@ -1262,14 +1282,14 @@ def list_deploy_job_actions(
 @app.post(
     "/projects/{project_id}/jobs",
     operation_id=data_model.ExtensibleOperations.DEPLOY_JOB.value,
-    response_model=data_model.JobInput,
+    response_model=data_model.Job,
     summary="Deploy a job.",
     tags=["jobs"],
     status_code=status.HTTP_200_OK,
     responses={**OPEN_URL_REDIRECT},
 )
 def deploy_job(
-    job: data_model.Job,
+    job: data_model.JobInput,
     project_id: str = PROJECT_ID_PARAM,
     action_id: Optional[str] = Query(
         None,
@@ -1546,16 +1566,16 @@ def get_extension_defaults(
 )
 def list_files(
     project_id: str = PROJECT_ID_PARAM,
-    prefix: Optional[str] = Query(
-        None,
-        description="Filter results to include only files whose names begin with this prefix.",
-    ),
     recursive: Optional[bool] = Query(
         True, description="Include all content of subfolders."
     ),
     include_versions: Optional[bool] = Query(
         False,
         description="Include all versions of all files.",
+    ),
+    prefix: Optional[str] = Query(
+        None,
+        description="Filter results to include only files whose names begin with this prefix.",
     ),
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
 ) -> Any:
@@ -1660,7 +1680,7 @@ def update_file_metadata(
 @app.get(
     "/projects/{project_id}/files/{file_key:path}:download",
     operation_id=data_model.ExtensibleOperations.DOWNLOAD_FILE.value,
-    response_model=data_model.File,
+    # TODO: response_model?
     summary="Download a file.",
     tags=["files"],
     status_code=status.HTTP_200_OK,

@@ -50,6 +50,9 @@ setup(
         "pydantic",
         "fastapi",
         "uvicorn",
+        "addict",
+        # Better logging
+        "loguru",
         # Required by fastapi.security OAuth2PasswordBearer & fastapi.UploadFile for example
         "python-multipart",
         # Used for jwt handling
@@ -58,8 +61,10 @@ setup(
         "passlib[bcrypt]",
         # Email validation with pydantic
         "email-validator",
-        # GraphQL support
-        "graphene",
+        # TODO: GraphQL support - remove
+        # "graphene",
+        # TODO: Dev only - timing
+        "fastapi-utils",
     ],
     # deprecated: dependency_links=dependency_links,
     extras_require={

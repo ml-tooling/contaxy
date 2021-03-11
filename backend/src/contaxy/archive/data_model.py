@@ -15,6 +15,7 @@ from pydantic import (
     constr,
 )
 from pydantic.errors import DateError
+from pydantic.networks import stricturl
 
 MIN_DISPLAY_NAME_LENGTH = 4
 MAX_DISPLAY_NAME_LENGTH = 30
@@ -57,6 +58,7 @@ class CoreOperations(str, Enum):
     UPDATE_USER = "update_user"
     DELETE_USER = "delete_user"
     GET_USER_TOKEN = "get_user_token"
+    CREATE_USER = "create_user"
     # Auth Endpoints
     REFRESH_TOKEN = "refresh_token"
     VERIFY_TOKEN = "verify_token"
@@ -190,16 +192,16 @@ class ContainerOrchestrator(str, Enum):
 class DeploymentStatus(str, Enum):
     # Deployment created, but not ready for usage
     PENDING = "pending"  # Alternative naming: waiting
-    # Deployment is running.
+    # Deployment is running and usable
     RUNNING = "running"
-    # Deployment is paused (only on docker?)/
-    PAUSED = "paused"
     # Deployment was stopped with successful exit code (== 0).
     SUCCEEDED = "succeeded"
     # Deployment was stopped with failure exit code (> 0).
     FAILED = "failed"
     # Deployment state cannot be obtained.
     UNKNOWN = "unknown"
+    # Deployment is paused (only on docker?)/
+    # PAUSED = "paused"
     # Other possible options:
     # KILLED = "killed"
     # STARTING("starting"),
@@ -324,6 +326,86 @@ class TokenIntrospection(BaseModel):
     )
 
 
+class ResourceInput(BaseModel):
+    display_name: Optional[str] = Field(
+        None,
+        max_length=128,
+        description="A user-defined human-readable name of the resource. The name can be up to 128 characters long and can consist of any UTF-8 character.",
+    )
+    description: Optional[str] = Field(
+        None,
+        # TODO: max_length restriction
+        description="A user-defined short description about the resource. Can consist of any UTF-8 character.",
+    )
+    icon: Optional[str] = Field(
+        None,
+        description="Identifier or image URL used for displaying this resource.",
+    )
+    metadata: Optional[Dict[str, str]] = Field(
+        None,
+        example={"additional-metadata": "value"},
+        description="A collection of arbitrary key-value pairs associated with this resource that does not need predefined structure. Enable third-party integrations to decorate objects with additional metadata for their own use.",
+    )
+    tags: Optional[List[str]] = Field(
+        None,
+        description="List of tags associated with this resource.",
+    )
+    disabled: Optional[bool] = Field(
+        None,
+        description="Allows to disable a resource without requiring deletion. A disabled resource is not shown and not accessible.",
+    )
+
+
+class ResourceBasics(BaseModel):
+    id: Optional[str] = Field(
+        None,
+        example="ac9ldprwdi68oihk34jli3kdp",
+        description="Resource ID. Identifies a resource in a given context and time, for example, in combination with its type. Used in API operations and/or configuration files.",
+    )
+    name: Optional[str] = Field(
+        None,
+        example="resources/ac9ldprwdi68oihk34jli3kdp",
+        description="Resource Name. A relative URI-path that uniquely identifies a resource within the system. Assigned by the server and read-only.",
+    )
+    kind: Optional[str] = Field(
+        None,
+        example="resources",
+        description="Resource Type (Schema). Identifies what kind of resource this is. Assigned by the server and read-only.",
+    )
+    created_at: Optional[datetime] = Field(
+        None,
+        description="Timestamp of the resource creation. Assigned by the server and read-only.",
+    )
+    created_by: Optional[str] = Field(
+        None,
+        example="resources/ac9ldprwdi68oihk34jli3kdp",
+        description="Resource name of the entity responsible for the creation of this resource. Assigned by the server and read-only.",
+    )
+    updated_at: Optional[datetime] = Field(
+        None,
+        description="Timestamp of the last resource modification. Is updated when create/patch/delete operation is performed. Assigned by the server and read-only.",
+    )
+    updated_by: Optional[str] = Field(
+        None,
+        example="resources/ac9ldprwdi68oihk34jli3kdp",
+        description="Resource name of the entity responsible for the last modification of this resource. Assigned by the server and read-only.",
+    )
+    # TODO: v2
+    # global_id: Optional[str] = Field(
+    #    None,
+    #    description="Globally unique ID of this resource.",
+    # )
+    # TODO: v2
+    # deleted_at: Optional[datetime] = Field(
+    #    None,
+    #    description="Timestamp when the resource should be deleted.",
+    # )
+
+
+class Resource(ResourceInput, ResourceBasics):
+    pass
+
+
 class BaseEntity(BaseModel):
     class Config:
         anystr_strip_whitespace = True
@@ -371,10 +453,16 @@ class UserInput(BaseEntity):
         False,
         description="Indicates that user is disabled. Disabling a user will prevent any access to user-accesible resources.",
     )
-    # TODO: never return a password
+
+
+class UserRegistration(UserInput):
+    # The password is only part of the user input object and should never returned
     # TODO: a password can only be changed when used via oauth password bearer
     # TODO: System admin can change passwords for all users
-    password: Optional[SecretStr] = None
+    password: Optional[SecretStr] = Field(
+        ...,
+        description="Password for the user. The password will be stored in as a hash.",
+    )
 
 
 class User(UserInput):
@@ -681,27 +769,29 @@ class DeploymentInput(BaseEntity):
         example={"TEST_PARAM": "param-value"},
         description="Parmeters (enviornment variables) for this deployment.",
     )
-    input_files: Optional[List[dict]] = Field(
-        None,
-        description="A list of files that should be added to the deployment.",
-    )
+    # TODO: v2
+    # input_files: Optional[List[dict]] = Field(
+    #    None,
+    #    description="A list of files that should be added to the deployment.",
+    # )
     compute: Optional[DeploymentCompute] = Field(
         None,
         description="Compute instructions and limitations for this deployment.",
     )
     command: Optional[str] = Field(
         None,
-        description="Command to run within the deployment. This overwrites the existing command.",
+        description="Command to run within the deployment. This overwrites the existing entrypoint.",
     )
-    command_args: Optional[List[str]] = Field(
-        None,
-        description="Arguments to use for the command of the deployment. This overwrites the existing arguments.",
-    )
+    # TODO: v2
+    # command_args: Optional[List[str]] = Field(
+    #    None,
+    #    description="Arguments to use for the command of the deployment. This overwrites the existing arguments.",
+    # )
     requirements: Optional[List[Union[DeploymentRequirement, str]]] = Field(
         None,
-        description="Additional requirements for deployment.",
+        description="Additional deployment manager specific requirements for deployment.",
     )
-    additional_metadata: Optional[Dict[str, str]] = Field(
+    metadata: Optional[Dict[str, str]] = Field(
         None,
         example={"additional-metadata": "value"},
         description="Additional key-value metadata for this deployment.",
@@ -761,16 +851,18 @@ class Deployment(DeploymentInput):
         example="73d247087fea5bfb3a67e98da6a07f5bf4e2a90e5b52f3c12875a35600818376",
         description="The ID of the deployment on the orchestration platform.",
     )
-    deployment_labels: Optional[Dict[str, str]] = Field(
-        None,
-        example={"foo.bar.label": "label-value"},
-        description="The labels of the deployment on the orchestration platform.",
-    )
-    exit_code: Optional[int] = Field(
-        None,
-        example=0,
-        description="The Exit code of the container, in case the container was stopped.",
-    )
+    # TODO: All labels should be transformed into the metadata or additional_metadata
+    # deployment_labels: Optional[Dict[str, str]] = Field(
+    #    None,
+    #    example={"foo.bar.label": "label-value"},
+    #    description="The labels of the deployment on the orchestration platform.",
+    # )
+    # TODO: should be a debug information.
+    # exit_code: Optional[int] = Field(
+    #    None,
+    #    example=0,
+    #    description="The Exit code of the container, in case the container was stopped.",
+    # )
 
 
 class ServiceInput(DeploymentInput):
@@ -793,10 +885,11 @@ class Service(Deployment, ServiceInput):
         example="8080/healthz",
         description="The endpoint instruction that can be used for checking the deployment health.",
     )
-    healthy: Optional[bool] = Field(
-        True,
-        description="Indicates if the deployment is healthy.",
-    )
+    # TODO: v2
+    # healthy: Optional[bool] = Field(
+    #    True,
+    #    description="Indicates if the deployment is healthy.",
+    # )
 
 
 class JobInput(DeploymentInput):
@@ -888,7 +981,7 @@ class FileInput(BaseEntity):
         None,
         description="Tags associated with this file.",
     )
-    additional_metadata: Optional[Dict[str, str]] = Field(
+    metadata: Optional[Dict[str, str]] = Field(
         None,
         example={"additional-metadata": "value"},
         description="Additional key-value metadata for this file.",
@@ -1174,7 +1267,7 @@ class JsonDocument(BaseEntity):
         example="my-json-document",
         description="Unique key of the document.",
     )
-    json_value: Json = Field(
+    json_value: str = Field(
         ...,
         example="{'foo': 'bar'}",
         description="JSON value of the document.",

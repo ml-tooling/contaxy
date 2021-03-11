@@ -4,5 +4,3 @@ from . import _about
 __version__ = _about.__version__
 
 # All imports below
-
-from .main import app
