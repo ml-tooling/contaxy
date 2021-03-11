@@ -14,11 +14,13 @@ target/
 .classpath
 # Shared VS Code Settings
 .vscode/*
+**/.vscode/*
 !.vscode/README.md
 !.vscode/recommended-settings.json
 !.vscode/recommended-tasks.json
 !.vscode/recommended-launch.json
 !.vscode/extensions.json
+
 # Ignore all local history of files
 **/.history
 
