@@ -68,7 +68,7 @@ class KubernetesDeploymentManager(ServiceDeploymentManager, JobDeploymentManager
                 ) as namespace_file:
                     self.kube_namespace = namespace_file.read()
             except FileNotFoundError:
-                raise Exception("Could not detect the Kubernetes Namespace")
+                raise RuntimeError("Could not detect the Kubernetes Namespace")
         else:
             self.kube_namespace = kube_namespace
         # TODO: when we have performance problems in the future, replicate the watch logic from JupyterHub KubeSpawner to keep Pod & other resource information in memory? (see https://github.com/jupyterhub/kubespawner/blob/941585f0f7acb0f366c9979b6274b7f47356a630/kubespawner/reflector.py#L238)
@@ -106,18 +106,10 @@ class KubernetesDeploymentManager(ServiceDeploymentManager, JobDeploymentManager
             ]
         )
 
-        #         services = self.client.list_namespaced_service(
-        #             namespace=self.kube_namespace,
-        #             label_selector=label_selector
-        #         )
-
         deployments: V1DeploymentList = self.apps_api.list_namespaced_deployment(
             namespace=self.kube_namespace, label_selector=label_selector
         )
 
-        #         deployments_by_name = {x.metadata.name:x for x in deployments}
-
-        #         return [transform_kube_service(service, deployments_by_name[service.metadata.name]) for service in services]
         return [transform_kube_service(deployment) for deployment in deployments.items]
 
     def get_service_metadata(self, service_id: str) -> Any:
@@ -472,7 +464,7 @@ class KubernetesDeploymentManager(ServiceDeploymentManager, JobDeploymentManager
                 propagation_policy="Foreground",
             )
             if status.status == "Failure":
-                raise DeploymentError(
+                raise RuntimeError(
                     f"Could not delete Kubernetes service for service-id {service_id}"
                 )
 
@@ -482,11 +474,13 @@ class KubernetesDeploymentManager(ServiceDeploymentManager, JobDeploymentManager
                 propagation_policy="Foreground",
             )
             if status.status == "Failure":
-                log(
+                # log(
+                #     f"Could not delete Kubernetes deployment for service-id {service_id}"
+                # )
+
+                raise RuntimeError(
                     f"Could not delete Kubernetes deployment for service-id {service_id}"
                 )
-                return False
-                # raise Exception(f"Could not delete Kubernetes deployment for service-id {service_id}")
 
             if delete_volumes:
                 status = self.core_api.delete_namespaced_persistent_volume_claim(
@@ -494,12 +488,12 @@ class KubernetesDeploymentManager(ServiceDeploymentManager, JobDeploymentManager
                 )
                 if status.status == "Failure":
                     # TODO: if we work with a queue system, then add it to a deletion queue
-                    log(
+                    # log(
+                    #     f"Could not delete Kubernetes Persistent Volume Claim for service-id {service_id}"
+                    # )
+                    raise RuntimeError(
                         f"Could not delete Kubernetes Persistent Volume Claim for service-id {service_id}"
                     )
-                    return False
-
-            # TODO: raise exception instead of return?
 
             # wait some time for the deployment to be deleted
             start = time.time()
@@ -519,8 +513,13 @@ class KubernetesDeploymentManager(ServiceDeploymentManager, JobDeploymentManager
             log(e.__repr__())
             # TODO: add resources to delete to a queue instead of deleting directly? This would have the advantage that even if an operation failes, it is repeated. Also, if the delete endpoint is called multiple times, it is only added once to the queue
             if retries < max_retries:
-                return self.delete_service(service_id=service_id, retries=retries + 1)
-            return False
+                try:
+                    return self.delete_service(
+                        service_id=service_id, retries=retries + 1
+                    )
+                except Exception:
+                    pass
+            raise RuntimeError(f"Could not delete service after {max_retries} retries.")
 
     def get_service_logs(
         self,

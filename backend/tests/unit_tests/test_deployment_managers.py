@@ -3,7 +3,7 @@ import time
 from typing import Any, Generator, Union
 
 import pytest
-from kubernetes.client.models import V1Namespace, V1Status
+from kubernetes.client.models import V1Namespace
 from kubernetes.client.rest import ApiException
 
 from contaxy.data_model import DeploymentType, JobInput, ServiceInput
@@ -82,7 +82,11 @@ class DockerTestHandler:
         )
 
     def deploy_job(self, job: JobInput, project_id: str) -> Any:
-        return self.deployment_manager.deploy_job(job=job, project_id=project_id)
+        deployed_job = self.deployment_manager.deploy_job(
+            job=job, project_id=project_id
+        )
+        time.sleep(3)
+        return deployed_job
 
 
 class KubeTestHandler:
@@ -104,15 +108,9 @@ class KubeTestHandler:
         if self.deployment_manager is None:
             return
 
-        status: V1Status = self.deployment_manager.core_api.delete_namespace(
+        self.deployment_manager.core_api.delete_namespace(
             setup_id, propagation_policy="Foreground"
         )
-
-        # if status.code != 200:
-        #     # Try again
-        #     self.deployment_manager.core_api.delete_namespace(
-        #         setup_id, propagation_policy="Foreground"
-        #     )
 
         start = time.time()
         timeout = 60

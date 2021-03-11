@@ -81,6 +81,7 @@ setup(
             "lazydocs",
             # Todo: Move to required when necessary
             "docker",
+            "universal-build",
         ],
     },
     include_package_data=True,

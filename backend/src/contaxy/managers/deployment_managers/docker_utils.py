@@ -86,6 +86,7 @@ def create_network(
     client: docker.client, name: str, labels: Dict[str, str]
 ) -> docker.models.networks.Network:
     """Create a new network to put the new container into it.
+
     Containers are separated by networks to prevent them from seeing each other.
     Determine whether a new subnet has to be used. Otherwise, the default Docker subnet would be used
     and, as a result, the amount of networks that can be created is strongly limited.
@@ -97,6 +98,7 @@ def create_network(
         network_labels (Dict[str, str]): labels that will be attached to the network
     Raises:
         docker.errors.APIError: Thrown by `docker.client.networks.create` upon error.
+
     Returns:
         docker.Network: the newly created network or the existing network with the given name
 
@@ -133,7 +135,7 @@ def create_network(
         (highest_cidr.network_address + 256).exploded + "/24"
     )
     if next_cidr.network_address.packed[0] > INITIAL_CIDR_FIRST_OCTET:
-        raise Exception("No more possible subnet addresses exist")
+        raise RuntimeError("No more possible subnet addresses exist")
 
     log(f"Create network {name} with subnet {next_cidr.exploded}")
     ipam_pool = docker.types.IPAMPool(

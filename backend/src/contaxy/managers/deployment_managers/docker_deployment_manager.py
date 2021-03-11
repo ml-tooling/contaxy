@@ -298,7 +298,7 @@ class DockerDeploymentManager(ServiceDeploymentManager, JobDeploymentManager):
 
         try:
             container.stop()
-        except docker.errors.APIError as ignore:
+        except docker.errors.APIError:
             pass
 
         container.remove(v=delete_volumes)
@@ -348,7 +348,6 @@ class DockerDeploymentManager(ServiceDeploymentManager, JobDeploymentManager):
     def list_job_deploy_actions(self, job: data_model.JobInput) -> Any:
         return self.list_service_deploy_actions(service=job)
 
-    # TODO: job must be of type data_model.JobInput
     def deploy_job(self, job: data_model.JobInput, project_id: str) -> Any:
         container_config = self.create_container_config(
             service=job, project_id=project_id

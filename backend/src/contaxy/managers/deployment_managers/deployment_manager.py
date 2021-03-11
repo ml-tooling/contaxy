@@ -12,7 +12,7 @@ class ServiceDeploymentManager(ABC):
         raise NotImplementedError
 
     def suggest_service_config(self, project_id: str, container_image: str) -> Any:
-        """Manager independent"""
+        """Manager independent."""
         raise NotImplementedError
 
     @abstractmethod
@@ -54,11 +54,11 @@ class ServiceDeploymentManager(ABC):
         raise NotImplementedError
 
     def list_service_actions(self, project_id: str, service_id: str) -> Any:
-        """Manager independent"""
+        """Manager independent."""
         return []
 
     def execute_service_action(self, project_id: str, service_id: str) -> Any:
-        """Manager independent"""
+        """Manager independent."""
         raise ValueError("Action not supported")
 
     def hello(self) -> str:
@@ -70,11 +70,11 @@ class JobDeploymentManager(ABC):
     def list_jobs(self, project_id: str) -> Any:
         raise NotImplementedError
 
-    def get_job_metadata(self, job_id: str):
+    def get_job_metadata(self, job_id: str) -> Any:
         raise NotImplementedError
 
     def suggest_job_config(self, project_id: str, container_image: str) -> Any:
-        """manager Independent"""
+        """Manager independent."""
         raise NotImplementedError
 
     @abstractmethod
