@@ -19,7 +19,7 @@ from .utils import (
     DEFAULT_DEPLOYMENT_ACTION_ID,
     HOST_DATA_ROOT_PATH,
     NAMESPACE,
-    ComputeRessourcesError,
+    ComputeResourcesError,
     DeploymentError,
     Labels,
     get_label_string,
@@ -62,7 +62,7 @@ class DockerDeploymentManager(ServiceDeploymentManager, JobDeploymentManager):
             self.check_minimal_resources(
                 min_cpus=min_cpus, min_memory=min_memory, min_gpus=min_gpus
             )
-        except ComputeRessourcesError:
+        except ComputeResourcesError:
             return []
 
         return [
@@ -105,15 +105,15 @@ class DockerDeploymentManager(ServiceDeploymentManager, JobDeploymentManager):
         compute_resources: data_model.DeploymentCompute = None,
     ):
         if min_cpus > self.system_cpu_count:
-            raise ComputeRessourcesError(
+            raise ComputeResourcesError(
                 f"The minimal amount of cpus of {min_cpus} cannot be fulfilled as the system has only {self.system_cpu_count} cpus."
             )
         if min_memory > self.system_memory_in_mb:
-            raise ComputeRessourcesError(
+            raise ComputeResourcesError(
                 f"The minimal amount of memory of {min_memory}MB cannot be fulfilled as the system has only {self.system_memory_in_mb}MB memory"
             )
         if min_gpus > self.system_gpu_count:
-            raise ComputeRessourcesError(
+            raise ComputeResourcesError(
                 f"The minimal amount of gpus of {min_gpus} cannot be fulfilled as the system has only {self.system_gpu_count} gpus."
             )
 
@@ -121,7 +121,7 @@ class DockerDeploymentManager(ServiceDeploymentManager, JobDeploymentManager):
             return
 
         if compute_resources.min_replicas is not None:
-            raise ComputeRessourcesError("Replicas are not supported in Docker-mode")
+            raise ComputeResourcesError("Replicas are not supported in Docker-mode")
 
     def define_mounts(
         self,

@@ -78,7 +78,7 @@ class JobDeploymentManager(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def list_job_deploy_actions(self, service: data_model.JobInput) -> Any:
+    def list_job_deploy_actions(self, job_input: data_model.JobInput) -> Any:
         raise NotImplementedError
 
     @abstractmethod
