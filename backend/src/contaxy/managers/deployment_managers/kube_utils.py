@@ -3,7 +3,7 @@ from typing import Any, Dict, List, Tuple, Union
 from kubernetes.client.models import V1Deployment, V1Job
 
 from ... import data_model
-from .utils import Labels, get_label_string
+from .utils import Labels, get_label_string, map_labels
 
 
 def get_label_selector(label_pairs: List[Tuple[str, str]]) -> str:
@@ -15,7 +15,7 @@ def get_label_selector(label_pairs: List[Tuple[str, str]]) -> str:
 def transform_deployment(deployment: Union[V1Deployment, V1Job]) -> Dict[str, Any]:
     # We assume a 1:1 mapping between deployment/pod & containers
     container = deployment.spec.template.spec.containers[0]
-    labels = deployment.metadata.labels
+    labels = map_labels(deployment.metadata.labels)
 
     resources = container.resources
     compute_resources = data_model.DeploymentCompute(
@@ -24,8 +24,8 @@ def transform_deployment(deployment: Union[V1Deployment, V1Job]) -> Dict[str, An
         min_memory=resources.requests["memory"].replace("M", ""),  # / 1000 / 1000,
         max_memory=resources.limits["memory"].replace("M", ""),  # / 1000 / 1000,
         max_gpus=None,  # TODO: fill with sensible information - where to get it from?
-        min_lifetime=labels.get(Labels.MIN_LIFETIME.value),
-        volume_Path=labels.get(Labels.VOLUME_PATH.value),
+        min_lifetime=labels.min_lifetime,
+        volume_Path=labels.volume_path,
         # TODO: add max_volume_size, max_replicas
     )
 
@@ -63,16 +63,18 @@ def transform_deployment(deployment: Union[V1Deployment, V1Job]) -> Dict[str, An
         "command": container.command[0]
         if container.command is not None and len(container.command) > 0
         else "",
+        "additional_metadata": labels.additional_metadata,
         "compute": compute_resources,
-        "deployment_labels": labels,
-        "deployment_type": labels.get(Labels.DEPLOYMENT_TYPE.value),
-        "description": labels.get(Labels.DESCRIPTION.value),
+        "deployment_type": labels.deployment_type,
+        "description": labels.description,
         # TODO: replicase __ logic => use annotations instead of labels for all metadata that we don't use for filtering
-        "display_name": labels.get(Labels.DISPLAY_NAME.value).replace("__", " "),
-        "endpoints": labels.get(Labels.ENDPOINTS.value),
+        "display_name": labels.display_name.replace("__", " ")
+        if labels.display_name
+        else "",
+        "endpoints": labels.endpoints,
         # TODO: exit_code can only be queried on pod-level, but what if there are multiple replicas?
         # "exit_code": container.attrs.get("State", {}).get("ExitCode", -1),
-        "icon": labels.get(Labels.ICON.value),
+        "icon": labels.icon,
         "id": deployment.metadata.name,
         "internal_id": deployment.metadata.name,
         "parameters": parameters,
@@ -82,7 +84,9 @@ def transform_deployment(deployment: Union[V1Deployment, V1Job]) -> Dict[str, An
     }
 
 
-def transform_kube_service(deployment: V1Deployment,) -> data_model.Service:
+def transform_kube_service(
+    deployment: V1Deployment,
+) -> data_model.Service:
     transformed_deployment = transform_deployment(deployment=deployment)
     return data_model.Service(**transformed_deployment)
 

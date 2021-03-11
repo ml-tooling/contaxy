@@ -316,7 +316,12 @@ class DockerDeploymentManager(ServiceDeploymentManager, JobDeploymentManager):
         except docker.errors.NotFound:
             return ""
 
-        return container.logs(tail=lines or "all", since=since)
+        logs = container.logs(tail=lines or "all", since=since)
+
+        if logs:
+            logs = logs.decode("utf-8")
+
+        return logs
 
     def cleanup(self) -> Any:
         # Remove all unused networks belonging to this namespace (to prevent removing networks handled by other applications)
@@ -363,4 +368,3 @@ class DockerDeploymentManager(ServiceDeploymentManager, JobDeploymentManager):
         self, job_id: str, lines: Optional[int] = None, since: Optional[datetime] = None
     ) -> Any:
         return self.get_service_logs(service_id=job_id, lines=lines, since=since)
-

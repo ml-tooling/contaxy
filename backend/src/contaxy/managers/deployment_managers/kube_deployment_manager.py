@@ -136,6 +136,8 @@ class KubernetesDeploymentManager(ServiceDeploymentManager, JobDeploymentManager
         service_ports: Dict[str, V1ServicePort] = {}
         if service.endpoints:
             for endpoint in service.endpoints:
+
+                # TODO: put this logic into utils and share with the DockerDeploymentManager
                 # An endpoint can be in the form of one of the examples ["8080", "9001/webapp/ui", "9002b"]. See the Contaxy endpoint docs <LINK> for more information.
                 port_number = endpoint.split("/")[0].replace("b", "")
 
@@ -144,7 +146,7 @@ class KubernetesDeploymentManager(ServiceDeploymentManager, JobDeploymentManager
                     continue
 
                 service_port = V1ServicePort(
-                    name=port_number, protocol="TCP", port=port_number
+                    name=port_number, protocol="TCP", port=int(port_number)
                 )
                 service_ports[port_number] = service_port
 
@@ -184,7 +186,7 @@ class KubernetesDeploymentManager(ServiceDeploymentManager, JobDeploymentManager
         # TODO: check default values and store them globally probably!
         min_cpus = compute_resources.min_cpus or 0
         max_cpus = compute_resources.max_cpus or 1
-        min_memory = compute_resources.min_memory or 0
+        min_memory = compute_resources.min_memory or 5
         max_memory = compute_resources.max_memory or 100
         max_container_size = compute_resources.max_container_size or 100
         resource_requirements = V1ResourceRequirements(
@@ -251,6 +253,7 @@ class KubernetesDeploymentManager(ServiceDeploymentManager, JobDeploymentManager
         compute_resources = service.compute or data_model.DeploymentCompute()
         # ---
         min_lifetime = compute_resources.min_lifetime or 0
+        additional_metadata = service.additional_metadata or {}
         metadata = V1ObjectMeta(
             namespace=self.kube_namespace,
             name=service_id,
@@ -264,7 +267,8 @@ class KubernetesDeploymentManager(ServiceDeploymentManager, JobDeploymentManager
                 Labels.PROJECT_NAME.value: project_id,
                 Labels.DEPLOYMENT_NAME.value: service_id,
                 Labels.DEPLOYMENT_TYPE.value: data_model.DeploymentType.SERVICE.value,
-            },  # service.deployment_labels
+                **additional_metadata,
+            },
         )
 
         # ---

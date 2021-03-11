@@ -1,5 +1,6 @@
 import os
 from enum import Enum
+from typing import Optional
 
 APP_NAME = "contaxy"
 APP_NAME_UPPER = APP_NAME.upper()
@@ -28,6 +29,17 @@ class Labels(Enum):
     PROJECT_NAME = f"{APP_NAME}.projectName"
     REQUIREMENTS = f"{APP_NAME}.requirements"
     VOLUME_PATH = f"{APP_NAME}.volumePath"
+
+
+class MappedLabels:
+    deployment_type: Optional[str] = None
+    description: Optional[str] = None
+    display_name: Optional[str] = None
+    endpoints: Optional[str] = None
+    icon: Optional[str] = None
+    min_lifetime: Optional[int] = None
+    volume_path: Optional[str] = None
+    additional_metadata: Optional[dict] = None
 
 
 class ComputeResourcesError(Exception):
@@ -60,5 +72,36 @@ def get_label_string(key: str, value: str) -> str:
     return f"{key}={value}"
 
 
-def log(string: str):
+def log(string: str) -> None:
     print(string)
+
+
+def map_labels(labels: dict) -> MappedLabels:
+    _labels = dict.copy(labels)
+    mapped_labels = MappedLabels()
+
+    if Labels.DEPLOYMENT_TYPE.value in _labels:
+        mapped_labels.deployment_type = _labels.get(Labels.DEPLOYMENT_TYPE.value)
+        del _labels[Labels.DEPLOYMENT_TYPE.value]
+    if Labels.DESCRIPTION.value in _labels:
+        mapped_labels.description = _labels.get(Labels.DESCRIPTION.value)
+        del _labels[Labels.DESCRIPTION.value]
+    if Labels.DISPLAY_NAME.value in _labels:
+        mapped_labels.display_name = _labels.get(Labels.DISPLAY_NAME.value)
+        del _labels[Labels.DISPLAY_NAME.value]
+    if Labels.ENDPOINTS.value in _labels:
+        mapped_labels.endpoints = _labels.get(Labels.ENDPOINTS.value, "").split(",")
+        del _labels[Labels.ENDPOINTS.value]
+    if Labels.ICON.value in _labels:
+        mapped_labels.icon = _labels.get(Labels.ICON.value)
+        del _labels[Labels.ICON.value]
+    if Labels.MIN_LIFETIME.value in _labels:
+        mapped_labels.min_lifetime = _labels.get(Labels.MIN_LIFETIME.value)
+        del _labels[Labels.MIN_LIFETIME.value]
+    if Labels.VOLUME_PATH.value in _labels:
+        mapped_labels.volume_path = _labels.get(Labels.VOLUME_PATH.value)
+        del _labels[Labels.VOLUME_PATH.value]
+
+    mapped_labels.additional_metadata = _labels
+
+    return mapped_labels

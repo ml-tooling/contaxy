@@ -6,7 +6,7 @@ from typing import Any, Dict
 import docker
 
 from ... import data_model
-from .utils import Labels, log
+from .utils import log, map_labels
 
 # we create networks in the range of 172.33-255.0.0/24
 # Docker by default uses the range 172.17-32.0.0, so we should be save using that range
@@ -18,13 +18,15 @@ INITIAL_CIDR = f"{INITIAL_CIDR_FIRST_OCTET}.{INITIAL_CIDR_SECOND_OCTET}.0.0/24"
 def transform_container(
     container: docker.models.containers.Container,
 ) -> Dict[str, Any]:
+    labels = map_labels(container.labels)
+
     host_config = container.attrs["HostConfig"]
     compute_resources = data_model.DeploymentCompute(
         max_cpus=host_config["NanoCpus"] / 1e9,
         max_memory=host_config["Memory"] / 1000 / 1000,
         max_gpus=None,  # TODO: fill with sensible information - where to get it from?
-        min_lifetime=container.labels.get(Labels.MIN_LIFETIME.value),
-        volume_Path=container.labels.get(Labels.VOLUME_PATH.value),
+        min_lifetime=labels.min_lifetime,
+        volume_Path=labels.volume_path,
         # TODO: add max_volume_size, max_replicas
     )
 
@@ -47,39 +49,17 @@ def transform_container(
         container.attrs.get("Config", {}).get("Env", [])
     )  # dict([x for x in [container_env.split("=") for container_env in container_envs]])
 
-    labels = dict.copy(container.labels)
-    deployment_type = None
-    description = None
-    display_name = None
-    endpoints = None
-    icon = None
-    if Labels.DEPLOYMENT_TYPE.value in labels:
-        deployment_type = labels.get(Labels.DEPLOYMENT_TYPE.value)
-        del labels[Labels.DEPLOYMENT_TYPE.value]
-    if Labels.DESCRIPTION.value in labels:
-        description = labels.get(Labels.DESCRIPTION.value)
-        del labels[Labels.DESCRIPTION.value]
-    if Labels.DISPLAY_NAME.value in labels:
-        display_name = labels.get(Labels.DISPLAY_NAME.value)
-        del labels[Labels.DISPLAY_NAME.value]
-    if Labels.ENDPOINTS.value in labels:
-        endpoints = labels.get(Labels.ENDPOINTS.value, "").split(",")
-        del labels[Labels.ENDPOINTS.value]
-    if Labels.ICON.value in labels:
-        icon = labels.get(Labels.ICON.value)
-        del labels[Labels.ICON.value]
-
     return {
         "container_image": container.image.tags[0],
         "command": " ".join(container.attrs.get("Args", [])),
         "compute": compute_resources,
-        "additional_metadata": labels,
-        "deployment_type": deployment_type,
-        "description": description,
-        "display_name": display_name,
-        "endpoints": endpoints,
+        "additional_metadata": labels.additional_metadata,
+        "deployment_type": labels.deployment_type,
+        "description": labels.description,
+        "display_name": labels.display_name,
+        "endpoints": labels.endpoints,
         #         "exit_code": container.attrs.get("State", {}).get("ExitCode", -1),
-        "icon": icon,
+        "icon": labels.icon,
         "id": container.id,
         "internal_id": container.id,
         "parameters": parameters,
