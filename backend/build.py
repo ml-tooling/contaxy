@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 from universal_build import build_utils
 from universal_build.helpers import build_python
@@ -8,6 +9,9 @@ MAIN_PACKAGE = "contaxy"
 GITHUB_URL = "https://github.com/ml-tooling/contaxy"
 
 HERE = os.path.abspath(os.path.dirname(__file__))
+
+STRESS_TEST_MARKER = "stress"
+INTEGRATION_TEST_MARKER = "integration"
 
 
 def main(args: dict) -> None:
@@ -20,13 +24,18 @@ def main(args: dict) -> None:
         # Update version in _about.py
         build_python.update_version(
             os.path.join(HERE, f"src/{MAIN_PACKAGE}/_about.py"),
-            str(version),
+            build_utils._Version.get_pip_compatible_string(str(version)),
             exit_on_error=True,
         )
 
     if args.get(build_utils.FLAG_MAKE):
         # Install pipenv dev requirements
         build_python.install_build_env(exit_on_error=True)
+
+        # Generate the OpenAPI spec so that clients can be generated
+        swagger_path = f"src/{MAIN_PACKAGE}/generate-openapi-specs.py"
+        build_utils.run(f"pipenv run python {swagger_path}")
+
         # Create API documentation via lazydocs
         build_python.generate_api_docs(
             github_url=GITHUB_URL, main_package=MAIN_PACKAGE, exit_on_error=True
@@ -38,36 +47,34 @@ def main(args: dict) -> None:
         build_python.code_checks(exit_on_error=True)
 
     if args.get(build_utils.FLAG_TEST):
-        # Remove coverage files
         build_utils.run("pipenv run coverage erase", exit_on_error=False)
 
         test_markers = args.get(build_utils.FLAG_TEST_MARKER)
+        print(test_markers)
+        if isinstance(test_markers, list) and STRESS_TEST_MARKER in test_markers:
+            locust_cmd_args = os.getenv("LOCUST_CMD_ARGS", None)
+            if not locust_cmd_args:
+                test_results_dir = "./tests/results"
+                Path(test_results_dir).mkdir(parents=False, exist_ok=True)
+                locust_cmd_args = f"-f tests/endpoint_tests/locustfile.py --host=http://localhost:8000 --headless -t1m --csv {test_results_dir}/locust"
 
-        if (
-            isinstance(test_markers, list)
-            and build_utils.TEST_MARKER_SLOW in test_markers
-        ):
-            # Run if slow test marker is set: test in multiple environments
-            # Python 3.6
-            build_python.test_with_py_version(
-                python_version="3.6.12", exit_on_error=True
-            )
+            build_utils.run(f"locust {locust_cmd_args}")
 
-            # Python 3.7
-            build_python.test_with_py_version(
-                python_version="3.7.9", exit_on_error=True
-            )
+        # if the test_markers list exists, join those markers via "or". pytest will ignore markers it does not know
+        pytest_marker = (
+            "unit" if (not isinstance(test_markers, list) or test_markers == []) else " or ".join(test_markers)
+        )
+        if isinstance(test_markers, list) and INTEGRATION_TEST_MARKER in test_markers:
+            pytest_marker = "integration"
+        # Activated Python Environment (3.8)
+        build_python.install_build_env()
+        # Run pytest in pipenv environment
+        build_utils.run(
+            f"pipenv run pytest tests -m {pytest_marker} ", exit_on_error=True
+        )
 
-            # Activated Python Environment (3.8)
-            build_python.install_build_env()
-            # Run pytest in pipenv environment
-            build_utils.run("pipenv run pytest", exit_on_error=True)
-
-            # Update pipfile.lock when all tests are successfull (lock environment)
-            build_utils.run("pipenv lock", exit_on_error=True)
-        else:
-            # Run fast tests
-            build_utils.run('pipenv run pytest -m "not slow"', exit_on_error=True)
+        # Update pipfile.lock when all tests are successfull (lock environment)
+        build_utils.run("pipenv lock", exit_on_error=True)
 
     if args.get(build_utils.FLAG_RELEASE):
         # Publish distribution on pypi

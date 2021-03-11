@@ -1,0 +1,18 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: contaxy
+Upstream-Contact: mltooling@team.com
+Source: https://github.com/ml-tooling/contaxy
+
+Files: **
+Copyright: Lukas Masuch, Benjamin Raehtlein, and Jan Kalkan
+License: MIT
+
+Files: ./docker/server/gunicorn_conf.py, ./docker/server/start.sh
+Copyright: 2020 Sebastian Ramirez <tiangolo@gmail.com>
+License: MIT
+Comment: Taken from GitHub repository at https://github.com/tiangolo/uvicorn-gunicorn-docker
+
+Files: ./docker/nginx/js/jwt.js
+Copyright: 2011 Kazuhito Hokamura
+License: MIT
+Comment:

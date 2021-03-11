@@ -55,6 +55,16 @@ export const initialState = {
     },
   ],
   isAuthenticated: true,
+  users: [
+    {
+      id: 'foobar',
+      name: 'Foo Bar',
+    },
+    {
+      id: 'foobar2',
+      name: 'Foo Bar 2',
+    },
+  ],
 };
 
 const useGlobalState = (_initialState) => {
@@ -64,6 +74,7 @@ const useGlobalState = (_initialState) => {
   const [activeProject, setActiveProject] = useState(state.activeProject);
   const [projects, setProjects] = useState(state.projects);
   const [isAuthenticated, setIsAuthenticated] = useState(state.isAuthenticated);
+  const [users, setUsers] = useState(state.users);
 
   return {
     user,
@@ -74,6 +85,8 @@ const useGlobalState = (_initialState) => {
     setProjects,
     isAuthenticated,
     setIsAuthenticated,
+    users,
+    setUsers,
   };
 };
 

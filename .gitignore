@@ -10,6 +10,7 @@ target/
 .settings
 
 # VS Code
+.env
 .project
 .classpath
 # Shared VS Code Settings
