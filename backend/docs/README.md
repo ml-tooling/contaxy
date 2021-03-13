@@ -4,18 +4,229 @@
 
 ## Modules
 
+- [`contaxy.api`](./contaxy.api.md#module-contaxyapi)
+- [`contaxy.api.api`](./contaxy.api.api.md#module-contaxyapiapi)
+- [`contaxy.api.dependencies`](./contaxy.api.dependencies.md#module-contaxyapidependencies)
+- [`contaxy.api.endpoints`](./contaxy.api.endpoints.md#module-contaxyapiendpoints)
+- [`contaxy.api.endpoints.auth`](./contaxy.api.endpoints.auth.md#module-contaxyapiendpointsauth)
+- [`contaxy.api.endpoints.deployment`](./contaxy.api.endpoints.deployment.md#module-contaxyapiendpointsdeployment)
+- [`contaxy.api.endpoints.extension`](./contaxy.api.endpoints.extension.md#module-contaxyapiendpointsextension)
+- [`contaxy.api.endpoints.file`](./contaxy.api.endpoints.file.md#module-contaxyapiendpointsfile)
+- [`contaxy.api.endpoints.json_db`](./contaxy.api.endpoints.json_db.md#module-contaxyapiendpointsjson_db)
+- [`contaxy.api.endpoints.project`](./contaxy.api.endpoints.project.md#module-contaxyapiendpointsproject)
+- [`contaxy.api.endpoints.system`](./contaxy.api.endpoints.system.md#module-contaxyapiendpointssystem)
+- [`contaxy.api.endpoints.user`](./contaxy.api.endpoints.user.md#module-contaxyapiendpointsuser)
+- [`contaxy.api.state`](./contaxy.api.state.md#module-contaxyapistate)
+- [`contaxy.config`](./contaxy.config.md#module-contaxyconfig)
+- [`contaxy.exceptions`](./contaxy.exceptions.md#module-contaxyexceptions)
 - [`contaxy.main`](./contaxy.main.md#module-contaxymain)
+- [`contaxy.managers`](./contaxy.managers.md#module-contaxymanagers)
+- [`contaxy.managers.auth`](./contaxy.managers.auth.md#module-contaxymanagersauth)
+- [`contaxy.managers.components`](./contaxy.managers.components.md#module-contaxymanagerscomponents)
+- [`contaxy.managers.deployment`](./contaxy.managers.deployment.md#module-contaxymanagersdeployment)
+- [`contaxy.managers.deployment.docker`](./contaxy.managers.deployment.docker.md#module-contaxymanagersdeploymentdocker)
+- [`contaxy.managers.deployment.kubernetes`](./contaxy.managers.deployment.kubernetes.md#module-contaxymanagersdeploymentkubernetes)
+- [`contaxy.managers.extension`](./contaxy.managers.extension.md#module-contaxymanagersextension)
+- [`contaxy.managers.file`](./contaxy.managers.file.md#module-contaxymanagersfile)
+- [`contaxy.managers.file.minio`](./contaxy.managers.file.minio.md#module-contaxymanagersfileminio)
+- [`contaxy.managers.json_db`](./contaxy.managers.json_db.md#module-contaxymanagersjson_db)
+- [`contaxy.managers.json_db.postgres`](./contaxy.managers.json_db.postgres.md#module-contaxymanagersjson_dbpostgres)
+- [`contaxy.managers.project`](./contaxy.managers.project.md#module-contaxymanagersproject)
+- [`contaxy.managers.system`](./contaxy.managers.system.md#module-contaxymanagerssystem)
+- [`contaxy.managers.user`](./contaxy.managers.user.md#module-contaxymanagersuser)
+- [`contaxy.operations`](./contaxy.operations.md#module-contaxyoperations)
+- [`contaxy.operations.auth`](./contaxy.operations.auth.md#module-contaxyoperationsauth)
+- [`contaxy.operations.deployment`](./contaxy.operations.deployment.md#module-contaxyoperationsdeployment)
+- [`contaxy.operations.extension`](./contaxy.operations.extension.md#module-contaxyoperationsextension)
+- [`contaxy.operations.file`](./contaxy.operations.file.md#module-contaxyoperationsfile)
+- [`contaxy.operations.json_db`](./contaxy.operations.json_db.md#module-contaxyoperationsjson_db)
+- [`contaxy.operations.project`](./contaxy.operations.project.md#module-contaxyoperationsproject)
+- [`contaxy.operations.system`](./contaxy.operations.system.md#module-contaxyoperationssystem)
+- [`contaxy.operations.user`](./contaxy.operations.user.md#module-contaxyoperationsuser)
+- [`contaxy.schema`](./contaxy.schema.md#module-contaxyschema)
+- [`contaxy.schema.auth`](./contaxy.schema.auth.md#module-contaxyschemaauth)
+- [`contaxy.schema.deployment`](./contaxy.schema.deployment.md#module-contaxyschemadeployment)
+- [`contaxy.schema.exceptions`](./contaxy.schema.exceptions.md#module-contaxyschemaexceptions)
+- [`contaxy.schema.extension`](./contaxy.schema.extension.md#module-contaxyschemaextension)
+- [`contaxy.schema.file`](./contaxy.schema.file.md#module-contaxyschemafile)
+- [`contaxy.schema.json_db`](./contaxy.schema.json_db.md#module-contaxyschemajson_db)
+- [`contaxy.schema.project`](./contaxy.schema.project.md#module-contaxyschemaproject)
+- [`contaxy.schema.shared`](./contaxy.schema.shared.md#module-contaxyschemashared)
+- [`contaxy.schema.system`](./contaxy.schema.system.md#module-contaxyschemasystem)
+- [`contaxy.schema.user`](./contaxy.schema.user.md#module-contaxyschemauser)
 - [`contaxy.utils`](./contaxy.utils.md#module-contaxyutils)
-- [`contaxy.utils.api_utils`](./contaxy.utils.api_utils.md#module-contaxyutilsapi_utils)
+- [`contaxy.utils.fastapi_utils`](./contaxy.utils.fastapi_utils.md#module-contaxyutilsfastapi_utils)
+- [`contaxy.utils.id_utils`](./contaxy.utils.id_utils.md#module-contaxyutilsid_utils)
 
 ## Classes
 
-- No classes
+- [`state.Dict`](./contaxy.api.state.md#class-dict)
+- [`state.GlobalState`](./contaxy.api.state.md#class-globalstate): Holds a global state of one app instance (process).
+- [`state.RequestState`](./contaxy.api.state.md#class-requeststate): Holds a state for a single request.
+- [`state.State`](./contaxy.api.state.md#class-state)
+- [`config.DeploymentManager`](./contaxy.config.md#class-deploymentmanager): An enumeration.
+- [`config.Settings`](./contaxy.config.md#class-settings): Platform Settings.
+- [`exceptions.AuthenticationError`](./contaxy.exceptions.md#class-authenticationerror)
+- [`exceptions.ContaxyBaseError`](./contaxy.exceptions.md#class-contaxybaseerror): Basic exception class for `contaxy` library errors.
+- [`auth.AuthManager`](./contaxy.managers.auth.md#class-authmanager)
+- [`components.ComponentManager`](./contaxy.managers.components.md#class-componentmanager): Initializes and manages all platform components.
+- [`docker.DockerDeploymentManager`](./contaxy.managers.deployment.docker.md#class-dockerdeploymentmanager)
+- [`kubernetes.KubernetesDeploymentManager`](./contaxy.managers.deployment.kubernetes.md#class-kubernetesdeploymentmanager)
+- [`extension.ExtensionClient`](./contaxy.managers.extension.md#class-extensionclient): Handels the request forwarding to the installed extensions.
+- [`extension.ExtensionManager`](./contaxy.managers.extension.md#class-extensionmanager): Installs and manages extensions.
+- [`minio.MinioFileManager`](./contaxy.managers.file.minio.md#class-miniofilemanager)
+- [`postgres.PostgresJsonDocumentManager`](./contaxy.managers.json_db.postgres.md#class-postgresjsondocumentmanager)
+- [`project.ProjectManager`](./contaxy.managers.project.md#class-projectmanager)
+- [`system.SystemManager`](./contaxy.managers.system.md#class-systemmanager)
+- [`user.UserManager`](./contaxy.managers.user.md#class-usermanager)
+- [`auth.AuthOperations`](./contaxy.operations.auth.md#class-authoperations)
+- [`auth.OAuthOperations`](./contaxy.operations.auth.md#class-oauthoperations)
+- [`deployment.DeploymentOperations`](./contaxy.operations.deployment.md#class-deploymentoperations)
+- [`deployment.JobOperations`](./contaxy.operations.deployment.md#class-joboperations)
+- [`deployment.ServiceOperations`](./contaxy.operations.deployment.md#class-serviceoperations)
+- [`extension.ExtensionOperations`](./contaxy.operations.extension.md#class-extensionoperations)
+- [`file.FileOperations`](./contaxy.operations.file.md#class-fileoperations)
+- [`file.FileStream`](./contaxy.operations.file.md#class-filestream)
+- [`json_db.JsonDocumentOperations`](./contaxy.operations.json_db.md#class-jsondocumentoperations)
+- [`project.ProjectOperations`](./contaxy.operations.project.md#class-projectoperations)
+- [`system.SystemOperations`](./contaxy.operations.system.md#class-systemoperations)
+- [`user.UserOperations`](./contaxy.operations.user.md#class-useroperations)
+- [`auth.AccessLevel`](./contaxy.schema.auth.md#class-accesslevel): An enumeration.
+- [`auth.ApiToken`](./contaxy.schema.auth.md#class-apitoken)
+- [`auth.AuthorizeResponseType`](./contaxy.schema.auth.md#class-authorizeresponsetype): An enumeration.
+- [`auth.GrantedPermission`](./contaxy.schema.auth.md#class-grantedpermission)
+- [`auth.OAuth2AuthorizeRequestForm`](./contaxy.schema.auth.md#class-oauth2authorizerequestform): OAuth2 Authorize Endpoint Request Form.
+- [`auth.OAuth2TokenGrantTypes`](./contaxy.schema.auth.md#class-oauth2tokengranttypes): An enumeration.
+- [`auth.OAuth2TokenRequestForm`](./contaxy.schema.auth.md#class-oauth2tokenrequestform): OAuth2 Token Endpoint Request Form.
+- [`auth.OAuthToken`](./contaxy.schema.auth.md#class-oauthtoken)
+- [`auth.OAuthTokenIntrospection`](./contaxy.schema.auth.md#class-oauthtokenintrospection)
+- [`auth.OpenIDUserInfo`](./contaxy.schema.auth.md#class-openiduserinfo)
+- [`auth.TokenPurpose`](./contaxy.schema.auth.md#class-tokenpurpose): An enumeration.
+- [`auth.TokenType`](./contaxy.schema.auth.md#class-tokentype): An enumeration.
+- [`deployment.Deployment`](./contaxy.schema.deployment.md#class-deployment)
+- [`deployment.DeploymentBase`](./contaxy.schema.deployment.md#class-deploymentbase)
+- [`deployment.DeploymentCompute`](./contaxy.schema.deployment.md#class-deploymentcompute)
+- [`deployment.DeploymentInput`](./contaxy.schema.deployment.md#class-deploymentinput)
+- [`deployment.DeploymentStatus`](./contaxy.schema.deployment.md#class-deploymentstatus): An enumeration.
+- [`deployment.DeploymentType`](./contaxy.schema.deployment.md#class-deploymenttype): An enumeration.
+- [`deployment.Job`](./contaxy.schema.deployment.md#class-job)
+- [`deployment.JobBase`](./contaxy.schema.deployment.md#class-jobbase)
+- [`deployment.JobInput`](./contaxy.schema.deployment.md#class-jobinput)
+- [`deployment.Service`](./contaxy.schema.deployment.md#class-service)
+- [`deployment.ServiceBase`](./contaxy.schema.deployment.md#class-servicebase)
+- [`deployment.ServiceInput`](./contaxy.schema.deployment.md#class-serviceinput)
+- [`exceptions.PermissionDeniedException`](./contaxy.schema.exceptions.md#class-permissiondeniedexception)
+- [`exceptions.ProblemDetails`](./contaxy.schema.exceptions.md#class-problemdetails)
+- [`exceptions.ResourceNotFoundException`](./contaxy.schema.exceptions.md#class-resourcenotfoundexception)
+- [`exceptions.UnifiedError`](./contaxy.schema.exceptions.md#class-unifiederror)
+- [`extension.Extension`](./contaxy.schema.extension.md#class-extension)
+- [`extension.ExtensionBase`](./contaxy.schema.extension.md#class-extensionbase)
+- [`extension.ExtensionInput`](./contaxy.schema.extension.md#class-extensioninput)
+- [`extension.ExtensionType`](./contaxy.schema.extension.md#class-extensiontype): An enumeration.
+- [`file.File`](./contaxy.schema.file.md#class-file)
+- [`file.FileBase`](./contaxy.schema.file.md#class-filebase)
+- [`file.FileInput`](./contaxy.schema.file.md#class-fileinput)
+- [`json_db.JsonDocument`](./contaxy.schema.json_db.md#class-jsondocument)
+- [`project.Project`](./contaxy.schema.project.md#class-project)
+- [`project.ProjectBase`](./contaxy.schema.project.md#class-projectbase)
+- [`project.ProjectInput`](./contaxy.schema.project.md#class-projectinput)
+- [`project.Quota`](./contaxy.schema.project.md#class-quota)
+- [`project.Statistics`](./contaxy.schema.project.md#class-statistics)
+- [`shared.ActionInstruction`](./contaxy.schema.shared.md#class-actioninstruction): An enumeration.
+- [`shared.CoreOperations`](./contaxy.schema.shared.md#class-coreoperations): An enumeration.
+- [`shared.ExtensibleOperations`](./contaxy.schema.shared.md#class-extensibleoperations): An enumeration.
+- [`shared.Resource`](./contaxy.schema.shared.md#class-resource)
+- [`shared.ResourceAction`](./contaxy.schema.shared.md#class-resourceaction)
+- [`shared.ResourceInput`](./contaxy.schema.shared.md#class-resourceinput)
+- [`shared.ResourceMetadata`](./contaxy.schema.shared.md#class-resourcemetadata)
+- [`system.SystemInfo`](./contaxy.schema.system.md#class-systeminfo)
+- [`system.SystemStatistics`](./contaxy.schema.system.md#class-systemstatistics)
+- [`user.User`](./contaxy.schema.user.md#class-user)
+- [`user.UserBase`](./contaxy.schema.user.md#class-userbase)
+- [`user.UserInput`](./contaxy.schema.user.md#class-userinput)
+- [`user.UserRegistration`](./contaxy.schema.user.md#class-userregistration)
 
 ## Functions
 
-- [`main.root`](./contaxy.main.md#function-root)
-- [`api_utils.patch_fastapi`](./contaxy.utils.api_utils.md#function-patch_fastapi): Patch function to allow relative url resolution.
+- [`api.http_exception_handler`](./contaxy.api.api.md#function-http_exception_handler)
+- [`api.on_shutdown`](./contaxy.api.api.md#function-on_shutdown): Closes the global app state object.
+- [`api.on_startup`](./contaxy.api.api.md#function-on_startup): Initializes the global app state object.
+- [`api.root`](./contaxy.api.api.md#function-root)
+- [`dependencies.get_api_token`](./contaxy.api.dependencies.md#function-get_api_token)
+- [`dependencies.get_component_manager`](./contaxy.api.dependencies.md#function-get_component_manager): Returns the initialized component manager.
+- [`auth.create_token`](./contaxy.api.endpoints.auth.md#function-create_token): Returns a session or API token with access on the specified resource.
+- [`auth.get_userinfo`](./contaxy.api.endpoints.auth.md#function-get_userinfo): Returns information about the authenticated user.
+- [`auth.introspect_token`](./contaxy.api.endpoints.auth.md#function-introspect_token): Introspects a given token.
+- [`auth.list_api_token`](./contaxy.api.endpoints.auth.md#function-list_api_token): Returns list of created API tokens for the specified user or project.
+- [`auth.login_callback`](./contaxy.api.endpoints.auth.md#function-login_callback): Callback to finish the login process (OAuth2 Client Endpoint).
+- [`auth.logout_session`](./contaxy.api.endpoints.auth.md#function-logout_session): Removes all session token cookies and redirects to the login page.
+- [`auth.open_login_page`](./contaxy.api.endpoints.auth.md#function-open_login_page): Returns or redirect to the login-page.
+- [`auth.request_token`](./contaxy.api.endpoints.auth.md#function-request_token): Returns an access tokens, ID tokens, or refresh tokens depending on the request parameters.
+- [`auth.revoke_token`](./contaxy.api.endpoints.auth.md#function-revoke_token): Revokes a given token.
+- [`auth.verify_token`](./contaxy.api.endpoints.auth.md#function-verify_token): Verifies a session or API token for its validity and - if provided - if it has the specified permission.
+- [`deployment.access_service`](./contaxy.api.endpoints.deployment.md#function-access_service): Accesses the specified HTTP endpoint of the given service.
+- [`deployment.delete_job`](./contaxy.api.endpoints.deployment.md#function-delete_job): Deletes a job.
+- [`deployment.delete_service`](./contaxy.api.endpoints.deployment.md#function-delete_service): Deletes a service.
+- [`deployment.deploy_job`](./contaxy.api.endpoints.deployment.md#function-deploy_job): Deploy a job for the specified project.
+- [`deployment.deploy_service`](./contaxy.api.endpoints.deployment.md#function-deploy_service): Deploy a service for the specified project.
+- [`deployment.execute_job_action`](./contaxy.api.endpoints.deployment.md#function-execute_job_action): Executes the selected job action.
+- [`deployment.execute_service_action`](./contaxy.api.endpoints.deployment.md#function-execute_service_action): Executes the selected service action.
+- [`deployment.get_job_logs`](./contaxy.api.endpoints.deployment.md#function-get_job_logs): Returns the stdout/stderr logs of the job.
+- [`deployment.get_job_metadata`](./contaxy.api.endpoints.deployment.md#function-get_job_metadata): Returns the metadata of a single job.
+- [`deployment.get_service_logs`](./contaxy.api.endpoints.deployment.md#function-get_service_logs): Returns the stdout/stderr logs of the service.
+- [`deployment.get_service_metadata`](./contaxy.api.endpoints.deployment.md#function-get_service_metadata): Returns the metadata of a single service.
+- [`deployment.list_deploy_job_actions`](./contaxy.api.endpoints.deployment.md#function-list_deploy_job_actions): Lists all available job deployment options (actions).
+- [`deployment.list_deploy_service_actions`](./contaxy.api.endpoints.deployment.md#function-list_deploy_service_actions): Lists all available service deployment options (actions).
+- [`deployment.list_job_actions`](./contaxy.api.endpoints.deployment.md#function-list_job_actions): Lists all actions available for the specified job.
+- [`deployment.list_jobs`](./contaxy.api.endpoints.deployment.md#function-list_jobs): Lists all jobs associated with the given project.
+- [`deployment.list_service_actions`](./contaxy.api.endpoints.deployment.md#function-list_service_actions): Lists all actions available for the specified service.
+- [`deployment.list_services`](./contaxy.api.endpoints.deployment.md#function-list_services): Lists all services associated with the given project.
+- [`deployment.suggest_job_config`](./contaxy.api.endpoints.deployment.md#function-suggest_job_config): Suggests an input configuration based on the provided `container_image`.
+- [`deployment.suggest_service_config`](./contaxy.api.endpoints.deployment.md#function-suggest_service_config): Suggests an input configuration based on the provided `container_image`.
+- [`extension.delete_extension`](./contaxy.api.endpoints.extension.md#function-delete_extension): Deletes an extension.
+- [`extension.get_extension_metadata`](./contaxy.api.endpoints.extension.md#function-get_extension_metadata): Returns the metadata of the given extension.
+- [`extension.install_extension`](./contaxy.api.endpoints.extension.md#function-install_extension): Installs an extension for the given project.
+- [`extension.list_extensions`](./contaxy.api.endpoints.extension.md#function-list_extensions): Returns all installed extensions accesible by the specified project.
+- [`extension.suggest_extension_config`](./contaxy.api.endpoints.extension.md#function-suggest_extension_config): Suggests an input configuration based on the provided `container_image`.
+- [`file.delete_file`](./contaxy.api.endpoints.file.md#function-delete_file): Deletes the specified file.
+- [`file.download_file`](./contaxy.api.endpoints.file.md#function-download_file): Downloads the selected file.
+- [`file.execute_file_action`](./contaxy.api.endpoints.file.md#function-execute_file_action): Executes the selected action.
+- [`file.get_file_metadata`](./contaxy.api.endpoints.file.md#function-get_file_metadata): Returns metadata about the specified file.
+- [`file.list_file_actions`](./contaxy.api.endpoints.file.md#function-list_file_actions): Lists all actions available for the specified file.
+- [`file.list_files`](./contaxy.api.endpoints.file.md#function-list_files): Lists all available files for the project.
+- [`file.update_file_metadata`](./contaxy.api.endpoints.file.md#function-update_file_metadata): Updates the file metadata.
+- [`file.upload_file`](./contaxy.api.endpoints.file.md#function-upload_file): Uploads a file to a file storage.
+- [`json_db.create_json_document`](./contaxy.api.endpoints.json_db.md#function-create_json_document): Creates a JSON document. If a document already exists for the given key, the document will be overwritten.
+- [`json_db.delete_json_document`](./contaxy.api.endpoints.json_db.md#function-delete_json_document): Deletes a single JSON document.
+- [`json_db.get_json_document`](./contaxy.api.endpoints.json_db.md#function-get_json_document): Returns a single JSON document.
+- [`json_db.list_json_documents`](./contaxy.api.endpoints.json_db.md#function-list_json_documents): Lists all JSON documents for the given project collection.
+- [`json_db.update_json_document`](./contaxy.api.endpoints.json_db.md#function-update_json_document): Updates a JSON document.
+- [`project.add_project_member`](./contaxy.api.endpoints.project.md#function-add_project_member): Adds a user to the project.
+- [`project.create_project`](./contaxy.api.endpoints.project.md#function-create_project): Creates a new project.
+- [`project.delete_project`](./contaxy.api.endpoints.project.md#function-delete_project): Deletes a project and all its associated resources including deployments and files.
+- [`project.get_project`](./contaxy.api.endpoints.project.md#function-get_project): Returns the metadata of a single project.
+- [`project.list_project_members`](./contaxy.api.endpoints.project.md#function-list_project_members): Lists all project members.
+- [`project.list_projects`](./contaxy.api.endpoints.project.md#function-list_projects): Lists all projects visible to the authenticated user.
+- [`project.remove_project_member`](./contaxy.api.endpoints.project.md#function-remove_project_member): Removes a user from a project.
+- [`project.suggest_project_id`](./contaxy.api.endpoints.project.md#function-suggest_project_id): Suggests a valid and unique project ID for the given display name.
+- [`project.update_project`](./contaxy.api.endpoints.project.md#function-update_project): Updates the metadata of the given project.
+- [`system.check_health`](./contaxy.api.endpoints.system.md#function-check_health): Returns a successful return code if the instance is healthy.
+- [`system.get_system_info`](./contaxy.api.endpoints.system.md#function-get_system_info): Returns information about this instance.
+- [`system.get_system_statistics`](./contaxy.api.endpoints.system.md#function-get_system_statistics): Returns statistics about this instance.
+- [`user.create_user`](./contaxy.api.endpoints.user.md#function-create_user): Creates a user.
+- [`user.delete_user`](./contaxy.api.endpoints.user.md#function-delete_user): Deletes a user and all resources which are only accesible by this user.
+- [`user.get_my_user`](./contaxy.api.endpoints.user.md#function-get_my_user): Returns the user metadata from the authenticated user.
+- [`user.get_user`](./contaxy.api.endpoints.user.md#function-get_user): Returns the user metadata for a single user.
+- [`user.list_users`](./contaxy.api.endpoints.user.md#function-list_users): Lists all users that are visible to the authenticated user.
+- [`user.update_user`](./contaxy.api.endpoints.user.md#function-update_user): Updates the user metadata.
+- [`components.install_components`](./contaxy.managers.components.md#function-install_components): Currently only a mock implementation.
+- [`extension.parse_composite_id`](./contaxy.managers.extension.md#function-parse_composite_id): Extracts the resource and extension ID from an composite ID.
+- [`fastapi_utils.add_timing_info`](./contaxy.utils.fastapi_utils.md#function-add_timing_info)
+- [`fastapi_utils.patch_fastapi`](./contaxy.utils.fastapi_utils.md#function-patch_fastapi): Patch function to allow relative url resolution.
+- [`id_utils.generate_readable_id`](./contaxy.utils.id_utils.md#function-generate_readable_id): Generates a human- and URL-friendly ID from arbritary text.
+- [`id_utils.generate_short_uuid`](./contaxy.utils.id_utils.md#function-generate_short_uuid): Generates a short - 25 chars - UUID by using all ascii letters and digits.
+- [`id_utils.generate_token`](./contaxy.utils.id_utils.md#function-generate_token): Generates a random token with the specified length.
+- [`id_utils.hash_str`](./contaxy.utils.id_utils.md#function-hash_str): Generates a hash with a variable lenght from an abritary text.
 
 
 ---
