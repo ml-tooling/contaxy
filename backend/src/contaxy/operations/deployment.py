@@ -42,10 +42,10 @@ class ServiceOperations(ABC):
         Args:
             project_id (str): [description]
             service (ServiceInput): [description]
-            action_id (Optional[str], optional): [description]. Defaults to None.
+            action_id (Optional[str], optional): The ID of the selected action. Defaults to `None`.
 
         Returns:
-            Service: [description]
+            Service: The metadata of the deployed service.
         """
         pass
 
@@ -133,14 +133,17 @@ class ServiceOperations(ABC):
         project_id: str,
         container_image: str,
     ) -> ServiceInput:
-        """[summary]
+        """Suggests an input configuration based on the provided `container_image`.
+
+        The suggestion is based on metadata extracted from the container image (e.g. labels)
+        as well as suggestions based on previous project deployments with the same image.
 
         Args:
-            project_id (str): [description]
-            container_image (str): [description]
+            project_id (str): The project ID associated with the service.
+            container_image (str): The container image to use as context for the suggestion.
 
         Returns:
-            ServiceInput: [description]
+            ServiceInput: The suggested service configuration.
         """
         pass
 
@@ -150,16 +153,18 @@ class ServiceOperations(ABC):
         project_id: str,
         service_id: str,
         extension_id: Optional[str],
-    ) -> ResourceAction:
-        """[summary]
+    ) -> List[ResourceAction]:
+        """Lists all actions available for the specified service.
+
+        See the endpoint documentation for more information on the action mechanism.
 
         Args:
-            project_id (str): [description]
-            service_id (str): [description]
-            extension_id (Optional[str]): [description]
+            project_id (str): The project ID associated with the service.
+            service_id (str): The ID of the service.
+            extension_id (Optional[str]): Extension ID. If not specified, the system will decide. Use `core` to explicitly select the core platform.
 
         Returns:
-            ResourceAction: [description]
+            List[ResourceAction]: Available actions for given services.
         """
         pass
 
@@ -170,15 +175,18 @@ class ServiceOperations(ABC):
         service_id: str,
         action_id: str,
     ) -> Response:
-        """[summary]
+        """Executes the selected service action.
+
+        The actions need to be first requested from the list_service_actions operation.
+        If the action is from an extension, the `action_id` must be a composite ID with the following format: `{extension_id}~{action_id}`.
 
         Args:
-            project_id (str): [description]
-            service_id (str): [description]
-            action_id (str): [description]
+            project_id (str): The project ID associated with the service.
+            service_id (str): The ID of the service.
+            action_id (str): The ID of the selected action.
 
         Returns:
-            Response: [description]
+            Response: TODO: document
         """
         pass
 
@@ -189,16 +197,6 @@ class ServiceOperations(ABC):
         service_id: str,
         endpoint: str,
     ) -> Response:
-        """[summary]
-
-        Args:
-            project_id (str): [description]
-            service_id (str): [description]
-            endpoint (str): [description]
-
-        Returns:
-            Response: [description]
-        """
         pass
 
 
@@ -221,7 +219,7 @@ class JobOperations(ABC):
         self,
         project_id: str,
         job: JobInput,
-    ) -> ResourceAction:
+    ) -> List[ResourceAction]:
         pass
 
     @abstractmethod
@@ -251,7 +249,7 @@ class JobOperations(ABC):
         self,
         project_id: str,
         job_id: str,
-    ) -> ResourceAction:
+    ) -> List[ResourceAction]:
         pass
 
     @abstractmethod

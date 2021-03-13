@@ -59,6 +59,11 @@ class ProblemDetails(BaseModel):
     )
 
 
+# Two base permission types:
+# Client Error -> always shown to the user
+# Server Error -> just shown as internal server error
+
+
 class PermissionDeniedException(HTTPException):
     def __init__(self, message: Optional[str] = None) -> None:
         super(HTTPException, self).__init__(

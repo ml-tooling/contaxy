@@ -3,7 +3,6 @@ from contaxy.operations import SystemOperations
 
 
 class SystemManager(SystemOperations):
-
     def __init__(
         self,
         global_state: GlobalState,

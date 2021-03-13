@@ -1,7 +1,6 @@
 from typing import Any, Callable
 
 import addict
-from fastapi import FastAPI
 from starlette import datastructures
 
 from contaxy.config import Settings
