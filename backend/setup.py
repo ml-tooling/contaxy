@@ -54,6 +54,10 @@ setup(
         "psutil",
         "uvicorn",
         "addict",
+        # Generates concise, unambiguous, URL-safe UUIDs.
+        "shortuuid",
+        # Create slugs from unicode strings
+        "python-slugify",
         # Better logging
         "loguru",
         # Required by fastapi.security OAuth2PasswordBearer & fastapi.UploadFile for example
