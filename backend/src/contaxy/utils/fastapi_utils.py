@@ -75,25 +75,25 @@ def patch_fastapi(app: FastAPI) -> None:
 def add_timing_info(app: FastAPI) -> None:
     import logging
 
-    import fastapi
     from fastapi_utils.timing import add_timing_middleware
 
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger(__name__)
     add_timing_middleware(app, record=logger.info, prefix="app", exclude="untimed")
 
-    from asgi_server_timing import ServerTimingMiddleware
+    # import fastapi
+    # from asgi_server_timing import ServerTimingMiddleware
 
-    app.add_middleware(
-        ServerTimingMiddleware,
-        calls_to_track={
-            "1deps": (fastapi.routing.solve_dependencies,),
-            "2main": (fastapi.routing.run_endpoint_function,),
-            # "3valid": (pydantic.fields.ModelField.validate,),
-            "4encode": (fastapi.encoders.jsonable_encoder,),
-            "5render": (
-                fastapi.responses.JSONResponse.render,
-                fastapi.responses.ORJSONResponse.render,
-            ),
-        },
-    )
+    # app.add_middleware(
+    #    ServerTimingMiddleware,
+    #    calls_to_track={
+    #        "1deps": (fastapi.routing.solve_dependencies,),
+    #        "2main": (fastapi.routing.run_endpoint_function,),
+    # "3valid": (pydantic.fields.ModelField.validate,),
+    #        "4encode": (fastapi.encoders.jsonable_encoder,),
+    #        "5render": (
+    #            fastapi.responses.JSONResponse.render,
+    #            fastapi.responses.ORJSONResponse.render,
+    #        ),
+    #    },
+    # )
