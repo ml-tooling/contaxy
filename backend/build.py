@@ -33,8 +33,7 @@ def main(args: dict) -> None:
         build_python.install_build_env(exit_on_error=True)
 
         # Generate the OpenAPI spec so that clients can be generated
-        swagger_path = f"src/{MAIN_PACKAGE}/generate-openapi-specs.py"
-        build_utils.run(f"pipenv run python {swagger_path}")
+        build_utils.run("pipenv run contaxy export-openapi-specs ./openapi-spec.json")
 
         # Create API documentation via lazydocs
         build_python.generate_api_docs(
@@ -62,7 +61,9 @@ def main(args: dict) -> None:
 
         # if the test_markers list exists, join those markers via "or". pytest will ignore markers it does not know
         pytest_marker = (
-            "unit" if (not isinstance(test_markers, list) or test_markers == []) else " or ".join(test_markers)
+            "unit"
+            if (not isinstance(test_markers, list) or test_markers == [])
+            else " or ".join(test_markers)
         )
         if isinstance(test_markers, list) and INTEGRATION_TEST_MARKER in test_markers:
             pytest_marker = "integration"

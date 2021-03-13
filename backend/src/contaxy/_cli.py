@@ -1,5 +1,7 @@
 """Command line interface."""
 
+from pathlib import Path
+
 import typer
 from loguru import logger
 
@@ -11,6 +13,17 @@ def install_contaxy() -> None:
     from contaxy.managers.components import install_components
 
     install_components()
+
+
+@cli.command()
+def export_openapi_specs(output_path: Path) -> None:
+    import json
+
+    from contaxy.api import app
+
+    # write openapi.json spec to file
+    with open(output_path, "w") as outfile:
+        json.dump(app.openapi(), outfile)
 
 
 @cli.command()
