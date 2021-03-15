@@ -54,6 +54,9 @@ setup(
         "psutil",
         "uvicorn",
         "addict",
+        "sqlalchemy >= 1.4.0b3",  # TODO: Change as soon as soon as offical release is available
+        # Postgres Driver
+        "psycopg2",
         # Generates concise, unambiguous, URL-safe UUIDs.
         "shortuuid",
         # Create slugs from unicode strings
@@ -72,6 +75,8 @@ setup(
         # "graphene",
         # TODO: Dev only - timing
         "fastapi-utils",
+        # TODO: Added because of an missing import error
+        "pydantic[dotenv]",
     ],
     # deprecated: dependency_links=dependency_links,
     extras_require={
@@ -94,7 +99,7 @@ setup(
             "devtools[pygments]",
             # For Jupyter Kernel support
             "ipykernel",
-            # Todo: Move to required when necessary
+            # TODO: Move to required when necessary
             "universal-build",
         ],
     },
