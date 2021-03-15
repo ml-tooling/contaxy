@@ -1,8 +1,8 @@
-from contaxy.operations import DeploymentOperations
+from contaxy.managers.deployment.manager import DeploymentManager
 from contaxy.utils.state_utils import GlobalState, RequestState
 
 
-class KubernetesDeploymentManager(DeploymentOperations):
+class KubernetesDeploymentManager(DeploymentManager):
     def __init__(
         self,
         global_state: GlobalState,
