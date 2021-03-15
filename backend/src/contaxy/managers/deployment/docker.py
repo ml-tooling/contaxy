@@ -2,7 +2,6 @@ from datetime import datetime
 from typing import List, Optional
 
 import docker
-import psutil
 
 from contaxy.config import settings
 from contaxy.managers.deployment.docker_utils import (
@@ -13,20 +12,19 @@ from contaxy.managers.deployment.docker_utils import (
     transform_job,
     transform_service,
 )
+from contaxy.managers.deployment.manager import DeploymentManager
 from contaxy.managers.deployment.utils import (
     DEFAULT_DEPLOYMENT_ACTION_ID,
     NO_LOGS_MESSAGE,
     Labels,
-    get_gpu_info,
     get_label_string,
 )
-from contaxy.operations import DeploymentOperations
 from contaxy.schema import Job, JobInput, ResourceAction, Service, ServiceInput
 from contaxy.schema.deployment import DeploymentCompute, DeploymentType
 from contaxy.utils.state_utils import GlobalState, RequestState
 
 
-class DockerDeploymentManager(DeploymentOperations):
+class DockerDeploymentManager(DeploymentManager):
     def __init__(
         self,
         global_state: GlobalState,
@@ -42,9 +40,6 @@ class DockerDeploymentManager(DeploymentOperations):
         self.request_state = request_state
 
         self.client = docker.from_env()
-        self.system_cpu_count = psutil.cpu_count()
-        self.system_memory_in_mb = round(psutil.virtual_memory().total / 1024 / 1024, 1)
-        self.system_gpu_count = get_gpu_info()
 
     def list_services(self, project_id: str) -> List[Service]:
         try:
@@ -79,7 +74,7 @@ class DockerDeploymentManager(DeploymentOperations):
         container_config["labels"][
             Labels.DEPLOYMENT_TYPE.value
         ] = DeploymentType.SERVICE.value
-        handle_network(project_id=project_id)
+        handle_network(client=self.client, project_id=project_id)
 
         try:
             container = self.client.containers.run(**container_config)
@@ -159,7 +154,7 @@ class DockerDeploymentManager(DeploymentOperations):
 
         return logs
 
-    def list_jobs(self, project_id: str) -> Job:
+    def list_jobs(self, project_id: str) -> List[Job]:
         containers = self.client.containers.list(
             filters={
                 "label": [
@@ -180,17 +175,15 @@ class DockerDeploymentManager(DeploymentOperations):
         job: JobInput,
         action_id: Optional[str] = None,
     ) -> Job:
-        container_config = self.create_container_config(
-            service=job, project_id=project_id
-        )
+        container_config = create_container_config(service=job, project_id=project_id)
         container_config["labels"][
             Labels.DEPLOYMENT_TYPE.value
         ] = DeploymentType.JOB.value
-        self.handle_network(project_id=project_id)
+        handle_network(client=self.client, project_id=project_id)
 
         try:
             container = self.client.containers.run(**container_config)
-        except docker.errrors.APIError:
+        except docker.errors.APIError:
             raise RuntimeError(f"Could not deploy job '{job.display_name}'.")
 
         response_service = transform_job(container)
@@ -201,7 +194,7 @@ class DockerDeploymentManager(DeploymentOperations):
         project_id: str,
         job: JobInput,
     ) -> List[ResourceAction]:
-        return self.list_service_deploy_actions(project_id=project_id, service=job)
+        return self.list_deploy_service_actions(project_id=project_id, service=job)
 
     def get_job_metadata(self, project_id: str, job_id: str) -> Job:
         return self.get_service_metadata(project_id=project_id, service_id=job_id)

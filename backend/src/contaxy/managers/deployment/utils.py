@@ -30,7 +30,7 @@ class MappedLabels:
     icon: Optional[str] = None
     min_lifetime: Optional[int] = None
     volume_path: Optional[str] = None
-    additional_metadata: Optional[dict] = None
+    metadata: Optional[dict] = None
 
 
 def map_labels(labels: dict) -> MappedLabels:
@@ -59,7 +59,7 @@ def map_labels(labels: dict) -> MappedLabels:
         mapped_labels.volume_path = _labels.get(Labels.VOLUME_PATH.value)
         del _labels[Labels.VOLUME_PATH.value]
 
-    mapped_labels.additional_metadata = _labels
+    mapped_labels.metadata = _labels
 
     return mapped_labels
 

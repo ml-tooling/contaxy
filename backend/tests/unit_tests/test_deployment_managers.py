@@ -47,20 +47,24 @@ def create_test_service_input(_service_id: str = test_service_id) -> ServiceInpu
         id=_service_id,
         endpoints=["8080", "8090/webapp"],
         parameters={"FOO": "bar", "FOO2": "bar2", "NVIDIA_VISIBLE_DEVICES": "2"},
-        additional_metadata={"some-metadata": "some-metadata-value"},
+        metadata={"some-metadata": "some-metadata-value"},
     )
 
 
 class DockerTestHandler:
     def __init__(self) -> None:
-        self.deployment_manager = DockerDeploymentManager()
+        self.deployment_manager = DockerDeploymentManager(
+            request_state=None, global_state=None
+        )
 
     def setup(self) -> str:
         return test_service_id
 
     def cleanup(self, setup_id: str) -> None:
         try:
-            self.deployment_manager.delete_service(service_id=setup_id)
+            self.deployment_manager.delete_service(
+                project_id=test_project_name, service_id=setup_id
+            )
         except RuntimeError:
             # service not found
             return
@@ -87,16 +91,16 @@ class DockerTestHandler:
         except Exception:
             pass
 
-    def deploy_service(self, service: ServiceInput, project_id: str) -> Service:
+    def deploy_service(self, project_id: str, service: ServiceInput) -> Service:
         deployed_service = self.deployment_manager.deploy_service(
-            service=service, project_id=project_id
+            project_id=project_id, service=service
         )
         time.sleep(2)
         return deployed_service
 
-    def deploy_job(self, job: JobInput, project_id: str) -> Job:
+    def deploy_job(self, project_id: str, job: JobInput) -> Job:
         deployed_job = self.deployment_manager.deploy_job(
-            job=job, project_id=project_id
+            project_id=project_id, job=job
         )
         time.sleep(3)
         return deployed_job
@@ -134,14 +138,14 @@ class KubeTestHandler:
             except ApiException:
                 break
 
-    def deploy_service(self, service: ServiceInput, project_id: str) -> Service:
+    def deploy_service(self, project_id: str, service: ServiceInput) -> Service:
         return self.deployment_manager.deploy_service(
-            service=service, project_id=project_id, wait=True
+            project_id=project_id, service=service, wait=True
         )
 
-    def deploy_job(self, job: JobInput, project_id: str) -> Job:
+    def deploy_job(self, project_id: str, job: JobInput) -> Job:
         return self.deployment_manager.deploy_job(
-            job=job, project_id=project_id, wait=True
+            project_id=project_id, job=job, wait=True
         )
 
 
@@ -169,46 +173,58 @@ class TestDeploymentManagers:
 
     def test_deploy_service(self) -> None:
         test_service_input = create_test_service_input()
-        service = self.handler.deploy_service(test_service_input, test_project_name)
+        service = self.handler.deploy_service(
+            project_id=test_project_name,
+            service=test_service_input,
+        )
         assert service.display_name == test_service_input.display_name
         assert service.internal_id != ""
-        assert (
-            service.additional_metadata.get("contaxy.projectName", "")
-            == test_project_name
-        )
+        assert service.metadata.get("ctxy.projectName", "") == test_project_name
         assert service.parameters.get("FOO", "") == "bar"
         assert (
             service.parameters.get("NVIDIA_VISIBLE_DEVICES", "Not allowed to set")
             == "Not allowed to set"
         )
-        assert "some-metadata" in service.additional_metadata
+        assert "some-metadata" in service.metadata
 
     def test_get_service_metadata(self) -> None:
         test_service_input = create_test_service_input()
-        service = self.handler.deploy_service(test_service_input, test_project_name)
+        service = self.handler.deploy_service(
+            project_id=test_project_name,
+            service=test_service_input,
+        )
 
         queried_service = self.handler.deployment_manager.get_service_metadata(
-            service.id
+            project_id=test_project_name, service_id=service.id
         )
 
         assert queried_service is not None
         assert queried_service.internal_id == service.internal_id
-        assert "some-metadata" in queried_service.additional_metadata
+        assert "some-metadata" in queried_service.metadata
 
-        self.handler.deployment_manager.delete_service(service_id=service.id)
+        self.handler.deployment_manager.delete_service(
+            project_id=test_project_name, service_id=service.id
+        )
 
         with pytest.raises(RuntimeError):
-            self.handler.deployment_manager.get_service_metadata(service.id)
+            self.handler.deployment_manager.get_service_metadata(
+                project_id=test_project_name, service_id=service.id
+            )
 
     def test_list_services(self) -> None:
         test_service_input = create_test_service_input()
-        service = self.handler.deploy_service(test_service_input, test_project_name)
+        service = self.handler.deploy_service(
+            project_id=test_project_name,
+            service=test_service_input,
+        )
         services = self.handler.deployment_manager.list_services(
             project_id=test_project_name
         )
         assert len(services) == 1
 
-        self.handler.deployment_manager.delete_service(service_id=service.id)
+        self.handler.deployment_manager.delete_service(
+            project_id=test_project_name, service_id=service.id
+        )
         services = self.handler.deployment_manager.list_services(
             project_id=test_project_name
         )
@@ -228,7 +244,7 @@ class TestDeploymentManagers:
         service = self.handler.deploy_job(job=job_input, project_id=test_project_name)
 
         logs = self.handler.deployment_manager.get_service_logs(
-            service_id=service.internal_id
+            project_id=test_project_name, service_id=service.internal_id
         )
         assert logs
         assert logs.startswith(log_input)
@@ -240,10 +256,13 @@ class TestDockerDeploymentManager:
         _service_name = f"test-project-{int(time.time())}"
         test_service_input = create_test_service_input(_service_name)
 
-        service = handler.deploy_service(test_service_input, test_project_name)
+        service = handler.deploy_service(
+            project_id=test_project_name,
+            service=test_service_input,
+        )
         container = handler.deployment_manager.client.containers.get(service.id)
         assert container is not None
         labels = container.labels
 
-        assert labels.get("contaxy.endpoints", "") == "8080,8090/webapp"
+        assert labels.get("ctxy.endpoints", "") == "8080,8090/webapp"
         container.remove(force=True)

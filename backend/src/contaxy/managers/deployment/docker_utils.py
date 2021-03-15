@@ -3,11 +3,12 @@ import os
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import docker
+import psutil
 
 from contaxy.config import settings
-from contaxy.managers.deployment.docker import DockerDeploymentManager
 from contaxy.managers.deployment.utils import (
     Labels,
+    get_gpu_info,
     get_network_name,
     get_volume_name,
     log,
@@ -28,6 +29,10 @@ from contaxy.schema.deployment import (
 INITIAL_CIDR_FIRST_OCTET = 10
 INITIAL_CIDR_SECOND_OCTET = 0
 INITIAL_CIDR = f"{INITIAL_CIDR_FIRST_OCTET}.{INITIAL_CIDR_SECOND_OCTET}.0.0/24"
+
+system_cpu_count = psutil.cpu_count()
+system_memory_in_mb = round(psutil.virtual_memory().total / 1024 / 1024, 1)
+system_gpu_count = get_gpu_info()
 
 
 def transform_container(
@@ -68,7 +73,7 @@ def transform_container(
         "container_image": container.image.tags[0],
         "command": " ".join(container.attrs.get("Args", [])),
         "compute": compute_resources,
-        "additional_metadata": labels.additional_metadata,
+        "metadata": labels.metadata,
         "deployment_type": labels.deployment_type,
         "description": labels.description,
         "display_name": labels.display_name,
@@ -215,29 +220,28 @@ def get_this_container(client: docker.client) -> docker.models.containers.Contai
 
 
 def check_minimal_resources(
-    docker_deployment_manager: DockerDeploymentManager,
     min_cpus: int,
     min_memory: int,
     min_gpus: int,
     compute_resources: DeploymentCompute = None,
 ) -> None:
-    if min_cpus > docker_deployment_manager.system_cpu_count:
+    if min_cpus > system_cpu_count:
         raise RuntimeError(
-            f"The minimal amount of cpus of {min_cpus} cannot be fulfilled as the system has only {docker_deployment_manager.system_cpu_count} cpus."
+            f"The minimal amount of cpus of {min_cpus} cannot be fulfilled as the system has only {system_cpu_count} cpus."
         )
-    if min_memory > docker_deployment_manager.system_memory_in_mb:
+    if min_memory > system_memory_in_mb:
         raise RuntimeError(
-            f"The minimal amount of memory of {min_memory}MB cannot be fulfilled as the system has only {docker_deployment_manager.system_memory_in_mb}MB memory"
+            f"The minimal amount of memory of {min_memory}MB cannot be fulfilled as the system has only {system_memory_in_mb}MB memory"
         )
-    if min_gpus > docker_deployment_manager.system_gpu_count:
+    if min_gpus > system_gpu_count:
         raise RuntimeError(
-            f"The minimal amount of gpus of {min_gpus} cannot be fulfilled as the system has only {docker_deployment_manager.system_gpu_count} gpus."
+            f"The minimal amount of gpus of {min_gpus} cannot be fulfilled as the system has only {system_gpu_count} gpus."
         )
 
     if compute_resources is None:
         return
 
-    if compute_resources.min_replicas is not None:
+    if compute_resources.max_replicas is not None:
         raise RuntimeError("Replicas are not supported in Docker-mode")
 
 
@@ -277,13 +281,13 @@ def define_mounts(
         compute_resources.volume_path is not None
         and compute_resources.volume_path != ""
     ):
-        mount_type = "bind" if settings.HOST_DATA_ROOT_PATH != "" else "volume"
+        mount_type = "bind" if settings.HOST_DATA_ROOT_PATH is not None else "volume"
         mounts.append(
             docker.types.Mount(
                 target=str(compute_resources.volume_path),
                 source=f"{settings.HOST_DATA_ROOT_PATH}{get_volume_name(project_id, container_name)}",
                 labels={
-                    Labels.NAMESPACE.value: settings.NAMESPACE,
+                    Labels.NAMESPACE.value: settings.SYSTEM_NAMESPACE,
                     Labels.PROJECT_NAME.value: project_id,
                     Labels.DEPLOYMENT_NAME.value: container_name,
                 },
@@ -295,7 +299,6 @@ def define_mounts(
 
 
 def create_container_config(
-    docker_deployment_manager: DockerDeploymentManager,
     service: Union[JobInput, ServiceInput],
     project_id: str,
 ) -> Dict[str, Any]:
@@ -306,13 +309,13 @@ def create_container_config(
         min_gpus,
     ) = extract_minimal_resources(compute_resources=compute_resources)
     check_minimal_resources(
-        docker_deployment_manager=docker_deployment_manager,
         min_cpus=min_cpus,
         min_memory=min_memory,
         min_gpus=min_gpus,
     )
 
-    container_name = normalize_service_name(project_id, service.display_name)
+    display_name = service.display_name if service.display_name else ""
+    container_name = normalize_service_name(project_id, display_name=display_name)
 
     max_cpus = (
         compute_resources.max_cpus if compute_resources.max_cpus is not None else 1
@@ -321,11 +324,9 @@ def create_container_config(
         compute_resources.max_memory if compute_resources.max_memory is not None else 6
     )
     # Make sure that the user-entered compute requirements are not bigger than the system's maximum available
-    nano_cpus = min(max_cpus, docker_deployment_manager.system_cpu_count) * 1e9
+    nano_cpus = min(max_cpus, system_cpu_count) * 1e9
     # Additionally for memory Docker requires at least 4MB for a container
-    mem_limit = (
-        f"{max(6, min(max_memory, docker_deployment_manager.system_memory_in_mb))}MB"
-    )
+    mem_limit = f"{max(6, min(max_memory, system_memory_in_mb))}MB"
 
     mounts = define_mounts(
         project_id=project_id,
@@ -356,7 +357,7 @@ def create_container_config(
     requirements_label = (
         ",".join(service.requirements) if service.requirements else None
     )
-    additional_metadata = service.additional_metadata or {}
+    metadata = service.metadata or {}
     return {
         "image": service.container_image,
         "command": service.command or None,
@@ -370,7 +371,7 @@ def create_container_config(
             Labels.DEPLOYMENT_NAME.value: container_name,
             Labels.ENDPOINTS.value: endpoints_label,
             Labels.REQUIREMENTS.value: requirements_label,
-            **additional_metadata,
+            **metadata,
         },
         "name": container_name,
         "nano_cpus": int(nano_cpus),
