@@ -1,5 +1,5 @@
-from contaxy.api.state import GlobalState, RequestState
 from contaxy.operations import SystemOperations
+from contaxy.utils.state_utils import GlobalState, RequestState
 
 
 class SystemManager(SystemOperations):

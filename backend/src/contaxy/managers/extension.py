@@ -1,6 +1,5 @@
 from typing import Tuple, Union
 
-from contaxy.api.state import GlobalState, RequestState
 from contaxy.operations import (
     ExtensionOperations,
     FileOperations,
@@ -10,6 +9,7 @@ from contaxy.operations import (
 )
 from contaxy.schema import ExtensibleOperations
 from contaxy.schema.extension import CORE_EXTENSION_ID
+from contaxy.utils.state_utils import GlobalState, RequestState
 
 COMPOSITE_ID_SEPERATOR = "~"
 

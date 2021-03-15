@@ -1,5 +1,5 @@
-from contaxy.api.state import GlobalState, RequestState
 from contaxy.operations import DeploymentOperations
+from contaxy.utils.state_utils import GlobalState, RequestState
 
 
 class DockerDeploymentManager(DeploymentOperations):
