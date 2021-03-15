@@ -1,6 +1,6 @@
-from contaxy.api.state import GlobalState, RequestState
 from contaxy.operations import FileOperations
 from contaxy.operations.json_db import JsonDocumentOperations
+from contaxy.utils.state_utils import GlobalState, RequestState
 
 
 class MinioFileManager(FileOperations):

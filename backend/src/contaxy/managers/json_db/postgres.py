@@ -9,9 +9,9 @@ from sqlalchemy.exc import NoResultFound, ProgrammingError
 from sqlalchemy.future import Engine
 from sqlalchemy.schema import DDL, CreateSchema
 
-from contaxy.api.state import GlobalState, RequestState
 from contaxy.operations import JsonDocumentOperations
 from contaxy.schema.json_db import JsonDocument
+from contaxy.utils.state_utils import GlobalState, RequestState
 
 
 class PostgresJsonDocumentManager(JsonDocumentOperations):

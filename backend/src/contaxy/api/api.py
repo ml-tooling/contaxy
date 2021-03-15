@@ -17,9 +17,8 @@ from contaxy.api.endpoints import (
     system,
     user,
 )
-from contaxy.api.state import GlobalState
 from contaxy.schema.exceptions import UnifiedError
-from contaxy.utils import fastapi_utils
+from contaxy.utils import fastapi_utils, state_utils
 
 # Initialize API
 app = FastAPI(
@@ -50,7 +49,7 @@ async def http_exception_handler(request, exc):  # type: ignore
 def on_startup() -> None:
     """Initializes the global app state object."""
     logger.info("Starting API server instance.")
-    GlobalState(app.state).settings = config.settings
+    state_utils.GlobalState(app.state).settings = config.settings
 
 
 @app.on_event("shutdown")
@@ -60,7 +59,7 @@ def on_shutdown() -> None:
     This also calls all registered close callback functions.
     """
     logger.info("Stopping API server instance.")
-    GlobalState(app.state).close()
+    state_utils.GlobalState(app.state).close()
 
 
 if config.settings.BACKEND_CORS_ORIGINS:

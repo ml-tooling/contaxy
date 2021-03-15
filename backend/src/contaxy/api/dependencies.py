@@ -6,7 +6,7 @@ from fastapi.security.api_key import APIKeyCookie, APIKeyHeader, APIKeyQuery
 from starlette import status
 
 from contaxy import config
-from contaxy.managers import ComponentManager
+from contaxy.managers.components import ComponentManager
 
 
 def get_api_token(
