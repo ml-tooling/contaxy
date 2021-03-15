@@ -8,7 +8,7 @@ from starlette import datastructures
 from contaxy.config import Settings
 
 
-class Dict(addict.Dict):
+class _Dict(addict.Dict):
     def __missing__(self, key):  # type: ignore
         # Do not create empty dict objects (default)
         return None
@@ -33,9 +33,9 @@ class State:
     def namespaces(self) -> dict:
         return self._namespaces
 
-    def __getitem__(self, namespace: Any) -> Dict:
+    def __getitem__(self, namespace: Any) -> addict.Dict:
         if namespace not in self._namespaces:
-            self._namespaces[namespace] = Dict()
+            self._namespaces[namespace] = _Dict()
         return self._namespaces[namespace]
 
     def __setitem__(self, namespace: Any, value: Any) -> None:
@@ -54,7 +54,7 @@ class State:
         self.close()
 
     @property
-    def shared_namespace(self) -> Dict:
+    def shared_namespace(self) -> addict.Dict:
         return self[State._SHARED_NAMESPACE_KEY]
 
     def register_close_callback(self, callback_func: Callable) -> None:
