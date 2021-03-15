@@ -1,18 +1,8 @@
+from contaxy import __version__
+from contaxy.config import settings
 from contaxy.operations import SystemOperations
-from contaxy.utils import id_utils
+from contaxy.schema.system import SystemInfo, SystemStatistics
 from contaxy.utils.state_utils import GlobalState, RequestState
-
-MAX_SYSTEM_NAMESPACE_LENGTH = 5
-
-
-def get_system_namespace(system_name: str) -> str:
-    return id_utils.generate_readable_id(
-        system_name,
-        max_length=MAX_SYSTEM_NAMESPACE_LENGTH,
-        min_length=3,
-        max_hash_suffix_length=MAX_SYSTEM_NAMESPACE_LENGTH,
-        separator="",
-    )
 
 
 class SystemManager(SystemOperations):
@@ -29,3 +19,16 @@ class SystemManager(SystemOperations):
         """
         self.global_state = global_state
         self.request_state = request_state
+
+    def get_system_info(self) -> SystemInfo:
+        return SystemInfo(version=__version__, namespace=settings.SYSTEM_NAMESPACE)
+
+    def is_healthy(self) -> bool:
+        # TODO: do real healthchecks
+        return True
+
+    def get_system_statistics(self) -> SystemStatistics:
+        # TODO: Implement system statistics
+        return SystemStatistics(
+            project_count=0, user_count=0, job_count=0, service_count=0, file_count=0
+        )
