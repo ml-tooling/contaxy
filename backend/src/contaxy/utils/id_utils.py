@@ -9,6 +9,18 @@ from typing import List, Optional
 import shortuuid
 from slugify import slugify
 
+from contaxy.config import settings
+
+_PROJECT_ID_SEPERATOR = "-p-"
+
+
+def get_project_resource_prefix(project_id: str) -> str:
+    """Creates a prefix usable to construct IDs for project resources.
+
+    The resource prefix is based on the system namespace and project ID.
+    """
+    return settings.SYSTEM_NAMESPACE + _PROJECT_ID_SEPERATOR + project_id
+
 
 def hash_str(input_str: str, length: Optional[int] = None) -> str:
     """Generates a hash with a variable lenght from an abritary text.
