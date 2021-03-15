@@ -5,7 +5,6 @@ from fastapi import Request
 from pydantic.networks import PostgresDsn
 
 from contaxy import config
-from contaxy.api.state import GlobalState, RequestState
 from contaxy.managers.auth import AuthManager
 from contaxy.managers.extension import ExtensionManager
 from contaxy.managers.file.minio import MinioFileManager
@@ -22,6 +21,7 @@ from contaxy.operations.deployment import DeploymentOperations
 from contaxy.schema.deployment import ServiceInput
 from contaxy.schema.extension import CORE_EXTENSION_ID
 from contaxy.schema.user import UserInput
+from contaxy.utils.state_utils import GlobalState, RequestState
 
 
 class ComponentManager:

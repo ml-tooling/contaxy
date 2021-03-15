@@ -4,7 +4,6 @@ from typing import List, Optional
 import docker
 import psutil
 
-from contaxy.api.state import GlobalState, RequestState
 from contaxy.config import settings
 from contaxy.managers.deployment.docker_utils import (
     check_minimal_resources,
@@ -24,6 +23,7 @@ from contaxy.managers.deployment.utils import (
 from contaxy.operations import DeploymentOperations
 from contaxy.schema import Job, JobInput, ResourceAction, Service, ServiceInput
 from contaxy.schema.deployment import DeploymentCompute, DeploymentType
+from contaxy.utils.state_utils import GlobalState, RequestState
 
 
 class DockerDeploymentManager(DeploymentOperations):

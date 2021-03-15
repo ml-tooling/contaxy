@@ -1,9 +1,9 @@
 from typing import Optional
 
-from contaxy.api.state import GlobalState, RequestState
 from contaxy.operations import AuthOperations, JsonDocumentOperations, OAuthOperations
 from contaxy.schema import GrantedPermission
 from contaxy.schema.auth import AccessLevel
+from contaxy.utils.state_utils import GlobalState, RequestState
 
 
 class AuthManager(AuthOperations, OAuthOperations):
