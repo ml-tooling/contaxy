@@ -1,11 +1,19 @@
+import string
 import subprocess
 from enum import Enum
 from typing import Optional
 
 from contaxy.config import settings
+from contaxy.schema.deployment import DeploymentType
+from contaxy.utils import id_utils
 
 DEFAULT_DEPLOYMENT_ACTION_ID = "default"
 NO_LOGS_MESSAGE = "No logs available."
+
+_MAX_DEPLOYMENT_NAME_LENGTH = 15
+
+_SERVICE_ID_SEPERATOR = "-s-"
+_JOB_ID_SEPERATOR = "-j-"
 
 
 class Labels(Enum):
@@ -64,19 +72,50 @@ def map_labels(labels: dict) -> MappedLabels:
     return mapped_labels
 
 
+def get_deployment_id(
+    project_id: str, deployment_name: str, deployment_type: DeploymentType
+) -> str:
+    """Returns a valid deployment ID based on some specified metadata.
+
+    Args:
+        project_id (str): The ID of the project associated with the deployment.
+        deployment_name (str): The name of the deployment. This can be an arbitrary text.
+        deployment_type (DeploymentType): The type of the deployment.
+
+    Returns:
+        str: A valid deployment ID.
+    """
+    separator = _SERVICE_ID_SEPERATOR
+    if deployment_type == DeploymentType.JOB:
+        # Currently, only job has a different separator
+        separator = _JOB_ID_SEPERATOR
+
+    deployment_name_part = id_utils.generate_readable_id(
+        deployment_name,
+        max_length=_MAX_DEPLOYMENT_NAME_LENGTH,
+        min_length=4,
+        max_hash_suffix_length=5,
+        stopwords=list(string.ascii_lowercase),
+    )
+
+    # A resource prefix based on the namespace and project id.
+    # has a maximum length of 5 (namespace) + 3 (seperator) + 15 (project id) = 23
+    project_resource_prefix = id_utils.get_project_resource_prefix(project_id)
+
+    return project_resource_prefix + separator + deployment_name_part
+
+
 def get_volume_name(project_id: str, service_id: str) -> str:
     # TODO: follow naming concept for volumes
     return f"{project_id}-{service_id}-vol"
 
 
 def get_network_name(project_id: str) -> str:
-    # TODO: follow naming concept for networks
-    return f"{project_id}-network"
+    return f"{id_utils.get_project_resource_prefix(project_id)}-network"
 
 
 def normalize_service_name(project_id: str, display_name: str) -> str:
-    # TODO: follow naming concept for services
-    return f"{project_id}-{display_name.replace(' ', '-').lower()}"
+    return get_deployment_id(project_id, display_name, DeploymentType.SERVICE)
 
 
 def get_label_string(key: str, value: str) -> str:
