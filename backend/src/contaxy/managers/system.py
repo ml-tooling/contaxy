@@ -1,5 +1,18 @@
 from contaxy.operations import SystemOperations
+from contaxy.utils import id_utils
 from contaxy.utils.state_utils import GlobalState, RequestState
+
+MAX_SYSTEM_NAMESPACE_LENGTH = 5
+
+
+def get_system_namespace(system_name: str) -> str:
+    return id_utils.generate_readable_id(
+        system_name,
+        max_length=MAX_SYSTEM_NAMESPACE_LENGTH,
+        min_length=3,
+        max_hash_suffix_length=MAX_SYSTEM_NAMESPACE_LENGTH,
+        separator="",
+    )
 
 
 class SystemManager(SystemOperations):
