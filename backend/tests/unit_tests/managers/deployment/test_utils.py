@@ -1,7 +1,7 @@
 import pytest
 
 from contaxy.config import settings
-from contaxy.managers.deployment import deployment_utils
+from contaxy.managers.deployment import utils
 from contaxy.schema.deployment import DeploymentType
 
 
@@ -28,7 +28,7 @@ def test_get_deployment_id(
     deployment_type: DeploymentType,
     expected_id: str,
 ) -> None:
-    deployment_id = deployment_utils.get_deployment_id(
+    deployment_id = utils.get_deployment_id(
         project_id, deployment_name, deployment_type
     )
     assert deployment_id == expected_id
