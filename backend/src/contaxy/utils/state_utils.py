@@ -1,3 +1,5 @@
+"""Utilities for managing global and request state for an FastAPI app."""
+
 from typing import Any, Callable
 
 import addict

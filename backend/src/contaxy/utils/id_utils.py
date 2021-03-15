@@ -1,3 +1,5 @@
+"""Utilities for generating IDs, tokens, and hashes."""
+
 import hashlib
 import math
 import secrets

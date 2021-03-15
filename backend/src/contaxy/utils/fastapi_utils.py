@@ -1,3 +1,5 @@
+"""Collection of utilities for FastAPI apps."""
+
 from fastapi import FastAPI
 
 
