@@ -107,15 +107,10 @@ class DockerTestHandler:
 
 
 class KubeTestHandler:
-    def __init__(self) -> None:
-        # Don't try to instantiate the Kubernetes Manager if Kubernetes is not available
-        if not is_kube_available:
-            return
-
     def setup(self) -> str:
         test_namespace_name = f"test-namespace-{int(time.time())}"
         self.deployment_manager = KubernetesDeploymentManager(
-            kube_namespace=test_namespace_name
+            global_state=None, request_state=None, kube_namespace=test_namespace_name
         )
         namespace = V1Namespace(metadata={"name": test_namespace_name})
         self.deployment_manager.core_api.create_namespace(body=namespace)

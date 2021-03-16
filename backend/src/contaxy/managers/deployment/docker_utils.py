@@ -302,6 +302,10 @@ def create_container_config(
     service: Union[JobInput, ServiceInput],
     project_id: str,
 ) -> Dict[str, Any]:
+
+    if service.display_name is None:
+        raise RuntimeError("Service name not defined")
+
     compute_resources = service.compute or DeploymentCompute()
     (
         min_cpus,
@@ -314,8 +318,9 @@ def create_container_config(
         min_gpus=min_gpus,
     )
 
-    display_name = service.display_name if service.display_name else ""
-    container_name = normalize_service_name(project_id, display_name=display_name)
+    container_name = normalize_service_name(
+        project_id, display_name=service.display_name
+    )
 
     max_cpus = (
         compute_resources.max_cpus if compute_resources.max_cpus is not None else 1
