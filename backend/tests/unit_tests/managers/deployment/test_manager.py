@@ -12,7 +12,7 @@ from contaxy.managers.deployment.docker_utils import (
     get_this_container,
 )
 from contaxy.managers.deployment.kubernetes import KubernetesDeploymentManager
-from contaxy.managers.deployment.utils import normalize_service_name
+from contaxy.managers.deployment.utils import get_deployment_id
 from contaxy.schema.deployment import (
     DeploymentType,
     Job,
@@ -27,8 +27,10 @@ pytestmark = pytest.mark.unit
 uid = str(int(time.time()))
 test_project_name = f"test-project-{uid}"
 test_service_display_name = f"Test Service-{uid}"
-test_service_id = normalize_service_name(
-    project_id=test_project_name, display_name=test_service_display_name
+test_service_id = get_deployment_id(
+    project_id=test_project_name,
+    deployment_name=test_service_display_name,
+    deployment_type=DeploymentType.SERVICE,
 )
 
 is_kube_available = os.getenv("KUBE_AVAILABLE", "")

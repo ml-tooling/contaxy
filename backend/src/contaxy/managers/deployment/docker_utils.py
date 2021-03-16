@@ -8,16 +8,17 @@ import psutil
 from contaxy.config import settings
 from contaxy.managers.deployment.utils import (
     Labels,
+    get_deployment_id,
     get_gpu_info,
     get_network_name,
     get_volume_name,
     log,
     map_labels,
-    normalize_service_name,
 )
 from contaxy.schema.deployment import (
     DeploymentCompute,
     DeploymentStatus,
+    DeploymentType,
     Job,
     JobInput,
     Service,
@@ -318,8 +319,13 @@ def create_container_config(
         min_gpus=min_gpus,
     )
 
-    container_name = normalize_service_name(
-        project_id, display_name=service.display_name
+    deployment_type = (
+        DeploymentType.SERVICE if type(service) == ServiceInput else DeploymentType.JOB
+    )
+    container_name = get_deployment_id(
+        project_id,
+        deployment_name=service.display_name,
+        deployment_type=deployment_type,
     )
 
     max_cpus = (

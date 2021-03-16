@@ -114,10 +114,6 @@ def get_network_name(project_id: str) -> str:
     return f"{id_utils.get_project_resource_prefix(project_id)}-network"
 
 
-def normalize_service_name(project_id: str, display_name: str) -> str:
-    return get_deployment_id(project_id, display_name, DeploymentType.SERVICE)
-
-
 def get_label_string(key: str, value: str) -> str:
     return f"{key}={value}"
 

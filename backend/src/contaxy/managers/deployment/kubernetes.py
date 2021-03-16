@@ -33,8 +33,8 @@ from contaxy.managers.deployment.manager import DeploymentManager
 from contaxy.managers.deployment.utils import (
     DEFAULT_DEPLOYMENT_ACTION_ID,
     Labels,
+    get_deployment_id,
     log,
-    normalize_service_name,
 )
 from contaxy.schema import Job, JobInput, ResourceAction, Service, ServiceInput
 from contaxy.schema.deployment import DeploymentType
@@ -110,18 +110,20 @@ class KubernetesDeploymentManager(DeploymentManager):
                 f"Could not create a service id for service with display name {service.display_name}"
             )
 
-        normalized_service_name = normalize_service_name(
-            project_id=project_id, display_name=service.display_name
+        service_id = get_deployment_id(
+            project_id=project_id,
+            deployment_name=service.display_name,
+            deployment_type=DeploymentType.SERVICE,
         )
 
         kube_service_config = build_kube_service_config(
-            service_id=normalized_service_name,
+            service_id=service_id,
             service=service,
             project_id=project_id,
             kube_namespace=self.kube_namespace,
         )
         kube_deployment_config, kube_deployment_pvc = build_kube_deployment_config(
-            service_id=normalized_service_name,
+            service_id=service_id,
             service=service,
             project_id=project_id,
             kube_namespace=self.kube_namespace,
@@ -155,7 +157,7 @@ class KubernetesDeploymentManager(DeploymentManager):
             if not hasattr(e, "status") or e.status != 409:  # type: ignore
                 try:
                     self.core_api.delete_namespaced_service(
-                        namespace=self.kube_namespace, name=normalized_service_name
+                        namespace=self.kube_namespace, name=service_id
                     )
                 except ApiException:
                     pass
@@ -172,14 +174,14 @@ class KubernetesDeploymentManager(DeploymentManager):
             # Delete already created resources upon an error
             try:
                 self.core_api.delete_namespaced_service(
-                    namespace=self.kube_namespace, name=normalized_service_name
+                    namespace=self.kube_namespace, name=service_id
                 )
             except ApiException:
                 pass
 
             try:
                 self.apps_api.delete_namespaced_deployment(
-                    namespace=self.kube_namespace, name=normalized_service_name
+                    namespace=self.kube_namespace, name=service_id
                 )
             except ApiException:
                 pass
@@ -374,27 +376,29 @@ class KubernetesDeploymentManager(DeploymentManager):
                 f"Could not create service id for job {job.display_name}"
             )
 
-        normalized_service_name = normalize_service_name(
-            project_id=project_id, display_name=job.display_name
+        deployment_id = get_deployment_id(
+            project_id=project_id,
+            deployment_name=job.display_name,
+            deployment_type=DeploymentType.JOB,
         )
 
         metadata = V1ObjectMeta(
             namespace=self.kube_namespace,
-            name=normalized_service_name,
+            name=deployment_id,
             labels={
                 Labels.DISPLAY_NAME.value: job.display_name.replace(
                     " ", "__"
                 ),  # Kubernetes validation regex for labels: (([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?')
                 Labels.NAMESPACE.value: settings.SYSTEM_NAMESPACE,
                 Labels.PROJECT_NAME.value: project_id,
-                Labels.DEPLOYMENT_NAME.value: normalized_service_name,
+                Labels.DEPLOYMENT_NAME.value: deployment_id,
                 Labels.DEPLOYMENT_TYPE.value: DeploymentType.JOB.value,
             },  # service.deployment_labels
         )
 
         # For debugging purposes, set restart_policy=Never to have access to job logs (see https://kubernetes.io/docs/concepts/workloads/controllers/job/#pod-backoff-failure-policy)
         pod_spec = build_pod_template_spec(
-            service_id=normalized_service_name, service=job, metadata=metadata
+            service_id=deployment_id, service=job, metadata=metadata
         )
         pod_spec.spec.restart_policy = "OnFailure"
 
