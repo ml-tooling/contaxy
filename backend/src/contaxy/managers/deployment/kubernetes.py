@@ -20,6 +20,8 @@ from contaxy.managers.deployment.kube_utils import (
     build_kube_deployment_config,
     build_kube_service_config,
     build_pod_template_spec,
+    build_project_network_policy_spec,
+    check_or_create_project_network_policy,
     create_pvc,
     create_service,
     get_label_selector,
@@ -67,6 +69,7 @@ class KubernetesDeploymentManager(DeploymentManager):
         self.core_api = kube_client.CoreV1Api()
         self.apps_api = kube_client.AppsV1Api()
         self.batch_api = kube_client.BatchV1Api()
+        self.networking_api = kube_client.NetworkingV1Api()
 
         if kube_namespace is None:
             try:
@@ -127,6 +130,13 @@ class KubernetesDeploymentManager(DeploymentManager):
             service=service,
             project_id=project_id,
             kube_namespace=self.kube_namespace,
+        )
+
+        check_or_create_project_network_policy(
+            network_policy=build_project_network_policy_spec(
+                project_id=project_id, kube_namespace=self.kube_namespace
+            ),
+            networking_api=self.networking_api,
         )
 
         create_pvc(

@@ -38,12 +38,14 @@ if is_kube_available != "true":
     is_kube_available = ""
 
 
-def create_test_service_input(_service_id: str = test_service_id) -> ServiceInput:
+def create_test_service_input(
+    _service_id: str = test_service_id, display_name: str = test_service_display_name
+) -> ServiceInput:
     return ServiceInput(
         container_image="tutum/hello-world",
         compute={"max_cpus": 2, "max_memory": 100, "volume_path": "/test_temp"},
         deployment_type=DeploymentType.SERVICE.value,
-        display_name=test_service_display_name,
+        display_name=display_name,
         description="This is a test service",
         # TODO: to pass id here does not make sense but is required by Pydantic
         id=_service_id,
@@ -246,12 +248,45 @@ class TestDeploymentManagers:
         assert logs
         assert logs.startswith(log_input)
 
+    @pytest.mark.skip(reason="Not finished yet")
+    def test_project_isolation(self) -> None:
+        project_1 = f"{test_project_name}-1"
+        project_2 = f"{test_project_name}-2"
+        test_service_input_1 = create_test_service_input(
+            _service_id=f"{test_service_id}-1",
+            display_name=f"{test_service_display_name}-1",
+        )
+        test_service_input_2 = create_test_service_input(
+            _service_id=f"{test_service_id}-2",
+            display_name=f"{test_service_display_name}-2",
+        )
+        test_service_input_3 = create_test_service_input(
+            _service_id=f"{test_service_id}-3",
+            display_name=f"{test_service_display_name}-3",
+        )
+
+        service_1 = self.handler.deploy_service(
+            project_id=project_1,
+            service=test_service_input_1,
+        )
+        service_2 = self.handler.deploy_service(
+            project_id=project_1,
+            service=test_service_input_2,
+        )
+        service_3 = self.handler.deploy_service(
+            project_id=project_2,
+            service=test_service_input_3,
+        )
+
+        # TODO: exec into service 1 and try to access service 2 -> should be successful, exec into service 1 and try to access service 3 -> not successful!
+        # TODO: the services are based on hello world, so it should be possible to "curl" the other containers / pods
+
 
 class TestDockerDeploymentManager:
     def test_container_object(self) -> None:
         handler = DockerTestHandler()
-        _service_name = f"test-project-{int(time.time())}"
-        test_service_input = create_test_service_input(_service_name)
+        _service_id = f"test-project-{int(time.time())}"
+        test_service_input = create_test_service_input(_service_id=_service_id)
 
         service = handler.deploy_service(
             project_id=test_project_name,

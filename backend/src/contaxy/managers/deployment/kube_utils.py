@@ -10,6 +10,10 @@ from kubernetes.client.models import (
     V1EnvVar,
     V1Job,
     V1LabelSelector,
+    V1NetworkPolicy,
+    V1NetworkPolicyIngressRule,
+    V1NetworkPolicyPeer,
+    V1NetworkPolicySpec,
     V1ObjectMeta,
     V1PersistentVolumeClaim,
     V1PersistentVolumeClaimSpec,
@@ -225,7 +229,7 @@ def build_kube_deployment_config(
     compute_resources = service.compute or DeploymentCompute()
     # ---
     min_lifetime = compute_resources.min_lifetime or 0
-    additional_metadata = service.metadata or {}
+    metadata = service.metadata or {}
     display_name = service.display_name or ""
     metadata = V1ObjectMeta(
         namespace=kube_namespace,
@@ -240,7 +244,7 @@ def build_kube_deployment_config(
             Labels.PROJECT_NAME.value: project_id,
             Labels.DEPLOYMENT_NAME.value: service_id,
             Labels.DEPLOYMENT_TYPE.value: DeploymentType.SERVICE.value,
-            **additional_metadata,
+            **metadata,
         },
     )
 
@@ -294,6 +298,65 @@ def build_kube_deployment_config(
     )
 
     return deployment, pvc
+
+
+def build_project_network_policy_spec(
+    project_id: str, kube_namespace: str
+) -> V1NetworkPolicy:
+
+    project_pod_selector = V1LabelSelector(
+        match_labels={
+            Labels.NAMESPACE.value: settings.SYSTEM_NAMESPACE,
+            Labels.PROJECT_NAME.value: project_id,
+        }
+    )
+
+    network_policy = V1NetworkPolicy(
+        metadata=V1ObjectMeta(
+            namespace=kube_namespace,
+            name=project_id,
+            labels={
+                Labels.NAMESPACE.value: settings.SYSTEM_NAMESPACE,
+                Labels.PROJECT_NAME.value: project_id,
+            },
+        ),
+        spec=V1NetworkPolicySpec(
+            ingress=[
+                V1NetworkPolicyIngressRule(
+                    # Allow traffic from other pods of the same project and the Contaxy backend container
+                    _from=[
+                        V1NetworkPolicyPeer(pod_selector=project_pod_selector),
+                        # TODO: probably not needed as this rule is added via our core kube-network-policy
+                        # V1NetworkPolicyPeer(
+                        #     pod_selector=V1LabelSelector(
+                        #         match_labels={
+                        #             Labels.NAMESPACE.value: settings.SYSTEM_NAMESPACE,
+                        #             # Labels.DEPLOYMENT_TYPE.value: f"{settings.SYSTEM_NAMESPACE}.{DeploymentType.CORE_BACKEND}",
+                        #         }
+                        #     )
+                        # ),
+                    ]
+                )
+            ],
+            pod_selector=project_pod_selector,
+        ),
+    )
+
+    return network_policy
+
+
+def check_or_create_project_network_policy(
+    network_policy: V1NetworkPolicy, networking_api: kube_client.NetworkingV1Api
+) -> V1NetworkPolicy:
+    try:
+        return networking_api.read_namespaced_network_policy(
+            namespace=network_policy.metadata.namespace,
+            name=network_policy.metadata.name,
+        )
+    except ApiException:
+        return networking_api.create_namespaced_network_policy(
+            namespace=network_policy.metadata.namespace, body=network_policy
+        )
 
 
 def wait_for_deployment(
