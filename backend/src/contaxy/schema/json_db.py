@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, Json
 
 
 class JsonDocument(BaseModel):
@@ -10,8 +10,7 @@ class JsonDocument(BaseModel):
         example="my-json-document",
         description="Unique key of the document.",
     )
-    # TODO: change to JSON
-    json_value: str = Field(
+    json_value: Json = Field(
         ...,
         example="{'foo': 'bar'}",
         description="JSON value of the document.",
