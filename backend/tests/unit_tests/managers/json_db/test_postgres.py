@@ -53,7 +53,6 @@ def get_defaults() -> dict:
     }
 
 
-@pytest.mark.unit
 @pytest.mark.db
 class TestPostgresJsonDocumentManager:
     def test_create_json_document(
