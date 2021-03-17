@@ -34,6 +34,7 @@ class CoreOperations(str, Enum):
     DELETE_USER = "delete_user"
     GET_USER_TOKEN = "get_user_token"
     CREATE_USER = "create_user"
+    CHANGE_PASSWORD = "change_password"
     # Auth Endpoints
     REFRESH_TOKEN = "refresh_token"
     VERIFY_TOKEN = "verify_token"

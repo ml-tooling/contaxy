@@ -1,6 +1,8 @@
 from typing import Any, List
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Security, status
+from fastapi.param_functions import Body
+from fastapi.security import OAuth2PasswordBearer
 
 from contaxy.api.dependencies import (
     ComponentManager,
@@ -8,7 +10,7 @@ from contaxy.api.dependencies import (
     get_component_manager,
 )
 from contaxy.schema import CoreOperations, User, UserInput, UserRegistration
-from contaxy.schema.exceptions import ClientValueError
+from contaxy.schema.exceptions import ClientBaseError, ServerBaseError
 from contaxy.schema.user import USER_ID_PARAM
 
 router = APIRouter(
@@ -33,7 +35,7 @@ def list_users(
     token: str = Depends(get_api_token),
 ) -> Any:
     """Lists all users that are visible to the authenticated user."""
-    raise ClientValueError("Blub")
+    raise ServerBaseError("Blub", "Foo")
 
 
 @router.post(
@@ -107,6 +109,31 @@ def update_user(
 
     This will update only the properties that are explicitly set in the patch request.
     The patching is based on the JSON Merge Patch Standard [RFC7396](https://tools.ietf.org/html/rfc7396).
+    """
+    raise NotImplementedError
+
+
+@router.put(
+    "/users/{user_id}:change-password",
+    operation_id=CoreOperations.CHANGE_PASSWORD.value,
+    summary="Change the user password",
+    tags=["users"],
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def change_user_password(
+    user_id: str = USER_ID_PARAM,
+    password: str = Body(...),
+    bearer_token: str = Security(
+        OAuth2PasswordBearer(tokenUrl="auth/oauth/token", auto_error=False)
+    ),
+    component_manager: ComponentManager = Depends(get_component_manager),
+) -> Any:
+    """Changes the password of a given user.
+
+    The endpoint MUST be called with basic auth credentials (user-id and password).
+    The password can be changed by the given user or a system admin.
+
+    The password is stored as a hash.
     """
     raise NotImplementedError
 
