@@ -47,7 +47,7 @@ def create_json_document(
     # TODO: convert json to str?
 
     return component_manager.get_json_db_manager().create_json_document(
-        project_id, collection_id, key, str(json_document)
+        project_id, collection_id, key, json_document
     )
 
 
@@ -78,7 +78,7 @@ def update_json_document(
     # TODO: convert json to str?
 
     return component_manager.get_json_db_manager().update_json_document(
-        project_id, collection_id, key, str(json_document)
+        project_id, collection_id, key, json_document
     )
 
 
