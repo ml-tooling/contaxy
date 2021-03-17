@@ -95,6 +95,7 @@ setup(
             "pydocstyle",
             "isort",
             "lazydocs",
+            "locust",
             # For better print debugging via debug
             "devtools[pygments]",
             # For Jupyter Kernel support

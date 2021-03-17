@@ -30,3 +30,12 @@ def test_generate_token() -> None:
 
     # All tokens should be different
     assert id_utils.generate_token(40) != id_utils.generate_token(40)
+
+
+def test_get_project_resource_prefix() -> None:
+    from contaxy.config import settings
+
+    assert (
+        id_utils.get_project_resource_prefix("my-project")
+        == settings.SYSTEM_NAMESPACE + "-p-my-project"
+    )

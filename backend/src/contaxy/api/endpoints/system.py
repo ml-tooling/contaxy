@@ -1,6 +1,6 @@
 from typing import Any
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Response, status
 
 from contaxy.api.dependencies import (
     ComponentManager,
@@ -24,8 +24,7 @@ def get_system_info(
     component_manager: ComponentManager = Depends(get_component_manager),
 ) -> Any:
     """Returns information about this instance."""
-    # TODO: this call can also be made without authentication
-    raise PermissionDeniedException()
+    return component_manager.get_system_manager().get_system_info()
 
 
 @router.get(
@@ -37,8 +36,10 @@ def check_health(
     component_manager: ComponentManager = Depends(get_component_manager),
 ) -> Any:
     """Returns a successful return code if the instance is healthy."""
-    # TODO: this call can also be made without authentication
-    raise NotImplementedError
+    if component_manager.get_system_manager().is_healthy():
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+    else:
+        return Response(status_code=status.HTTP_503_SERVICE_UNAVAILABLE)
 
 
 @router.get(
@@ -53,4 +54,7 @@ def get_system_statistics(
     token: str = Depends(get_api_token),
 ) -> Any:
     """Returns statistics about this instance."""
-    raise NotImplementedError
+    if not component_manager.get_auth_manager().verify_token(token, "system#admin"):
+        raise PermissionDeniedException()
+
+    return component_manager.get_system_manager().get_system_statistics()

@@ -202,7 +202,7 @@ class ServiceOperations(ABC):
 
 class JobOperations(ABC):
     @abstractmethod
-    def list_jobs(self, project_id: str) -> Job:
+    def list_jobs(self, project_id: str) -> List[Job]:
         pass
 
     @abstractmethod

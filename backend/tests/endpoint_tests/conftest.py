@@ -4,17 +4,17 @@ import pytest
 import requests
 from fastapi.testclient import TestClient
 
-from .shared import ADMIN_API_TOKEN, BackendClient
+from tests.endpoint_tests.shared import ADMIN_API_TOKEN, BackendClient
 
 pytestmark = pytest.mark.integration
 
 
 class BaseUrlSession(requests.Session):
-    def __init__(self, base_url=None, *args, **kwargs):
+    def __init__(self, base_url=None, *args, **kwargs):  # type: ignore
         super(BaseUrlSession, self).__init__(*args, **kwargs)
         self.base_url = base_url
 
-    def request(self, method, url, *args, **kwargs):
+    def request(self, method, url, *args, **kwargs):  # type: ignore
         url = self.base_url + url
         return super(BaseUrlSession, self).request(method, url, *args, **kwargs)
 
@@ -27,18 +27,17 @@ def client() -> Generator[requests.Session, None, None]:
 
     if client_config.base_url == "":
         print("Use FastAPI.TestClient as client_config.endpoint is empty.")
-        from ...src.contaxy.dependencies import get_authenticated_user
-        from ...src.contaxy.main import app
-        from ...src.contaxy.models.users import User
+        # from ...src.contaxy.dependencies import get_authenticated_user
+        from contaxy.api import app
 
-        def _mocked_get_authenticated_user() -> User:
-            return User(
-                id="admin", username="admin", password="admin", scopes=["admin"]
-            )
-
-        app.dependency_overrides[
-            get_authenticated_user
-        ] = _mocked_get_authenticated_user
+        # from contaxy.schema import User
+        # def _mocked_get_authenticated_user() -> User:
+        #     return User(
+        #         id="admin", username="admin", password="admin", scopes=["admin"]
+        #     )
+        # app.dependency_overrides[
+        #     get_authenticated_user
+        # ] = _mocked_get_authenticated_user
         test_client = TestClient(app=app, root_path=client_config.root_path)
     else:
         print(

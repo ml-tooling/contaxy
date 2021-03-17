@@ -14,8 +14,8 @@ ADMIN_API_TOKEN = os.getenv(
 
 
 class BackendClient:
-    def __init__(self):
-        self.endpoint = os.getenv("CONTAXY_ENDPOINT", "")
+    def __init__(self, endpoint: str = "") -> None:
+        self.endpoint = os.getenv("CONTAXY_ENDPOINT", endpoint)
         self.root_path = os.getenv("CONTAXY_ROOT_PATH", "/")
         self.base_url = self.endpoint
         if self.endpoint != "":
@@ -26,17 +26,17 @@ class BackendClient:
             pass
 
 
-def request_echo(client: Session, input: str = "") -> Response:
-    return client.get("/echo", params={"input": input})
+# def request_authorized_echo(client: Session, input: str = "") -> Response:
+#     return client.get("/authorized-echo", params={"input": input})
 
 
-def request_authorized_echo(client: Session, input: str = "") -> Response:
-    return client.get("/authorized-echo", params={"input": input})
+# def request_login(client: Session, form_data: Dict[str, str] = {}) -> Response:
+#     return client.post("/auth/login", data=form_data)
 
 
-def request_login(client: Session, form_data: Dict[str, str] = {}) -> Response:
-    return client.post("/auth/login", data=form_data)
+# def request_user_profile(client: Session) -> Response:
+#     return client.get("/users/me")
 
 
-def request_user_profile(client: Session) -> Response:
-    return client.get("/users/me")
+def request_system_info(client: Session) -> Response:
+    return client.get("/system/info")

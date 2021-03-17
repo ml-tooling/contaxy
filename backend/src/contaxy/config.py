@@ -22,6 +22,9 @@ class Settings(BaseSettings):
 
     # Selected deployment manager
     DEPLOYMENT_MANAGER: DeploymentManager = DeploymentManager.DOCKER
+    HOST_DATA_ROOT_PATH: Optional[str] = None
+    if HOST_DATA_ROOT_PATH is not None and not HOST_DATA_ROOT_PATH.endswith("/"):
+        HOST_DATA_ROOT_PATH = f"{HOST_DATA_ROOT_PATH}/"
 
     # Postgres Connection URI to use for JSON Document Manager
     # If `None`, a dedicated postgres instance will be started as a service (container).
