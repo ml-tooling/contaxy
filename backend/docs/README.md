@@ -32,7 +32,7 @@
 - [`contaxy.operations.json_db`](./contaxy.operations.json_db.md#module-contaxyoperationsjson_db)
 - [`contaxy.operations.project`](./contaxy.operations.project.md#module-contaxyoperationsproject)
 - [`contaxy.operations.system`](./contaxy.operations.system.md#module-contaxyoperationssystem)
-- [`contaxy.operations.user`](./contaxy.operations.user.md#module-contaxyoperationsuser)
+- [`contaxy.operations.user`](./contaxy.operations.user.md#module-contaxyoperationsuser): Operations associated with the user handling.
 - [`contaxy.schema`](./contaxy.schema.md#module-contaxyschema): Data Models and Schemas.
 - [`contaxy.schema.auth`](./contaxy.schema.auth.md#module-contaxyschemaauth)
 - [`contaxy.schema.deployment`](./contaxy.schema.deployment.md#module-contaxyschemadeployment)
@@ -79,7 +79,7 @@
 - [`json_db.JsonDocumentOperations`](./contaxy.operations.json_db.md#class-jsondocumentoperations)
 - [`project.ProjectOperations`](./contaxy.operations.project.md#class-projectoperations)
 - [`system.SystemOperations`](./contaxy.operations.system.md#class-systemoperations)
-- [`user.UserOperations`](./contaxy.operations.user.md#class-useroperations)
+- [`user.UserOperations`](./contaxy.operations.user.md#class-useroperations): Collection of operations associated with the user handling.
 - [`auth.AccessLevel`](./contaxy.schema.auth.md#class-accesslevel): An enumeration.
 - [`auth.ApiToken`](./contaxy.schema.auth.md#class-apitoken)
 - [`auth.AuthorizeResponseType`](./contaxy.schema.auth.md#class-authorizeresponsetype): An enumeration.
