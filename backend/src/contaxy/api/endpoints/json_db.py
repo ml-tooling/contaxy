@@ -8,7 +8,7 @@ from contaxy.api.dependencies import (
     get_component_manager,
 )
 from contaxy.schema import CoreOperations, JsonDocument
-from contaxy.schema.exceptions import PermissionDeniedException
+from contaxy.schema.exceptions import PermissionDeniedError
 from contaxy.schema.project import PROJECT_ID_PARAM
 
 router = APIRouter(
@@ -42,7 +42,7 @@ def create_json_document(
     if not component_manager.get_auth_manager().verify_token(
         token, f"projects/{project_id}/json/{collection_id}/{key}#write"
     ):
-        raise PermissionDeniedException()
+        raise PermissionDeniedError()
 
     # TODO: convert json to str?
 
@@ -73,7 +73,7 @@ def update_json_document(
     if not component_manager.get_auth_manager().verify_token(
         token, f"projects/{project_id}/json/{collection_id}/{key}#write"
     ):
-        raise PermissionDeniedException()
+        raise PermissionDeniedError()
 
     # TODO: convert json to str?
 
@@ -109,7 +109,7 @@ def list_json_documents(
     if not component_manager.get_auth_manager().verify_token(
         token, f"projects/{project_id}/json/{collection_id}#read"
     ):
-        raise PermissionDeniedException()
+        raise PermissionDeniedError()
 
     return component_manager.get_json_db_manager().list_json_documents(
         project_id, collection_id, filter
@@ -134,7 +134,7 @@ def get_json_document(
     if not component_manager.get_auth_manager().verify_token(
         token, f"projects/{project_id}/json/{collection_id}/{key}#read"
     ):
-        raise PermissionDeniedException()
+        raise PermissionDeniedError()
 
     return component_manager.get_json_db_manager().get_json_document(
         project_id, collection_id, key
@@ -161,7 +161,7 @@ def delete_json_document(
     if not component_manager.get_auth_manager().verify_token(
         token, f"projects/{project_id}/json/{collection_id}/{key}#write"
     ):
-        raise PermissionDeniedException()
+        raise PermissionDeniedError()
 
     return component_manager.get_json_db_manager().delete_json_document(
         project_id, collection_id, key
