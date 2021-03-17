@@ -54,7 +54,7 @@ setup(
         "psutil",
         "uvicorn",
         "addict",
-        "sqlalchemy",
+        "sqlalchemy>=1.4.0",
         # Postgres Driver
         "psycopg2",
         # Generates concise, unambiguous, URL-safe UUIDs.
