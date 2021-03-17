@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from contaxy.schema import JsonDocument
 
@@ -11,7 +11,7 @@ class JsonDocumentOperations(ABC):
         project_id: str,
         collection_id: str,
         key: str,
-        json_document: str,
+        json_document: Dict,
     ) -> JsonDocument:
         pass
 
@@ -21,7 +21,7 @@ class JsonDocumentOperations(ABC):
         project_id: str,
         collection_id: str,
         key: str,
-        json_document: str,
+        json_document: dict,
     ) -> JsonDocument:
         pass
 
