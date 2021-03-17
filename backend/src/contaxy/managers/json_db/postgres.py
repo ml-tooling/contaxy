@@ -2,6 +2,7 @@ import datetime
 import json
 from typing import Dict, List, Optional
 
+from loguru import logger
 from sqlalchemy import Column, DateTime, MetaData, Table, func
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.engine import Row
@@ -51,7 +52,9 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
         Returns:
             JsonDocument: The created Json document.
         """
-
+        logger.debug(
+            f"Create Json document (`project_id`: {project_id}, `collection_id`: {collection_id} `key`: {key} )"
+        )
         table = self._get_collection_table(project_id, collection_id)
 
         insert_data = {"key": key, "json_value": json_document}
@@ -70,6 +73,9 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
                 raise RuntimeError("Upsert failed")
             conn.commit()
 
+        logger.info(
+            f"Json document created (`project_id`: {project_id}, `collection_id`: {collection_id} `key`: {key} )"
+        )
         return self.get_json_document(project_id, collection_id, key)
 
     def get_json_document(
@@ -91,6 +97,9 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
         Returns:
             JsonDocument: The requested Json document.
         """
+        logger.debug(
+            f"Get Json document (`project_id`: {project_id}, `collection_id`: {collection_id} `key`: {key} )"
+        )
         table = self._get_collection_table(project_id, collection_id)
         select_statement = table.select().where(table.c.key == key)
         with self._engine.begin() as conn:
@@ -117,7 +126,9 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
         Returns:
             JsonDocument: The requested Json document.
         """
-
+        logger.debug(
+            f"Get Json documents (`project_id`: {project_id}, `collection_id`: {collection_id} `keys`: {keys} )"
+        )
         table = self._get_collection_table(project_id, collection_id)
         select_statement = table.select().where(table.c.key.in_(keys))
         with self._engine.begin() as conn:
@@ -148,6 +159,9 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
         Returns:
             JsonDocument: The updated document.
         """
+        logger.debug(
+            f"Update Json document (`project_id`: {project_id}, `collection_id`: {collection_id} `key`: {key} )"
+        )
         table = self._get_collection_table(project_id, collection_id)
 
         json_value = json.dumps(json_document)
@@ -173,6 +187,10 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
                 )
             conn.commit()
 
+        logger.info(
+            f"Json document updated (`project_id`: {project_id}, `collection_id`: {collection_id} `key`: {key} )"
+        )
+
         return self.get_json_document(project_id, collection_id, key)
 
     def delete_json_document(
@@ -191,6 +209,9 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
         Raises:
             ValueError: No document found for the given key.
         """
+        logger.debug(
+            f"Delete Json document (`project_id`: {project_id}, `collection_id`: {collection_id} `key`: {key} )"
+        )
         table = self._get_collection_table(project_id, collection_id)
         delete_statement = table.delete().where(table.c.key == key)
         with self._engine.begin() as conn:
@@ -202,6 +223,9 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
                     f"Document {key} could not be deleted (project_id: {project_id}, collection_id {collection_id})"
                 )
             conn.commit()
+        logger.debug(
+            f"Json document deleted (`project_id`: {project_id}, `collection_id`: {collection_id} `key`: {key} )"
+        )
 
     def delete_documents(
         self, project_id: str, collection_id: str, keys: List[str]
@@ -217,11 +241,17 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
             json_document (Dict): The actual Json document.
 
         """
+        logger.debug(
+            f"Delete Json documents (`project_id`: {project_id}, `collection_id`: {collection_id} `keys`: {keys} )"
+        )
         table = self._get_collection_table(project_id, collection_id)
         delete_statement = table.delete().where(table.c.key.in_(keys))
         with self._engine.begin() as conn:
             result = conn.execute(delete_statement)
             conn.commit()
+        logger.info(
+            f"{result.rowcount} of {len(keys)} Json documents deleted (`project_id`: {project_id}, `collection_id`: {collection_id} `keys`: {keys} )"
+        )
         return result.rowcount
 
     def list_json_documents(
@@ -245,13 +275,17 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
         Returns:
             List[JsonDocument]: List of Json documents.
         """
+        logger.debug(
+            f"List Json documents (`project_id`: {project_id}, `collection_id`: {collection_id} `filter`: {filter} )"
+        )
         table = self._get_collection_table(project_id, collection_id)
         sql_statement = table.select()
         if filter:
             sql_statement = sql_statement.where(
                 func.jsonb_path_exists(table.c.json_value, filter),
             )
-            print(sql_statement)
+
+        logger.debug(f"Sql Statement: {str(sql_statement)}")
 
         with self._engine.begin() as conn:
             try:
@@ -324,4 +358,5 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
             # Test the DB connection and set to global state if succesful
             with engine.begin():
                 state_namespace.db_engine = engine
+            logger.info("Postgres DB Engine created")
         return state_namespace.db_engine
