@@ -21,7 +21,7 @@ RUN \
 RUN pip install --no-cache-dir "uvicorn[standard]" gunicorn fastapi
 
 ENV PYTHONPATH=/resources/app \
-    MODULE_NAME=contaxy \
+    MODULE_NAME=contaxy.api \
     IS_CONTAXY_CONTAINER=true \
     LAB_BASE_URL= \
     LAB_NAMESPACE=lab \
