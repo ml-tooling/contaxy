@@ -15,7 +15,7 @@ class ClientBaseError(HTTPException):
         message: str,
         explanation: Optional[str] = None,
         metadata: Optional[Dict] = None,
-    ):
+    ) -> None:
         """Initializes the exception.
 
         Args:
@@ -42,16 +42,13 @@ class ServerBaseError(Exception):
     automatically logged.
     """
 
-    def __init__(
-        self,
-        args: Tuple[Any, ...],
-    ):
+    def __init__(self, *args: object) -> None:
         """Initializes the exception.
 
         Args:
-            args: The tuple of arguments given to the exception constructor.
+            args: A collection of
         """
-        super(Exception, self).__init__(args)
+        super(ServerBaseError, self).__init__(*args)
 
 
 class UnauthenticatedError(ClientBaseError):
