@@ -2,7 +2,7 @@ import datetime
 import json
 from typing import Dict, List, Optional
 
-from sqlalchemy import Column, DateTime, MetaData, Table, func, text
+from sqlalchemy import Column, DateTime, MetaData, Table, func
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.engine import Row
 from sqlalchemy.exc import NoResultFound, ProgrammingError
@@ -245,17 +245,19 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
         Returns:
             List[JsonDocument]: List of Json documents.
         """
-        # TODO: Check if SQL Injection needs to be prevented
+        table = self._get_collection_table(project_id, collection_id)
+        sql_statement = table.select()
+        if filter:
+            sql_statement = sql_statement.where(
+                func.jsonb_path_exists(table.c.json_value, filter),
+            )
+            print(sql_statement)
 
         with self._engine.begin() as conn:
-
-            stmt = f'select * from "{project_id}".{collection_id}'
-            if filter:
-                stmt = f"{stmt} where json_value {filter}"
             try:
-                result = conn.execute(text(stmt))
+                result = conn.execute(sql_statement)
             except ProgrammingError:
-                raise ValueError("Please provide a valid Json Path filter.s")
+                raise ValueError("Please provide a valid Json Path filter.")
 
             rows = result.fetchall()
         return self._map_db_rows_to_document_models(rows)

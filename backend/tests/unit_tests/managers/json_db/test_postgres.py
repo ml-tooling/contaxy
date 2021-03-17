@@ -200,8 +200,8 @@ class TestPostgresJsonDocumentManager:
         self, json_document_manager: PostgresJsonDocumentManager
     ) -> None:
 
-        project_id = "test_get_collection"
-        collection_id = "test_get_collectio1"
+        project_id = "test_get_collection_project"
+        collection_id = "test_get_collection"
 
         data = [
             {
@@ -227,21 +227,21 @@ class TestPostgresJsonDocumentManager:
         docs = json_document_manager.list_json_documents(project_id, collection_id)
         assert len(docs) >= len(data)
 
-        json_path_filter = '@> \'{"title": "Hello!"}\''
+        json_path_filter = '$ ? (@.title == "Hello!")'
         docs = json_document_manager.list_json_documents(
             project_id, collection_id, json_path_filter
         )
         for doc in docs:
             assert doc.json_value.get("title") == "Hello!"
 
-        json_path_filter = '@> \'{"title": "Goodbye!"}\''
+        json_path_filter = '$ ? (@.title == "Goodbye!")'
         docs = json_document_manager.list_json_documents(
             project_id, collection_id, json_path_filter
         )
         for doc in docs:
             assert doc.json_value.get("title") == "Goodbye!"
 
-        json_path_filter = '@> \'{"author": {"givenName": "John"}}\''
+        json_path_filter = '$ ? (@.author.givenName == "John")'
         docs = json_document_manager.list_json_documents(
             project_id, collection_id, json_path_filter
         )
@@ -251,8 +251,9 @@ class TestPostgresJsonDocumentManager:
         previous_result_count = len(docs)
 
         json_path_filter = (
-            '@> \'{"author": {"givenName": "John", "familyName": "Doe"}}\''
+            '$ ? (@.author.givenName == "John" && @.author.familyName == "Doe")'
         )
+
         docs = json_document_manager.list_json_documents(
             project_id, collection_id, json_path_filter
         )
@@ -264,21 +265,8 @@ class TestPostgresJsonDocumentManager:
         assert previous_result_count >= len(docs)
         previous_result_count = len(docs)
 
-        json_path_filter = (
-            '@> \'{"author": {"familyName": "Doe", "givenName": "John"}}\''
-        )
-        docs = json_document_manager.list_json_documents(
-            project_id, collection_id, json_path_filter
-        )
-        for doc in docs:
-            author = doc.json_value.get("author")
-            assert (
-                author.get("givenName") == "John" and author.get("familyName") == "Doe"
-            )
-        assert previous_result_count == len(docs)
-
         try:
-            json_path_filter = '\'{"title": "Hello!"}\''
+            json_path_filter = '? (@.title == "Hello!")'
             json_document_manager.list_json_documents(
                 project_id, collection_id, json_path_filter
             )
