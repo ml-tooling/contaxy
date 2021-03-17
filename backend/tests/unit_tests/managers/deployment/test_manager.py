@@ -3,6 +3,7 @@ import time
 from typing import Generator, Union
 
 import pytest
+from kubernetes import stream
 from kubernetes.client.models import V1Namespace
 from kubernetes.client.rest import ApiException
 
@@ -248,8 +249,12 @@ class TestDeploymentManagers:
         assert logs
         assert logs.startswith(log_input)
 
-    @pytest.mark.skip(reason="Not finished yet")
     def test_project_isolation(self) -> None:
+        """Test that services of the same project can reach each others' endpoints and services of different projects cannot."""
+
+        def create_wget_command(target_ip: str) -> str:
+            return f"wget -T 10 -qO/dev/stdout {target_ip}:80"
+
         project_1 = f"{test_project_name}-1"
         project_2 = f"{test_project_name}-2"
         test_service_input_1 = create_test_service_input(
@@ -278,8 +283,112 @@ class TestDeploymentManagers:
             service=test_service_input_3,
         )
 
-        # TODO: exec into service 1 and try to access service 2 -> should be successful, exec into service 1 and try to access service 3 -> not successful!
-        # TODO: the services are based on hello world, so it should be possible to "curl" the other containers / pods
+        if type(self.handler) == DockerTestHandler:
+            container_1 = self.handler.deployment_manager.client.containers.get(
+                service_1.id
+            )
+            container_2 = self.handler.deployment_manager.client.containers.get(
+                service_2.id
+            )
+            container_3 = self.handler.deployment_manager.client.containers.get(
+                service_3.id
+            )
+            assert container_1
+            assert container_2
+            assert container_3
+
+            exit_code, output = container_1.exec_run(
+                create_wget_command(container_2.attrs["Config"]["Hostname"])
+            )
+            assert exit_code == 0
+            assert b"Hello world!" in output
+
+            exit_code, output = container_1.exec_run(
+                create_wget_command(container_3.attrs["Config"]["Hostname"])
+            )
+            assert exit_code == 1
+            assert b"wget: bad address" in output
+
+            exit_code, output = container_3.exec_run(
+                create_wget_command(container_2.attrs["Config"]["Hostname"])
+            )
+            assert exit_code == 1
+            assert b"wget: bad address" in output
+        elif type(self.handler) == KubeTestHandler:
+            namespace = self.handler.deployment_manager.kube_namespace
+            pod_1 = self.handler.deployment_manager.core_api.list_namespaced_pod(
+                namespace=namespace,
+                label_selector=f"ctxy.deploymentName={service_1.id},ctxy.projectName={project_1}",
+            ).items[0]
+
+            pod_2 = self.handler.deployment_manager.core_api.list_namespaced_pod(
+                namespace=namespace,
+                label_selector=f"ctxy.deploymentName={service_2.id},ctxy.projectName={project_1}",
+            ).items[0]
+
+            pod_3 = self.handler.deployment_manager.core_api.list_namespaced_pod(
+                namespace=namespace,
+                label_selector=f"ctxy.deploymentName={service_3.id},ctxy.projectName={project_2}",
+            ).items[0]
+
+            _command_prefix = ["/bin/sh", "-c"]
+            output = stream.stream(
+                self.handler.deployment_manager.core_api.connect_get_namespaced_pod_exec,
+                pod_1.metadata.name,
+                namespace,
+                command=[
+                    *_command_prefix,
+                    create_wget_command(pod_2.status.pod_ip),
+                ],
+                stderr=True,
+                stdin=False,
+                stdout=True,
+                tty=False,
+            )
+            assert output
+            assert "Hello world!" in output
+
+            output = stream.stream(
+                self.handler.deployment_manager.core_api.connect_get_namespaced_pod_exec,
+                pod_1.metadata.name,
+                namespace,
+                command=[
+                    *_command_prefix,
+                    create_wget_command(pod_3.status.pod_ip),
+                ],
+                stderr=True,
+                stdin=False,
+                stdout=True,
+                tty=False,
+            )
+            assert output
+            assert "wget: download timed out" in output
+
+            output = stream.stream(
+                self.handler.deployment_manager.core_api.connect_get_namespaced_pod_exec,
+                pod_3.metadata.name,
+                namespace,
+                command=[
+                    *_command_prefix,
+                    create_wget_command(pod_2.status.pod_ip),
+                ],
+                stderr=True,
+                stdin=False,
+                stdout=True,
+                tty=False,
+            )
+            assert output
+            assert "wget: download timed out" in output
+
+        self.handler.deployment_manager.delete_service(
+            project_id=project_1, service_id=service_1.id, delete_volumes=True
+        )
+        self.handler.deployment_manager.delete_service(
+            project_id=project_1, service_id=service_2.id, delete_volumes=True
+        )
+        self.handler.deployment_manager.delete_service(
+            project_id=project_2, service_id=service_3.id, delete_volumes=True
+        )
 
 
 class TestDockerDeploymentManager:

@@ -21,6 +21,10 @@ if [[ $INPUT_BUILD_ARGS == *"--test"* ]]; then
     kube_config_volume="kube-config"
     docker run --rm -v $kube_config_volume:/kube-config --env KUBE_DATA_CONFIG="$(cat ~/.kube/config | base64)" ubuntu:20.04 /bin/bash -c 'touch /kube-config/config && echo "$KUBE_DATA_CONFIG" | base64 --decode >> /kube-config/config'
 
+    # Install the Calico Network Plugin for networking so that Network Policies have an effect (see this GitHub issue: https://github.com/kubernetes-sigs/kind/issues/842#issuecomment-554775260)
+    kubectl apply -f https://docs.projectcalico.org/v3.8/manifests/calico.yaml
+    kubectl -n kube-system set env daemonset/calico-node FELIX_IGNORELOOSERPF=true
+
     # Check whether test-marker has the value integration (quotation marks are allowed)
     echo $INPUT_BUILD_ARGS
     echo "Docker compose up..."
