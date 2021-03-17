@@ -13,6 +13,8 @@ if [[ $INPUT_BUILD_ARGS == *"--test"* ]]; then
     echo "Start kind cluster for test phase"
     export kind_cluster_name="contaxy-testcluster"
     export KUBE_AVAILABLE="true"
+    # Delete kind cluster in case it was not cleaned up last time (in case it does not exist, the command just does nothing):
+    kind delete cluster --name $kind_cluster_name
     kind create cluster --config=/kind-config.yaml --name $kind_cluster_name
     sed -i -E 's/[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/'"$_HOST_IP"'/g' ~/.kube/config
     sed -i '6i\    insecure-skip-tls-verify: true' ~/.kube/config
