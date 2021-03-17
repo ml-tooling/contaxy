@@ -53,10 +53,8 @@ def get_defaults() -> dict:
     }
 
 
-@pytest.mark.skip(
-    reason="Postgres DB must exist and the enpoint must be set in settings."
-)
 @pytest.mark.unit
+@pytest.mark.db
 class TestPostgresJsonDocumentManager:
     def test_create_json_document(
         self, json_document_manager: PostgresJsonDocumentManager
