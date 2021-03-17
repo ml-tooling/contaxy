@@ -13,6 +13,19 @@ class JsonDocumentOperations(ABC):
         key: str,
         json_document: Dict,
     ) -> JsonDocument:
+        """Creates a JSON document for a given key.
+
+        If a document already exists for the given key, the document will be overwritten.
+
+        Args:
+            project_id: Project ID associated with the collection.
+            collection_id: ID of the collection (database) to use to store this JSON document.
+            key: Key of the JSON document.
+            json_document: The actual JSON document value.
+
+        Returns:
+            JsonDocument: The created JSON document.
+        """
         pass
 
     @abstractmethod
@@ -21,8 +34,24 @@ class JsonDocumentOperations(ABC):
         project_id: str,
         collection_id: str,
         key: str,
-        json_document: dict,
+        json_document: Dict,
     ) -> JsonDocument:
+        """Updates a JSON document.
+
+        The update is applied on the existing document based on the JSON Merge Patch Standard [RFC7396](https://tools.ietf.org/html/rfc7396).
+
+        Args:
+            project_id: Project ID associated with the collection.
+            collection_id: ID of the collection (database) that the JSON document is stored in.
+            key: Key of the JSON document.
+            json_document: The actual JSON document value.
+
+        Raises:
+            ResourceNotFoundError: If no JSON document is found with the given `key`.
+
+        Returns:
+            JsonDocument: The updated JSON document.
+        """
         pass
 
     @abstractmethod
@@ -32,6 +61,16 @@ class JsonDocumentOperations(ABC):
         collection_id: str,
         filter: Optional[str] = None,
     ) -> List[JsonDocument]:
+        """Lists all JSON documents for the given project collection.
+
+        Args:
+            project_id: Project ID associated with the collection.
+            collection_id: ID of the collection (database) that the JSON document is stored in.
+            filter (optional): Allows to filter the result documents based on a JSONPath expression ([JSON Path Specification](https://goessner.net/articles/JsonPath/)). The filter is only applied to filter documents in the list. It is not usable to extract specific properties.
+
+        Returns:
+            List[JsonDocument]: List of JSON documents.
+        """
         pass
 
     @abstractmethod
@@ -41,6 +80,19 @@ class JsonDocumentOperations(ABC):
         collection_id: str,
         key: str,
     ) -> JsonDocument:
+        """Returns a single JSON document.
+
+        Args:
+            project_id: Project ID associated with the JSON document.
+            collection_id: ID of the collection (database) that the JSON document is stored in.
+            key: Key of the JSON document.
+
+        Raises:
+            ResourceNotFoundError: If no JSON document is found with the given `key`.
+
+        Returns:
+            JsonDocument: A JSON document.
+        """
         pass
 
     @abstractmethod
@@ -50,4 +102,16 @@ class JsonDocumentOperations(ABC):
         collection_id: str,
         key: str,
     ) -> None:
+        """Deletes a single JSON document.
+
+        If no other document exists in the project collection, the collection will be deleted.
+
+        Args:
+            project_id: Project ID associated with the JSON document.
+            collection_id: ID of the collection (database) that the JSON document is stored in.
+            key: Key of the JSON document.
+
+        Raises:
+            ResourceNotFoundError: If no JSON document is found with the given `key`.
+        """
         pass
