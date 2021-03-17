@@ -5,22 +5,16 @@ import docker
 
 from contaxy.config import settings
 from contaxy.managers.deployment.docker_utils import (
-    check_minimal_resources,
     create_container_config,
-    extract_minimal_resources,
     handle_network,
-    transform_job,
-    transform_service,
+    list_deploy_service_actions,
+    map_job,
+    map_service,
 )
 from contaxy.managers.deployment.manager import DeploymentManager
-from contaxy.managers.deployment.utils import (
-    DEFAULT_DEPLOYMENT_ACTION_ID,
-    NO_LOGS_MESSAGE,
-    Labels,
-    get_label_string,
-)
+from contaxy.managers.deployment.utils import NO_LOGS_MESSAGE, Labels, get_label_string
 from contaxy.schema import Job, JobInput, ResourceAction, Service, ServiceInput
-from contaxy.schema.deployment import DeploymentCompute, DeploymentType
+from contaxy.schema.deployment import DeploymentType
 from contaxy.utils.state_utils import GlobalState, RequestState
 
 
@@ -58,7 +52,7 @@ class DockerDeploymentManager(DeploymentManager):
                 }
             )
 
-            return [transform_service(container) for container in containers]
+            return [map_service(container) for container in containers]
         except docker.errors.APIError:
             return []
 
@@ -81,26 +75,12 @@ class DockerDeploymentManager(DeploymentManager):
         except docker.errors.APIError:
             raise RuntimeError(f"Could not deploy service '{service.display_name}'.")
 
-        return transform_service(container)
+        return map_service(container)
 
     def list_deploy_service_actions(
         self, project_id: str, service: ServiceInput
     ) -> List[ResourceAction]:
-        compute_resources = service.compute or DeploymentCompute()
-        min_cpus, min_memory, min_gpus = extract_minimal_resources(compute_resources)
-        try:
-            check_minimal_resources(
-                min_cpus=min_cpus, min_memory=min_memory, min_gpus=min_gpus
-            )
-        except RuntimeError:
-            return []
-
-        return [
-            ResourceAction(
-                action_id=DEFAULT_DEPLOYMENT_ACTION_ID,
-                display_name=DEFAULT_DEPLOYMENT_ACTION_ID,
-            )
-        ]
+        return list_deploy_service_actions(project_id=project_id, deploy_input=service)
 
     def get_service_metadata(self, project_id: str, service_id: str) -> Service:
         try:
@@ -108,7 +88,7 @@ class DockerDeploymentManager(DeploymentManager):
         except docker.errors.NotFound:
             raise RuntimeError(f"Could not get metadata of service '{service_id}'.")
 
-        return transform_service(container)
+        return map_service(container)
 
     def delete_service(
         self, project_id: str, service_id: str, delete_volumes: bool = False
@@ -167,7 +147,7 @@ class DockerDeploymentManager(DeploymentManager):
                 ]
             }
         )
-        return [transform_service(container) for container in containers]
+        return [map_job(container) for container in containers]
 
     def deploy_job(
         self,
@@ -186,7 +166,7 @@ class DockerDeploymentManager(DeploymentManager):
         except docker.errors.APIError:
             raise RuntimeError(f"Could not deploy job '{job.display_name}'.")
 
-        response_service = transform_job(container)
+        response_service = map_job(container)
         return response_service
 
     def list_deploy_job_actions(
@@ -194,10 +174,15 @@ class DockerDeploymentManager(DeploymentManager):
         project_id: str,
         job: JobInput,
     ) -> List[ResourceAction]:
-        return self.list_deploy_service_actions(project_id=project_id, service=job)
+        return list_deploy_service_actions(project_id=project_id, deploy_input=job)
 
     def get_job_metadata(self, project_id: str, job_id: str) -> Job:
-        return self.get_service_metadata(project_id=project_id, service_id=job_id)
+        try:
+            container = self.client.containers.get(job_id)
+        except docker.errors.NotFound:
+            raise RuntimeError(f"Could not get metadata of job '{job_id}'.")
+
+        return map_job(container)
 
     def delete_job(self, project_id: str, job_id: str) -> None:
         return self.delete_service(

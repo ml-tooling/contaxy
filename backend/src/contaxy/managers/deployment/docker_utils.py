@@ -7,17 +7,20 @@ import psutil
 
 from contaxy.config import settings
 from contaxy.managers.deployment.utils import (
+    DEFAULT_DEPLOYMENT_ACTION_ID,
     Labels,
+    get_deployment_id,
     get_gpu_info,
     get_network_name,
     get_volume_name,
     log,
     map_labels,
-    normalize_service_name,
 )
+from contaxy.schema import ResourceAction
 from contaxy.schema.deployment import (
     DeploymentCompute,
     DeploymentStatus,
+    DeploymentType,
     Job,
     JobInput,
     Service,
@@ -35,7 +38,7 @@ system_memory_in_mb = round(psutil.virtual_memory().total / 1024 / 1024, 1)
 system_gpu_count = get_gpu_info()
 
 
-def transform_container(
+def map_container(
     container: docker.models.containers.Container,
 ) -> Dict[str, Any]:
     labels = map_labels(container.labels)
@@ -89,15 +92,15 @@ def transform_container(
     }
 
 
-def transform_service(
+def map_service(
     container: docker.models.containers.Container,
 ) -> Service:
-    transformed_container = transform_container(container=container)
+    transformed_container = map_container(container=container)
     return Service(**transformed_container)
 
 
-def transform_job(container: docker.models.containers.Container) -> Job:
-    transformed_container = transform_container(container=container)
+def map_job(container: docker.models.containers.Container) -> Job:
+    transformed_container = map_container(container=container)
     return Job(**transformed_container)
 
 
@@ -302,6 +305,10 @@ def create_container_config(
     service: Union[JobInput, ServiceInput],
     project_id: str,
 ) -> Dict[str, Any]:
+
+    if service.display_name is None:
+        raise RuntimeError("Service name not defined")
+
     compute_resources = service.compute or DeploymentCompute()
     (
         min_cpus,
@@ -314,8 +321,14 @@ def create_container_config(
         min_gpus=min_gpus,
     )
 
-    display_name = service.display_name if service.display_name else ""
-    container_name = normalize_service_name(project_id, display_name=display_name)
+    deployment_type = (
+        DeploymentType.SERVICE if type(service) == ServiceInput else DeploymentType.JOB
+    )
+    container_name = get_deployment_id(
+        project_id,
+        deployment_name=service.display_name,
+        deployment_type=deployment_type,
+    )
 
     max_cpus = (
         compute_resources.max_cpus if compute_resources.max_cpus is not None else 1
@@ -380,3 +393,23 @@ def create_container_config(
         "restart_policy": {"Name": "on-failure", "MaximumRetryCount": 10},
         "mounts": mounts if mounts != [] else None,
     }
+
+
+def list_deploy_service_actions(
+    project_id: str, deploy_input: Union[ServiceInput, JobInput]
+) -> List[ResourceAction]:
+    compute_resources = deploy_input.compute or DeploymentCompute()
+    min_cpus, min_memory, min_gpus = extract_minimal_resources(compute_resources)
+    try:
+        check_minimal_resources(
+            min_cpus=min_cpus, min_memory=min_memory, min_gpus=min_gpus
+        )
+    except RuntimeError:
+        return []
+
+    return [
+        ResourceAction(
+            action_id=DEFAULT_DEPLOYMENT_ACTION_ID,
+            display_name=DEFAULT_DEPLOYMENT_ACTION_ID,
+        )
+    ]

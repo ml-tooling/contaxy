@@ -24,6 +24,7 @@ JOB_ID_PARAM = Path(
 
 
 class DeploymentType(str, Enum):
+    CORE_BACKEND = "core-backend"
     SERVICE = "service"
     JOB = "job"
     EXTENSION = "extension"
