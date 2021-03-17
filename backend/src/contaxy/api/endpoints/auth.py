@@ -118,7 +118,7 @@ def create_token(
 
     A permission is a single string that combines a global ID of a resource with a permission level:
 
-    `{global_id}.{permission_level}`
+    `{resource_name}#{access_level}`
 
     Permission levels are a hierarchical system that determines the kind of access that is granted on the resource.
     Permission levels are interpreted and applied inside resource operations. There are three permission levels:
@@ -161,7 +161,7 @@ def verify_token(
     permission: Optional[str] = Query(
         None,
         title="Resource Type ",
-        description="The token is checked if is granted this permission. If none specified, only the existence or validity of the token itself is checked.",
+        description="The token is checked if it is granted this permission. If none specified, only the existence or validity of the token itself is checked.",
     ),
     component_manager: ComponentManager = Depends(get_component_manager),
 ) -> Any:
