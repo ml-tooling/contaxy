@@ -9,7 +9,7 @@ from contaxy.api.dependencies import (
 )
 from contaxy.managers.extension import parse_composite_id
 from contaxy.schema import ExtensibleOperations, File, FileInput, ResourceAction
-from contaxy.schema.exceptions import PermissionDeniedException
+from contaxy.schema.exceptions import PermissionDeniedError
 from contaxy.schema.extension import EXTENSION_ID_PARAM
 from contaxy.schema.file import FILE_KEY_PARAM
 from contaxy.schema.project import PROJECT_ID_PARAM
@@ -58,7 +58,7 @@ def list_files(
     if not component_manager.get_auth_manager().verify_token(
         token, f"projects/{project_id}/files#read"
     ):
-        raise PermissionDeniedException()
+        raise PermissionDeniedError()
 
     return component_manager.get_file_manager(extension_id).list_files(
         project_id, recursive, include_versions, prefix
@@ -122,7 +122,7 @@ def get_file_metadata(
     if not component_manager.get_auth_manager().verify_token(
         token, f"/projects/{project_id}/files/{file_key:path}:metadata#read"
     ):
-        raise PermissionDeniedException()
+        raise PermissionDeniedError()
 
     resource_id, extension_id = parse_composite_id(file_key)
     return component_manager.get_file_manager(extension_id).get_file_metadata(

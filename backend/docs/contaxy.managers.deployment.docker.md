@@ -7,18 +7,22 @@
 
 
 
+**Global Variables**
+---------------
+- **DEFAULT_DEPLOYMENT_ACTION_ID**
+- **NO_LOGS_MESSAGE**
 
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/docker.py#L5"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/docker.py#L27"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>class</kbd> `DockerDeploymentManager`
 
 
 
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/docker.py#L6"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/docker.py#L28"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `__init__`
 
@@ -34,6 +38,199 @@ Initializes the docker deployment manager.
  
  - <b>`global_state`</b>:  The global state of the app instance. 
  - <b>`request_state`</b>:  The state for the current request. 
+
+
+
+
+---
+
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/docker.py#L202"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+### <kbd>method</kbd> `delete_job`
+
+```python
+delete_job(project_id: str, job_id: str) → None
+```
+
+
+
+
+
+---
+
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/docker.py#L113"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+### <kbd>method</kbd> `delete_service`
+
+```python
+delete_service(
+    project_id: str,
+    service_id: str,
+    delete_volumes: bool = False
+) → None
+```
+
+
+
+
+
+---
+
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/docker.py#L172"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+### <kbd>method</kbd> `deploy_job`
+
+```python
+deploy_job(
+    project_id: str,
+    job: JobInput,
+    action_id: Optional[str] = None
+) → Job
+```
+
+
+
+
+
+---
+
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/docker.py#L65"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+### <kbd>method</kbd> `deploy_service`
+
+```python
+deploy_service(
+    project_id: str,
+    service: ServiceInput,
+    action_id: Optional[str] = None
+) → Service
+```
+
+
+
+
+
+---
+
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/docker.py#L207"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+### <kbd>method</kbd> `get_job_logs`
+
+```python
+get_job_logs(
+    project_id: str,
+    job_id: str,
+    lines: Optional[int] = None,
+    since: Optional[datetime] = None
+) → str
+```
+
+
+
+
+
+---
+
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/docker.py#L199"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+### <kbd>method</kbd> `get_job_metadata`
+
+```python
+get_job_metadata(project_id: str, job_id: str) → Job
+```
+
+
+
+
+
+---
+
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/docker.py#L131"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+### <kbd>method</kbd> `get_service_logs`
+
+```python
+get_service_logs(
+    project_id: str,
+    service_id: str,
+    lines: Optional[int] = None,
+    since: Optional[datetime] = None
+) → str
+```
+
+
+
+
+
+---
+
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/docker.py#L105"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+### <kbd>method</kbd> `get_service_metadata`
+
+```python
+get_service_metadata(project_id: str, service_id: str) → Service
+```
+
+
+
+
+
+---
+
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/docker.py#L192"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+### <kbd>method</kbd> `list_deploy_job_actions`
+
+```python
+list_deploy_job_actions(project_id: str, job: JobInput) → List[ResourceAction]
+```
+
+
+
+
+
+---
+
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/docker.py#L86"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+### <kbd>method</kbd> `list_deploy_service_actions`
+
+```python
+list_deploy_service_actions(
+    project_id: str,
+    service: ServiceInput
+) → List[ResourceAction]
+```
+
+
+
+
+
+---
+
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/docker.py#L157"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+### <kbd>method</kbd> `list_jobs`
+
+```python
+list_jobs(project_id: str) → List[Job]
+```
+
+
+
+
+
+---
+
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/docker.py#L44"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+### <kbd>method</kbd> `list_services`
+
+```python
+list_services(project_id: str) → List[Service]
+```
+
 
 
 

@@ -19,6 +19,15 @@ from .deployment import (
     Service,
     ServiceInput,
 )
+from .exceptions import (
+    ClientBaseError,
+    ClientValueError,
+    PermissionDeniedError,
+    ResourceAlreadyExistsError,
+    ResourceNotFoundError,
+    ServerBaseError,
+    UnauthenticatedError,
+)
 from .extension import Extension, ExtensionInput
 from .file import File, FileInput
 from .json_db import JsonDocument

@@ -8,6 +8,7 @@ from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import JSONResponse, RedirectResponse
 
 from contaxy import __version__, config
+from contaxy.api import error_handling
 from contaxy.api.endpoints import (
     auth,
     deployment,
@@ -17,7 +18,6 @@ from contaxy.api.endpoints import (
     system,
     user,
 )
-from contaxy.schema.exceptions import UnifiedError
 from contaxy.utils import fastapi_utils, state_utils
 
 # Initialize API
@@ -29,17 +29,10 @@ app = FastAPI(
 
 fastapi_utils.add_timing_info(app)
 
-# Exception Handling
-
-
+# Custom Exception Handling
 @app.exception_handler(StarletteHTTPException)
 async def http_exception_handler(request, exc):  # type: ignore
-    return JSONResponse(
-        status_code=exc.status_code,
-        content=jsonable_encoder(
-            UnifiedError(code=exc.status_code, message=exc.detail)
-        ),
-    )
+    return await error_handling.handel_http_exeptions(request, exc)
 
 
 # Startup and shutdown events

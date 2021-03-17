@@ -8,7 +8,7 @@ from contaxy.api.dependencies import (
     get_component_manager,
 )
 from contaxy.schema import CoreOperations, SystemInfo, SystemStatistics
-from contaxy.schema.exceptions import PermissionDeniedException
+from contaxy.schema.exceptions import PermissionDeniedError
 
 router = APIRouter(tags=["system"])
 
@@ -55,6 +55,6 @@ def get_system_statistics(
 ) -> Any:
     """Returns statistics about this instance."""
     if not component_manager.get_auth_manager().verify_token(token, "system#admin"):
-        raise PermissionDeniedException()
+        raise PermissionDeniedError()
 
     return component_manager.get_system_manager().get_system_statistics()
