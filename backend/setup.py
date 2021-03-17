@@ -54,7 +54,7 @@ setup(
         "psutil",
         "uvicorn",
         "addict",
-        "sqlalchemy >= 1.4.0b3",  # TODO: Change as soon as soon as offical release is available
+        "sqlalchemy",
         # Postgres Driver
         "psycopg2",
         # Generates concise, unambiguous, URL-safe UUIDs.
