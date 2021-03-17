@@ -9,6 +9,7 @@ from contaxy.config import settings
 from contaxy.managers.deployment.utils import (
     DEFAULT_DEPLOYMENT_ACTION_ID,
     Labels,
+    clean_labels,
     get_deployment_id,
     get_gpu_info,
     get_network_name,
@@ -370,7 +371,7 @@ def create_container_config(
     requirements_label = (
         ",".join(service.requirements) if service.requirements else None
     )
-    metadata = service.metadata or {}
+    metadata = clean_labels(service.metadata)
     return {
         "image": service.container_image,
         "command": service.command or None,

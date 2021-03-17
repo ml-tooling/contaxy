@@ -72,6 +72,45 @@ def map_labels(labels: dict) -> MappedLabels:
     return mapped_labels
 
 
+def clean_labels(labels: Optional[dict] = None) -> dict:
+    """Remove system labels that should not be settable by the user.
+
+    Args:
+        labels (Optional[dict]): The labels dict from which system labels should be removed.
+
+    Returns:
+        dict: The new labels dict that does not contain any system labels or an empty dict.
+    """
+
+    if labels is None:
+        return {}
+
+    cleaned_labels = dict.copy(labels)
+
+    if Labels.DEPLOYMENT_TYPE.value in cleaned_labels:
+        del cleaned_labels[Labels.DEPLOYMENT_TYPE.value]
+    if Labels.DESCRIPTION.value in cleaned_labels:
+        del cleaned_labels[Labels.DESCRIPTION.value]
+    if Labels.DISPLAY_NAME.value in cleaned_labels:
+        del cleaned_labels[Labels.DISPLAY_NAME.value]
+    if Labels.ENDPOINTS.value in cleaned_labels:
+        del cleaned_labels[Labels.ENDPOINTS.value]
+    if Labels.ICON.value in cleaned_labels:
+        del cleaned_labels[Labels.ICON.value]
+    if Labels.MIN_LIFETIME.value in cleaned_labels:
+        del cleaned_labels[Labels.MIN_LIFETIME.value]
+    if Labels.VOLUME_PATH.value in cleaned_labels:
+        del cleaned_labels[Labels.VOLUME_PATH.value]
+    if Labels.PROJECT_NAME.value in cleaned_labels:
+        del cleaned_labels[Labels.PROJECT_NAME.value]
+    if Labels.REQUIREMENTS.value in cleaned_labels:
+        del cleaned_labels[Labels.REQUIREMENTS.value]
+    if Labels.NAMESPACE.value in cleaned_labels:
+        del cleaned_labels[Labels.NAMESPACE.value]
+
+    return cleaned_labels
+
+
 def get_deployment_id(
     project_id: str, deployment_name: str, deployment_type: DeploymentType
 ) -> str:

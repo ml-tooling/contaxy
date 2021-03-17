@@ -32,7 +32,12 @@ from kubernetes.client.models import (
 from kubernetes.client.rest import ApiException
 
 from contaxy.config import settings
-from contaxy.managers.deployment.utils import Labels, get_label_string, map_labels
+from contaxy.managers.deployment.utils import (
+    Labels,
+    clean_labels,
+    get_label_string,
+    map_labels,
+)
 from contaxy.schema import Job, JobInput, Service, ServiceInput
 from contaxy.schema.deployment import (
     DeploymentCompute,
@@ -51,6 +56,7 @@ def get_pod(
     service_id: str, kube_namespace: str, core_api: kube_client.CoreV1Api
 ) -> Optional[V1Pod]:
     label_selector = get_label_selector(
+        # TODO (IMPORTANT): use project id as well as a filter label!
         [
             (Labels.NAMESPACE.value, settings.SYSTEM_NAMESPACE),
             (Labels.DEPLOYMENT_NAME.value, service_id),
@@ -229,7 +235,7 @@ def build_kube_deployment_config(
     compute_resources = service.compute or DeploymentCompute()
     # ---
     min_lifetime = compute_resources.min_lifetime or 0
-    metadata = service.metadata or {}
+    metadata = clean_labels(service.metadata)
     display_name = service.display_name or ""
     metadata = V1ObjectMeta(
         namespace=kube_namespace,
