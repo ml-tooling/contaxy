@@ -32,17 +32,32 @@ create_json_document(
     project_id: str,
     collection_id: str,
     key: str,
-    json_document: str
+    json_document: Dict
 ) → JsonDocument
 ```
 
+Creates a JSON document for a given key. 
+
+If a document already exists for the given key, the document will be overwritten. 
 
 
 
+**Args:**
+ 
+ - <b>`project_id`</b>:  Project ID associated with the collection. 
+ - <b>`collection_id`</b>:  ID of the collection (database) to use to store this JSON document. 
+ - <b>`key`</b>:  Key of the JSON document. 
+ - <b>`json_document`</b>:  The actual JSON document value. 
+
+
+
+**Returns:**
+ 
+ - <b>`JsonDocument`</b>:  The created JSON document. 
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/json_db.py#L46"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/json_db.py#L98"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `delete_json_document`
 
@@ -50,13 +65,27 @@ create_json_document(
 delete_json_document(project_id: str, collection_id: str, key: str) → None
 ```
 
+Deletes a single JSON document. 
+
+If no other document exists in the project collection, the collection will be deleted. 
 
 
 
+**Args:**
+ 
+ - <b>`project_id`</b>:  Project ID associated with the JSON document. 
+ - <b>`collection_id`</b>:  ID of the collection (database) that the JSON document is stored in. 
+ - <b>`key`</b>:  Key of the JSON document. 
+
+
+
+**Raises:**
+ 
+ - <b>`ResourceNotFoundError`</b>:  If no JSON document is found with the given `key`. 
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/json_db.py#L37"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/json_db.py#L76"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `get_json_document`
 
@@ -64,13 +93,31 @@ delete_json_document(project_id: str, collection_id: str, key: str) → None
 get_json_document(project_id: str, collection_id: str, key: str) → JsonDocument
 ```
 
+Returns a single JSON document. 
 
 
 
+**Args:**
+ 
+ - <b>`project_id`</b>:  Project ID associated with the JSON document. 
+ - <b>`collection_id`</b>:  ID of the collection (database) that the JSON document is stored in. 
+ - <b>`key`</b>:  Key of the JSON document. 
+
+
+
+**Raises:**
+ 
+ - <b>`ResourceNotFoundError`</b>:  If no JSON document is found with the given `key`. 
+
+
+
+**Returns:**
+ 
+ - <b>`JsonDocument`</b>:  A JSON document. 
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/json_db.py#L28"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/json_db.py#L57"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `list_json_documents`
 
@@ -82,13 +129,25 @@ list_json_documents(
 ) → List[JsonDocument]
 ```
 
+Lists all JSON documents for the given project collection. 
 
 
 
+**Args:**
+ 
+ - <b>`project_id`</b>:  Project ID associated with the collection. 
+ - <b>`collection_id`</b>:  ID of the collection (database) that the JSON document is stored in. 
+ - <b>`filter`</b> (optional):  Allows to filter the result documents based on a JSONPath expression ([JSON Path Specification](https://goessner.net/articles/JsonPath/)). The filter is only applied to filter documents in the list. It is not usable to extract specific properties. 
+
+
+
+**Returns:**
+ 
+ - <b>`List[JsonDocument]`</b>:  List of JSON documents. 
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/json_db.py#L18"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/json_db.py#L31"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `update_json_document`
 
@@ -97,13 +156,34 @@ update_json_document(
     project_id: str,
     collection_id: str,
     key: str,
-    json_document: str
+    json_document: Dict
 ) → JsonDocument
 ```
 
+Updates a JSON document. 
+
+The update is applied on the existing document based on the JSON Merge Patch Standard [RFC7396](https://tools.ietf.org/html/rfc7396). 
 
 
 
+**Args:**
+ 
+ - <b>`project_id`</b>:  Project ID associated with the collection. 
+ - <b>`collection_id`</b>:  ID of the collection (database) that the JSON document is stored in. 
+ - <b>`key`</b>:  Key of the JSON document. 
+ - <b>`json_document`</b>:  The actual JSON document value. 
+
+
+
+**Raises:**
+ 
+ - <b>`ResourceNotFoundError`</b>:  If no JSON document is found with the given `key`. 
+
+
+
+**Returns:**
+ 
+ - <b>`JsonDocument`</b>:  The updated JSON document. 
 
 
 

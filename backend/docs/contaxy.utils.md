@@ -10,6 +10,7 @@ Collection of utilities usable across all modules.
 - **state_utils**
 - **fastapi_utils**
 - **id_utils**
+- **postgres_utils**
 
 
 

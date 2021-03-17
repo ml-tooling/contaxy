@@ -28,7 +28,7 @@ __init__(
     message: str,
     explanation: Optional[str] = None,
     metadata: Optional[Dict] = None
-)
+) → None
 ```
 
 Initializes the exception. 
@@ -60,7 +60,7 @@ If the error is not handled, an `Internal Server Error` (Status Code 500) will b
 ### <kbd>method</kbd> `__init__`
 
 ```python
-__init__(args: Tuple[Any, ])
+__init__(*args: object) → None
 ```
 
 Initializes the exception. 
@@ -69,7 +69,7 @@ Initializes the exception.
 
 **Args:**
  
- - <b>`args`</b>:  The tuple of arguments given to the exception constructor. 
+ - <b>`args`</b>:  A collection of 
 
 
 
@@ -77,7 +77,7 @@ Initializes the exception.
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/schema/exceptions.py#L57"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/schema/exceptions.py#L54"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>class</kbd> `UnauthenticatedError`
 Client error that indicates invalid, expired, or missing authentication credentials. 
@@ -89,7 +89,7 @@ The error message should contain specific details about the problem, e.g.:
 
 The error details will be shown to the client (user) if it is not handled otherwise. 
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/schema/exceptions.py#L71"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/schema/exceptions.py#L68"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `__init__`
 
@@ -117,7 +117,7 @@ Initializes the error.
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/schema/exceptions.py#L92"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/schema/exceptions.py#L89"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>class</kbd> `PermissionDeniedError`
 Client error that indicates that a client does not have sufficient permission for the request. 
@@ -129,7 +129,7 @@ The error message should contain specific details about the resource, e.g.:
 
 The error details will be shown to the client (user) if it is not handled otherwise. 
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/schema/exceptions.py#L106"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/schema/exceptions.py#L103"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `__init__`
 
@@ -157,7 +157,7 @@ Initializes the error.
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/schema/exceptions.py#L127"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/schema/exceptions.py#L124"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>class</kbd> `ResourceNotFoundError`
 Client error that indicates that a specified resource is not found. 
@@ -169,7 +169,7 @@ The error message should contain specific details about the resource, e.g.:
 
 The error details will be shown to the client (user) if it is not handled otherwise. 
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/schema/exceptions.py#L140"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/schema/exceptions.py#L137"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `__init__`
 
@@ -199,7 +199,7 @@ This error should be raised if
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/schema/exceptions.py#L163"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/schema/exceptions.py#L160"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>class</kbd> `ResourceAlreadyExistsError`
 Client error that indicates that a resource that a client tried to create already exists. 
@@ -212,7 +212,7 @@ The error message should contain specific details about the problem and resource
 
 The error details will be shown to the client (user) if it is not handled otherwise. 
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/schema/exceptions.py#L177"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/schema/exceptions.py#L174"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `__init__`
 
@@ -240,7 +240,7 @@ Initializes the error.
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/schema/exceptions.py#L198"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/schema/exceptions.py#L195"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>class</kbd> `ClientValueError`
 Client error that indicates that the client input is invalid. 
@@ -253,7 +253,7 @@ The error message should contain specific details about the problem, e.g.:
 
 The error details will be shown to the client (user) if it is not handled otherwise. 
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/schema/exceptions.py#L212"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/schema/exceptions.py#L209"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `__init__`
 

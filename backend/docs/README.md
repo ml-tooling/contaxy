@@ -12,6 +12,7 @@
 - [`contaxy.managers.deployment`](./contaxy.managers.deployment.md#module-contaxymanagersdeployment)
 - [`contaxy.managers.deployment.docker`](./contaxy.managers.deployment.docker.md#module-contaxymanagersdeploymentdocker)
 - [`contaxy.managers.deployment.docker_utils`](./contaxy.managers.deployment.docker_utils.md#module-contaxymanagersdeploymentdocker_utils)
+- [`contaxy.managers.deployment.kube_utils`](./contaxy.managers.deployment.kube_utils.md#module-contaxymanagersdeploymentkube_utils)
 - [`contaxy.managers.deployment.kubernetes`](./contaxy.managers.deployment.kubernetes.md#module-contaxymanagersdeploymentkubernetes)
 - [`contaxy.managers.deployment.manager`](./contaxy.managers.deployment.manager.md#module-contaxymanagersdeploymentmanager)
 - [`contaxy.managers.deployment.utils`](./contaxy.managers.deployment.utils.md#module-contaxymanagersdeploymentutils)
@@ -46,6 +47,7 @@
 - [`contaxy.utils`](./contaxy.utils.md#module-contaxyutils): Collection of utilities usable across all modules.
 - [`contaxy.utils.fastapi_utils`](./contaxy.utils.fastapi_utils.md#module-contaxyutilsfastapi_utils): Collection of utilities for FastAPI apps.
 - [`contaxy.utils.id_utils`](./contaxy.utils.id_utils.md#module-contaxyutilsid_utils): Utilities for generating IDs, tokens, and hashes.
+- [`contaxy.utils.postgres_utils`](./contaxy.utils.postgres_utils.md#module-contaxyutilspostgres_utils)
 - [`contaxy.utils.state_utils`](./contaxy.utils.state_utils.md#module-contaxyutilsstate_utils): Utilities for managing global and request state for an FastAPI app.
 
 ## Classes
@@ -149,9 +151,25 @@
 - [`docker_utils.extract_minimal_resources`](./contaxy.managers.deployment.docker_utils.md#function-extract_minimal_resources)
 - [`docker_utils.get_this_container`](./contaxy.managers.deployment.docker_utils.md#function-get_this_container): This function returns the Docker container in which this code is running or None if it does not run in a container.
 - [`docker_utils.handle_network`](./contaxy.managers.deployment.docker_utils.md#function-handle_network)
-- [`docker_utils.transform_container`](./contaxy.managers.deployment.docker_utils.md#function-transform_container)
-- [`docker_utils.transform_job`](./contaxy.managers.deployment.docker_utils.md#function-transform_job)
-- [`docker_utils.transform_service`](./contaxy.managers.deployment.docker_utils.md#function-transform_service)
+- [`docker_utils.list_deploy_service_actions`](./contaxy.managers.deployment.docker_utils.md#function-list_deploy_service_actions)
+- [`docker_utils.map_container`](./contaxy.managers.deployment.docker_utils.md#function-map_container)
+- [`docker_utils.map_job`](./contaxy.managers.deployment.docker_utils.md#function-map_job)
+- [`docker_utils.map_service`](./contaxy.managers.deployment.docker_utils.md#function-map_service)
+- [`kube_utils.build_kube_deployment_config`](./contaxy.managers.deployment.kube_utils.md#function-build_kube_deployment_config)
+- [`kube_utils.build_kube_service_config`](./contaxy.managers.deployment.kube_utils.md#function-build_kube_service_config)
+- [`kube_utils.build_pod_template_spec`](./contaxy.managers.deployment.kube_utils.md#function-build_pod_template_spec)
+- [`kube_utils.build_project_network_policy_spec`](./contaxy.managers.deployment.kube_utils.md#function-build_project_network_policy_spec)
+- [`kube_utils.check_or_create_project_network_policy`](./contaxy.managers.deployment.kube_utils.md#function-check_or_create_project_network_policy)
+- [`kube_utils.create_pvc`](./contaxy.managers.deployment.kube_utils.md#function-create_pvc)
+- [`kube_utils.create_service`](./contaxy.managers.deployment.kube_utils.md#function-create_service)
+- [`kube_utils.get_label_selector`](./contaxy.managers.deployment.kube_utils.md#function-get_label_selector): Bring label tuples into the form required by the Kubernetes client, e.g. 'key1=value1,key2=value2,key3=value3)'.
+- [`kube_utils.get_pod`](./contaxy.managers.deployment.kube_utils.md#function-get_pod)
+- [`kube_utils.map_deployment`](./contaxy.managers.deployment.kube_utils.md#function-map_deployment)
+- [`kube_utils.map_kube_job`](./contaxy.managers.deployment.kube_utils.md#function-map_kube_job)
+- [`kube_utils.map_kube_service`](./contaxy.managers.deployment.kube_utils.md#function-map_kube_service)
+- [`kube_utils.wait_for_deployment`](./contaxy.managers.deployment.kube_utils.md#function-wait_for_deployment)
+- [`kube_utils.wait_for_job`](./contaxy.managers.deployment.kube_utils.md#function-wait_for_job)
+- [`utils.clean_labels`](./contaxy.managers.deployment.utils.md#function-clean_labels): Remove system labels that should not be settable by the user.
 - [`utils.get_deployment_id`](./contaxy.managers.deployment.utils.md#function-get_deployment_id): Returns a valid deployment ID based on some specified metadata.
 - [`utils.get_gpu_info`](./contaxy.managers.deployment.utils.md#function-get_gpu_info)
 - [`utils.get_label_string`](./contaxy.managers.deployment.utils.md#function-get_label_string)
@@ -159,7 +177,6 @@
 - [`utils.get_volume_name`](./contaxy.managers.deployment.utils.md#function-get_volume_name)
 - [`utils.log`](./contaxy.managers.deployment.utils.md#function-log)
 - [`utils.map_labels`](./contaxy.managers.deployment.utils.md#function-map_labels)
-- [`utils.normalize_service_name`](./contaxy.managers.deployment.utils.md#function-normalize_service_name)
 - [`extension.parse_composite_id`](./contaxy.managers.extension.md#function-parse_composite_id): Extracts the resource and extension ID from an composite ID.
 - [`fastapi_utils.add_timing_info`](./contaxy.utils.fastapi_utils.md#function-add_timing_info)
 - [`fastapi_utils.patch_fastapi`](./contaxy.utils.fastapi_utils.md#function-patch_fastapi): Patch function to allow relative url resolution.
@@ -168,6 +185,8 @@
 - [`id_utils.generate_token`](./contaxy.utils.id_utils.md#function-generate_token): Generates a random token with the specified length.
 - [`id_utils.get_project_resource_prefix`](./contaxy.utils.id_utils.md#function-get_project_resource_prefix): Creates a prefix usable to construct IDs for project resources.
 - [`id_utils.hash_str`](./contaxy.utils.id_utils.md#function-hash_str): Generates a hash with a variable lenght from an abritary text.
+- [`postgres_utils.create_jsonb_merge_patch_func`](./contaxy.utils.postgres_utils.md#function-create_jsonb_merge_patch_func)
+- [`postgres_utils.create_schema`](./contaxy.utils.postgres_utils.md#function-create_schema)
 
 
 ---
