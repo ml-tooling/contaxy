@@ -21,6 +21,7 @@ from contaxy.schema.deployment import (
     Service,
     ServiceInput,
 )
+from contaxy.schema.exceptions import ClientBaseError, ResourceNotFoundError
 
 pytestmark = pytest.mark.unit
 
@@ -70,7 +71,7 @@ class DockerTestHandler:
             self.deployment_manager.delete_service(
                 project_id=test_project_name, service_id=setup_id
             )
-        except RuntimeError:
+        except (ResourceNotFoundError, ClientBaseError):
             # service not found
             return
 
@@ -206,7 +207,7 @@ class TestDeploymentManagers:
             project_id=test_project_name, service_id=service.id
         )
 
-        with pytest.raises(RuntimeError):
+        with pytest.raises(ResourceNotFoundError):
             self.handler.deployment_manager.get_service_metadata(
                 project_id=test_project_name, service_id=service.id
             )

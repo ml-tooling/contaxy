@@ -34,12 +34,19 @@ from contaxy.managers.deployment.kube_utils import (
 from contaxy.managers.deployment.manager import DeploymentManager
 from contaxy.managers.deployment.utils import (
     DEFAULT_DEPLOYMENT_ACTION_ID,
+    NO_LOGS_MESSAGE,
     Labels,
     get_deployment_id,
     log,
 )
 from contaxy.schema import Job, JobInput, ResourceAction, Service, ServiceInput
 from contaxy.schema.deployment import DeploymentType
+from contaxy.schema.exceptions import (
+    ClientBaseError,
+    ClientValueError,
+    ResourceNotFoundError,
+    ServerBaseError,
+)
 from contaxy.utils.state_utils import GlobalState, RequestState
 
 
@@ -79,7 +86,8 @@ class KubernetesDeploymentManager(DeploymentManager):
                 ) as namespace_file:
                     self.kube_namespace = namespace_file.read()
             except FileNotFoundError:
-                raise RuntimeError("Could not detect the Kubernetes Namespace")
+                # TODO: fix arguments
+                raise ServerBaseError("Could not detect the Kubernetes Namespace")
         else:
             self.kube_namespace = kube_namespace
         # TODO: when we have performance problems in the future, replicate the watch logic from JupyterHub KubeSpawner to keep Pod & other resource information in memory? (see https://github.com/jupyterhub/kubespawner/blob/941585f0f7acb0f366c9979b6274b7f47356a630/kubespawner/reflector.py#L238)
@@ -109,8 +117,9 @@ class KubernetesDeploymentManager(DeploymentManager):
         wait: bool = False,
     ) -> Service:
         if service.display_name is None:
-            raise RuntimeError(
-                f"Could not create a service id for service with display name {service.display_name}"
+            raise ClientValueError(
+                message=f"Could not create a service id for service with display name {service.display_name}",
+                explanation="A display name for the service must be provided.",
             )
 
         service_id = get_deployment_id(
@@ -174,8 +183,9 @@ class KubernetesDeploymentManager(DeploymentManager):
 
                 # TODO: delete pvc here
 
-            raise RuntimeError(
-                f"Could not create namespaced deployment '{service.display_name}' with reason: {e}"
+            raise ClientBaseError(
+                status_code=500,
+                message=f"Could not create namespaced deployment '{service.display_name}' with reason: {e}",
             )
 
         try:
@@ -198,7 +208,7 @@ class KubernetesDeploymentManager(DeploymentManager):
 
             # TODO: delete pvc here
 
-            raise RuntimeError(
+            raise ServerBaseError(
                 f"Could not transform deployment '{service.display_name}' with reason: {e}"
             )
 
@@ -222,7 +232,9 @@ class KubernetesDeploymentManager(DeploymentManager):
             )
             return map_kube_service(deployment)
         except ApiException:
-            raise RuntimeError(f"Could not get metadata of service '{service_id}'.")
+            raise ResourceNotFoundError(
+                f"Could not get metadata of service '{service_id}' for project {project_id}."
+            )
 
     def delete_service(
         self,
@@ -239,7 +251,7 @@ class KubernetesDeploymentManager(DeploymentManager):
                 propagation_policy="Foreground",
             )
             if status.status == "Failure":
-                raise RuntimeError(
+                raise ServerBaseError(
                     f"Could not delete Kubernetes service for service-id {service_id}"
                 )
 
@@ -249,11 +261,7 @@ class KubernetesDeploymentManager(DeploymentManager):
                 propagation_policy="Foreground",
             )
             if status.status == "Failure":
-                # log(
-                #     f"Could not delete Kubernetes deployment for service-id {service_id}"
-                # )
-
-                raise RuntimeError(
+                raise ServerBaseError(
                     f"Could not delete Kubernetes deployment for service-id {service_id}"
                 )
 
@@ -266,7 +274,7 @@ class KubernetesDeploymentManager(DeploymentManager):
                     # log(
                     #     f"Could not delete Kubernetes Persistent Volume Claim for service-id {service_id}"
                     # )
-                    raise RuntimeError(
+                    raise ServerBaseError(
                         f"Could not delete Kubernetes Persistent Volume Claim for service-id {service_id}"
                     )
 
@@ -282,20 +290,22 @@ class KubernetesDeploymentManager(DeploymentManager):
                 except ApiException:
                     # Deployment is deleted
                     break
-        except Exception as e:
-            log(e.__repr__())
+        except Exception:
             # TODO: add resources to delete to a queue instead of deleting directly? This would have the advantage that even if an operation failes, it is repeated. Also, if the delete endpoint is called multiple times, it is only added once to the queue
-            if retries < max_retries:
-                try:
-                    return self.delete_service(
-                        project_id=project_id,
-                        service_id=service_id,
-                        delete_volumes=delete_volumes,
-                        retries=retries + 1,
-                    )
-                except Exception:
-                    pass
-            raise RuntimeError(f"Could not delete service after {max_retries} retries.")
+            # if retries < max_retries:
+            #     try:
+            #         return self.delete_service(
+            #             project_id=project_id,
+            #             service_id=service_id,
+            #             delete_volumes=delete_volumes,
+            #             retries=retries + 1,
+            #         )
+            #     except Exception:
+            #         pass
+            raise ClientBaseError(
+                status_code=500,
+                message=f"Could not delete service '{service_id}'.",
+            )
 
     def get_service_logs(
         self,
@@ -310,51 +320,50 @@ class KubernetesDeploymentManager(DeploymentManager):
                 kube_namespace=self.kube_namespace,
                 core_api=self.core_api,
             )
-        except Exception as e:
-            log(e.__repr__())
-            raise RuntimeError(
-                f"Could not find service {service_id} to read logs from."
-            )
+        except Exception:
+            pod = None
 
         if pod is None:
-            raise RuntimeError(
+            raise ResourceNotFoundError(
                 f"Could not find service {service_id} to read logs from."
             )
-
-        # Give some time to let the container within the pod start
-        start = time.time()
-        timeout = 60
-        while True:
-            if pod.status.phase in ["Pending", "ContainerCreating"]:
-                try:
-                    pod = get_pod(
-                        service_id=service_id,
-                        kube_namespace=self.kube_namespace,
-                        core_api=self.core_api,
-                    )
-                    time.sleep(1)
-                except Exception:
-                    pass
-            else:
-                break
-
-            if time.time() - start > timeout:
-                raise RuntimeError(
-                    f"Could not read logs from service {service_id} due to status error."
-                )
-
         try:
-            return self.core_api.read_namespaced_pod_log(
-                name=pod.metadata.name,
-                namespace=self.kube_namespace,
-                pretty="true",
-                tail_lines=lines if lines else None,
-                since_seconds=(int((datetime.now() - since).total_seconds()) + 1)
-                if since is not None
-                else None,
-            )
-        except ApiException:
-            raise RuntimeError(f"Could not read logs of service {service_id}.")
+            # Give some time to let the container within the pod start
+            start = time.time()
+            timeout = 60
+            while True:
+                if pod.status.phase in ["Pending", "ContainerCreating"]:
+                    try:
+                        pod = get_pod(
+                            service_id=service_id,
+                            kube_namespace=self.kube_namespace,
+                            core_api=self.core_api,
+                        )
+                        time.sleep(1)
+                    except Exception:
+                        pass
+                else:
+                    break
+
+                if time.time() - start > timeout:
+                    raise ServerBaseError(
+                        f"Could not read logs from service {service_id} due to status error."
+                    )
+
+            try:
+                return self.core_api.read_namespaced_pod_log(
+                    name=pod.metadata.name,
+                    namespace=self.kube_namespace,
+                    pretty="true",
+                    tail_lines=lines if lines else None,
+                    since_seconds=(int((datetime.now() - since).total_seconds()) + 1)
+                    if since is not None
+                    else None,
+                )
+            except ApiException:
+                raise ServerBaseError(f"Could not read logs of service {service_id}.")
+        except Exception:
+            return NO_LOGS_MESSAGE
 
     def list_jobs(self, project_id: str) -> List[Job]:
         label_selector = get_label_selector(
@@ -382,8 +391,9 @@ class KubernetesDeploymentManager(DeploymentManager):
         wait: bool = False,
     ) -> Job:
         if job.display_name is None:
-            raise RuntimeError(
-                f"Could not create service id for job {job.display_name}"
+            raise ClientValueError(
+                message=f"Could not create service id for job {job.display_name}",
+                explanation="The display name for a service must be set.",
             )
 
         deployment_id = get_deployment_id(
@@ -418,7 +428,9 @@ class KubernetesDeploymentManager(DeploymentManager):
                 namespace=self.kube_namespace, body=_job
             )
         except ApiException:
-            raise RuntimeError(f"Could not deploy job '{job.display_name}'.")
+            raise ClientBaseError(
+                status_code=500, message=f"Could not deploy job '{job.display_name}'."
+            )
 
         if wait:
             wait_for_job(
@@ -443,7 +455,7 @@ class KubernetesDeploymentManager(DeploymentManager):
             )
             return map_kube_job(job)
         except ApiException:
-            raise RuntimeError(f"Could not get metadata of job '{job_id}'.")
+            raise ResourceNotFoundError(f"Could not get metadata of job '{job_id}'.")
 
     def delete_job(self, project_id: str, job_id: str) -> None:
         try:
@@ -453,7 +465,10 @@ class KubernetesDeploymentManager(DeploymentManager):
                 propagation_policy="Foreground",
             )
         except ApiException as e:
-            raise RuntimeError(f"Could not delete job '{job_id}' with reason: {e}")
+            raise ClientBaseError(
+                status_code=500,
+                message=f"Could not delete job '{job_id}' with reason: {e}",
+            )
 
     def get_job_logs(
         self,

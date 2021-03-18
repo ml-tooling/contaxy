@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import List, Optional
 
 import docker
+from loguru import logger
 
 from contaxy.config import settings
 from contaxy.managers.deployment.docker_utils import (
@@ -15,6 +16,11 @@ from contaxy.managers.deployment.manager import DeploymentManager
 from contaxy.managers.deployment.utils import NO_LOGS_MESSAGE, Labels, get_label_string
 from contaxy.schema import Job, JobInput, ResourceAction, Service, ServiceInput
 from contaxy.schema.deployment import DeploymentType
+from contaxy.schema.exceptions import (
+    ClientBaseError,
+    ClientValueError,
+    ResourceNotFoundError,
+)
 from contaxy.utils.state_utils import GlobalState, RequestState
 
 
@@ -73,7 +79,9 @@ class DockerDeploymentManager(DeploymentManager):
         try:
             container = self.client.containers.run(**container_config)
         except docker.errors.APIError:
-            raise RuntimeError(f"Could not deploy service '{service.display_name}'.")
+            raise ClientValueError(
+                f"Could not deploy service '{service.display_name}'."
+            )
 
         return map_service(container)
 
@@ -86,7 +94,9 @@ class DockerDeploymentManager(DeploymentManager):
         try:
             container = self.client.containers.get(service_id)
         except docker.errors.NotFound:
-            raise RuntimeError(f"Could not get metadata of service '{service_id}'.")
+            raise ResourceNotFoundError(
+                f"Could not get metadata of service '{service_id}'."
+            )
 
         return map_service(container)
 
@@ -96,7 +106,9 @@ class DockerDeploymentManager(DeploymentManager):
         try:
             container = self.client.containers.get(service_id)
         except docker.errors.NotFound:
-            raise RuntimeError(f"Could not find service '{service_id}' to delete.")
+            raise ResourceNotFoundError(
+                f"Could not find service '{service_id}' to delete."
+            )
 
         try:
             container.stop()
@@ -106,7 +118,9 @@ class DockerDeploymentManager(DeploymentManager):
         try:
             container.remove(v=delete_volumes)
         except docker.errors.APIError:
-            raise RuntimeError(f"Could not delete service {service_id}")
+            raise ClientBaseError(
+                status_code=500, message=f"Could not delete service {service_id}"
+            )
 
     def get_service_logs(
         self,
@@ -118,14 +132,14 @@ class DockerDeploymentManager(DeploymentManager):
         try:
             container = self.client.containers.get(service_id)
         except docker.errors.NotFound:
-            raise RuntimeError(
+            raise ResourceNotFoundError(
                 f"Could not find service {service_id} to read logs from."
             )
 
         try:
             logs = container.logs(tail=lines or "all", since=since)
         except docker.errors.APIError:
-            raise RuntimeError(f"Could not read logs of service {service_id}.")
+            logger.error(f"Could not read logs of service {service_id}.")
 
         if logs:
             logs = logs.decode("utf-8")
@@ -164,7 +178,9 @@ class DockerDeploymentManager(DeploymentManager):
         try:
             container = self.client.containers.run(**container_config)
         except docker.errors.APIError:
-            raise RuntimeError(f"Could not deploy job '{job.display_name}'.")
+            raise ClientBaseError(
+                status_code=500, message=f"Could not deploy job '{job.display_name}'."
+            )
 
         response_service = map_job(container)
         return response_service
@@ -180,7 +196,7 @@ class DockerDeploymentManager(DeploymentManager):
         try:
             container = self.client.containers.get(job_id)
         except docker.errors.NotFound:
-            raise RuntimeError(f"Could not get metadata of job '{job_id}'.")
+            raise ResourceNotFoundError(f"Could not get metadata of job '{job_id}'.")
 
         return map_job(container)
 
