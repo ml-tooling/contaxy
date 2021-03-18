@@ -1,11 +1,10 @@
 from typing import Any
 
 from fastapi import FastAPI
-from fastapi.encoders import jsonable_encoder
 from loguru import logger
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.cors import CORSMiddleware
-from starlette.responses import JSONResponse, RedirectResponse
+from starlette.responses import RedirectResponse
 
 from contaxy import __version__, config
 from contaxy.api import error_handling
@@ -29,6 +28,7 @@ app = FastAPI(
 
 fastapi_utils.add_timing_info(app)
 
+
 # Custom Exception Handling
 @app.exception_handler(StarletteHTTPException)
 async def http_exception_handler(request, exc):  # type: ignore
@@ -36,8 +36,6 @@ async def http_exception_handler(request, exc):  # type: ignore
 
 
 # Startup and shutdown events
-
-
 @app.on_event("startup")
 def on_startup() -> None:
     """Initializes the global app state object."""
