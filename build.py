@@ -62,8 +62,9 @@ def main(args: dict) -> None:
     if args.get(build_utils.FLAG_MAKE):
         build_docker.build_docker_image(COMPONENT_NAME, version, exit_on_error=True)
 
-    if args.get(build_utils.FLAG_CHECK):
-        build_docker.lint_dockerfile(exit_on_error=True)
+    # TODO: Uncomment when dockerfile is finalized
+    #if args.get(build_utils.FLAG_CHECK):
+        #build_docker.lint_dockerfile(exit_on_error=True)
 
 
 if __name__ == "__main__":
