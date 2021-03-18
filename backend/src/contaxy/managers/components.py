@@ -272,6 +272,7 @@ def install_components() -> None:
     user = component_manager.get_user_manager().create_user(
         UserInput(username=config.SYSTEM_ADMIN_USERNAME), technical_user=True
     )
+
     # Set initial user password -> SHOULD be changed after the first login
     component_manager.get_auth_manager().change_password(
         user.id, config.SYSTEM_ADMIN_INITIAL_PASSWORD

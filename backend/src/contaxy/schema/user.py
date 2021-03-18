@@ -42,7 +42,7 @@ class UserRegistration(UserInput):
 
 
 class User(UserBase):
-    id: Optional[str] = Field(
+    id: str = Field(
         None,
         example="16fd2706-8baf-433b-82eb-8c7fada847da",
         description="Unique ID of the user.",

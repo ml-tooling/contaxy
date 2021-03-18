@@ -10,7 +10,6 @@ from contaxy.api.dependencies import (
     get_component_manager,
 )
 from contaxy.schema import CoreOperations, User, UserInput, UserRegistration
-from contaxy.schema.exceptions import ServerBaseError
 from contaxy.schema.user import USER_ID_PARAM
 
 router = APIRouter(
