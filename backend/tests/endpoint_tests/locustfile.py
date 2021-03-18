@@ -4,11 +4,7 @@ from urllib.parse import urljoin
 
 from locust import HttpUser, between, task
 
-from tests.endpoint_tests.shared import (
-    ADMIN_API_TOKEN,
-    BackendClient,
-    request_system_info,
-)
+from .api_test import ADMIN_API_TOKEN, BackendClient, request_system_info
 
 
 class QuickstartUser(HttpUser):
