@@ -11,6 +11,8 @@ services:
       - test-contaxy-network
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - POSTGRES_CONNECTION_URI=postgresql://postgres:postgres@db:5432/postgres
     depends_on:
       - db
       - s3
