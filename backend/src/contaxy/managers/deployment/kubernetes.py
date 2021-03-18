@@ -10,13 +10,13 @@ from kubernetes.client.models import (
     V1Job,
     V1JobList,
     V1JobSpec,
-    V1ObjectMeta,
     V1Status,
 )
 from kubernetes.client.rest import ApiException
 
 from contaxy.config import settings
 from contaxy.managers.deployment.kube_utils import (
+    build_deployment_metadata,
     build_kube_deployment_config,
     build_kube_service_config,
     build_pod_template_spec,
@@ -28,6 +28,7 @@ from contaxy.managers.deployment.kube_utils import (
     get_pod,
     map_kube_job,
     map_kube_service,
+    wait_for_deletion,
     wait_for_deployment,
     wait_for_job,
 )
@@ -278,17 +279,9 @@ class KubernetesDeploymentManager(DeploymentManager):
                     )
 
             # wait some time for the deployment to be deleted
-            start = time.time()
-            timeout = 60
-            while time.time() - start < timeout:
-                try:
-                    self.apps_api.read_namespaced_deployment_status(
-                        namespace=self.kube_namespace, name=service_id
-                    )
-                    time.sleep(2)
-                except ApiException:
-                    # Deployment is deleted
-                    break
+            wait_for_deletion(
+                self.apps_api, self.kube_namespace, deployment_id=service_id
+            )
         except Exception:
             # TODO: add resources to delete to a queue instead of deleting directly? This would have the advantage that even if an operation failes, it is repeated. Also, if the delete endpoint is called multiple times, it is only added once to the queue
             # if retries < max_retries:
@@ -400,19 +393,14 @@ class KubernetesDeploymentManager(DeploymentManager):
             deployment_name=job.display_name,
             deployment_type=DeploymentType.JOB,
         )
-
-        metadata = V1ObjectMeta(
-            namespace=self.kube_namespace,
-            name=deployment_id,
-            labels={
-                Labels.DISPLAY_NAME.value: job.display_name.replace(
-                    " ", "__"
-                ),  # Kubernetes validation regex for labels: (([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?')
-                Labels.NAMESPACE.value: settings.SYSTEM_NAMESPACE,
-                Labels.PROJECT_NAME.value: project_id,
-                Labels.DEPLOYMENT_NAME.value: deployment_id,
-                Labels.DEPLOYMENT_TYPE.value: DeploymentType.JOB.value,
-            },  # service.deployment_labels
+        metadata = build_deployment_metadata(
+            kube_namespace=self.kube_namespace,
+            project_id=project_id,
+            deployment_id=deployment_id,
+            display_name=job.display_name.replace(" ", "__"),
+            labels=job.metadata,
+            compute_resources=job.compute,
+            deployment_type=DeploymentType.JOB,
         )
 
         # For debugging purposes, set restart_policy=Never to have access to job logs (see https://kubernetes.io/docs/concepts/workloads/controllers/job/#pod-backoff-failure-policy)
@@ -463,6 +451,9 @@ class KubernetesDeploymentManager(DeploymentManager):
                 namespace=self.kube_namespace,
                 propagation_policy="Foreground",
             )
+
+            # wait some time for the job to be deleted
+            wait_for_deletion(self.batch_api, self.kube_namespace, job_id)
         except ApiException as e:
             raise ClientBaseError(
                 status_code=500,
