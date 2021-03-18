@@ -36,14 +36,14 @@ class UserRegistration(UserInput):
     # TODO: a password can only be changed when used via oauth password bearer
     # TODO: System admin can change passwords for all users
     password: Optional[SecretStr] = Field(
-        ...,
+        None,
         description="Password for the user. The password will be stored in as a hash.",
     )
 
 
 class User(UserBase):
-    id: str = Field(
-        ...,
+    id: Optional[str] = Field(
+        None,
         example="16fd2706-8baf-433b-82eb-8c7fada847da",
         description="Unique ID of the user.",
     )

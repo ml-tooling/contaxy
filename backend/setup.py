@@ -69,6 +69,10 @@ setup(
         "python-jose[cryptography]",
         # Used for password hashing
         "passlib[bcrypt]",
+        # TODO: FOR in-memory dict db: Merge dictionaries via json merge patch
+        "json-merge-patch",
+        # TODO: FOR in-memory dict db: Merge dictionaries via json merge patch
+        "jsonpath-ng",
         # Email validation with pydantic
         "email-validator",
         # TODO: GraphQL support - remove
@@ -96,6 +100,8 @@ setup(
             "isort",
             "lazydocs",
             "locust",
+            # Create fake data for testing
+            "faker",
             # For better print debugging via debug
             "devtools[pygments]",
             # For Jupyter Kernel support

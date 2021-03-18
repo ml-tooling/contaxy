@@ -7,7 +7,7 @@ from contaxy.schema import User, UserInput
 
 
 class UserOperations(ABC):
-    """Collection of operations associated with the user handling.
+    """Interface with operations associated with the user handling.
 
     This interface should be implemented by a user manager.
     """

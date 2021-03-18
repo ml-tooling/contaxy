@@ -1,17 +1,21 @@
 import ipaddress
 import os
+from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import docker
 import psutil
+from loguru import logger
 
 from contaxy.config import settings
 from contaxy.managers.deployment.utils import (
     DEFAULT_DEPLOYMENT_ACTION_ID,
+    NO_LOGS_MESSAGE,
     Labels,
     clean_labels,
     get_deployment_id,
     get_gpu_info,
+    get_label_string,
     get_network_name,
     get_volume_name,
     log,
@@ -26,6 +30,11 @@ from contaxy.schema.deployment import (
     JobInput,
     Service,
     ServiceInput,
+)
+from contaxy.schema.exceptions import (
+    ClientBaseError,
+    ResourceNotFoundError,
+    ServerBaseError,
 )
 
 # we create networks in the range of 172.33-255.0.0/24
@@ -84,7 +93,7 @@ def map_container(
         "endpoints": labels.endpoints,
         #         "exit_code": container.attrs.get("State", {}).get("ExitCode", -1),
         "icon": labels.icon,
-        "id": container.id,
+        "id": container.name,
         "internal_id": container.id,
         "parameters": parameters,
         "started_at": started_at,
@@ -206,6 +215,66 @@ def handle_network(
     return network
 
 
+def get_project_container_selection_labels(
+    project_id: str, deployment_type: DeploymentType = DeploymentType.SERVICE
+) -> List[str]:
+    return [
+        get_label_string(Labels.NAMESPACE.value, settings.SYSTEM_NAMESPACE),
+        get_label_string(Labels.PROJECT_NAME.value, project_id),
+        get_label_string(
+            Labels.DEPLOYMENT_TYPE.value,
+            deployment_type.value,
+        ),
+    ]
+
+
+def get_project_containers(
+    client: docker.client,
+    project_id: str,
+    deployment_type: DeploymentType = DeploymentType.SERVICE,
+) -> List[docker.models.containers.Container]:
+    labels = get_project_container_selection_labels(
+        project_id=project_id, deployment_type=deployment_type
+    )
+
+    try:
+        containers = client.containers.list(all=True, filters={"label": labels})
+    except docker.errors.NotFound:
+        raise ServerBaseError(
+            f"Could not list Docker containers for project '{project_id}'."
+        )
+
+    return containers
+
+
+def get_project_container(
+    client: docker.client,
+    project_id: str,
+    deployment_id: str,
+    deployment_type: DeploymentType = DeploymentType.SERVICE,
+) -> docker.models.containers.Container:
+    labels = get_project_container_selection_labels(
+        project_id=project_id, deployment_type=deployment_type
+    )
+    labels.append(
+        get_label_string(Labels.DEPLOYMENT_NAME.value, deployment_id),
+    )
+
+    try:
+        containers = client.containers.list(all=True, filters={"label": labels})
+    except docker.errors.NotFound:
+        raise ServerBaseError(
+            f"Could not list Docker containers for project '{project_id}' and service '{deployment_id}'."
+        )
+
+    if len(containers) == 0:
+        raise ResourceNotFoundError(
+            f"Could not find service '{deployment_id}' of project '{project_id}'."
+        )
+
+    return containers[0]
+
+
 def get_this_container(client: docker.client) -> docker.models.containers.Container:
     """This function returns the Docker container in which this code is running or None if it does not run in a container.
 
@@ -221,6 +290,23 @@ def get_this_container(client: docker.client) -> docker.models.containers.Contai
     if not os.getenv("IS_CONTAXY_CONTAINER", False) or hostname is None:
         return None
     return client.containers.get(hostname)
+
+
+def delete_container(
+    container: docker.models.containers.Container, delete_volumes: bool = False
+) -> None:
+    try:
+        container.stop()
+    except docker.errors.APIError:
+        pass
+
+    try:
+        container.remove(v=delete_volumes)
+    except docker.errors.APIError:
+        raise ClientBaseError(
+            status_code=500,
+            message=f"Could not delete deployment '{container.name}'.",
+        )
 
 
 def check_minimal_resources(
@@ -380,7 +466,7 @@ def create_container_config(
         "labels": {
             Labels.DISPLAY_NAME.value: service.display_name,
             Labels.NAMESPACE.value: settings.SYSTEM_NAMESPACE,
-            Labels.MIN_LIFETIME.value: min_lifetime,
+            Labels.MIN_LIFETIME.value: str(min_lifetime),
             Labels.PROJECT_NAME.value: project_id,
             Labels.DEPLOYMENT_NAME.value: container_name,
             Labels.ENDPOINTS.value: endpoints_label,
@@ -394,6 +480,24 @@ def create_container_config(
         "restart_policy": {"Name": "on-failure", "MaximumRetryCount": 10},
         "mounts": mounts if mounts != [] else None,
     }
+
+
+def read_container_logs(
+    container: docker.models.containers.Container,
+    lines: Optional[int] = None,
+    since: Optional[datetime] = None,
+) -> str:
+    try:
+        logs = container.logs(tail=lines or "all", since=since)
+    except docker.errors.APIError:
+        logger.error(f"Could not read logs of container {container.name}.")
+
+    if logs:
+        logs = logs.decode("utf-8")
+    else:
+        logs = NO_LOGS_MESSAGE
+
+    return logs
 
 
 def list_deploy_service_actions(

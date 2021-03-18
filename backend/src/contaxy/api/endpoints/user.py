@@ -35,7 +35,7 @@ def list_users(
     token: str = Depends(get_api_token),
 ) -> Any:
     """Lists all users that are visible to the authenticated user."""
-    raise ServerBaseError("Blub", "Foo")
+    return component_manager.get_user_manager().list_users()
 
 
 @router.post(
@@ -54,7 +54,10 @@ def create_user(
 
     If the `password` is not provided, the user can only login by using other methods (social login).
     """
-    raise NotImplementedError
+    if user.password:
+        # TODO create password for the user
+        del user.password
+    return component_manager.get_user_manager().create_user(user, technical_user=False)
 
 
 @router.get(
@@ -110,6 +113,7 @@ def update_user(
     This will update only the properties that are explicitly set in the patch request.
     The patching is based on the JSON Merge Patch Standard [RFC7396](https://tools.ietf.org/html/rfc7396).
     """
+    # TODO: should only be called by an admin
     raise NotImplementedError
 
 
