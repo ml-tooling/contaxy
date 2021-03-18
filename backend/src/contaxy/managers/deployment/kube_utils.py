@@ -229,29 +229,51 @@ def build_pod_template_spec(
     return V1PodTemplateSpec(metadata=metadata, spec=pod_spec)
 
 
-def build_kube_deployment_config(
-    service_id: str, service: ServiceInput, project_id: str, kube_namespace: str
-) -> Tuple[V1Deployment, Union[V1PersistentVolumeClaim, None]]:
-    compute_resources = service.compute or DeploymentCompute()
-    # ---
-    min_lifetime = compute_resources.min_lifetime or 0
-    metadata = clean_labels(service.metadata)
-    display_name = service.display_name or ""
-    metadata = V1ObjectMeta(
+def build_deployment_metadata(
+    kube_namespace: str,
+    project_id: str,
+    deployment_id: str,
+    display_name: Optional[str],
+    labels: Optional[Dict[str, str]],
+    compute_resources: Optional[DeploymentCompute],
+    deployment_type: DeploymentType = DeploymentType.SERVICE,
+) -> V1ObjectMeta:
+    display_name = display_name or ""
+    _compute_resources = compute_resources or DeploymentCompute()
+    min_lifetime = _compute_resources.min_lifetime or 0
+    cleaned_labels = clean_labels(labels)
+
+    return V1ObjectMeta(
         namespace=kube_namespace,
-        name=service_id,
+        name=deployment_id,
         labels={
             # TODO: use Annotation for DISPLAY_NAME, MIN_LIFETIME, ...
             Labels.DISPLAY_NAME.value: display_name.replace(
                 " ", "__"
-            ),  # Kubernetes validation regex for labels: (([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?')
+            ),  # TODO: Kubernetes validation regex for labels: (([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?')
             Labels.NAMESPACE.value: settings.SYSTEM_NAMESPACE,
             Labels.MIN_LIFETIME.value: str(min_lifetime),
             Labels.PROJECT_NAME.value: project_id,
-            Labels.DEPLOYMENT_NAME.value: service_id,
-            Labels.DEPLOYMENT_TYPE.value: DeploymentType.SERVICE.value,
-            **metadata,
+            Labels.DEPLOYMENT_NAME.value: deployment_id,
+            Labels.DEPLOYMENT_TYPE.value: deployment_type.value,
+            **cleaned_labels,
         },
+    )
+
+
+def build_kube_deployment_config(
+    service_id: str, service: ServiceInput, project_id: str, kube_namespace: str
+) -> Tuple[V1Deployment, Union[V1PersistentVolumeClaim, None]]:
+    # ---
+    compute_resources = service.compute or DeploymentCompute()
+
+    metadata = build_deployment_metadata(
+        kube_namespace=kube_namespace,
+        project_id=project_id,
+        deployment_id=service_id,
+        display_name=service.display_name,
+        labels=service.metadata,
+        compute_resources=compute_resources,
     )
 
     # ---
@@ -411,6 +433,27 @@ def wait_for_job(
             return
 
     raise RuntimeError(f"Waiting timeout for job {job_name}")
+
+
+def wait_for_deletion(
+    api: Union[kube_client.AppsV1Api, kube_client.BatchV1Api],
+    kube_namespace: str,
+    deployment_id: str,
+) -> None:
+    start = time.time()
+    timeout = 60
+    while time.time() - start < timeout:
+        try:
+            if type(api) == kube_client.AppsV1Api:
+                api.read_namespaced_deployment_status(
+                    namespace=kube_namespace, name=deployment_id
+                )
+            elif type(api) == kube_client.BatchV1Api:
+                api.read_namespaced_job(name=deployment_id, namespace=kube_namespace)
+            time.sleep(2)
+        except ApiException:
+            # Deployment is deleted
+            break
 
 
 def map_deployment(deployment: Union[V1Deployment, V1Job]) -> Dict[str, Any]:
