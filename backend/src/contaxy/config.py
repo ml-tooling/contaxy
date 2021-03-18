@@ -13,9 +13,10 @@ class DeploymentManager(str, Enum):
     KUBERNETES = "kubernetes"
     DOCKER = "docker"
 
+
 # TODO
 # MAX_SYSTEM_NAMESPACE_LENGTH = 5
-#def get_system_namespace(system_name: str) -> str:
+# def get_system_namespace(system_name: str) -> str:
 #    return id_utils.generate_readable_id(
 #        system_name,
 #        max_length=MAX_SYSTEM_NAMESPACE_LENGTH,

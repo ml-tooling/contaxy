@@ -37,7 +37,6 @@ from contaxy.managers.deployment.utils import (
     NO_LOGS_MESSAGE,
     Labels,
     get_deployment_id,
-    log,
 )
 from contaxy.schema import Job, JobInput, ResourceAction, Service, ServiceInput
 from contaxy.schema.deployment import DeploymentType
@@ -243,7 +242,7 @@ class KubernetesDeploymentManager(DeploymentManager):
         delete_volumes: bool = False,
         retries: int = 0,
     ) -> None:
-        max_retries = 3
+
         try:
             status: V1Status = self.core_api.delete_namespaced_service(
                 name=service_id,

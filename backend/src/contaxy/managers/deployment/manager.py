@@ -47,9 +47,9 @@ class DeploymentManager(DeploymentOperations):
         project_id: str,
         container_image: str,
     ) -> ServiceInput:
+        # TODO: add sensible logic here
         return ServiceInput(container_image=container_image)
 
     def suggest_job_config(self, project_id: str, container_image: str) -> JobInput:
-        return self.suggest_service_config(
-            project_id=project_id, container_image=container_image
-        )
+        # TODO: add sensible logic here
+        return JobInput(container_image=container_image)

@@ -380,7 +380,7 @@ def create_container_config(
         "labels": {
             Labels.DISPLAY_NAME.value: service.display_name,
             Labels.NAMESPACE.value: settings.SYSTEM_NAMESPACE,
-            Labels.MIN_LIFETIME.value: min_lifetime,
+            Labels.MIN_LIFETIME.value: str(min_lifetime),
             Labels.PROJECT_NAME.value: project_id,
             Labels.DEPLOYMENT_NAME.value: container_name,
             Labels.ENDPOINTS.value: endpoints_label,

@@ -26,6 +26,11 @@ RUN \
     && chmod +x ./kubectl \
     && mv ./kubectl /usr/local/bin/kubectl
 
+# Install lib required for psycopg2
+RUN \
+  apt-get update \
+  && apt-get install -y libpq-dev
+
 COPY extended-entrypoint.sh /extended-entrypoint.sh
 
 RUN chmod +x /extended-entrypoint.sh

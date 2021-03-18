@@ -182,11 +182,33 @@ class TestDeploymentManagers:
         assert service.internal_id != ""
         assert service.metadata.get("ctxy.projectName", "") == test_project_name
         assert service.parameters.get("FOO", "") == "bar"
+
+        assert "some-metadata" in service.metadata
+
+    def test_removal_of_system_params(self) -> None:
+        user_set_project = "this-should-be-forbidden"
+        min_lifetime_via_metadata = 10
+        min_lifetime_via_compute_resources = 20
+        test_service_input = create_test_service_input()
+        test_service_input.compute.min_lifetime = min_lifetime_via_compute_resources
+        test_service_input.metadata["ctxy.projectName"] = user_set_project
+        test_service_input.metadata["ctxy.minLifetime"] = min_lifetime_via_metadata
+
+        service = self.handler.deploy_service(
+            project_id=test_project_name,
+            service=test_service_input,
+        )
+
+        assert (
+            service.metadata.get("ctxy.projectName", user_set_project)
+            != user_set_project
+        )
+        assert service.metadata.get("ctxy.minLifetime", None) is None
+        assert service.compute.min_lifetime == 20
         assert (
             service.parameters.get("NVIDIA_VISIBLE_DEVICES", "Not allowed to set")
             == "Not allowed to set"
         )
-        assert "some-metadata" in service.metadata
 
     def test_get_service_metadata(self) -> None:
         test_service_input = create_test_service_input()

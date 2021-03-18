@@ -317,7 +317,7 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
         return docs
 
     def _map_db_row_to_document_model(self, row: Row) -> JsonDocument:
-        data = {}
+        data: Dict = {}
         for column_name, value in row._mapping.items():
             if isinstance(value, dict):
                 data.update({column_name: json.dumps(value)})

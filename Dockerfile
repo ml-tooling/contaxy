@@ -17,6 +17,11 @@ RUN \
     && ln -s /usr/bin/python3.8 /usr/bin/python \
     && ln -s /usr/bin/pip3 /usr/bin/pip
 
+# Install lib required for psycopg2
+RUN \
+  apt-get update \
+  && apt-get install -y libpq-dev
+
 # Install gunicorn and uvicorn to run FastAPI optimized
 RUN pip install --no-cache-dir "uvicorn[standard]" gunicorn fastapi
 
