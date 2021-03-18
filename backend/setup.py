@@ -102,6 +102,7 @@ setup(
             "ipykernel",
             # TODO: Move to required when necessary
             "universal-build",
+            "requests",
         ],
     },
     include_package_data=True,
