@@ -2,25 +2,22 @@ from datetime import datetime
 from typing import List, Optional
 
 import docker
-from loguru import logger
 
-from contaxy.config import settings
 from contaxy.managers.deployment.docker_utils import (
     create_container_config,
+    get_project_container,
+    get_project_containers,
     handle_network,
     list_deploy_service_actions,
     map_job,
     map_service,
+    read_container_logs,
 )
 from contaxy.managers.deployment.manager import DeploymentManager
-from contaxy.managers.deployment.utils import NO_LOGS_MESSAGE, Labels, get_label_string
+from contaxy.managers.deployment.utils import Labels
 from contaxy.schema import Job, JobInput, ResourceAction, Service, ServiceInput
 from contaxy.schema.deployment import DeploymentType
-from contaxy.schema.exceptions import (
-    ClientBaseError,
-    ClientValueError,
-    ResourceNotFoundError,
-)
+from contaxy.schema.exceptions import ClientBaseError, ClientValueError
 from contaxy.utils.state_utils import GlobalState, RequestState
 
 
@@ -43,19 +40,8 @@ class DockerDeploymentManager(DeploymentManager):
 
     def list_services(self, project_id: str) -> List[Service]:
         try:
-            containers = self.client.containers.list(
-                filters={
-                    "label": [
-                        get_label_string(
-                            Labels.NAMESPACE.value, settings.SYSTEM_NAMESPACE
-                        ),
-                        get_label_string(Labels.PROJECT_NAME.value, project_id),
-                        get_label_string(
-                            Labels.DEPLOYMENT_TYPE.value,
-                            DeploymentType.SERVICE.value,
-                        ),
-                    ]
-                }
+            containers = get_project_containers(
+                client=self.client, project_id=project_id
             )
 
             return [map_service(container) for container in containers]
@@ -91,24 +77,17 @@ class DockerDeploymentManager(DeploymentManager):
         return list_deploy_service_actions(project_id=project_id, deploy_input=service)
 
     def get_service_metadata(self, project_id: str, service_id: str) -> Service:
-        try:
-            container = self.client.containers.get(service_id)
-        except docker.errors.NotFound:
-            raise ResourceNotFoundError(
-                f"Could not get metadata of service '{service_id}'."
-            )
-
+        container = get_project_container(
+            client=self.client, project_id=project_id, deployment_id=service_id
+        )
         return map_service(container)
 
     def delete_service(
         self, project_id: str, service_id: str, delete_volumes: bool = False
     ) -> None:
-        try:
-            container = self.client.containers.get(service_id)
-        except docker.errors.NotFound:
-            raise ResourceNotFoundError(
-                f"Could not find service '{service_id}' to delete."
-            )
+        container = get_project_container(
+            self.client, project_id=project_id, deployment_id=service_id
+        )
 
         try:
             container.stop()
@@ -119,7 +98,8 @@ class DockerDeploymentManager(DeploymentManager):
             container.remove(v=delete_volumes)
         except docker.errors.APIError:
             raise ClientBaseError(
-                status_code=500, message=f"Could not delete service {service_id}"
+                status_code=500,
+                message=f"Could not delete service '{service_id}' of project '{project_id}'.",
             )
 
     def get_service_logs(
@@ -129,37 +109,15 @@ class DockerDeploymentManager(DeploymentManager):
         lines: Optional[int] = None,
         since: Optional[datetime] = None,
     ) -> str:
-        try:
-            container = self.client.containers.get(service_id)
-        except docker.errors.NotFound:
-            raise ResourceNotFoundError(
-                f"Could not find service {service_id} to read logs from."
-            )
+        container = get_project_container(
+            self.client, project_id=project_id, deployment_id=service_id
+        )
 
-        try:
-            logs = container.logs(tail=lines or "all", since=since)
-        except docker.errors.APIError:
-            logger.error(f"Could not read logs of service {service_id}.")
-
-        if logs:
-            logs = logs.decode("utf-8")
-        else:
-            logs = NO_LOGS_MESSAGE
-
-        return logs
+        return read_container_logs(container=container, lines=lines, since=since)
 
     def list_jobs(self, project_id: str) -> List[Job]:
-        containers = self.client.containers.list(
-            filters={
-                "label": [
-                    get_label_string(Labels.NAMESPACE.value, settings.SYSTEM_NAMESPACE),
-                    get_label_string(Labels.PROJECT_NAME.value, project_id),
-                    get_label_string(
-                        Labels.DEPLOYMENT_TYPE.value,
-                        DeploymentType.JOB.value,
-                    ),
-                ]
-            }
+        containers = get_project_containers(
+            self.client, project_id=project_id, deployment_type=DeploymentType.JOB
         )
         return [map_job(container) for container in containers]
 
@@ -193,10 +151,12 @@ class DockerDeploymentManager(DeploymentManager):
         return list_deploy_service_actions(project_id=project_id, deploy_input=job)
 
     def get_job_metadata(self, project_id: str, job_id: str) -> Job:
-        try:
-            container = self.client.containers.get(job_id)
-        except docker.errors.NotFound:
-            raise ResourceNotFoundError(f"Could not get metadata of job '{job_id}'.")
+        container = get_project_container(
+            client=self.client,
+            project_id=project_id,
+            deployment_id=job_id,
+            deployment_type=DeploymentType.JOB,
+        )
 
         return map_job(container)
 
@@ -212,6 +172,11 @@ class DockerDeploymentManager(DeploymentManager):
         lines: Optional[int] = None,
         since: Optional[datetime] = None,
     ) -> str:
-        return self.get_service_logs(
-            project_id=project_id, service_id=job_id, lines=lines, since=since
+        container = get_project_container(
+            self.client,
+            project_id=project_id,
+            deployment_id=job_id,
+            deployment_type=DeploymentType.JOB,
         )
+
+        return read_container_logs(container=container, lines=lines, since=since)

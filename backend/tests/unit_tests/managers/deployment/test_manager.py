@@ -266,8 +266,8 @@ class TestDeploymentManagers:
 
         service = self.handler.deploy_job(job=job_input, project_id=test_project_name)
 
-        logs = self.handler.deployment_manager.get_service_logs(
-            project_id=test_project_name, service_id=service.internal_id
+        logs = self.handler.deployment_manager.get_job_logs(
+            project_id=test_project_name, job_id=service.id
         )
         assert logs
         assert logs.startswith(log_input)
