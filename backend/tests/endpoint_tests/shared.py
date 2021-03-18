@@ -1,5 +1,4 @@
 import os
-from typing import Dict
 from urllib.parse import urljoin
 
 import pytest
