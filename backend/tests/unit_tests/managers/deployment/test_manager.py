@@ -57,6 +57,22 @@ def create_test_service_input(
     )
 
 
+def create_test_echo_job_input(
+    _job_id: str = test_service_id,
+    display_name: str = test_service_display_name,
+    log_input: str = "",
+) -> JobInput:
+    return JobInput(
+        container_image="ubuntu:20.04",
+        command=f"/bin/bash -c 'echo {log_input}'",
+        deployment_type=DeploymentType.SERVICE.value,
+        display_name=display_name,
+        id=_job_id,
+        parameters={"FOO": "bar", "FOO2": "bar2"},
+        metadata={"some-metadata": "some-metadata-value"},
+    )
+
+
 class DockerTestHandler:
     def __init__(self) -> None:
         self.deployment_manager = DockerDeploymentManager(
@@ -234,6 +250,27 @@ class TestDeploymentManagers:
                 project_id=test_project_name, service_id=service.id
             )
 
+    def test_get_job_metadata(self) -> None:
+        job_input = create_test_echo_job_input()
+        job = self.handler.deploy_job(project_id=test_project_name, job=job_input)
+
+        queried_job = self.handler.deployment_manager.get_job_metadata(
+            project_id=test_project_name, job_id=job.id
+        )
+
+        assert queried_job is not None
+        assert queried_job.internal_id == job.internal_id
+        assert "some-metadata" in queried_job.metadata
+
+        self.handler.deployment_manager.delete_job(
+            project_id=test_project_name, job_id=job.id
+        )
+
+        with pytest.raises(ResourceNotFoundError):
+            self.handler.deployment_manager.get_job_metadata(
+                project_id=test_project_name, job_id=job.id
+            )
+
     def test_list_services(self) -> None:
         test_service_input = create_test_service_input()
         service = self.handler.deploy_service(
@@ -255,19 +292,12 @@ class TestDeploymentManagers:
 
     def test_get_logs(self) -> None:
         log_input = "foobar"
-        job_input = JobInput(
-            container_image="ubuntu:20.04",
-            command=f"/bin/bash -c 'echo {log_input}'",
-            deployment_type=DeploymentType.SERVICE.value,
-            display_name=test_service_display_name,
-            id=test_service_id,
-            parameters={"FOO": "bar", "FOO2": "bar2"},
-        )
+        job_input = create_test_echo_job_input(log_input=log_input)
 
-        service = self.handler.deploy_job(job=job_input, project_id=test_project_name)
+        job = self.handler.deploy_job(job=job_input, project_id=test_project_name)
 
         logs = self.handler.deployment_manager.get_job_logs(
-            project_id=test_project_name, job_id=service.id
+            project_id=test_project_name, job_id=job.id
         )
         assert logs
         assert logs.startswith(log_input)

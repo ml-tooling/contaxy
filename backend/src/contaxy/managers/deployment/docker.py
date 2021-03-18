@@ -5,6 +5,7 @@ import docker
 
 from contaxy.managers.deployment.docker_utils import (
     create_container_config,
+    delete_container,
     get_project_container,
     get_project_containers,
     handle_network,
@@ -88,19 +89,7 @@ class DockerDeploymentManager(DeploymentManager):
         container = get_project_container(
             self.client, project_id=project_id, deployment_id=service_id
         )
-
-        try:
-            container.stop()
-        except docker.errors.APIError:
-            pass
-
-        try:
-            container.remove(v=delete_volumes)
-        except docker.errors.APIError:
-            raise ClientBaseError(
-                status_code=500,
-                message=f"Could not delete service '{service_id}' of project '{project_id}'.",
-            )
+        delete_container(container=container, delete_volumes=delete_volumes)
 
     def get_service_logs(
         self,
@@ -161,9 +150,13 @@ class DockerDeploymentManager(DeploymentManager):
         return map_job(container)
 
     def delete_job(self, project_id: str, job_id: str) -> None:
-        return self.delete_service(
-            project_id=project_id, service_id=job_id, delete_volumes=True
+        container = get_project_container(
+            self.client,
+            project_id=project_id,
+            deployment_id=job_id,
+            deployment_type=DeploymentType.JOB,
         )
+        delete_container(container=container)
 
     def get_job_logs(
         self,

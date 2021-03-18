@@ -31,7 +31,11 @@ from contaxy.schema.deployment import (
     Service,
     ServiceInput,
 )
-from contaxy.schema.exceptions import ResourceNotFoundError, ServerBaseError
+from contaxy.schema.exceptions import (
+    ClientBaseError,
+    ResourceNotFoundError,
+    ServerBaseError,
+)
 
 # we create networks in the range of 172.33-255.0.0/24
 # Docker by default uses the range 172.17-32.0.0, so we should be save using that range
@@ -286,6 +290,23 @@ def get_this_container(client: docker.client) -> docker.models.containers.Contai
     if not os.getenv("IS_CONTAXY_CONTAINER", False) or hostname is None:
         return None
     return client.containers.get(hostname)
+
+
+def delete_container(
+    container: docker.models.containers.Container, delete_volumes: bool = False
+) -> None:
+    try:
+        container.stop()
+    except docker.errors.APIError:
+        pass
+
+    try:
+        container.remove(v=delete_volumes)
+    except docker.errors.APIError:
+        raise ClientBaseError(
+            status_code=500,
+            message=f"Could not delete deployment '{container.name}'.",
+        )
 
 
 def check_minimal_resources(
