@@ -83,10 +83,6 @@ def add_timing_info(app: FastAPI) -> None:
     logger = logging.getLogger(__name__)
     add_timing_middleware(app, record=logger.info, prefix="app", exclude="untimed")
 
-    import time
-
-    from fastapi import Request
-
     # @app.middleware("http")
     # async def add_process_time_header(request: Request, call_next):
     #    start_time = time.time()
