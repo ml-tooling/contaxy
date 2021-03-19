@@ -290,6 +290,17 @@ class TestDeploymentManagers:
         )
         assert len(services) == 0
 
+    def test_list_jobs(self) -> None:
+        test_job_input = create_test_echo_job_input()
+        job = self.handler.deploy_job(project_id=test_project_name, job=test_job_input)
+        jobs = self.handler.deployment_manager.list_jobs(project_id=test_project_name)
+        assert len(jobs) == 1
+        self.handler.deployment_manager.delete_job(
+            project_id=test_project_name, job_id=job.id
+        )
+        jobs = self.handler.deployment_manager.list_jobs(project_id=test_project_name)
+        assert len(jobs) == 0
+
     def test_get_logs(self) -> None:
         log_input = "foobar"
         job_input = create_test_echo_job_input(log_input=log_input)
