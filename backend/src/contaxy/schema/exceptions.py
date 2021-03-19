@@ -38,7 +38,7 @@ class ServerBaseError(Exception):
     """Basic exception class for all server internal errors that should not be shown with details to the user.
 
     If the error is not handled, an `Internal Server Error` (Status Code 500) will be shown
-    to the client (user) without any additional details. In this case, the execption will be
+    to the client (user) without any additional details. In this case, the exception will be
     automatically logged.
     """
 

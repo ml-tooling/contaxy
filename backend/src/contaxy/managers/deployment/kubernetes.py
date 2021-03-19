@@ -24,6 +24,7 @@ from contaxy.managers.deployment.kube_utils import (
     check_or_create_project_network_policy,
     create_pvc,
     create_service,
+    get_deployment_selection_labels,
     get_label_selector,
     get_pod,
     map_kube_job,
@@ -93,12 +94,8 @@ class KubernetesDeploymentManager(DeploymentManager):
         # TODO: when we have performance problems in the future, replicate the watch logic from JupyterHub KubeSpawner to keep Pod & other resource information in memory? (see https://github.com/jupyterhub/kubespawner/blob/941585f0f7acb0f366c9979b6274b7f47356a630/kubespawner/reflector.py#L238)
 
     def list_services(self, project_id: str) -> List[Service]:
-        label_selector = get_label_selector(
-            [
-                (Labels.NAMESPACE.value, settings.SYSTEM_NAMESPACE),
-                (Labels.PROJECT_NAME.value, project_id),
-                (Labels.DEPLOYMENT_TYPE.value, DeploymentType.SERVICE.value),
-            ]
+        label_selector = get_deployment_selection_labels(
+            project_id=project_id, deployment_type=DeploymentType.SERVICE
         )
 
         try:
@@ -433,7 +430,13 @@ class KubernetesDeploymentManager(DeploymentManager):
         project_id: str,
         job: JobInput,
     ) -> List[ResourceAction]:
-        raise NotImplementedError
+        # TODO: make some cluster checks?
+        return [
+            ResourceAction(
+                action_id=DEFAULT_DEPLOYMENT_ACTION_ID,
+                display_name=DEFAULT_DEPLOYMENT_ACTION_ID,
+            )
+        ]
 
     def get_job_metadata(self, project_id: str, job_id: str) -> Job:
         try:

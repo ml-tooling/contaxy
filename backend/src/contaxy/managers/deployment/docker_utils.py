@@ -17,6 +17,7 @@ from contaxy.managers.deployment.utils import (
     get_gpu_info,
     get_label_string,
     get_network_name,
+    get_selection_labels,
     get_volume_name,
     log,
     map_labels,
@@ -219,12 +220,10 @@ def get_project_container_selection_labels(
     project_id: str, deployment_type: DeploymentType = DeploymentType.SERVICE
 ) -> List[str]:
     return [
-        get_label_string(Labels.NAMESPACE.value, settings.SYSTEM_NAMESPACE),
-        get_label_string(Labels.PROJECT_NAME.value, project_id),
-        get_label_string(
-            Labels.DEPLOYMENT_TYPE.value,
-            deployment_type.value,
-        ),
+        get_label_string(selection_label[0], selection_label[1])
+        for selection_label in get_selection_labels(
+            project_id=project_id, deployment_type=deployment_type
+        )
     ]
 
 

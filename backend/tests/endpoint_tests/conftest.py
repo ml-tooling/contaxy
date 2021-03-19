@@ -4,7 +4,7 @@ import pytest
 import requests
 from fastapi.testclient import TestClient
 
-from tests.endpoint_tests.shared import ADMIN_API_TOKEN, BackendClient
+from .api_test import ADMIN_API_TOKEN, BackendClient
 
 pytestmark = pytest.mark.integration
 
