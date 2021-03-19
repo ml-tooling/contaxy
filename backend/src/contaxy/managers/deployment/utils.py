@@ -1,7 +1,7 @@
 import string
 import subprocess
 from enum import Enum
-from typing import Optional
+from typing import List, Optional
 
 from contaxy.config import settings
 from contaxy.schema.deployment import DeploymentType
@@ -176,3 +176,13 @@ def get_gpu_info() -> int:
 # TODO: replace!
 def log(input: str) -> None:
     print(input)
+
+
+def get_selection_labels(
+    project_id: str, deployment_type: DeploymentType = DeploymentType.SERVICE
+) -> List:
+    return [
+        (Labels.NAMESPACE.value, settings.SYSTEM_NAMESPACE),
+        (Labels.PROJECT_NAME.value, project_id),
+        (Labels.DEPLOYMENT_TYPE.value, deployment_type.value),
+    ]

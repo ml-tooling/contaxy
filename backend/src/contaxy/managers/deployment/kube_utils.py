@@ -36,6 +36,7 @@ from contaxy.managers.deployment.utils import (
     Labels,
     clean_labels,
     get_label_string,
+    get_selection_labels,
     map_labels,
 )
 from contaxy.schema import Job, JobInput, Service, ServiceInput
@@ -49,6 +50,14 @@ from contaxy.schema.deployment import (
 def get_label_selector(label_pairs: List[Tuple[str, str]]) -> str:
     """Bring label tuples into the form required by the Kubernetes client, e.g. 'key1=value1,key2=value2,key3=value3)'."""
     return ",".join([get_label_string(pair[0], pair[1]) for pair in label_pairs])
+
+
+def get_deployment_selection_labels(
+    project_id: str, deployment_type: DeploymentType = DeploymentType.SERVICE
+) -> str:
+    return get_label_selector(
+        get_selection_labels(project_id=project_id, deployment_type=deployment_type)
+    )
 
 
 # TODO: Return list of pods? As there can be multiple pods belonging to the same job / deployment (e.g. which were created / failed but do not run anymore)

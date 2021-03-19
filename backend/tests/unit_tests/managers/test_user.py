@@ -27,10 +27,19 @@ def request_state() -> RequestState:
     return RequestState(State())
 
 
+@pytest.fixture
+def markers(request) -> List[str]:  # type: ignore
+    marks = [m.name for m in request.node.iter_markers()]
+    if request.node.parent:
+        marks += [m.name for m in request.node.parent.iter_markers()]
+    yield marks
+
+
 @pytest.fixture()
 def json_document_manager(
-    global_state: GlobalState, request_state: RequestState
+    global_state: GlobalState, request_state: RequestState, markers: List[str]
 ) -> JsonDocumentOperations:
+    print("List Markers:" + str(markers))
     return InMemoryDictJsonDocumentManager(global_state, request_state)
 
 
@@ -57,6 +66,7 @@ def user_data() -> List[UserInput]:
     return _generate_user_data(DEFAULT_USERS_TO_GENERATE)
 
 
+@pytest.mark.unit
 def test_create_user(user_manager: UserManager, user_data: List[UserInput]) -> None:
     user_ids: Set[str] = set()
     for user_input in user_data:
@@ -72,6 +82,7 @@ def test_create_user(user_manager: UserManager, user_data: List[UserInput]) -> N
         ).seconds < 300, "Creation timestamp MUST be from a few seconds ago."
 
 
+@pytest.mark.unit
 def test_list_users(user_manager: UserManager, user_data: List[UserInput]) -> None:
     created_users: Dict = {}
     # create all users
@@ -91,6 +102,7 @@ def test_list_users(user_manager: UserManager, user_data: List[UserInput]) -> No
         assert user.email == created_users[user.id].email
 
 
+@pytest.mark.integration
 def test_get_user(user_manager: UserManager, user_data: List[UserInput]) -> None:
     # Create and get a single user
     created_user = user_manager.create_user(user_data[0])
@@ -108,6 +120,7 @@ def test_get_user(user_manager: UserManager, user_data: List[UserInput]) -> None
         assert retrieved_user.dict() == created_user.dict()
 
 
+@pytest.mark.unit
 def test_update_user(user_manager: UserManager, user_data: List[UserInput]) -> None:
     # Create and update a single user
     for user in user_data:
@@ -122,6 +135,7 @@ def test_update_user(user_manager: UserManager, user_data: List[UserInput]) -> N
         assert created_user.created_at == updated_user.created_at
 
 
+@pytest.mark.unit
 def test_delete_user(user_manager: UserManager, user_data: List[UserInput]) -> None:
     # Create and delete single user
     created_user = user_manager.create_user(user_data[0])

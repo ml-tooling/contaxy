@@ -1,11 +1,10 @@
-from datetime import date, datetime
+from datetime import datetime
 from typing import Dict, List, Optional
 
 import json_merge_patch
 import jsonpath_ng
 
 from contaxy.operations import JsonDocumentOperations
-from contaxy.operations.json_db import JsonDocumentOperations
 from contaxy.schema.exceptions import ResourceNotFoundError
 from contaxy.schema.json_db import JsonDocument
 from contaxy.utils.state_utils import GlobalState, RequestState
