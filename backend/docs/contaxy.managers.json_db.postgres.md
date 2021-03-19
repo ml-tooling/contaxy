@@ -11,14 +11,14 @@
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/json_db/postgres.py#L18"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/json_db/postgres.py#L19"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>class</kbd> `PostgresJsonDocumentManager`
 
 
 
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/json_db/postgres.py#L19"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/json_db/postgres.py#L20"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `__init__`
 
@@ -40,7 +40,7 @@ Initializes the Postgres Json Document Manager.
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/json_db/postgres.py#L35"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/json_db/postgres.py#L36"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `create_json_document`
 
@@ -74,7 +74,7 @@ An upsert strategy is used, i.e. if a document already exists for the given key 
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/json_db/postgres.py#L230"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/json_db/postgres.py#L207"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `delete_documents`
 
@@ -97,7 +97,7 @@ The project is equivalent to the DB schema and the collection to a DB table insi
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/json_db/postgres.py#L196"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/json_db/postgres.py#L172"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `delete_json_document`
 
@@ -122,11 +122,12 @@ The project is equivalent to the DB schema and the collection to a DB table insi
 
 **Raises:**
  
- - <b>`ValueError`</b>:  No document found for the given key. 
+ - <b>`ClientValueError`</b>:  No document found for the given key. 
+ - <b>`ServerBaseError`</b>:  Document not deleted for an unknown reason. 
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/json_db/postgres.py#L81"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/json_db/postgres.py#L82"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `get_json_document`
 
@@ -161,40 +162,7 @@ The project is equivalent to the DB schema and the collection to a DB table insi
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/json_db/postgres.py#L113"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-### <kbd>method</kbd> `get_json_documents`
-
-```python
-get_json_documents(
-    project_id: str,
-    collection_id: str,
-    keys: List[str]
-) → List[JsonDocument]
-```
-
-Get multiple Json documents by key. 
-
-The project is equivalent to the DB schema and the collection to a DB table inside the respective DB schema. Schema as well as table will be lazily created. 
-
-
-
-**Args:**
- 
- - <b>`project_id`</b> (str):  Project Id, i.e. DB schema. 
- - <b>`collection_id`</b> (str):  Json document collection Id, i.e. DB table. 
- - <b>`keys`</b> (List[str]):  Json Document Ids, i.e. DB row keys. 
- - <b>`json_document`</b> (Dict):  The actual Json document. 
-
-
-
-**Returns:**
- 
- - <b>`JsonDocument`</b>:  The requested Json document. 
-
----
-
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/json_db/postgres.py#L257"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/json_db/postgres.py#L234"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `list_json_documents`
 
@@ -202,7 +170,8 @@ The project is equivalent to the DB schema and the collection to a DB table insi
 list_json_documents(
     project_id: str,
     collection_id: str,
-    filter: Optional[str] = None
+    filter: Optional[str] = None,
+    keys: Optional[str] = None
 ) → List[JsonDocument]
 ```
 
@@ -217,12 +186,13 @@ List all existing Json documents and optionally filter via Json Path syntax.
  - <b>`project_id`</b> (str):  Project Id, i.e. DB schema. 
  - <b>`collection_id`</b> (str):  Json document collection Id, i.e. DB table. 
  - <b>`filter`</b> (Optional[str], optional):  Json Path filter. Defaults to None. 
+ - <b>`keys`</b> (Optional[List[str]], optional):  Json Document Ids, i.e. DB row keys. Defaults to None. 
 
 
 
 **Raises:**
  
- - <b>`ValueError`</b>:  If filter is provided and does not contain a valid Json Path filter. 
+ - <b>`ClientValueError`</b>:  If filter is provided and does not contain a valid Json Path filter. 
 
 
 
@@ -232,7 +202,7 @@ List all existing Json documents and optionally filter via Json Path syntax.
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/json_db/postgres.py#L139"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/json_db/postgres.py#L114"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `update_json_document`
 
@@ -262,7 +232,8 @@ The project is equivalent to the DB schema and the collection to a DB table insi
 
 **Raises:**
  
- - <b>`ValueError`</b>:  No document found for the given key. 
+ - <b>`ClientValueError`</b>:  No document found for the given key. 
+ - <b>`ServerBaseError`</b>:  Document not updatded for an unknown reason. 
 
 
 

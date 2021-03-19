@@ -29,12 +29,15 @@ def json_document_manager(
     global_state: GlobalState, request_state: RequestState
 ) -> PostgresJsonDocumentManager:
     engine = create_engine(
-        global_state.settings.POSTGRES_CONNECTION_URI,
+        str(global_state.settings.POSTGRES_CONNECTION_URI),
         future=True,
     )
     # Ensure existence of db function for json merge patch
     create_jsonb_merge_patch_func(engine)
     return PostgresJsonDocumentManager(global_state, request_state)
+
+
+counter = 1
 
 
 def get_defaults() -> dict:
@@ -97,28 +100,6 @@ class TestPostgresJsonDocumentManager:
             assert False
         except ValueError:
             pass
-
-    def test_get_json_documents(
-        self, json_document_manager: PostgresJsonDocumentManager
-    ) -> None:
-
-        defaults = get_defaults()
-        docs = []
-        db_keys = []
-        for i in range(2):
-            doc = self._create_doc(json_document_manager, defaults)
-            docs.append(doc)
-            db_keys.append(doc.key)
-            defaults.update({"key": str(uuid4())})
-
-        read_docs = json_document_manager.get_json_documents(
-            defaults.get("project"), defaults.get("collection"), db_keys
-        )
-
-        assert len(db_keys) == len(read_docs)
-
-        for doc in read_docs:
-            db_keys.index(doc.key)
 
     def test_delete_json_document(
         self, json_document_manager: PostgresJsonDocumentManager
@@ -273,15 +254,44 @@ class TestPostgresJsonDocumentManager:
         except ValueError:
             pass
 
-    def _create_doc(
-        self, jdm: PostgresJsonDocumentManager, defaults: dict
-    ) -> JsonDocument:
-        return jdm.create_json_document(
+    def test_list_json_documents_by_key(
+        self, json_document_manager: PostgresJsonDocumentManager
+    ) -> None:
+
+        docs = []
+        db_keys = []
+        for i in range(3):
+            defaults = get_defaults()
+            if i % 2 != 0:
+                del defaults["json_value"]["author"]["familyName"]
+            doc = self._create_doc(json_document_manager, defaults)
+            docs.append(doc)
+            db_keys.append(doc.key)
+
+        read_docs = json_document_manager.list_json_documents(
+            defaults.get("project"), defaults.get("collection"), keys=db_keys
+        )
+
+        assert len(db_keys) == len(read_docs)
+
+        for doc in read_docs:
+            db_keys.index(doc.key)
+
+        json_path_filter = (
+            '$ ? (@.author.givenName == "John" && @.author.familyName == "Doe")'
+        )
+        read_docs = json_document_manager.list_json_documents(
             defaults.get("project"),
             defaults.get("collection"),
-            defaults.get("key"),
-            defaults.get("json_value"),
+            json_path_filter,
+            db_keys,
         )
+        for doc in read_docs:
+            author = doc.json_value.get("author")
+            assert (
+                author.get("givenName") == "John" and author.get("familyName") == "Doe"
+            )
+            db_keys.index(doc.key)
 
     def test_delete_documents(
         self, json_document_manager: PostgresJsonDocumentManager
@@ -297,11 +307,21 @@ class TestPostgresJsonDocumentManager:
             defaults.get("project"), defaults.get("collection"), db_keys
         )
         assert delete_count == len(db_keys)
-        docs = json_document_manager.get_json_documents(
-            defaults.get("project"), defaults.get("collection"), db_keys
+        docs = json_document_manager.list_json_documents(
+            defaults.get("project"), defaults.get("collection"), keys=db_keys
         )
 
         assert len(docs) == 0
+
+    def _create_doc(
+        self, jdm: PostgresJsonDocumentManager, defaults: dict
+    ) -> JsonDocument:
+        return jdm.create_json_document(
+            defaults.get("project"),
+            defaults.get("collection"),
+            defaults.get("key"),
+            defaults.get("json_value"),
+        )
 
     def _assert_updated_doc(
         self, doc: JsonDocument, updated_doc: JsonDocument, new_json_value: dict

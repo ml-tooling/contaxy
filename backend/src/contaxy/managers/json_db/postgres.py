@@ -6,10 +6,11 @@ from loguru import logger
 from sqlalchemy import Column, DateTime, MetaData, Table, func
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.engine import Row
-from sqlalchemy.exc import NoResultFound, ProgrammingError
+from sqlalchemy.exc import NoResultFound, OperationalError, ProgrammingError
 from sqlalchemy.future import Engine, create_engine
 
 from contaxy.operations import JsonDocumentOperations
+from contaxy.schema.exceptions import ClientValueError, ServerBaseError
 from contaxy.schema.json_db import JsonDocument
 from contaxy.utils.postgres_utils import create_schema
 from contaxy.utils.state_utils import GlobalState, RequestState
@@ -110,32 +111,6 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
                 raise ValueError(f"No document with key {key} found")
         return self._map_db_row_to_document_model(row)
 
-    def get_json_documents(
-        self, project_id: str, collection_id: str, keys: List[str]
-    ) -> List[JsonDocument]:
-        """Get multiple Json documents by key.
-
-        The project is equivalent to the DB schema and the collection to a DB table inside the respective DB schema. Schema as well as table will be lazily created.
-
-        Args:
-            project_id (str): Project Id, i.e. DB schema.
-            collection_id (str): Json document collection Id, i.e. DB table.
-            keys (List[str]): Json Document Ids, i.e. DB row keys.
-            json_document (Dict): The actual Json document.
-
-        Returns:
-            JsonDocument: The requested Json document.
-        """
-        logger.debug(
-            f"Get Json documents (`project_id`: {project_id}, `collection_id`: {collection_id} `keys`: {keys} )"
-        )
-        table = self._get_collection_table(project_id, collection_id)
-        select_statement = table.select().where(table.c.key.in_(keys))
-        with self._engine.begin() as conn:
-            result = conn.execute(select_statement)
-            rows = result.fetchall()
-        return self._map_db_rows_to_document_models(rows)
-
     def update_json_document(
         self,
         project_id: str,
@@ -154,7 +129,8 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
             json_document (Dict): The actual Json document.
 
         Raises:
-            ValueError: No document found for the given key.
+            ClientValueError: No document found for the given key.
+            ServerBaseError: Document not updatded for an unknown reason.
 
         Returns:
             JsonDocument: The updated document.
@@ -182,8 +158,8 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
             if result.rowcount == 0:
                 # This will raise a value error if doc not exists
                 self.get_json_document(project_id, collection_id, key)
-                raise RuntimeError(
-                    f"Document {key} could not be deleted (project_id: {project_id}, collection_id {collection_id})"
+                raise ServerBaseError(
+                    f"Document {key} could not be updated (project_id: {project_id}, collection_id {collection_id})"
                 )
             conn.commit()
 
@@ -207,7 +183,8 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
             json_document (Dict): The actual Json document.
 
         Raises:
-            ValueError: No document found for the given key.
+            ClientValueError: No document found for the given key.
+            ServerBaseError: Document not deleted for an unknown reason.
         """
         logger.debug(
             f"Delete Json document (`project_id`: {project_id}, `collection_id`: {collection_id} `key`: {key} )"
@@ -219,7 +196,7 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
             if result.rowcount == 0:
                 # This will raise a value error if doc not exists
                 self.get_json_document(project_id, collection_id, key)
-                raise RuntimeError(
+                raise ServerBaseError(
                     f"Document {key} could not be deleted (project_id: {project_id}, collection_id {collection_id})"
                 )
             conn.commit()
@@ -259,6 +236,7 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
         project_id: str,
         collection_id: str,
         filter: Optional[str] = None,
+        keys: Optional[str] = None,
     ) -> List[JsonDocument]:
         """List all existing Json documents and optionally filter via Json Path syntax.
 
@@ -268,9 +246,10 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
             project_id (str): Project Id, i.e. DB schema.
             collection_id (str): Json document collection Id, i.e. DB table.
             filter (Optional[str], optional): Json Path filter. Defaults to None.
+            keys (Optional[List[str]], optional): Json Document Ids, i.e. DB row keys. Defaults to None.
 
         Raises:
-            ValueError: If filter is provided and does not contain a valid Json Path filter.
+            ClientValueError: If filter is provided and does not contain a valid Json Path filter.
 
         Returns:
             List[JsonDocument]: List of Json documents.
@@ -285,13 +264,16 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
                 func.jsonb_path_exists(table.c.json_value, filter),
             )
 
+        if keys:
+            sql_statement = sql_statement.where(table.c.key.in_(keys))
+
         logger.debug(f"Sql Statement: {str(sql_statement)}")
 
         with self._engine.begin() as conn:
             try:
                 result = conn.execute(sql_statement)
             except ProgrammingError:
-                raise ValueError("Please provide a valid Json Path filter.")
+                raise ClientValueError("Please provide a valid Json Path filter.")
 
             rows = result.fetchall()
         return self._map_db_rows_to_document_models(rows)
@@ -319,9 +301,6 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
     def _map_db_row_to_document_model(self, row: Row) -> JsonDocument:
         data: Dict = {}
         for column_name, value in row._mapping.items():
-            if isinstance(value, dict):
-                data.update({column_name: json.dumps(value)})
-                continue
             data.update({column_name: value})
         return JsonDocument(**data)
 
@@ -342,9 +321,7 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
 
         try:
             collection.create(self._engine, checkfirst=True)
-        except ProgrammingError as err:
-            if err.code != "f405":
-                raise err
+        except ProgrammingError:
             create_schema(self._engine, project_id)
             collection.create(self._engine, checkfirst=True)
 
@@ -356,7 +333,12 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
             url = self.global_state.settings.POSTGRES_CONNECTION_URI
             engine = create_engine(url, future=True)
             # Test the DB connection and set to global state if succesful
-            with engine.begin():
-                state_namespace.db_engine = engine
+            try:
+                with engine.begin():
+                    state_namespace.db_engine = engine
+            except OperationalError:
+                raise ServerBaseError(
+                    "Postgres DB connection failed. Validate connection URI."
+                )
             logger.info("Postgres DB Engine created")
         return state_namespace.db_engine
