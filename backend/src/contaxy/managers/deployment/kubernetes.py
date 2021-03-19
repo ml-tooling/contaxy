@@ -433,7 +433,13 @@ class KubernetesDeploymentManager(DeploymentManager):
         project_id: str,
         job: JobInput,
     ) -> List[ResourceAction]:
-        raise NotImplementedError
+        # TODO: make some cluster checks?
+        return [
+            ResourceAction(
+                action_id=DEFAULT_DEPLOYMENT_ACTION_ID,
+                display_name=DEFAULT_DEPLOYMENT_ACTION_ID,
+            )
+        ]
 
     def get_job_metadata(self, project_id: str, job_id: str) -> Job:
         try:

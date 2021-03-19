@@ -313,6 +313,22 @@ class TestDeploymentManagers:
         assert logs
         assert logs.startswith(log_input)
 
+    def test_list_deploy_service_actions(self) -> None:
+        test_service_input = create_test_service_input()
+        resource_actions = self.handler.deployment_manager.list_deploy_service_actions(
+            project_id=test_project_name, service=test_service_input
+        )
+        assert len(resource_actions) == 1
+        assert resource_actions[0].action_id == "default"
+
+    def test_list_deploy_job_actions(self) -> None:
+        test_job_input = create_test_echo_job_input()
+        resource_actions = self.handler.deployment_manager.list_deploy_job_actions(
+            project_id=test_project_name, job=test_job_input
+        )
+        assert len(resource_actions) == 1
+        assert resource_actions[0].action_id == "default"
+
     def test_project_isolation(self) -> None:
         """Test that services of the same project can reach each others' endpoints and services of different projects cannot."""
 
