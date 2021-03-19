@@ -2,14 +2,23 @@ from typing import Dict, List
 from uuid import uuid4
 
 import pytest
-from sqlalchemy.future import create_engine
+from sqlalchemy.exc import OperationalError
+from sqlalchemy.future import Engine, create_engine
 from starlette.datastructures import State
 
 from contaxy.config import settings
 from contaxy.managers.json_db.postgres import PostgresJsonDocumentManager
+from contaxy.schema.exceptions import ClientValueError, ResourceNotFoundError
 from contaxy.schema.json_db import JsonDocument
 from contaxy.utils.postgres_utils import create_jsonb_merge_patch_func
 from contaxy.utils.state_utils import GlobalState, RequestState
+
+
+def get_engine() -> Engine:
+    return create_engine(
+        str(settings.POSTGRES_CONNECTION_URI),
+        future=True,
+    )
 
 
 @pytest.fixture(scope="session")
@@ -28,16 +37,10 @@ def request_state() -> RequestState:
 def json_document_manager(
     global_state: GlobalState, request_state: RequestState
 ) -> PostgresJsonDocumentManager:
-    engine = create_engine(
-        str(global_state.settings.POSTGRES_CONNECTION_URI),
-        future=True,
-    )
+    engine = get_engine()
     # Ensure existence of db function for json merge patch
     create_jsonb_merge_patch_func(engine)
     return PostgresJsonDocumentManager(global_state, request_state)
-
-
-counter = 1
 
 
 def get_defaults() -> dict:
@@ -56,7 +59,19 @@ def get_defaults() -> dict:
     }
 
 
-@pytest.mark.db
+def db_is_available() -> bool:
+    try:
+        with get_engine().begin():
+            pass
+        return True
+    except OperationalError:
+        return False
+
+
+@pytest.mark.skipif(
+    not db_is_available(),
+    reason="A Kubernetes cluster must be accessible to run the KubeSpawner tests",
+)
 class TestPostgresJsonDocumentManager:
     def test_create_json_document(
         self, json_document_manager: PostgresJsonDocumentManager
@@ -98,7 +113,7 @@ class TestPostgresJsonDocumentManager:
                 defaults.get("project"), defaults.get("collection"), str(uuid4())
             )
             assert False
-        except ValueError:
+        except ResourceNotFoundError:
             pass
 
     def test_delete_json_document(
@@ -114,7 +129,7 @@ class TestPostgresJsonDocumentManager:
                 defaults.get("project"), defaults.get("collection"), created_doc.key
             )
             assert False
-        except ValueError:
+        except ResourceNotFoundError:
             assert True
 
     def test_update_json_document(
@@ -173,7 +188,7 @@ class TestPostgresJsonDocumentManager:
                 {},
             )
             assert False
-        except ValueError:
+        except ResourceNotFoundError:
             pass
 
     def test_list_json_documents(
@@ -251,7 +266,7 @@ class TestPostgresJsonDocumentManager:
                 project_id, collection_id, json_path_filter
             )
             assert False
-        except ValueError:
+        except ClientValueError:
             pass
 
     def test_list_json_documents_by_key(

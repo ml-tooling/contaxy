@@ -10,7 +10,11 @@ from sqlalchemy.exc import NoResultFound, OperationalError, ProgrammingError
 from sqlalchemy.future import Engine, create_engine
 
 from contaxy.operations import JsonDocumentOperations
-from contaxy.schema.exceptions import ClientValueError, ServerBaseError
+from contaxy.schema.exceptions import (
+    ClientValueError,
+    ResourceNotFoundError,
+    ServerBaseError,
+)
 from contaxy.schema.json_db import JsonDocument
 from contaxy.utils.postgres_utils import create_schema
 from contaxy.utils.state_utils import GlobalState, RequestState
@@ -50,6 +54,9 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
             key (str): Json Document Id, i.e. DB row key.
             json_document (Dict): The actual Json document.
 
+        Raises:
+            ServerBaseError: If Upsert failed for an unknown reason.
+
         Returns:
             JsonDocument: The created Json document.
         """
@@ -71,7 +78,7 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
         with self._engine.begin() as conn:
             result = conn.execute(upsert_statement)
             if result.rowcount == 0:
-                raise RuntimeError("Upsert failed")
+                raise ServerBaseError("Upsert failed for an unknown reason")
             conn.commit()
 
         logger.info(
@@ -93,7 +100,7 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
             json_document (Dict): The actual Json document.
 
         Raises:
-            ValueError: No document found for the given key.
+            ResourceNotFoundError: If no JSON document is found with the given `key`.
 
         Returns:
             JsonDocument: The requested Json document.
@@ -108,7 +115,7 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
             try:
                 row = result.one()
             except NoResultFound:
-                raise ValueError(f"No document with key {key} found")
+                raise ResourceNotFoundError(f"No document with key {key} found")
         return self._map_db_row_to_document_model(row)
 
     def update_json_document(
@@ -129,7 +136,7 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
             json_document (Dict): The actual Json document.
 
         Raises:
-            ClientValueError: No document found for the given key.
+            ResourceNotFoundError: If no JSON document is found with the given `key`.
             ServerBaseError: Document not updatded for an unknown reason.
 
         Returns:
@@ -156,7 +163,7 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
         with self._engine.begin() as conn:
             result = conn.execute(sql_statement)
             if result.rowcount == 0:
-                # This will raise a value error if doc not exists
+                # This will raise a ResourceNotFoundError if doc not exists
                 self.get_json_document(project_id, collection_id, key)
                 raise ServerBaseError(
                     f"Document {key} could not be updated (project_id: {project_id}, collection_id {collection_id})"
@@ -183,7 +190,7 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
             json_document (Dict): The actual Json document.
 
         Raises:
-            ClientValueError: No document found for the given key.
+            ResourceNotFoundError: If no JSON document is found with the given `key`.
             ServerBaseError: Document not deleted for an unknown reason.
         """
         logger.debug(
@@ -194,7 +201,7 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
         with self._engine.begin() as conn:
             result = conn.execute(delete_statement)
             if result.rowcount == 0:
-                # This will raise a value error if doc not exists
+                # This will raise a ResourceNotFoundError if doc not exists
                 self.get_json_document(project_id, collection_id, key)
                 raise ServerBaseError(
                     f"Document {key} could not be deleted (project_id: {project_id}, collection_id {collection_id})"

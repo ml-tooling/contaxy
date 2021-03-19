@@ -60,6 +60,7 @@ class JsonDocumentOperations(ABC):
         project_id: str,
         collection_id: str,
         filter: Optional[str] = None,
+        keys: Optional[str] = None,
     ) -> List[JsonDocument]:
         """Lists all JSON documents for the given project collection.
 
@@ -67,6 +68,10 @@ class JsonDocumentOperations(ABC):
             project_id: Project ID associated with the collection.
             collection_id: ID of the collection (database) that the JSON document is stored in.
             filter (optional): Allows to filter the result documents based on a JSONPath expression ([JSON Path Specification](https://goessner.net/articles/JsonPath/)). The filter is only applied to filter documents in the list. It is not usable to extract specific properties.
+            keys (Optional[List[str]], optional): Json Document Ids, i.e. DB row keys. Defaults to None.
+
+        Raises:
+            ClientValueError: If filter is provided and does not contain a valid Json Path filter.
 
         Returns:
             List[JsonDocument]: List of JSON documents.
