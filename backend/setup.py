@@ -94,6 +94,8 @@ setup(
             "pytest",
             "pytest-mock",
             "pytest-cov",
+            # Export profiling information about the tests
+            "pytest-profiling",
             "mypy",
             "black",
             "pydocstyle",

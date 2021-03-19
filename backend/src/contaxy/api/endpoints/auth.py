@@ -182,7 +182,7 @@ def verify_token(
     summary="Request a token (OAuth2 Endpoint).",
     status_code=status.HTTP_200_OK,
 )
-def request_token(form_data: OAuth2TokenRequestForm = Depends()) -> Any:
+def request_token(token_request_form: OAuth2TokenRequestForm = Depends()) -> Any:
     """Returns an access tokens, ID tokens, or refresh tokens depending on the request parameters.
 
      The token endpoint is used by the client to obtain an access token by
@@ -251,9 +251,7 @@ def revoke_token(
     status_code=status.HTTP_200_OK,
 )
 def introspect_token(
-    token: str = Form(
-        ..., description="The token that should be instrospected revoked."
-    ),
+    token: str = Form(..., description="The token that should be instrospected."),
     token_type_hint: Optional[str] = Form(
         None,
         description="A hint about the type of the token submitted for introspection (e.g. `access_token`, `id_token` and `refresh_token`).",
@@ -312,7 +310,7 @@ def login_callback(
 
     Finally, the user is redirected to the webapp and a session/refresh token is set in the cookies.
 
-    This method implements the [Authorization Response](https://tools.ietf.org/html/rfc6749#section-4.1.2) from RFC6749.
+    This endpoint implements the [Authorization Response](https://tools.ietf.org/html/rfc6749#section-4.1.2) from RFC6749.
     """
     rr = RedirectResponse("/webapp", status_code=307)
     rr.set_cookie(key="session_token", value="test-token")

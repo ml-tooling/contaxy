@@ -5,8 +5,10 @@ import pytest
 from faker import Faker
 from starlette.datastructures import State
 
+from contaxy import config
 from contaxy.config import settings
 from contaxy.managers.json_db.inmemory_dict import InMemoryDictJsonDocumentManager
+from contaxy.managers.json_db.postgres import PostgresJsonDocumentManager
 from contaxy.managers.user import UserManager
 from contaxy.operations.json_db import JsonDocumentOperations
 from contaxy.schema.user import User, UserInput
@@ -40,6 +42,8 @@ def json_document_manager(
     global_state: GlobalState, request_state: RequestState, markers: List[str]
 ) -> JsonDocumentOperations:
     print("List Markers:" + str(markers))
+    if config.settings.POSTGRES_CONNECTION_URI:
+        return PostgresJsonDocumentManager(global_state, request_state)
     return InMemoryDictJsonDocumentManager(global_state, request_state)
 
 
@@ -102,7 +106,7 @@ def test_list_users(user_manager: UserManager, user_data: List[UserInput]) -> No
         assert user.email == created_users[user.id].email
 
 
-@pytest.mark.integration
+@pytest.mark.unit
 def test_get_user(user_manager: UserManager, user_data: List[UserInput]) -> None:
     # Create and get a single user
     created_user = user_manager.create_user(user_data[0])
@@ -122,10 +126,10 @@ def test_get_user(user_manager: UserManager, user_data: List[UserInput]) -> None
 
 @pytest.mark.unit
 def test_update_user(user_manager: UserManager, user_data: List[UserInput]) -> None:
+    updated_users = _generate_user_data(len(user_data))
     # Create and update a single user
-    for user in user_data:
-        created_user = user_manager.create_user(user)
-        updated_user_data = _generate_user_data(1)[0]
+    for user_data, updated_user_data in zip(user_data, updated_users):
+        created_user = user_manager.create_user(user_data)
         updated_user = user_manager.update_user(created_user.id, updated_user_data)
         # To make sure, get the updated user
         updated_user = user_manager.get_user(created_user.id)
