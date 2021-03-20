@@ -36,7 +36,7 @@ from contaxy.managers.deployment.utils import (
     Labels,
     clean_labels,
     get_label_string,
-    get_selection_labels,
+    get_project_selection_labels,
     map_labels,
 )
 from contaxy.schema import Job, JobInput, Service, ServiceInput
@@ -45,6 +45,7 @@ from contaxy.schema.deployment import (
     DeploymentStatus,
     DeploymentType,
 )
+from contaxy.schema.exceptions import ResourceNotFoundError, ServerBaseError
 
 
 def get_label_selector(label_pairs: List[Tuple[str, str]]) -> str:
@@ -55,19 +56,46 @@ def get_label_selector(label_pairs: List[Tuple[str, str]]) -> str:
 def get_deployment_selection_labels(
     project_id: str, deployment_type: DeploymentType = DeploymentType.SERVICE
 ) -> str:
+    """Return selector identifying project services/jobs in the form Kubernetes expects a label selector.
+
+    Args:
+        project_id (str): The project id of the resources to select.
+        deployment_type (DeploymentType, optional): The deployment type by which the selected resources are filtered. Defaults to DeploymentType.SERVICE.
+
+    Returns:
+        str: Kubernetes label string in the form of 'key1=value1,key2=value2,key3=value3,...'
+    """
     return get_label_selector(
-        get_selection_labels(project_id=project_id, deployment_type=deployment_type)
+        get_project_selection_labels(
+            project_id=project_id, deployment_type=deployment_type
+        )
     )
 
 
 # TODO: Return list of pods? As there can be multiple pods belonging to the same job / deployment (e.g. which were created / failed but do not run anymore)
 def get_pod(
-    service_id: str, kube_namespace: str, core_api: kube_client.CoreV1Api
+    project_id: str,
+    service_id: str,
+    kube_namespace: str,
+    core_api: kube_client.CoreV1Api,
 ) -> Optional[V1Pod]:
+    """Get the pod filtered by the project id and service id labels in the given Kubernetes namespace.
+
+    Args:
+        service_id (str): If deployed via Contaxy, corresponds to the deployment id of the pod.
+        kube_namespace (str): The Kubernetes namespaces in which to look for the pod.
+        core_api (kube_client.CoreV1Api): Initialized Kubernetes CoreV1Api object.
+
+    Raises:
+        ResourceNotFoundError: Raised when no pod matches the selection criteria.
+
+    Returns:
+        Optional[V1Pod]: Returns the pod matching the selection criteria. In case of replicas, multiple pods can match the criteria; in this case, the first pod is selected arbitrarily.
+    """
     label_selector = get_label_selector(
-        # TODO (IMPORTANT): use project id as well as a filter label!
         [
             (Labels.NAMESPACE.value, settings.SYSTEM_NAMESPACE),
+            (Labels.PROJECT_NAME.value, project_id),
             (Labels.DEPLOYMENT_NAME.value, service_id),
         ]
     )
@@ -77,7 +105,9 @@ def get_pod(
     )
 
     if len(pods.items) == 0:
-        raise RuntimeError(f"No pod with label-selector {label_selector} found")
+        raise ResourceNotFoundError(
+            f"No pod with label-selector {label_selector} found"
+        )
 
     return pods.items[0]
 
@@ -97,7 +127,7 @@ def create_pvc(
     except ApiException as e:
         # 409 means that the pvc was not created but already exists and can be used
         if e.status != 409:
-            raise RuntimeError(
+            raise ServerBaseError(
                 f"Could not create persistent volume claim for service '{pvc.metadata.name}' with reason: {e}"
             )
 
@@ -115,7 +145,7 @@ def create_service(
             namespace=kube_namespace, body=service_config
         )
     except ApiException as e:
-        raise RuntimeError(
+        raise ServerBaseError(
             f"Could not create namespaced service '{service_config.metadata.name}' with reason: {e}"
         )
 

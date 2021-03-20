@@ -1,7 +1,7 @@
 import string
 import subprocess
 from enum import Enum
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 from contaxy.config import settings
 from contaxy.schema.deployment import DeploymentType
@@ -41,7 +41,18 @@ class MappedLabels:
     metadata: Optional[dict] = None
 
 
-def map_labels(labels: dict) -> MappedLabels:
+def map_labels(labels: Dict[str, Any]) -> MappedLabels:
+    """Transform label dict to a MappedLabels object.
+
+    Special labels have their own field and additional, non-special labels are added to the MappedLabels.metadata field.
+
+    Args:
+        labels (dict): A dictionary containing key-value pairs that, for example, are used as container labels.
+
+    Returns:
+        MappedLabels: The labels object transformed to a MappedLabels object.
+    """
+
     _labels = dict.copy(labels)
     mapped_labels = MappedLabels()
 
@@ -173,14 +184,18 @@ def get_gpu_info() -> int:
     return count_gpu
 
 
-# TODO: replace!
-def log(input: str) -> None:
-    print(input)
-
-
-def get_selection_labels(
+def get_project_selection_labels(
     project_id: str, deployment_type: DeploymentType = DeploymentType.SERVICE
 ) -> List:
+    """Return a list of labels identifying project resources (system namespace, project id, deployment type).
+
+    Args:
+        project_id (str): The project id included in the label list.
+        deployment_type (DeploymentType, optional): The deployment type included in the label list. Defaults to DeploymentType.SERVICE.
+
+    Returns:
+        List: Contains the labels identifying project resources.
+    """
     return [
         (Labels.NAMESPACE.value, settings.SYSTEM_NAMESPACE),
         (Labels.PROJECT_NAME.value, project_id),
