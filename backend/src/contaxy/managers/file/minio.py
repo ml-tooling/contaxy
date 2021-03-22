@@ -112,3 +112,35 @@ class MinioFileManager(FileOperations):
         keep_latest_version: bool = False,
     ) -> None:
         pass
+
+    def get_bucket_name(self, project_id: str) -> str:
+        # Todo: Replace depending on actual prefix handling
+        bucket_prefix = self.global_state.settings.SYSTEM_NAMESPACE
+        return project_id if not bucket_prefix else f"{bucket_prefix}.{project_id}"
+
+    def _create_client(self) -> Minio:
+        settings = self.global_state.settings
+        state_namespace = self.request_state[MinioFileManager]
+        if not state_namespace.client:
+            client = Minio(
+                endpoint=settings.S3_ENDPOINT,
+                access_key=settings.S3_ACCESS_KEY,
+                secret_key=settings.S3_SECRET_KEY,
+                region=settings.S3_REGION,
+                secure=settings.S3_SECURE,
+            )
+
+            try:
+                if not client.bucket_exists("nonexistingbucket"):
+                    logger.debug("Object storage connected")
+            except MaxRetryError:
+                logger.critical(
+                    "Could not connect to object storage (endpoint: {settings.S3_ENDPOINT}, region: {settings.S3_REGION}, secure: {settings.S3_SECURE})"
+                )
+                raise ServerBaseError("Could not connect to object storage")
+
+            state_namespace.client = client
+            logger.info(
+                f"Minio client created (endpoint: {settings.S3_ENDPOINT}, region: {settings.S3_REGION}, secure: {settings.S3_SECURE})"
+            )
+        return state_namespace.client
