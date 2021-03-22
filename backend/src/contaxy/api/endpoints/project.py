@@ -8,9 +8,9 @@ from contaxy.api.dependencies import (
     get_component_manager,
 )
 from contaxy.schema import AccessLevel, CoreOperations, Project, ProjectInput, User
+from contaxy.schema.auth import USER_ID_PARAM
 from contaxy.schema.project import PROJECT_ID_PARAM
 from contaxy.schema.shared import MAX_DISPLAY_NAME_LENGTH, MIN_DISPLAY_NAME_LENGTH
-from contaxy.schema.user import USER_ID_PARAM
 
 router = APIRouter(
     tags=["projects"],

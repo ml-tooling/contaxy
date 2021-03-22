@@ -4,12 +4,20 @@ import pytest
 from pydantic import BaseSettings
 from pyinstrument import Profiler
 
-from contaxy import config
+
+class TestSettings(BaseSettings):
+    """Test Settings."""
+
+    ACTIVATE_TEST_PROFILING: bool = True
+    POSTGRES_INTEGRATION_TESTS: bool = False
+
+
+test_settings = TestSettings()
 
 
 @pytest.fixture(autouse=True)
 def auto_profile_tests(request) -> None:  # type: ignore
-    if not config.settings.DEBUG:
+    if not test_settings.ACTIVATE_TEST_PROFILING:
         # Only execute if debug is activated
         yield None
     else:
@@ -31,12 +39,3 @@ def auto_profile_tests(request) -> None:  # type: ignore
         except Exception:
             # Fail silently
             pass
-
-
-class TestSettings(BaseSettings):
-    """Test Settings."""
-
-    POSTGRES_INTEGRATION_TESTS: bool = False
-
-
-test_settings = TestSettings()

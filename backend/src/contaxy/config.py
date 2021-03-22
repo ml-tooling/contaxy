@@ -14,7 +14,6 @@ class DeploymentManager(str, Enum):
     DOCKER = "docker"
 
 
-# TODO
 # MAX_SYSTEM_NAMESPACE_LENGTH = 5
 # def get_system_namespace(system_name: str) -> str:
 #    return id_utils.generate_readable_id(
@@ -42,6 +41,8 @@ class Settings(BaseSettings):
     # If `None`, a dedicated postgres instance will be started as a service (container).
     POSTGRES_CONNECTION_URI: Optional[PostgresDsn] = None
 
+    USER_INMEMORY_DB: bool = False
+
     # S3 Storage Connection Configuration for File Manager
     # If `S3_ENDPOINT` is `None`, a dedicated minio instance will be started as a service (container).
     S3_ENDPOINT: Optional[str] = None
@@ -50,6 +51,22 @@ class Settings(BaseSettings):
     S3_REGION: Optional[str] = None
     S3_SECURE: Optional[bool] = None
     # TODO: support for managing all data in a single bucket S3_BUCKET: Optional[str] = None
+
+    # Cache Settings
+    # VERIFY_ACCESS_CACHE caches all token <-> permission verifications
+    VERIFY_ACCESS_CACHE_ENABLED: bool = True  # Enable or disable the cache
+    VERIFY_ACCESS_CACHE_SIZE: int = 10000  # number of items in the cache
+    VERIFY_ACCESS_CACHE_EXPIRY: int = 300  # Time to live of cache items in seconds
+    # API_TOKEN_CACHE caches all db request to get the api token metadata
+    API_TOKEN_CACHE_ENABLED: bool = True  # Enable or disable the cache
+    API_TOKEN_CACHE_SIZE: int = 10000  # number of items in the cache
+    API_TOKEN_CACHE_EXPIRY: int = 300  # Time to live of cache items in seconds
+    # RESOURCE_PERMISSIONS caches all permissions granted to resources.
+    RESOURCE_PERMISSIONS_CACHE_ENABLED: bool = (
+        False  # Enable or disable the cache # TODO: currently not working -> deadlock
+    )
+    RESOURCE_PERMISSIONS_CACHE_SIZE: int = 10000  # number of items in the cache
+    RESOURCE_PERMISSIONS_CACHE_EXPIRY: int = 10  # Time to live of cache items in seconds - This cache should have a very short lifetime
 
     # Usabel to deactivate setting or changing user passwords
     # The `system-admin` account can still set and change passwords for users,
@@ -61,6 +78,9 @@ class Settings(BaseSettings):
     JWT_TOKEN_SECRET: str = "please-change-this-secret"
     JWT_TOKEN_EXPIRY_MINUTES: int = 15
     JWT_ALGORITHM: str = "HS256"
+
+    # API Token Length
+    API_TOKEN_LENGTH: int = 40
 
     # BACKEND_CORS_ORIGINS is a JSON-formatted list of origins
     # e.g: '["http://localhost", "http://localhost:4200", "http://localhost:3000", \

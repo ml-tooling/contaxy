@@ -37,7 +37,7 @@ class CoreOperations(str, Enum):
     CHANGE_PASSWORD = "change_password"
     # Auth Endpoints
     REFRESH_TOKEN = "refresh_token"
-    VERIFY_TOKEN = "verify_token"
+    VERIFY_ACCESS = "verify_access"
     LIST_API_TOKENS = "list_api_tokens"
     CREATE_TOKEN = "create_token"
     LOGOUT_SESSION = "logout_session"

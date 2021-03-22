@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Dict, List, Optional
 
 import json_merge_patch
-import jsonpath_ng
+import jsonpath_ng.ext
 
 from contaxy.operations import JsonDocumentOperations
 from contaxy.schema.exceptions import ResourceNotFoundError
@@ -149,7 +149,7 @@ class InMemoryDictJsonDocumentManager(JsonDocumentOperations):
             filtered_documents: List[JsonDocument] = []
             jsonpath_expr = jsonpath_ng.ext.parse(filter)
             for document in documents:
-                if [match.value for match in jsonpath_expr.find([document])]:
+                if [match.value for match in jsonpath_expr.find([document.json_value])]:
                     filtered_documents.append(document)
             documents = filtered_documents
 

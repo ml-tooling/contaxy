@@ -10,7 +10,11 @@ from contaxy.schema import (
     OAuthTokenIntrospection,
     OpenIDUserInfo,
     TokenType,
+    User,
+    UserInput,
+    UserRegistration,
 )
+from contaxy.schema.auth import ApiToken
 
 
 class AuthOperations(ABC):
@@ -25,22 +29,18 @@ class AuthOperations(ABC):
     @abstractmethod
     def create_token(
         self,
-        authorized_token: str,
-        scopes: Optional[List[str]] = None,
-        token_type: TokenType = TokenType.SESSION_TOKEN,
+        token_subject: str,
+        scopes: List[str],
+        token_type: TokenType,
         description: Optional[str] = None,
     ) -> str:
         """Returns a session or API token with access to the speicfied scopes.
 
         Args:
-            authorized_token: The authorized token used to create the new token.
-            scopes (optional): Scopes requested for this token. If none specified, the token will be generated with same set of scopes as the authorized token.
-            token_type (optional): The type of the token. Defaults to `TokenType.SESSION_TOKEN`.
+            token_subject: The subject/user to which the token is issued to.
+            scopes: Scopes requested for this token. If none specified, the token will be generated with same set of scopes as the authorized token.
+            token_type: The type of the token.
             description (optional): A short description about the generated token.
-
-        Raises:
-            PermissionDeniedError: The the `authorized_token` is not granted the permissions for the requested scopes
-            UnauthenticatedError: If the `authorized_token` is invalid or expired.
 
         Returns:
             str: The created session or API token.
@@ -48,18 +48,29 @@ class AuthOperations(ABC):
         pass
 
     @abstractmethod
-    def verify_token(
-        self,
-        token: str,
-        permission: Optional[str] = None,
+    def list_api_tokens(self, token_subject: str) -> List[ApiToken]:
+        """Lists all API tokens associated with the given `token_subject`.
+
+        Args:
+            token_subject: The subject/user to which the token is issued to.
+
+        Returns:
+            List[ApiToken]: A list of API tokens.
+        """
+        pass
+
+    @abstractmethod
+    def verify_access(
+        self, token: str, permission: Optional[str] = None, disable_cache: bool = False
     ) -> GrantedPermission:
-        """Verifies a session or API token.
+        """Verifies if the authorized token is valid and grants a certain permission.
 
         The token is verfied for its validity and - if provided - if it has the specified permission.
 
         Args:
-            token: Token to verify.
+            token: Token (session or API) to verify.
             permission (optional): The token is checked if it is granted this permission. If none specified, only the existence or validity of the token itself is checked.
+            disable_cache (optional): If `True`, no cache will be used for verifying the token. Defaults to `False`.
 
         Raises:
             PermissionDeniedError: If the requested permission is denied.
@@ -118,6 +129,9 @@ class AuthOperations(ABC):
         Args:
             resource_name: The resource name that the permission is granted to.
             permission: The permission to grant to the specified resource.
+
+        Raises:
+            ResourceUpdateFailedError: If the resource update could not be applied successfully.
         """
         pass
 
@@ -136,16 +150,16 @@ class AuthOperations(ABC):
 
     @abstractmethod
     def list_permissions(
-        self, resource_name: str, resolve_groups: bool = True
+        self, resource_name: str, resolve_roles: bool = True
     ) -> List[str]:
-        """Returns all permissions associated with the specified resource.
+        """Returns all permissions granted to the specified resource.
 
         Args:
             resource_name: The name of the resource (relative URI).
-            resolve_groups: If `True`, all permission will be resolved to basic permissions. Defaults to `True`.
+            resolve_roles: If `True`, all roles of the resource will be resolved to the associated permissions. Defaults to `True`.
 
         Returns:
-            List[str]: List of permissions associated with the given resource.
+            List[str]: List of permissions granted to the given resource.
         """
         pass
 
@@ -163,9 +177,6 @@ class AuthOperations(ABC):
             List[str]: List of resources names (relative URIs).
         """
         pass
-
-
-class OAuthOperations(ABC):
 
     # TODO: v2
     # @abstractmethod
@@ -208,6 +219,9 @@ class OAuthOperations(ABC):
         Args:
             token_request_form: The request instructions.
 
+        Raises:
+            OAuth2Error: If an error occures. Conforms the RFC6749 spec.
+
         Returns:
             OAuthToken: The access token and additonal metadata (depending on the grant type).
         """
@@ -229,6 +243,9 @@ class OAuthOperations(ABC):
 
         Args:
             token: The token that should be revoked.
+
+        Raises:
+            OAuth2Error: If an error occures. Conforms the RFC6749 spec.
         """
         pass
 
@@ -297,5 +314,82 @@ class OAuthOperations(ABC):
 
         Returns:
             RedirectResponse: A redirect to the webapp that has valid access tokens attached.
+        """
+        pass
+
+    # User Operations
+
+    @abstractmethod
+    def list_users(self) -> List[User]:
+        """Lists all users.
+
+        TODO: Filter based on authenticated user?
+
+        Returns:
+            List[User]: List of users.
+        """
+        pass
+
+    @abstractmethod
+    def create_user(
+        self, user_input: UserRegistration, technical_user: bool = False
+    ) -> User:
+        """Creates a user.
+
+        Args:
+            user_input: The user data to create the new user.
+            technical_user: If `True`, the created user will be marked as technical user. Defaults to `False`.
+
+        Raises:
+            ResourceAlreadyExistsError: If a user with the same username or email already exists.
+
+        Returns:
+            User: The created user information.
+        """
+        pass
+
+    @abstractmethod
+    def get_user(self, user_id: str) -> User:
+        """Returns the user metadata for a single user.
+
+        Args:
+            user_id: The ID of the user.
+
+        Raises:
+            ResourceNotFoundError: If no user with the specified ID exists.
+
+        Returns:
+            User: The user information.
+        """
+        pass
+
+    @abstractmethod
+    def update_user(self, user_id: str, user_input: UserInput) -> User:
+        """Updates the user metadata.
+
+        This will update only the properties that are explicitly set in the `user_input`.
+        The patching is based on the JSON Merge Patch Standard [RFC7396](https://tools.ietf.org/html/rfc7396).
+
+        Args:
+            user_id (str): The ID of the user.
+            user_input (UserInput): The user data used to update the user.
+
+        Raises:
+            ResourceNotFoundError: If no user with the specified ID exists.
+
+        Returns:
+            User: The updated user information.
+        """
+        pass
+
+    @abstractmethod
+    def delete_user(self, user_id: str) -> None:
+        """Deletes a user.
+
+        Args:
+            user_id (str): The ID of the user.
+
+        Raises:
+            ResourceNotFoundError: If no user with the specified ID exists.
         """
         pass

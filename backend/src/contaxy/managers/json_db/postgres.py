@@ -64,8 +64,14 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
             f"Create Json document (`project_id`: {project_id}, `collection_id`: {collection_id} `key`: {key} )"
         )
         table = self._get_collection_table(project_id, collection_id)
+        import json
 
-        insert_data = {"key": key, "json_value": json_document}
+        insert_data = {
+            "key": key,
+            "json_value": json.dumps(
+                json_document, indent=4, sort_keys=True, default=str
+            ),
+        }
         insert_data = self._add_metadata_for_insert(insert_data)
         upsert_data = self._add_metadata_for_update(insert_data)
 

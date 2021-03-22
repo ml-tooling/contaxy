@@ -10,7 +10,7 @@ from contaxy.api.dependencies import (
     get_component_manager,
 )
 from contaxy.schema import CoreOperations, User, UserInput, UserRegistration
-from contaxy.schema.user import USER_ID_PARAM
+from contaxy.schema.auth import USER_ID_PARAM
 
 router = APIRouter(
     tags=["users"],
@@ -34,7 +34,7 @@ def list_users(
     token: str = Depends(get_api_token),
 ) -> Any:
     """Lists all users that are visible to the authenticated user."""
-    return component_manager.get_user_manager().list_users()
+    return component_manager.get_auth_manager().list_users()
 
 
 @router.post(
@@ -46,17 +46,16 @@ def list_users(
     status_code=status.HTTP_200_OK,
 )
 def create_user(
-    user: UserRegistration,
+    user_input: UserRegistration,
     component_manager: ComponentManager = Depends(get_component_manager),
 ) -> Any:
     """Creates a user.
 
     If the `password` is not provided, the user can only login by using other methods (social login).
     """
-    if user.password:
-        # TODO create password for the user
-        del user.password
-    return component_manager.get_user_manager().create_user(user, technical_user=False)
+    return component_manager.get_auth_manager().create_user(
+        user_input, technical_user=False
+    )
 
 
 @router.get(
@@ -90,7 +89,7 @@ def get_user(
     token: str = Depends(get_api_token),
 ) -> Any:
     """Returns the user metadata for a single user."""
-    raise NotImplementedError
+    return component_manager.get_auth_manager().get_user(user_id)
 
 
 @router.patch(
@@ -102,8 +101,8 @@ def get_user(
     status_code=status.HTTP_200_OK,
 )
 def update_user(
-    user: UserInput,
     user_id: str = USER_ID_PARAM,
+    user_input: UserInput = Body(...),
     component_manager: ComponentManager = Depends(get_component_manager),
     token: str = Depends(get_api_token),
 ) -> Any:
@@ -113,7 +112,7 @@ def update_user(
     The patching is based on the JSON Merge Patch Standard [RFC7396](https://tools.ietf.org/html/rfc7396).
     """
     # TODO: should only be called by an admin
-    raise NotImplementedError
+    return component_manager.get_auth_manager().update_user(user_id, user_input)
 
 
 @router.put(
@@ -138,7 +137,7 @@ def change_user_password(
 
     The password is stored as a hash.
     """
-    raise NotImplementedError
+    return component_manager.get_auth_manager().change_password(user_id, password)
 
 
 @router.delete(

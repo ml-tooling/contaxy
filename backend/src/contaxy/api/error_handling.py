@@ -4,6 +4,7 @@ from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel, Field
 from starlette.responses import JSONResponse
 
+from contaxy.schema.auth import OAuth2Error
 from contaxy.schema.exceptions import ClientBaseError
 
 
@@ -64,6 +65,12 @@ class ProblemDetailsFormat(BaseModel):
 
 async def handel_http_exeptions(request, exc):  # type: ignore
     details = None
+    if isinstance(exec, OAuth2Error):
+        return JSONResponse(
+            status_code=exc.status_code,
+            content=jsonable_encoder({"error": exc.details}),
+        )
+
     if isinstance(exec, ClientBaseError):
         details = exec.metadata
     return JSONResponse(
