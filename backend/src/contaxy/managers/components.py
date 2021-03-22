@@ -8,9 +8,9 @@ from contaxy import config
 from contaxy.managers.auth import AuthManager
 from contaxy.managers.extension import ExtensionManager
 from contaxy.managers.file.minio import MinioFileManager
+from contaxy.managers.json_db.inmemory_dict import InMemoryDictJsonDocumentManager
 from contaxy.managers.project import ProjectManager
 from contaxy.managers.system import SystemManager
-from contaxy.managers.user import UserManager
 from contaxy.operations import (
     FileOperations,
     JobOperations,
@@ -18,9 +18,9 @@ from contaxy.operations import (
     ServiceOperations,
 )
 from contaxy.operations.deployment import DeploymentOperations
+from contaxy.schema.auth import UserRegistration
 from contaxy.schema.deployment import ServiceInput
 from contaxy.schema.extension import CORE_EXTENSION_ID
-from contaxy.schema.user import UserInput
 from contaxy.utils.state_utils import GlobalState, RequestState
 
 
@@ -54,7 +54,6 @@ class ComponentManager:
         # Initialized variables which will be lazyloaded
         self._auth_manager: Optional[AuthManager] = None
         self._extension_manager: Optional[ExtensionManager] = None
-        self._user_manager: Optional[UserManager] = None
         self._project_manager: Optional[ProjectManager] = None
         self._system_manager: Optional[SystemManager] = None
         # Extensible managers: typed by its interface
@@ -95,14 +94,6 @@ class ComponentManager:
         assert self._system_manager is not None
         return self._system_manager
 
-    def get_user_manager(self) -> UserManager:
-        """Returns a User Manager instance."""
-        if not self._user_manager:
-            self._user_manager = UserManager(self.global_state, self.request_state, self.get_json_db_manager())  # type: ignore  # TODO: remove type ignore
-
-        assert self._user_manager is not None
-        return self._user_manager
-
     def get_project_manager(self) -> ProjectManager:
         """Returns a Project Manager instance."""
         if not self._project_manager:
@@ -140,9 +131,16 @@ class ComponentManager:
             return self.get_extension_manager().get_extension_client(extension_id)
 
         if not self._json_db_manager:
-            from contaxy.managers.json_db.postgres import PostgresJsonDocumentManager
+            if config.settings.USER_INMEMORY_DB:
+                self._json_db_manager = InMemoryDictJsonDocumentManager(
+                    self.global_state, self.request_state
+                )
+            else:
+                from contaxy.managers.json_db.postgres import (
+                    PostgresJsonDocumentManager,
+                )
 
-            self._json_db_manager = PostgresJsonDocumentManager(self.global_state, self.request_state)  # type: ignore  # TODO: remove type ignore
+                self._json_db_manager = PostgresJsonDocumentManager(self.global_state, self.request_state)  # type: ignore  # TODO: remove type ignore
         return self._json_db_manager
 
     def get_file_manager(
@@ -269,8 +267,8 @@ def install_components() -> None:
         )
 
     # Create admin user
-    user = component_manager.get_user_manager().create_user(
-        UserInput(username=config.SYSTEM_ADMIN_USERNAME), technical_user=True
+    user = component_manager.get_auth_manager().create_user(
+        UserRegistration(username=config.SYSTEM_ADMIN_USERNAME), technical_user=True
     )
 
     # Set initial user password -> SHOULD be changed after the first login

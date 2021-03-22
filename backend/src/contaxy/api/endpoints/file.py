@@ -9,7 +9,6 @@ from contaxy.api.dependencies import (
 )
 from contaxy.managers.extension import parse_composite_id
 from contaxy.schema import ExtensibleOperations, File, FileInput, ResourceAction
-from contaxy.schema.exceptions import PermissionDeniedError
 from contaxy.schema.extension import EXTENSION_ID_PARAM
 from contaxy.schema.file import FILE_KEY_PARAM
 from contaxy.schema.project import PROJECT_ID_PARAM
@@ -55,10 +54,9 @@ def list_files(
     Set `recursive` to `false` to only show files and folders (prefixes) of the current folder.
     The current folder is either the root folder (`/`) or the folder selected by the `prefix` parameter (has to end with `/`).
     """
-    if not component_manager.get_auth_manager().verify_token(
+    component_manager.get_auth_manager().verify_access(
         token, f"projects/{project_id}/files#read"
-    ):
-        raise PermissionDeniedError()
+    )
 
     return component_manager.get_file_manager(extension_id).list_files(
         project_id, recursive, include_versions, prefix
@@ -119,10 +117,9 @@ def get_file_metadata(
     token: str = Depends(get_api_token),
 ) -> Any:
     """Returns metadata about the specified file."""
-    if not component_manager.get_auth_manager().verify_token(
+    component_manager.get_auth_manager().verify_access(
         token, f"/projects/{project_id}/files/{file_key:path}:metadata#read"
-    ):
-        raise PermissionDeniedError()
+    )
 
     resource_id, extension_id = parse_composite_id(file_key)
     return component_manager.get_file_manager(extension_id).get_file_metadata(

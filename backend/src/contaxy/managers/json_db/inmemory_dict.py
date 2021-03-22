@@ -1,8 +1,9 @@
+import json
 from datetime import datetime
 from typing import Dict, List, Optional
 
 import json_merge_patch
-import jsonpath_ng
+import jsonpath_ng.ext
 
 from contaxy.operations import JsonDocumentOperations
 from contaxy.schema.exceptions import ResourceNotFoundError
@@ -57,7 +58,7 @@ class InMemoryDictJsonDocumentManager(JsonDocumentOperations):
         project_id: str,
         collection_id: str,
         key: str,
-        json_document: Dict,
+        json_document: str,
     ) -> JsonDocument:
         """Creates a JSON document for a given key.
 
@@ -88,7 +89,7 @@ class InMemoryDictJsonDocumentManager(JsonDocumentOperations):
         project_id: str,
         collection_id: str,
         key: str,
-        json_document: Dict,
+        json_document: str,
     ) -> JsonDocument:
         """Updates a JSON document.
 
@@ -111,10 +112,10 @@ class InMemoryDictJsonDocumentManager(JsonDocumentOperations):
         current_document = self.get_json_document(project_id, collection_id, key)
 
         updated_json = json_merge_patch.merge(
-            current_document.json_value, json_document
+            json.loads(current_document.json_value), json.loads(json_document)
         )
 
-        current_document.json_value = updated_json
+        current_document.json_value = json.dumps(updated_json)
         current_document.updated_at = datetime.now()
         collection[key] = current_document.dict()
 
@@ -149,7 +150,10 @@ class InMemoryDictJsonDocumentManager(JsonDocumentOperations):
             filtered_documents: List[JsonDocument] = []
             jsonpath_expr = jsonpath_ng.ext.parse(filter)
             for document in documents:
-                if [match.value for match in jsonpath_expr.find([document])]:
+                if [
+                    match.value
+                    for match in jsonpath_expr.find([json.loads(document.json_value)])
+                ]:
                     filtered_documents.append(document)
             documents = filtered_documents
 

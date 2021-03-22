@@ -2,18 +2,26 @@ from datetime import datetime
 from enum import Enum
 from typing import List, Optional
 
-from fastapi import Form
-from pydantic import BaseModel, Field
+from fastapi import Form, HTTPException, Path, status
+from pydantic import BaseModel, EmailStr, Field, SecretStr
 
 from contaxy.schema.shared import MAX_DESCRIPTION_LENGTH
 
 
 class AccessLevel(str, Enum):
     # Map to: select, insert, update, delete
+
     READ = "read"  # Viewer, view: Allows admin access , Can only view existing resources. Permissions for read-only actions that do not affect state, such as viewing (but not modifying) existing resources or data.
     WRITE = "write"  # Editor, edit, Contributor : Allows read/write access , Can create and manage all types of resources but can’t grant access to others.  All viewer permissions, plus permissions for actions that modify state, such as changing existing resources.
-    ADMIN = "admin"  # Owner : Allows read-only access. Has full access to all resources including the right to edit IAM, invite users, edit roles. All editor permissions and permissions for the following actions:
-    # none
+    ADMIN = "admin"  # Owner : Allows read-only access. Has full access to all resources including the right to edit IAM, invite users, edit roles. All editor permissions and permissions for the following actions
+    UNKNOWN = "unknown"  # Deny?
+
+    @classmethod
+    def load(cls, access_level: str) -> "AccessLevel":
+        try:
+            return cls(access_level.strip().lower())
+        except ValueError:
+            return cls.UNKNOWN
 
 
 class TokenPurpose(str, Enum):
@@ -27,36 +35,49 @@ class TokenType(str, Enum):
     API_TOKEN = "api-token"
 
 
-class ApiToken(BaseModel):
+class AccessToken(BaseModel):
     token: str = Field(
         ...,
         example="f4528e540a133dd53ba6809e74e16774ebe4777a",
         description="API Token.",
+    )
+    token_type: TokenType = Field(
+        ...,
+        example=TokenType.API_TOKEN,
+        description="The type of the token.",
+    )
+    subject: str = Field(
+        ...,
+        example="users/dklqmomr2c8dx9cpb202dsqku",
+        description="Identifies the principal that is the subject of the token. Usually refers to the user to which the token is issued to.",
     )
     scopes: List[str] = Field(
         ...,
         example=["projects#read"],
         description="List of scopes associated with the token.",
     )
+    created_at: Optional[datetime] = Field(
+        None,
+        description="Creation date of the token.",
+    )
+    expires_at: Optional[datetime] = Field(
+        None,
+        example="2021-04-25T10:20:30.400+02:30",
+        description="Date at which the token expires and, thereby, gets revoked.",
+    )
+
+
+class ApiToken(AccessToken):
     description: Optional[str] = Field(
         None,
         example="Token used for accesing project resources on my local machine.",
         max_length=MAX_DESCRIPTION_LENGTH,
         description="Short description about the context and usage of the token.",
     )
-    created_at: Optional[datetime] = Field(
-        None,
-        description="Creation date of the token.",
-    )
     created_by: Optional[str] = Field(
         None,
         example="16fd2706-8baf-433b-82eb-8c7fada847da",
         description="ID of the user that created this token.",
-    )
-    expires_at: Optional[datetime] = Field(
-        None,
-        example="2021-04-25T10:20:30.400+02:30",
-        description="Date at which the token expires and, thereby, gets revoked.",
     )
     token_purpose: Optional[TokenPurpose] = Field(
         None,
@@ -66,7 +87,7 @@ class ApiToken(BaseModel):
 
 
 class GrantedPermission(BaseModel):
-    authorized_user: str
+    authorized_subject: str
     resource_name: Optional[str] = None
     access_level: Optional[AccessLevel] = None
 
@@ -132,7 +153,7 @@ class OAuth2TokenRequestForm:
         self.password = password
         self.scopes = []
         if scope:
-            self.scopes = scope.split()
+            self.scopes = str(scope).split()
         self.client_id = client_id
         self.client_secret = client_secret
         self.code = code
@@ -247,6 +268,29 @@ class AuthorizeResponseType(str, Enum):
     CODE = "code"
 
 
+class OAuth2Error(HTTPException):
+    """Basic exception for OAuth errors.
+
+    Implements the [RFC6749 error response](https://tools.ietf.org/html/rfc6749#section-5.2).
+    """
+
+    def __init__(
+        self,
+        error: str,
+    ) -> None:
+        """Initializes the exception.
+
+        Args:
+            status_code: The HTTP status code associated with the error.
+            error: A single ASCII error code from the ones defined in RFC6749.
+        """
+
+        super(OAuth2Error, self).__init__(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=error,
+        )
+
+
 class OAuth2AuthorizeRequestForm:
     """OAuth2 Authorize Endpoint Request Form."""
 
@@ -275,3 +319,58 @@ class OAuth2AuthorizeRequestForm:
         self.scope = scope
         self.state = state
         self.nonce = nonce
+
+
+USER_ID_PARAM = Path(
+    ...,
+    title="User ID",
+    description="A valid user ID.",
+    # TODO: add length restriction
+)
+
+# User Models
+
+
+class UserBase(BaseModel):
+    username: Optional[str] = Field(
+        None,
+        example="john-doe",
+        description="A unique username on the system.",
+    )  # nickname
+    email: Optional[EmailStr] = Field(
+        None, example="john.doe@example.com", description="User email address."
+    )
+    disabled: Optional[bool] = Field(
+        False,
+        description="Indicates that user is disabled. Disabling a user will prevent any access to user-accesible resources.",
+    )
+
+
+class UserInput(UserBase):
+    pass
+
+
+class UserRegistration(UserInput):
+    # The password is only part of the user input object and should never returned
+    # TODO: a password can only be changed when used via oauth password bearer
+    # TODO: System admin can change passwords for all users
+    password: Optional[SecretStr] = Field(
+        None,
+        description="Password for the user. The password will be stored in as a hash.",
+    )
+
+
+class User(UserBase):
+    id: str = Field(
+        None,
+        example="16fd2706-8baf-433b-82eb-8c7fada847da",
+        description="Unique ID of the user.",
+    )
+    technical_user: Optional[bool] = Field(
+        False,
+        description="Indicates if the user is a technical user created by the system.",
+    )
+    created_at: Optional[datetime] = Field(
+        None,
+        description="Timestamp of the user creation. Assigned by the server and read-only.",
+    )

@@ -15,6 +15,7 @@ class ClientBaseError(HTTPException):
         message: str,
         explanation: Optional[str] = None,
         metadata: Optional[Dict] = None,
+        resource: Optional[str] = None,
     ) -> None:
         """Initializes the exception.
 
@@ -23,6 +24,7 @@ class ClientBaseError(HTTPException):
             message: A short summary of the error.
             explanation (optional): A human readable explanation specific to this error that is helpful to locate the problem and give advice on how to proceed.
             metadata (optional): Additional problem details/metadata.
+            resource (optional): A resource name (relative URI reference) of a specific resource instance associated with the error.
         """
 
         super(ClientBaseError, self).__init__(
@@ -32,6 +34,7 @@ class ClientBaseError(HTTPException):
 
         self.explanation = explanation
         self.metadata = metadata
+        self.resource = resource
 
 
 class ServerBaseError(Exception):
@@ -105,6 +108,7 @@ class PermissionDeniedError(ClientBaseError):
         message: Optional[str] = None,
         explanation: Optional[str] = None,
         metadata: Optional[Dict] = None,
+        resource: Optional[str] = None,
     ) -> None:
         """Initializes the error.
 
@@ -112,12 +116,14 @@ class PermissionDeniedError(ClientBaseError):
             message (optional): A message shown to the user that overwrites the default message.
             explanation (optional): A human readable explanation specific to this error that is helpful to locate the problem and give advice on how to proceed.
             metadata (optional): Additional problem details/metadata.
+            resource (optional): A resource name (relative URI reference) of a specific resource instance associated with the error.
         """
         super(PermissionDeniedError, self).__init__(
             status_code=PermissionDeniedError._HTTP_STATUS_CODE,
             message=message or PermissionDeniedError._DEFAULT_MESSAGE,
             explanation=explanation or PermissionDeniedError._DEFAULT_EXPLANATION,
             metadata=metadata,
+            resource=resource,
         )
 
 
@@ -139,6 +145,7 @@ class ResourceNotFoundError(ClientBaseError):
         message: Optional[str] = None,
         explanation: Optional[str] = None,
         metadata: Optional[Dict] = None,
+        resource: Optional[str] = None,
     ) -> None:
         """Initializes the error.
 
@@ -148,12 +155,14 @@ class ResourceNotFoundError(ClientBaseError):
             message (optional): A message shown to the user that overwrites the default message.
             explanation (optional): A human readable explanation specific to this error that is helpful to locate the problem and give advice on how to proceed.
             metadata (optional): Additional problem details/metadata.
+            resource (optional): A resource name (relative URI reference) of a specific resource instance associated with the error.
         """
         super(ResourceNotFoundError, self).__init__(
             status_code=ResourceNotFoundError._HTTP_STATUS_CODE,
             message=message or ResourceNotFoundError._DEFAULT_MESSAGE,
             explanation=explanation,
             metadata=metadata,
+            resource=resource,
         )
 
 
@@ -176,6 +185,7 @@ class ResourceAlreadyExistsError(ClientBaseError):
         message: Optional[str] = None,
         explanation: Optional[str] = None,
         metadata: Optional[Dict] = None,
+        resource: Optional[str] = None,
     ) -> None:
         """Initializes the error.
 
@@ -183,6 +193,7 @@ class ResourceAlreadyExistsError(ClientBaseError):
             message (optional): A message shown to the user that overwrites the default message.
             explanation (optional): A human readable explanation specific to this error that is helpful to locate the problem and give advice on how to proceed.
             metadata (optional): Additional problem details/metadata.
+            resource (optional): A resource name (relative URI reference) of a specific resource instance associated with the error.
         """
         super(ResourceAlreadyExistsError, self).__init__(
             status_code=ResourceAlreadyExistsError._HTTP_STATUS_CODE,
@@ -211,6 +222,7 @@ class ClientValueError(ClientBaseError, ValueError):
         message: Optional[str] = None,
         explanation: Optional[str] = None,
         metadata: Optional[Dict] = None,
+        resource: Optional[str] = None,
     ) -> None:
         """Initializes the error.
 
@@ -218,10 +230,50 @@ class ClientValueError(ClientBaseError, ValueError):
             message (optional): A message shown to the user that overwrites the default message.
             explanation (optional): A human readable explanation specific to this error that is helpful to locate the problem and give advice on how to proceed.
             metadata (optional): Additional problem details/metadata.
+            resource (optional): A resource name (relative URI reference) of a specific resource instance associated with the error.
         """
         super(ClientValueError, self).__init__(
             status_code=ClientValueError._HTTP_STATUS_CODE,
             message=message or ClientValueError._DEFAULT_MESSAGE,
             explanation=explanation,
             metadata=metadata,
+            resource=resource,
+        )
+
+
+class ResourceUpdateFailedError(ClientBaseError):
+    """Client error that indicates that a requested update for a resource failed.
+
+    The error message should contain specific details about the problem and resource, e.g.:
+
+    - Unable to apply patch update for resource 'xxx'.
+
+    The error details will be shown to the client (user) if it is not handled otherwise.
+    """
+
+    _HTTP_STATUS_CODE = status.HTTP_409_CONFLICT
+    _DEFAULT_MESSAGE = "Resource update failed. Try again."
+    _DEFAULT_EXPLANATION = "The requested resource updated could not be applied. The reason could concurrent or conflicting modifications to the resource. Please try the update again."
+
+    def __init__(
+        self,
+        message: Optional[str] = None,
+        explanation: Optional[str] = None,
+        metadata: Optional[Dict] = None,
+        resource: Optional[str] = None,
+    ) -> None:
+        """Initializes the error.
+
+        Args:
+            message (optional): A message shown to the user that overwrites the default message.
+            explanation (optional): A human readable explanation specific to this error that is helpful to locate the problem and give advice on how to proceed.
+            metadata (optional): Additional problem details/metadata.
+            resource (optional): A resource name (relative URI reference) of a specific resource instance associated with the error.
+        """
+        super(ResourceUpdateFailedError, self).__init__(
+            status_code=ResourceUpdateFailedError._HTTP_STATUS_CODE,
+            message=message or ResourceUpdateFailedError._DEFAULT_MESSAGE,
+            explanation=explanation or ResourceUpdateFailedError._DEFAULT_EXPLANATION,
+            metadata=metadata,
+            resource=resource,
         )

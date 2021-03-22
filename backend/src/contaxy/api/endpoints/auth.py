@@ -19,7 +19,6 @@ from contaxy.schema import (
     TokenType,
 )
 from contaxy.schema.extension import EXTENSION_ID_PARAM
-from contaxy.schema.project import MAX_PROJECT_ID_LENGTH, MIN_PROJECT_ID_LENGTH
 from contaxy.schema.shared import OPEN_URL_REDIRECT
 
 router = APIRouter(
@@ -68,26 +67,12 @@ def logout_session(
     summary="List API tokens.",
     status_code=status.HTTP_200_OK,
 )
-def list_api_token(
-    user_id: Optional[str] = Query(
-        None,
-        title="User ID",
-        description="Return API tokens associated with this user.",
-    ),
-    project_id: Optional[str] = Query(
-        None,
-        title="Project ID",
-        description="Return API tokens associated with this project.",
-        min_length=MIN_PROJECT_ID_LENGTH,
-        max_length=MAX_PROJECT_ID_LENGTH,
-    ),
+def list_api_tokens(
     component_manager: ComponentManager = Depends(get_component_manager),
     token: str = Depends(get_api_token),
 ) -> Any:
-    """Returns list of created API tokens for the specified user or project.
-
-    If a user ID and a project ID is provided, a combined list will be returned.
-    """
+    """Returns list of created API tokens associated with the authenticated user."""
+    pass
 
 
 @router.post(
@@ -114,23 +99,9 @@ def create_token(
     component_manager: ComponentManager = Depends(get_component_manager),
     token: str = Depends(get_api_token),
 ) -> Any:
-    """Returns a session or API token with access on the specified resource.
+    """Returns a session or API token with the specified scopes.
 
-    A permission is a single string that combines a global ID of a resource with a permission level:
-
-    `{resource_name}#{access_level}`
-
-    Permission levels are a hierarchical system that determines the kind of access that is granted on the resource.
-    Permission levels are interpreted and applied inside resource operations. There are three permission levels:
-
-    1. `admin` permission level allows read, write, and administrative access to the resource.
-    2. `write` permission level allows read and write (edit) access to the resource.
-    3. `read` permission level allows read-only (view) access to the resource.
-
-    The permission level can also be suffixed with an optional restriction defined by the resource:
-    `{global_id}.{permission_level}.{custom_restriction}`
-
-    If no permissions are specified, the token will be generated with the same permissions as the authorized token.
+    If no scopes are specified, the token will be generated with the same scopes as the authorized token.
 
     The API token can be deleted (revoked) at any time.
     In comparison, the session token cannot be revoked but expires after a short time (a few minutes).
@@ -138,22 +109,39 @@ def create_token(
     This operation can only be called with API tokens (or refresh tokens) due to security aspects.
     Session tokens are not allowed to create other tokens.
     Furthermore, tokens can only be created if the API token used for authorization is granted at least
-    the same permission level on the given resource. For example, a token with `write` permission level on a given resource
-    allows to create new tokens with `write` or `read` permission on that resource.
-    If a restriction is attached to the permission, created tokens on the same permission level require the same restriction.
+    the same access level on the given resource. For example, a token with `write` access level on a given resource
+    allows to create new tokens with `write` or `read` granted level on that resource.
     """
-    raise NotImplementedError
+    granted_permission = component_manager.get_auth_manager().verify_access(token)
+
+    # Check if the caller has admin access
+    component_manager.get_auth_manager().verify_access(
+        token, granted_permission.authorized_subject + "#admin"
+    )
+
+    if not scopes:
+        scopes = []
+        # Get scopes from token
+        token_introspection = component_manager.get_auth_manager().introspect_token(
+            token
+        )
+        if token_introspection.scope:
+            scopes = token_introspection.scope.split()
+
+    return component_manager.get_auth_manager().create_token(
+        granted_permission.authorized_subject, scopes, token_type, description
+    )
 
 
 @router.post(
     "/auth/tokens/verify",
-    operation_id=CoreOperations.VERIFY_TOKEN.value,
+    operation_id=CoreOperations.VERIFY_ACCESS.value,
     # response_model=List[str],
     summary="Verify a Session or API Token.",
     status_code=status.HTTP_204_NO_CONTENT,
 )
-def verify_token(
-    token: Optional[str] = Body(
+def verify_access(
+    token_in_body: Optional[str] = Body(
         None,
         title="Token",
         description="Token to verify.",
@@ -164,12 +152,16 @@ def verify_token(
         description="The token is checked if it is granted this permission. If none specified, only the existence or validity of the token itself is checked.",
     ),
     component_manager: ComponentManager = Depends(get_component_manager),
+    token: str = Depends(get_api_token),
 ) -> Any:
     """Verifies a session or API token for its validity and - if provided - if it has the specified permission.
 
     Returns an successful HTTP Status code if verification was successful, otherwise an error is returned.
     """
-    raise NotImplementedError
+    if token_in_body:
+        # Prefer token from request body
+        token = token_in_body
+    return component_manager.get_auth_manager().verify_access(token, permission)
 
 
 # OAuth Endpoints
@@ -182,7 +174,10 @@ def verify_token(
     summary="Request a token (OAuth2 Endpoint).",
     status_code=status.HTTP_200_OK,
 )
-def request_token(token_request_form: OAuth2TokenRequestForm = Depends()) -> Any:
+def request_token(
+    token_request_form: OAuth2TokenRequestForm = Depends(),
+    component_manager: ComponentManager = Depends(get_component_manager),
+) -> Any:
     """Returns an access tokens, ID tokens, or refresh tokens depending on the request parameters.
 
      The token endpoint is used by the client to obtain an access token by
@@ -214,7 +209,7 @@ def request_token(token_request_form: OAuth2TokenRequestForm = Depends()) -> Any
 
     This endpoint implements the [OAuth2 Token Endpoint](https://tools.ietf.org/html/rfc6749#section-3.2).
     """
-    raise NotImplementedError
+    return component_manager.get_auth_manager().request_token(token_request_form)
 
 
 @router.post(
@@ -240,7 +235,7 @@ def revoke_token(
 
     This endpoint implements the OAuth2 Revocation Flow ([RFC7009](https://tools.ietf.org/html/rfc7009)).
     """
-    raise NotImplementedError
+    component_manager.get_auth_manager().revoke_token(token)
 
 
 @router.post(
@@ -266,7 +261,7 @@ def introspect_token(
 
     This endpoint implements the [OAuth2 Introspection Flow](https://www.oauth.com/oauth2-servers/token-introspection-endpoint/) ([RFC7662](https://tools.ietf.org/html/rfc7662)).
     """
-    raise NotImplementedError
+    return component_manager.get_auth_manager().introspect_token(token)
 
 
 @router.get(
@@ -286,7 +281,7 @@ def get_userinfo(
 
     This endpoint implements the [OpenID UserInfo Endpoint](https://openid.net/specs/openid-connect-core-1_0.html#UserInfo).
     """
-    return None
+    return component_manager.get_auth_manager().get_userinfo(token)
 
 
 @router.get(
@@ -312,7 +307,4 @@ def login_callback(
 
     This endpoint implements the [Authorization Response](https://tools.ietf.org/html/rfc6749#section-4.1.2) from RFC6749.
     """
-    rr = RedirectResponse("/webapp", status_code=307)
-    rr.set_cookie(key="session_token", value="test-token")
-    rr.set_cookie(key="refresh-token", value="test-refresh-token")
-    return rr
+    return component_manager.get_auth_manager().login_callback(code, state)
