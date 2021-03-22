@@ -87,6 +87,9 @@ class Settings(BaseSettings):
     # "http://localhost:8080", "http://local.dockertoolbox.tiangolo.com"]'
     BACKEND_CORS_ORIGINS: List[AnyHttpUrl] = []
 
+    # TODO: Finalize
+    DEBUG: bool = True
+
     class Config:
         # Support local .env files
         env_file = ".env"

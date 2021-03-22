@@ -1,8 +1,8 @@
-from typing import Dict, List
+import json
+from typing import List
 from uuid import uuid4
 
 import pytest
-from sqlalchemy.exc import OperationalError
 from sqlalchemy.future import Engine, create_engine
 from starlette.datastructures import State
 
@@ -55,7 +55,7 @@ def get_defaults() -> dict:
         "collection": "jdm_test",
         "project": "test-project",
         "key": str(uuid4()),
-        "json_value": json_dict,
+        "json_value": json.dumps(json_dict),
     }
 
 
@@ -64,7 +64,7 @@ def db_is_available() -> bool:
         with get_engine().begin():
             pass
         return True
-    except OperationalError:
+    except:  # noqa: E722
         return False
 
 
@@ -85,7 +85,7 @@ class TestPostgresJsonDocumentManager:
         assert created_doc.created_at
 
         # Test upsert case
-        new_json_value: Dict = {}
+        new_json_value = "{}"
         overwritten_doc = json_document_manager.create_json_document(
             defaults.get("project"),
             defaults.get("collection"),
@@ -157,35 +157,36 @@ class TestPostgresJsonDocumentManager:
             "content": "This will be unchanged",
             "phoneNumber": "+01-123-456-7890",
         }
+        desired_json_value = json.dumps(desired_dict)
 
         created_doc = json_document_manager.create_json_document(
             defaults.get("project"),
             defaults.get("collection"),
             str(uuid4()),
-            original_dict,
+            json.dumps(original_dict),
         )
 
         updated_doc = json_document_manager.update_json_document(
             defaults.get("project"),
             defaults.get("collection"),
             created_doc.key,
-            changes_dict,
+            json.dumps(changes_dict),
         )
 
-        self._assert_updated_doc(created_doc, updated_doc, desired_dict)
+        self._assert_updated_doc(created_doc, updated_doc, desired_json_value)
 
         read_doc = json_document_manager.get_json_document(
             defaults.get("project"), defaults.get("collection"), updated_doc.key
         )
 
-        self._assert_updated_doc(created_doc, read_doc, desired_dict)
+        self._assert_updated_doc(created_doc, read_doc, desired_json_value)
 
         try:
             json_document_manager.update_json_document(
                 defaults.get("project"),
                 defaults.get("collection"),
                 str(uuid4()),
-                {},
+                "{}",
             )
             assert False
         except ResourceNotFoundError:
@@ -216,7 +217,7 @@ class TestPostgresJsonDocumentManager:
 
         for json_dict in data:
             json_document_manager.create_json_document(
-                project_id, collection_id, str(uuid4()), json_dict
+                project_id, collection_id, str(uuid4()), json.dumps(json_dict)
             )
 
         docs = json_document_manager.list_json_documents(project_id, collection_id)
@@ -227,21 +228,24 @@ class TestPostgresJsonDocumentManager:
             project_id, collection_id, json_path_filter
         )
         for doc in docs:
-            assert doc.json_value.get("title") == "Hello!"
+            json_value = json.loads(doc.json_value)
+            assert json_value.get("title") == "Hello!"
 
         json_path_filter = '$ ? (@.title == "Goodbye!")'
         docs = json_document_manager.list_json_documents(
             project_id, collection_id, json_path_filter
         )
         for doc in docs:
-            assert doc.json_value.get("title") == "Goodbye!"
+            json_value = json.loads(doc.json_value)
+            assert json_value.get("title") == "Goodbye!"
 
         json_path_filter = '$ ? (@.author.givenName == "John")'
         docs = json_document_manager.list_json_documents(
             project_id, collection_id, json_path_filter
         )
         for doc in docs:
-            author = doc.json_value.get("author")
+            json_value = json.loads(doc.json_value)
+            author = json_value.get("author")
             assert author.get("givenName") == "John"
         previous_result_count = len(docs)
 
@@ -253,7 +257,8 @@ class TestPostgresJsonDocumentManager:
             project_id, collection_id, json_path_filter
         )
         for doc in docs:
-            author = doc.json_value.get("author")
+            json_value = json.loads(doc.json_value)
+            author = json_value.get("author")
             assert (
                 author.get("givenName") == "John" and author.get("familyName") == "Doe"
             )
@@ -278,7 +283,9 @@ class TestPostgresJsonDocumentManager:
         for i in range(3):
             defaults = get_defaults()
             if i % 2 != 0:
-                del defaults["json_value"]["author"]["familyName"]
+                json_value = json.loads(defaults["json_value"])
+                del json_value["author"]["familyName"]
+                defaults["json_value"] = json.dumps(json_value)
             doc = self._create_doc(json_document_manager, defaults)
             docs.append(doc)
             db_keys.append(doc.key)
@@ -302,7 +309,8 @@ class TestPostgresJsonDocumentManager:
             db_keys,
         )
         for doc in read_docs:
-            author = doc.json_value.get("author")
+            json_value = json.loads(doc.json_value)
+            author = json_value.get("author")
             assert (
                 author.get("givenName") == "John" and author.get("familyName") == "Doe"
             )
@@ -339,9 +347,12 @@ class TestPostgresJsonDocumentManager:
         )
 
     def _assert_updated_doc(
-        self, doc: JsonDocument, updated_doc: JsonDocument, new_json_value: dict
+        self, doc: JsonDocument, updated_doc: JsonDocument, new_json_value: str
     ) -> None:
         assert updated_doc.key == doc.key
-        assert updated_doc.json_value == new_json_value
+        if new_json_value:
+            assert json.loads(updated_doc.json_value) == json.loads(new_json_value)
+        else:
+            assert not updated_doc.json_value
         assert updated_doc.updated_at and updated_doc.created_at
         assert updated_doc.created_at < updated_doc.updated_at

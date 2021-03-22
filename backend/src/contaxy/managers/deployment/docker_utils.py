@@ -17,9 +17,8 @@ from contaxy.managers.deployment.utils import (
     get_gpu_info,
     get_label_string,
     get_network_name,
-    get_selection_labels,
+    get_project_selection_labels,
     get_volume_name,
-    log,
     map_labels,
 )
 from contaxy.schema import ResourceAction
@@ -145,7 +144,7 @@ def create_network(
     # E.g. when you have three subnets 172.33.1.0, 172.33.2.0, and 172.33.3.0, highest_cidr will be 172.33.3.0
     for network in networks:
         if network.name.lower() == name.lower():
-            log(f"Network {name} already exists")
+            logger.info(f"Network {name} already exists")
             return network
 
         has_all_properties = (
@@ -171,7 +170,7 @@ def create_network(
     if next_cidr.network_address.packed[0] > INITIAL_CIDR_FIRST_OCTET:
         raise RuntimeError("No more possible subnet addresses exist")
 
-    log(f"Create network {name} with subnet {next_cidr.exploded}")
+    logger.info(f"Create network {name} with subnet {next_cidr.exploded}")
     ipam_pool = docker.types.IPAMPool(
         subnet=next_cidr.exploded, gateway=(next_cidr.network_address + 1).exploded
     )
@@ -221,7 +220,7 @@ def get_project_container_selection_labels(
 ) -> List[str]:
     return [
         get_label_string(selection_label[0], selection_label[1])
-        for selection_label in get_selection_labels(
+        for selection_label in get_project_selection_labels(
             project_id=project_id, deployment_type=deployment_type
         )
     ]
