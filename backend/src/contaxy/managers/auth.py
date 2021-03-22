@@ -182,7 +182,7 @@ class AuthManager(AuthOperations):
             project_id=config.SYSTEM_INTERNAL_PROJECT,
             collection_id=self._API_TOKEN_COLLECTION,
             key=token,
-            json_document=api_token.dict(),
+            json_document=api_token.json(),
         )
         return token
 
@@ -196,7 +196,7 @@ class AuthManager(AuthOperations):
 
         api_tokens: List[ApiToken] = []
         for token_doc in filtered_token_docs:
-            api_token = ApiToken(**token_doc.json_value)
+            api_token = ApiToken.parse_raw(token_doc.json_value)
             # Check here again for subject
             if api_token.subject == token_subject:
                 api_tokens.append(api_token)
@@ -217,7 +217,7 @@ class AuthManager(AuthOperations):
             self._API_TOKEN_COLLECTION,
             token,
         )
-        return ApiToken(**token_doc.json_value)
+        return ApiToken.parse_raw(token_doc.json_value)
 
     def _resolve_token(self, token: str, use_cache: bool) -> AccessToken:
         """Resolves the provided token to its metadata.
@@ -365,7 +365,7 @@ class AuthManager(AuthOperations):
             config.SYSTEM_INTERNAL_PROJECT,
             self._USER_PASSWORD_COLLECTION,
             user_id,
-            user_password.dict(),
+            user_password.json(),
         )
 
     def verify_password(
@@ -378,7 +378,7 @@ class AuthManager(AuthOperations):
             config.SYSTEM_INTERNAL_PROJECT, self._USER_PASSWORD_COLLECTION, user_id
         )
 
-        user_password = UserPassword(**password_document.json_value)
+        user_password = UserPassword.parse_raw(password_document.json_value)
         return PWD_CONTEXT.verify(password, user_password.hashed_password)
 
     # Permission Operations
@@ -391,7 +391,7 @@ class AuthManager(AuthOperations):
             self._PERMISSION_COLLECTION,
             resource_name,
         )
-        return ResourcePermissions(**permission_doc.json_value)
+        return ResourcePermissions.parse_raw(permission_doc.json_value)
 
     def add_permission(
         self,
@@ -414,7 +414,7 @@ class AuthManager(AuthOperations):
             config.SYSTEM_INTERNAL_PROJECT,
             self._PERMISSION_COLLECTION,
             resource_name,
-            resource_permission.dict(),
+            resource_permission.json(),
         )
 
         # Test if permission was applied with short timeout (to wait for conflicting updates)
@@ -464,7 +464,7 @@ class AuthManager(AuthOperations):
                 config.SYSTEM_INTERNAL_PROJECT,
                 self._PERMISSION_COLLECTION,
                 resource_name,
-                ResourcePermissions(permissions=updated_permissions).dict(),
+                ResourcePermissions(permissions=updated_permissions).json(),
             )
 
             # Test if permission was applied with short timeout (to wait for conflicting updates)
@@ -577,7 +577,9 @@ class AuthManager(AuthOperations):
             resource_name = resource_doc.key
             if (
                 permission
-                not in ResourcePermissions(**resource_doc.json_value).permissions
+                not in ResourcePermissions.parse_raw(
+                    resource_doc.json_value
+                ).permissions
             ):
                 continue
             if resource_name_prefix and resource_name.startswith(resource_name_prefix):
@@ -731,7 +733,7 @@ class AuthManager(AuthOperations):
         for json_document in self._json_db_manager.list_json_documents(
             config.SYSTEM_INTERNAL_PROJECT, self._USER_COLLECTION
         ):
-            user_list.append(User(**json_document.json_value))
+            user_list.append(User.parse_raw(json_document.json_value))
         return user_list
 
     def _create_username_mapping(self, username: str, user_id: str) -> None:
@@ -744,7 +746,7 @@ class AuthManager(AuthOperations):
             project_id=config.SYSTEM_INTERNAL_PROJECT,
             collection_id=self._USERNAME_ID_MAPPING_COLLECTION,
             key=processed_username,
-            json_document=UsernameIdMapping(user_id=user_id).dict(),
+            json_document=UsernameIdMapping(user_id=user_id).json(),
         )
 
     def _get_id_by_username(self, username: str) -> str:
@@ -755,7 +757,7 @@ class AuthManager(AuthOperations):
             key=processed_username,
         )
 
-        return UsernameIdMapping(**username_id_mapping_doc.json_value).user_id
+        return UsernameIdMapping.parse_raw(username_id_mapping_doc.json_value).user_id
 
     def _username_exists(self, username: str) -> bool:
         try:
@@ -815,10 +817,10 @@ class AuthManager(AuthOperations):
             project_id=config.SYSTEM_INTERNAL_PROJECT,
             collection_id=self._USER_COLLECTION,
             key=user_id,
-            json_document=user.dict(),
+            json_document=user.json(),
         )
 
-        return User(**created_document.json_value)
+        return User.parse_raw(created_document.json_value)
 
     def get_user(self, user_id: str) -> User:
         """Returns the user metadata for a single user.
@@ -837,7 +839,7 @@ class AuthManager(AuthOperations):
             collection_id=self._USER_COLLECTION,
             key=user_id,
         )
-        return User(**json_document.json_value)
+        return User.parse_raw(json_document.json_value)
 
     def update_user(self, user_id: str, user_input: UserInput) -> User:
         """Updates the user metadata.
@@ -859,9 +861,9 @@ class AuthManager(AuthOperations):
             project_id=config.SYSTEM_INTERNAL_PROJECT,
             collection_id=self._USER_COLLECTION,
             key=user_id,
-            json_document=user_input.dict(exclude_unset=True),
+            json_document=user_input.json(exclude_unset=True),
         )
-        return User(**updated_document.json_value)
+        return User.parse_raw(updated_document.json_value)
 
     def delete_user(self, user_id: str) -> None:
         """Deletes a user.
