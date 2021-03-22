@@ -1,8 +1,11 @@
+import asyncio
 import os
+import threading
+from typing import AsyncGenerator
 
 import pytest
 
-from contaxy.utils.file_utils import FormMultipartStream
+from contaxy.utils.file_utils import FormMultipartStream, SyncFromAsyncGenerator
 
 from ..managers.file.data.metadata import file_data
 
@@ -27,3 +30,26 @@ class TestFormMultipartStream:
                     file.write(chunk)
 
             assert multipart_stream.hash == metadata.get("hash")
+
+
+@pytest.mark.unit
+class TestSyncFromAsyncGenerator:
+    def test_iteration(self) -> None:
+
+        data = list(range(5))
+
+        async def iterate(data: list) -> AsyncGenerator:
+            for element in data:
+                yield element
+
+        async_generator = iterate(data)
+
+        loop = asyncio.new_event_loop()
+        t = threading.Thread(target=loop.run_forever, daemon=True)
+        t.start()
+
+        sync_generator = SyncFromAsyncGenerator(async_generator, loop)
+
+        iterated_data = [element for element in sync_generator]
+        loop.stop()
+        assert data == iterated_data

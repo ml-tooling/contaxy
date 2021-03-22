@@ -117,7 +117,6 @@ class FormMultipartStream(FileStream):
                 break
 
             self._parser.data_received(raw_chunk)
-            # Todo: self._stream_target.value gets cleared here => Fix
             parsed_chunk = self._stream_target.value
             self._unprocessed_bytes += parsed_chunk
             unprocessed_bytes_length = len(self._unprocessed_bytes)
@@ -142,14 +141,11 @@ class SyncFromAsyncGenerator(Generator):
     def __init__(
         self,
         async_generator: AsyncGenerator,
-        event_loop: Optional[asyncio.AbstractEventLoop] = None,
+        event_loop: asyncio.AbstractEventLoop,
     ) -> None:
         super().__init__()
         self._generator = async_generator
-        if event_loop:
-            self._event_loop = event_loop
-        else:
-            self._event_loop = asyncio.get_event_loop()
+        self._event_loop = event_loop
 
     def __next__(self) -> Any:
         try:
@@ -167,7 +163,6 @@ class SyncFromAsyncGenerator(Generator):
         return data
 
     def throw(self, typ, val=None, tb=None) -> None:  # type: ignore
-        # Todo: Check if exceptions needs to be transformed
         asyncio.run_coroutine_threadsafe(
             self._generator.athrow(typ, val, tb), self._event_loop
         )
