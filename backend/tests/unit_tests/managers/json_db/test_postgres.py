@@ -21,6 +21,7 @@ def get_engine() -> Engine:
     )
 
 
+# TODO: Put in global conftest
 @pytest.fixture(scope="session")
 def global_state() -> GlobalState:
     state = GlobalState(State())
