@@ -242,7 +242,7 @@ class ResourceAction(BaseModel):
         None,
         description="The extension name associated with this action.",
     )
-    instructions: Optional[List[Union[ActionInstruction, str]]] = Field(
+    instructions: Optional[List[Any]] = Field(
         None,
         example=["new-tab"],
         description="A list of instructions for the frontend application.",
