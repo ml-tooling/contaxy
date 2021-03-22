@@ -132,9 +132,6 @@ class FormMultipartStream(FileStream):
         return bytes_received
 
 
-# !-------------------------------------------------------
-
-
 class SyncFromAsyncGenerator(Generator):
     """This genrator implementation wraps an async generator to make it compatible for sync implementations."""
 
