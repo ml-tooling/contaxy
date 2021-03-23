@@ -1,5 +1,6 @@
 from loguru import logger
 from minio import Minio
+from minio.deleteobjects import DeleteObject
 from minio.error import S3Error
 from minio.versioningconfig import ENABLED, VersioningConfig
 from urllib3.exceptions import MaxRetryError
@@ -34,8 +35,38 @@ def create_minio_client(settings: Settings) -> Minio:
     return client
 
 
-def delete_bucket(client: Minio, bucket_name: str) -> None:
-    pass
+def purge_bucket(client: Minio, bucket_name: str) -> None:
+    # TODO: Validate the effect of `bypass_governance_mode`
+    delete_object_list = [
+        DeleteObject(file.object_name)
+        for file in client.list_objects(bucket_name, include_version=True)
+    ]
+
+    if delete_object_list:
+        client.remove_objects(
+            bucket_name, delete_object_list, bypass_governance_mode=True
+        )
+
+
+def delete_bucket(client: Minio, bucket_name: str, force: bool = False) -> None:
+    try:
+        client.remove_bucket(bucket_name)
+    except S3Error as err:
+        if err.code == "NoSuchBucket":
+            logger.info(f"Bucket {bucket_name} not deleted, since it does not exist.")
+        elif err.code == "BucketNotEmpty":
+            if force:
+                purge_bucket(client, bucket_name)
+            else:
+                msg = (
+                    f"Bucket {bucket_name} can not be deleted because it is not empty."
+                )
+                logger.error(msg)
+                raise ServerBaseError(msg)
+        else:
+            raise ServerBaseError(
+                f"The bucket {bucket_name} could not be deleted ({err.code})."
+            )
 
 
 def create_bucket(
@@ -53,10 +84,9 @@ def create_bucket(
     Raises:
         ServerBaseError: If the desired action could not be performed.
     """
-    # TODO: Handle Errors
     try:
         client.make_bucket(bucket_name)
-        logger.debug(f"Bucket {bucket_name} created.")
+        logger.info(f"Bucket {bucket_name} created.")
     except S3Error as err:
         if err.code == "BucketAlreadyOwnedByYou":
             logger.info(f"The bucket {bucket_name} already exists and is owned by you.")
@@ -67,7 +97,6 @@ def create_bucket(
             raise ServerBaseError(f"Could not create create the bucket {bucket_name}.")
 
     if versioning_enabled:
-        # TODO: Add handling if versioning could not be enabled
         try:
             client.set_bucket_versioning(bucket_name, VersioningConfig(ENABLED))
         except S3Error as err:
