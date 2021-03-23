@@ -1,18 +1,24 @@
 import json
 import os
-from typing import Iterator, List, Optional
+from typing import Dict, Iterator, List, Optional, Tuple
 
 from loguru import logger
 from minio import Minio
 from minio.datatypes import Object as MinioObject
+from minio.error import S3Error
 from starlette.responses import Response
-from urllib3.exceptions import MaxRetryError
 
 from contaxy.operations import FileOperations
 from contaxy.operations.json_db import JsonDocumentOperations
 from contaxy.schema import File, FileInput, ResourceAction
 from contaxy.schema.exceptions import ServerBaseError
+from contaxy.schema.json_db import JsonDocument
 from contaxy.utils.file_utils import FileStream, generate_file_id
+from contaxy.utils.minio_utils import (
+    create_bucket,
+    create_minio_client,
+    get_bucket_name,
+)
 from contaxy.utils.state_utils import GlobalState, RequestState
 
 
@@ -49,6 +55,7 @@ class MinioFileManager(FileOperations):
         self.request_state = request_state
         self.json_db_manager = json_db_manager
         self.client = self._create_client()
+        self.sys_namespace = self.global_state.settings.SYSTEM_NAMESPACE
 
     def list_files(
         self,
@@ -57,7 +64,27 @@ class MinioFileManager(FileOperations):
         include_versions: bool = False,
         prefix: Optional[str] = None,
     ) -> List[File]:
-        pass
+        # TODO: Test case when object is folder
+
+        bucket_name = get_bucket_name(project_id, self.sys_namespace)
+
+        file_data, document_keys = self._load_file_data_from_s3(
+            bucket_name, prefix, recursive, include_versions
+        )
+
+        file_data, docs_not_in_db = self._enrich_data_from_db(
+            project_id, file_data, document_keys
+        )
+
+        # Usually each file should have a corresponding db entry with some meta data.
+        # This might not be the case, if someone manually added a file to S3.
+        # TODO: Consider conflict handling
+        for key, json_doc in docs_not_in_db:
+            self.json_db_manager.create_json_document(
+                project_id, self.DOC_COLLECTION_NAME, key, json_doc
+            )
+
+        return file_data
 
     def get_file_metadata(
         self,
@@ -89,7 +116,7 @@ class MinioFileManager(FileOperations):
         )
 
         # Todo: Handle further metadata: creation, disabled, tags, icon, userdata, extension_id
-        bucket_name = self.get_bucket_name(project_id)
+        bucket_name = get_bucket_name(project_id, self.sys_namespace)
         result = self.client.put_object(
             bucket_name,
             file_key,
@@ -107,7 +134,7 @@ class MinioFileManager(FileOperations):
         file.md5_hash = file_stream.hash
 
         # ? Get the data from the last version if existing?
-        json_doc = self._create_metadata_json_docuemnt(file)
+        json_doc = self._create_metadata_json_document(file)
         self.json_db_manager.create_json_document(
             project_id, self.DOC_COLLECTION_NAME, str(file.id), json_doc
         )
@@ -147,33 +174,11 @@ class MinioFileManager(FileOperations):
     ) -> None:
         pass
 
-    def get_bucket_name(self, project_id: str) -> str:
-        # Todo: Replace depending on actual prefix handling
-        bucket_prefix = self.global_state.settings.SYSTEM_NAMESPACE
-        return project_id if not bucket_prefix else f"{bucket_prefix}.{project_id}"
-
     def _create_client(self) -> Minio:
         settings = self.global_state.settings
         state_namespace = self.request_state[MinioFileManager]
         if not state_namespace.client:
-            client = Minio(
-                endpoint=settings.S3_ENDPOINT,
-                access_key=settings.S3_ACCESS_KEY,
-                secret_key=settings.S3_SECRET_KEY,
-                region=settings.S3_REGION,
-                secure=settings.S3_SECURE,
-            )
-
-            try:
-                if not client.bucket_exists("nonexistingbucket"):
-                    logger.debug("Object storage connected")
-            except MaxRetryError:
-                logger.critical(
-                    "Could not connect to object storage (endpoint: {settings.S3_ENDPOINT}, region: {settings.S3_REGION}, secure: {settings.S3_SECURE})"
-                )
-                raise ServerBaseError("Could not connect to object storage")
-
-            state_namespace.client = client
+            state_namespace.client = create_minio_client(self.global_state.settings)
             logger.info(
                 f"Minio client created (endpoint: {settings.S3_ENDPOINT}, region: {settings.S3_REGION}, secure: {settings.S3_SECURE})"
             )
@@ -199,10 +204,85 @@ class MinioFileManager(FileOperations):
         }
         return File(**data)
 
-    def _create_metadata_json_docuemnt(self, file: File) -> str:
+    def _create_metadata_json_document(self, file: File) -> str:
         # Todo: Handle creation metadata. Problem: Each version is actually a new object and gets a dedicated db entry. Use list_objects or direct lookup in the DB?
         json_data = json.dumps(
             file.dict(include=self.METADATA_FIELD_SET, exclude_none=True),
             default=str,
         )
         return json_data
+
+    def _load_file_data_from_s3(
+        self,
+        bucket_name: str,
+        prefix: Optional[str] = None,
+        recursive: Optional[bool] = None,
+        include_version: Optional[bool] = None,
+    ) -> Tuple[List[File], List[str]]:
+        # TODO: Currently the available version field is always set and thus all versions are internally read everytime. Decide what is the desired behavior here.
+
+        file_data: List[File] = []
+        db_keys: List[str] = []
+        file_versions: Dict[str, List[str]] = {}
+
+        try:
+            objects: List[MinioObject] = self.client.list_objects(
+                bucket_name,
+                prefix,
+                recursive,
+                include_version=True,
+                include_user_meta=True,
+            )
+
+            for obj in objects:
+                file = self._map_s3_object_to_file_model(obj)
+                if include_version or file.latest_version:
+                    file_data.append(file)
+                    # ? The DB Keys might be added always in order to improve syncing between S3 and DB. But this would imply to read all versions from the DB everytime, even when versions arent requested by the user.
+                    db_keys.append(str(file.id))
+
+                versions = file_versions.get(file.key, [])
+                file_versions.update({file.key: versions + [str(file.version)]})
+
+            if not file_data:
+                return [], []
+
+        except S3Error as err:
+            if err.code == "NoSuchBucket":
+                create_bucket(self.client, bucket_name)
+                return [], []
+
+        for file in file_data:
+            file.available_versions = file_versions.get(file.key)
+
+        return file_data, db_keys
+
+    def _enrich_data_from_db(
+        self, project_id: str, file_data: List[File], document_keys: List[str]
+    ) -> Tuple[List[File], List[Dict[str, str]]]:
+
+        json_docs = self.json_db_manager.list_json_documents(
+            project_id, self.DOC_COLLECTION_NAME, keys=document_keys
+        )
+
+        # Create dict for efficient lookups
+        doc_dict: Dict[str, JsonDocument] = {}
+        for doc in json_docs:
+            doc_dict.update({doc.key: doc})
+
+        docs_not_in_db: List[Dict[str, str]] = []
+        for file in file_data:
+            doc_of_file = doc_dict.get(str(file.id))
+            if doc_of_file:
+                file = self._add_data_from_doc_to_file(file, doc_of_file)
+            else:
+                json_doc = self._create_metadata_json_document(file)
+                docs_not_in_db.append({str(file.id): json_doc})
+
+        return file_data, docs_not_in_db
+
+    def _add_data_from_doc_to_file(self, file: File, doc: JsonDocument) -> File:
+        json_dict = json.loads(doc.json_value)
+        for metadata_field in self.METADATA_FIELD_SET:
+            file.__setattr__(metadata_field, json_dict.get(metadata_field))
+        return file

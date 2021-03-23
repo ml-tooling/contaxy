@@ -35,10 +35,6 @@ def minio_file_manager(
 
 @pytest.mark.integration
 class TestMinioFileManager:
-    def test_list_files(self, minio_file_manager: MinioFileManager) -> None:
-
-        pass
-
     def test_get_file_metadata(self, minio_file_manager: MinioFileManager) -> None:
         pass
 
@@ -46,7 +42,7 @@ class TestMinioFileManager:
         pass
 
     @pytest.mark.parametrize("metadata", file_data)
-    def test_upload_file(
+    def test_upload_and_list_files(
         self, minio_file_manager: MinioFileManager, metadata: dict
     ) -> None:
 
