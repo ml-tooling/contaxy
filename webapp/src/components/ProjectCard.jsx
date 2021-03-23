@@ -12,41 +12,19 @@ import Typography from '@material-ui/core/Typography';
 
 import * as Jdenticon from 'jdenticon';
 
-import { fetchAPIToken } from '../services/contaxy-api';
-import showStandardSnackbar from '../app/showStandardSnackbar';
-import { useShowAppDialog } from '../app/AppDialogServiceProvider';
-import ApiTokenDialog from './Dialogs/ApiTokenDialog';
-import ManageProjectDialog from './Dialogs/ManageProjectDialog';
-
 function ProjectCard(props) {
-  const showAppDialog = useShowAppDialog();
-
-  const { onSelect, project } = props;
+  const {
+    onApiTokenClick,
+    onClickManageMembers,
+    onDeleteProject,
+    onSelect,
+    project,
+  } = props;
   const svgRef = useRef(null);
   useEffect(() => {
     Jdenticon.update(svgRef.current);
   }, [svgRef]);
 
-  const handleApiTokenClick = async () => {
-    // TODO: pass correct resource for which the API Token should be generated
-    const fetchedToken = await fetchAPIToken('foobar');
-    showAppDialog(ApiTokenDialog, { token: fetchedToken });
-  };
-
-  const handleManageMembersClick = () => {
-    showAppDialog(ManageProjectDialog, { project });
-  };
-
-  const handleProjectSelectClick = () => {
-    showStandardSnackbar(`Change to project '${project.name}'`);
-    onSelect(project);
-  };
-
-  const handleDeleteClick = () => {
-    showStandardSnackbar(`Delete project '${project.name}'`);
-  };
-
-  // TODO: add functionality to project card buttons
   return (
     <>
       <Grid item>
@@ -70,10 +48,12 @@ function ProjectCard(props) {
             <Typography>{project.description}</Typography>
           </CardContent>
           <CardActions>
-            <Button onClick={handleProjectSelectClick}>SELECT</Button>
-            <Button onClick={handleManageMembersClick}>MEMBERS</Button>
-            <Button onClick={handleApiTokenClick}>TOKEN</Button>
-            <Button onClick={handleDeleteClick}>DELETE</Button>
+            <Button onClick={() => onSelect(project)}>SELECT</Button>
+            <Button onClick={() => onClickManageMembers(project)}>
+              MEMBERS
+            </Button>
+            <Button onClick={() => onApiTokenClick(project)}>TOKEN</Button>
+            <Button onClick={() => onDeleteProject(project)}>DELETE</Button>
           </CardActions>
         </Card>
       </Grid>
@@ -82,6 +62,9 @@ function ProjectCard(props) {
 }
 
 ProjectCard.propTypes = {
+  onApiTokenClick: PropTypes.func.isRequired,
+  onClickManageMembers: PropTypes.func.isRequired,
+  onDeleteProject: PropTypes.func.isRequired,
   onSelect: PropTypes.func.isRequired,
   project: PropTypes.instanceOf(Object).isRequired,
 };

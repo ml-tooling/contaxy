@@ -13,14 +13,13 @@ import { APP_NAME } from '../../utils/config';
 import GlobalStateContainer from '../../app/store';
 
 function AppBar(props) {
-  const { className, onDrawerOpen } = props;
   const {
     activeProject,
-    isAuthenticated,
     projects,
     setActiveProject,
     user,
   } = GlobalStateContainer.useContainer();
+  const { className, isAuthenticated, onDrawerOpen } = props;
 
   const menuIconElement = (
     <IconButton
@@ -66,11 +65,13 @@ function AppBar(props) {
 
 AppBar.propTypes = {
   className: PropTypes.string, // passed by styled-components
+  isAuthenticated: PropTypes.bool,
   onDrawerOpen: PropTypes.func.isRequired,
 };
 
 AppBar.defaultProps = {
   className: '',
+  isAuthenticated: false,
 };
 
 const StyledAppBar = styled(AppBar)`
@@ -80,7 +81,7 @@ const StyledAppBar = styled(AppBar)`
 
   &.title {
     flex: 1;
-    /* margin-left: ${(props) => (props.isAuthenticated ? '96px' : '0px')}; */
+    margin-left: ${(props) => (props.isAuthenticated ? '96px' : '24px')};
     font-weight: 300;
     text-align: left;
   }

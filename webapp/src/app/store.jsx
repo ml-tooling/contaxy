@@ -44,6 +44,10 @@ export const initialState = {
       creator: 'admin',
       visibility: 'private',
       createdAt: 1606470094642,
+      metadata: {
+        fileNumber: 2,
+        serviceNumber: 3,
+      },
     },
     {
       id: 'ml-lab-demo',
@@ -52,9 +56,13 @@ export const initialState = {
       creator: 'admin',
       visibility: 'private',
       createdAt: 1607439288065,
+      metadata: {
+        fileNumber: 9,
+        serviceNumber: 4,
+      },
     },
   ],
-  isAuthenticated: false,
+  isAuthenticated: true,
   users: [
     {
       id: 'foobar',
