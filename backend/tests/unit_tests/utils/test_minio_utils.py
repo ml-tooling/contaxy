@@ -9,6 +9,7 @@ from contaxy.schema.exceptions import ServerBaseError
 from contaxy.utils.minio_utils import (
     create_bucket,
     create_minio_client,
+    delete_bucket,
     get_bucket_name,
 )
 
@@ -40,7 +41,7 @@ class TestMinioUtils:
         except ServerBaseError:
             pass
 
-    def test_create_bucket(self, minio_client: Minio) -> None:
+    def test_bucket_management(self, minio_client: Minio) -> None:
         project_id = f"{randint(1,10000)}-minio-utils-test"
         bucket_name = get_bucket_name(project_id, settings.SYSTEM_NAMESPACE)
         create_bucket(minio_client, bucket_name)
@@ -48,8 +49,8 @@ class TestMinioUtils:
         config = minio_client.get_bucket_versioning(bucket_name)
         assert config.status == ENABLED
 
-        try:
-            create_bucket(minio_client, bucket_name)
-            assert False
-        except ServerBaseError:
-            pass
+        create_bucket(minio_client, bucket_name)
+
+        delete_bucket(minio_client, bucket_name)
+
+        delete_bucket(minio_client, bucket_name)
