@@ -1,4 +1,4 @@
-from typing import Any, List, Optional
+from typing import Any, List
 
 from fastapi import APIRouter, Depends, Query, status
 from fastapi.param_functions import Body
@@ -76,9 +76,7 @@ def list_projects(
     # TODO: Check for permission in "project resource"
     # Check if the token has read access on the user resource
     component_manager.verify_access(
-        token,
-        authorized_access.authorized_subject,
-        AccessLevel.READ
+        token, authorized_access.authorized_subject, AccessLevel.READ
     )
     return component_manager.get_project_manager().list_projects()
 

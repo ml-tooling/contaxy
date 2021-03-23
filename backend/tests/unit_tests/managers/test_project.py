@@ -25,7 +25,6 @@ from contaxy.schema.project import (
     ProjectCreation,
     ProjectInput,
 )
-from contaxy.utils import id_utils
 from contaxy.utils.state_utils import GlobalState, RequestState
 from tests.unit_tests.conftest import test_settings
 
@@ -219,7 +218,7 @@ class ProjectOperationsTests(ABC):
     def test_project_member_handling(self, faker: Faker) -> None:
         project_name = faker.bs()
         project_id = self.project_manager.suggest_project_id(project_name)
-        created_project = self.project_manager.create_project(
+        self.project_manager.create_project(
             ProjectCreation(
                 id=project_id,
                 display_name=project_name,

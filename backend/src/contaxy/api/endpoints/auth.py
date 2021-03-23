@@ -1,7 +1,6 @@
 from typing import Any, List, Optional
 
 from fastapi import APIRouter, Body, Depends, Form, Query, status
-from starlette.responses import RedirectResponse
 
 from contaxy.api.dependencies import (
     ComponentManager,
