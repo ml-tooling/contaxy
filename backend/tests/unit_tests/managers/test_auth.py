@@ -12,7 +12,6 @@ from contaxy.config import settings
 from contaxy.managers.auth import AuthManager
 from contaxy.managers.json_db.inmemory_dict import InMemoryDictJsonDocumentManager
 from contaxy.managers.json_db.postgres import PostgresJsonDocumentManager
-from contaxy.operations.auth import AuthOperations
 from contaxy.schema.auth import (
     AccessLevel,
     OAuth2Error,
@@ -73,7 +72,7 @@ def user_data() -> List[UserRegistration]:
 class AuthOperationsTests(ABC):
     @property
     @abstractmethod
-    def auth_manager(self) -> AuthOperations:
+    def auth_manager(self) -> AuthManager:
         pass
 
     def test_change_password(self, faker: Faker) -> None:
@@ -485,7 +484,7 @@ class AuthOperationsTests(ABC):
 
 
 @pytest.mark.skipif(
-    test_settings.POSTGRES_INTEGRATION_TESTS is None,
+    not test_settings.POSTGRES_INTEGRATION_TESTS,
     reason="Postgres Integration Tests are deactivated, use POSTGRES_INTEGRATION_TESTS to activate.",
 )
 @pytest.mark.integration
@@ -498,7 +497,7 @@ class TestAuthManagerWithPostgresDB(AuthOperationsTests):
         self._auth_manager = AuthManager(global_state, request_state, json_db)
 
     @property
-    def auth_manager(self) -> AuthOperations:
+    def auth_manager(self) -> AuthManager:
         return self._auth_manager
 
 
@@ -512,5 +511,5 @@ class TestAuthManagerWithInMemoryDB(AuthOperationsTests):
         self._auth_manager = AuthManager(global_state, request_state, json_db)
 
     @property
-    def auth_manager(self) -> AuthOperations:
+    def auth_manager(self) -> AuthManager:
         return self._auth_manager

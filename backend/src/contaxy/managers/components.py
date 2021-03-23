@@ -18,9 +18,10 @@ from contaxy.operations import (
     ServiceOperations,
 )
 from contaxy.operations.deployment import DeploymentOperations
-from contaxy.schema.auth import UserRegistration
+from contaxy.schema.auth import AccessLevel, AuthorizedAccess, UserRegistration
 from contaxy.schema.deployment import ServiceInput
 from contaxy.schema.extension import CORE_EXTENSION_ID
+from contaxy.utils import auth_utils
 from contaxy.utils.state_utils import GlobalState, RequestState
 
 
@@ -86,10 +87,55 @@ class ComponentManager:
     def request_state(self) -> RequestState:
         return self._request_state
 
+    def verify_access(
+        self,
+        token: str,
+        resource_name: Optional[str] = None,
+        access_level: Optional[AccessLevel] = None,
+    ) -> AuthorizedAccess:
+        """Verifies if the authorized token is valid and grants access to the specified resource.
+
+        The token is verfied for its validity and - if provided - if it has the specified permission.
+
+        Args:
+            token: Token (session or API) to verify.
+            resource_name (optional): The access verification will check if the authroized subject is granted access to this resource.
+                If `None`, only the token will be checked for validity.
+            access_level (optional): The access verification will check if the authroized subject is allowed to access the resource at this level.
+                The access level has to be provided if the resource_name is used.
+
+        Raises:
+            PermissionDeniedError: If the requested permission is denied.
+            UnauthenticatedError: If the token is invalid or expired.
+
+        Returns:
+            AuthorizedAccess: Information about the granted permission, authenticated user, and the token.
+        """
+
+        # TODO: dynamic access level check: If `None`, the highest access level that the subject is granted for the given resource will be determined.
+
+        permission = None
+        if resource_name:
+            # Only check for permission if resource name is provided
+            # The access level should be provided
+            assert access_level is not None
+            processed_resource_name = (
+                resource_name.rstrip("/").rstrip(":").lstrip("/").lstrip(":")
+            )
+            permission = (
+                processed_resource_name
+                + auth_utils.PERMISSION_SEPERATOR
+                + access_level.value
+            )
+        authorized_access = self.get_auth_manager().verify_access(token, permission)
+        # Set the authroized access into the request state
+        self.request_state.authorized_access = authorized_access
+        return authorized_access
+
     def get_system_manager(self) -> SystemManager:
         """Returns a System Manager instance."""
         if not self._system_manager:
-            self._system_manager = SystemManager(self.global_state, self.request_state)  # type: ignore  # TODO: remove type ignore
+            self._system_manager = SystemManager(self.global_state, self.request_state)
 
         assert self._system_manager is not None
         return self._system_manager
@@ -105,7 +151,9 @@ class ComponentManager:
     def get_auth_manager(self) -> AuthManager:
         """Returns an Auth Manager instance."""
         if not self._auth_manager:
-            self._auth_manager = AuthManager(self.global_state, self.request_state, self.get_json_db_manager())  # type: ignore  # TODO: remove type ignore
+            self._auth_manager = AuthManager(
+                self.global_state, self.request_state, self.get_json_db_manager()
+            )
 
         assert self._auth_manager is not None
         return self._auth_manager
@@ -172,7 +220,7 @@ class ComponentManager:
             ):
                 from contaxy.managers.deployment.docker import DockerDeploymentManager
 
-                self._deployment_manager = DockerDeploymentManager(  # type: ignore  # TODO: remove type ignore
+                self._deployment_manager = DockerDeploymentManager(
                     self.global_state, self.request_state
                 )
             elif (
@@ -183,7 +231,7 @@ class ComponentManager:
                     KubernetesDeploymentManager,
                 )
 
-                self._deployment_manager = KubernetesDeploymentManager(  # type: ignore  # TODO: remove type ignore
+                self._deployment_manager = KubernetesDeploymentManager(
                     self.global_state, self.request_state
                 )
 

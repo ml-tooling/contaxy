@@ -4,7 +4,7 @@ from typing import List, Optional
 from starlette.responses import RedirectResponse
 
 from contaxy.schema import (
-    GrantedPermission,
+    AuthorizedAccess,
     OAuth2TokenRequestForm,
     OAuthToken,
     OAuthTokenIntrospection,
@@ -62,7 +62,7 @@ class AuthOperations(ABC):
     @abstractmethod
     def verify_access(
         self, token: str, permission: Optional[str] = None, disable_cache: bool = False
-    ) -> GrantedPermission:
+    ) -> AuthorizedAccess:
         """Verifies if the authorized token is valid and grants a certain permission.
 
         The token is verfied for its validity and - if provided - if it has the specified permission.
@@ -77,7 +77,7 @@ class AuthOperations(ABC):
             UnauthenticatedError: If the token is invalid or expired.
 
         Returns:
-            GrantedPermission: Information about the granted permission and authenticated user.
+            AuthorizedAccess: Information about the granted permission and authenticated user.
         """
         pass
 

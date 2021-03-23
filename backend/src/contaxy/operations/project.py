@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import List, Optional
 
-from contaxy.schema import AccessLevel, Project, ProjectInput, User
+from contaxy.schema import AccessLevel, Project, ProjectCreation, ProjectInput, User
 
 
 class ProjectOperations(ABC):
@@ -11,7 +11,7 @@ class ProjectOperations(ABC):
 
     @abstractmethod
     def create_project(
-        self, project: ProjectInput, technical_project: bool = False
+        self, project_input: ProjectCreation, technical_project: bool = False
     ) -> Project:
         pass
 
@@ -20,7 +20,7 @@ class ProjectOperations(ABC):
         pass
 
     @abstractmethod
-    def update_project(self, project: ProjectInput, project_id: str) -> Project:
+    def update_project(self, project_id: str, project_input: ProjectInput) -> Project:
         pass
 
     @abstractmethod

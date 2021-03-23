@@ -81,6 +81,14 @@ class ProjectInput(ResourceInput, ProjectBase):
     pass
 
 
+class ProjectCreation(ProjectInput):
+    id: str = Field(
+        ...,
+        example="my-awesome-project",
+        description="Project ID used for creating the project.",
+    )
+
+
 class Project(Resource, ProjectBase):
     technical_project: Optional[bool] = Field(
         False,

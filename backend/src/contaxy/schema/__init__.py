@@ -4,7 +4,7 @@
 from .auth import (
     AccessLevel,
     ApiToken,
-    GrantedPermission,
+    AuthorizedAccess,
     OAuth2TokenRequestForm,
     OAuthToken,
     OAuthTokenIntrospection,
@@ -35,6 +35,6 @@ from .exceptions import (
 from .extension import Extension, ExtensionInput
 from .file import File, FileInput
 from .json_db import JsonDocument
-from .project import Project, ProjectInput
+from .project import Project, ProjectCreation, ProjectInput
 from .shared import CoreOperations, ExtensibleOperations, ResourceAction
 from .system import SystemInfo, SystemStatistics

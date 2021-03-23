@@ -6,6 +6,7 @@ import addict
 from starlette import datastructures
 
 from contaxy.config import Settings
+from contaxy.schema import AuthorizedAccess
 
 
 class _Dict(addict.Dict):
@@ -123,3 +124,13 @@ class RequestState(State):
             state: The state object from the request (`request.state`)
         """
         super(RequestState, self).__init__(state)
+
+    @property
+    def authorized_access(self) -> AuthorizedAccess:
+        """Returns the authorized access info for the request."""
+        return self.shared_namespace.authorized_access
+
+    @authorized_access.setter
+    def authorized_access(self, authorized_access: AuthorizedAccess) -> None:
+        """Sets the authorized access info."""
+        self.shared_namespace.authorized_access = authorized_access

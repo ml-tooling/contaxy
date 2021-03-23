@@ -86,10 +86,11 @@ class ApiToken(AccessToken):
     )
 
 
-class GrantedPermission(BaseModel):
+class AuthorizedAccess(BaseModel):
     authorized_subject: str
     resource_name: Optional[str] = None
     access_level: Optional[AccessLevel] = None
+    access_token: Optional[AccessToken] = None
 
 
 # Oauth Specific Code

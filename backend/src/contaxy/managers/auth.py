@@ -13,7 +13,7 @@ from starlette.responses import RedirectResponse
 
 from contaxy import config
 from contaxy.operations import AuthOperations, JsonDocumentOperations
-from contaxy.schema import GrantedPermission, TokenType, User, UserInput
+from contaxy.schema import AuthorizedAccess, TokenType, User, UserInput
 from contaxy.schema.auth import (
     AccessToken,
     ApiToken,
@@ -286,7 +286,7 @@ class AuthManager(AuthOperations):
 
     def _verify_access_via_db(
         self, token: AccessToken, permission: str, use_cache: bool
-    ) -> GrantedPermission:
+    ) -> AuthorizedAccess:
         scope_grants_access = False
         for scope in token.scopes:
 
@@ -313,10 +313,11 @@ class AuthManager(AuthOperations):
             if auth_utils.is_permission_granted(token_subject_permission, permission):
                 # The token subject (= usually user) is granted the requested permission
                 resource_name, access_level = auth_utils.parse_permission(permission)
-                return GrantedPermission(
+                return AuthorizedAccess(
                     authorized_subject=token.subject,
                     resource_name=resource_name,
                     access_level=access_level,
+                    access_token=token,
                 )
 
         raise PermissionDeniedError(
@@ -325,12 +326,14 @@ class AuthManager(AuthOperations):
 
     def verify_access(
         self, token: str, permission: Optional[str] = None, use_cache: bool = True
-    ) -> GrantedPermission:
+    ) -> AuthorizedAccess:
         # This will thows UnauthenticatedError if the token is not valid or does not existx
         resolved_token = self._resolve_token(token, use_cache=use_cache)
         if not permission:
             # no permissions to check -> return granted permission
-            return GrantedPermission(authorized_subject=resolved_token.subject)
+            return AuthorizedAccess(
+                authorized_subject=resolved_token.subject, access_token=resolved_token
+            )
         if not use_cache or not self._global_state.settings.VERIFY_ACCESS_CACHE_ENABLED:
             # Do not use cache
             return self._verify_access_via_db(
