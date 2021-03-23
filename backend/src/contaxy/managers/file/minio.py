@@ -1,7 +1,10 @@
+import json
+import os
 from typing import Iterator, List, Optional
 
 from loguru import logger
 from minio import Minio
+from minio.datatypes import Object as MinioObject
 from starlette.responses import Response
 from urllib3.exceptions import MaxRetryError
 
@@ -9,7 +12,7 @@ from contaxy.operations import FileOperations
 from contaxy.operations.json_db import JsonDocumentOperations
 from contaxy.schema import File, FileInput, ResourceAction
 from contaxy.schema.exceptions import ServerBaseError
-from contaxy.utils.file_utils import FileStream
+from contaxy.utils.file_utils import FileStream, generate_file_id
 from contaxy.utils.state_utils import GlobalState, RequestState
 
 
@@ -80,7 +83,38 @@ class MinioFileManager(FileOperations):
         file_stream: FileStream,
         content_type: str = "application/octet-stream",
     ) -> File:
-        pass
+
+        logger.debug(
+            f"Upload file (`project_id`: {project_id}, `file_key`: {file_key} )"
+        )
+
+        # Todo: Handle further metadata: creation, disabled, tags, icon, userdata, extension_id
+        bucket_name = self.get_bucket_name(project_id)
+        result = self.client.put_object(
+            bucket_name,
+            file_key,
+            file_stream,
+            -1,
+            content_type,
+            part_size=10 * 1024 * 1024,
+        )
+
+        object_stats = self.client.stat_object(
+            bucket_name, file_key, version_id=result.version_id
+        )
+
+        file = self._map_s3_object_to_file_model(object_stats)
+        file.md5_hash = file_stream.hash
+
+        # ? Get the data from the last version if existing?
+        json_doc = self._create_metadata_json_docuemnt(file)
+        self.json_db_manager.create_json_document(
+            project_id, self.DOC_COLLECTION_NAME, str(file.id), json_doc
+        )
+
+        # This is necessary in order to have the available versions metadata set
+        file = self.list_files(project_id, False, False, file_key)[0]
+        return file
 
     def download_file(
         self,
@@ -144,3 +178,31 @@ class MinioFileManager(FileOperations):
                 f"Minio client created (endpoint: {settings.S3_ENDPOINT}, region: {settings.S3_REGION}, secure: {settings.S3_SECURE})"
             )
         return state_namespace.client
+
+    def _map_s3_object_to_file_model(self, object: MinioObject) -> File:
+        # Todo: Check if directory can be given and what the implications are. Do we want to list such? (see object.is_dir param)
+        file_extension = os.path.splitext(object.object_name)[1]
+        display_name = os.path.basename(object.object_name)
+        data = {
+            "id": generate_file_id(object.object_name, object.version_id),
+            "external_id": object.object_name,
+            "key": object.object_name,
+            "display_name": display_name,
+            # ! Minio seems to not set the content type, only when reading single object via stat_object, hence we persist it in the db
+            # "content_type": object.content_type,
+            "updated_at": object.last_modified,
+            "file_extension": file_extension,
+            "file_size": object.size,
+            "etag": object.etag,
+            "latest_version": object.is_latest,
+            "version": object.version_id,
+        }
+        return File(**data)
+
+    def _create_metadata_json_docuemnt(self, file: File) -> str:
+        # Todo: Handle creation metadata. Problem: Each version is actually a new object and gets a dedicated db entry. Use list_objects or direct lookup in the DB?
+        json_data = json.dumps(
+            file.dict(include=self.METADATA_FIELD_SET, exclude_none=True),
+            default=str,
+        )
+        return json_data
