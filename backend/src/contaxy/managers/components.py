@@ -10,11 +10,13 @@ from contaxy.managers.extension import ExtensionManager
 from contaxy.managers.file.minio import MinioFileManager
 from contaxy.managers.json_db.inmemory_dict import InMemoryDictJsonDocumentManager
 from contaxy.managers.project import ProjectManager
+from contaxy.managers.seed import SeedManager
 from contaxy.managers.system import SystemManager
 from contaxy.operations import (
     FileOperations,
     JobOperations,
     JsonDocumentOperations,
+    SeedOperations,
     ServiceOperations,
 )
 from contaxy.operations.deployment import DeploymentOperations
@@ -61,6 +63,9 @@ class ComponentManager:
         self._json_db_manager: Optional[JsonDocumentOperations] = None
         self._deployment_manager: Optional[DeploymentOperations] = None
         self._file_manager: Optional[FileOperations] = None
+
+        # Debug Manager
+        self._seed_manager: Optional[SeedOperations] = None
 
     # Allow component manger to be used as context manager
     def __enter__(self) -> "ComponentManager":
@@ -143,7 +148,7 @@ class ComponentManager:
     def get_project_manager(self) -> ProjectManager:
         """Returns a Project Manager instance."""
         if not self._project_manager:
-            self._project_manager = ProjectManager(self.global_state, self.request_state, self.get_json_db_manager())  # type: ignore  # TODO: remove type ignore
+            self._project_manager = ProjectManager(self.global_state, self.request_state, self.get_json_db_manager(), self.get_auth_manager())  # type: ignore  # TODO: remove type ignore
 
         assert self._project_manager is not None
         return self._project_manager
@@ -271,6 +276,17 @@ class ComponentManager:
             return self.get_extension_manager().get_extension_client(extension_id)
 
         return self._get_deployment_manager()
+
+    def get_seed_manager(self) -> SeedOperations:
+        if not self._seed_manager:
+            self._seed_manager = SeedManager(
+                self.global_state,
+                self.request_state,
+                auth_manager=self.get_auth_manager(),
+                file_manager=self.get_file_manager(),
+                project_manager=self.get_project_manager(),
+            )
+        return self._seed_manager
 
 
 def install_components() -> None:
