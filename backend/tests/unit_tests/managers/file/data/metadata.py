@@ -4,7 +4,8 @@ HERE = os.path.abspath(os.path.dirname(__file__))
 
 file_m = {
     "filename": "news.csv",
-    "file_path": os.path.join(HERE, "multipart_m.bin"),
+    "multipart_file_path": os.path.join(HERE, "multipart_m.bin"),
+    "file_path": os.path.join(HERE, "news.csv"),
     "headers": {
         "content-type": "multipart/form-data; boundary=----WebKitFormBoundaryCtwHrjI6bEnjs7o6"
     },
@@ -12,12 +13,11 @@ file_m = {
     "content_type": "text/csv",
 }
 
-# file_m.update({"file_path": })
-
 
 file_l = {
     "filename": "news-categorized.csv",
-    "file_path": os.path.join(HERE, "multipart_l.bin"),
+    "multipart_file_path": os.path.join(HERE, "multipart_l.bin"),
+    "file_path": os.path.join(HERE, "news-categorized.csv"),
     "headers": {
         "content-type": "multipart/form-data; boundary=----WebKitFormBoundaryNPwhz5SCaFU3O6pE"
     },
