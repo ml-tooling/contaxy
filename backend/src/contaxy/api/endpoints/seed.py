@@ -17,6 +17,7 @@ def create_seed_default(
     component_manager: ComponentManager = Depends(get_component_manager),
     token: str = Depends(get_api_token),
 ) -> Any:
+    # Don't use `verify_token` because that function wants to query the database and right now we don't have a user in the database on startup
     access_token = component_manager.get_auth_manager()._resolve_token(
         token, use_cache=True
     )
