@@ -9,7 +9,7 @@ import Menu from '@material-ui/core/Menu';
 import MenuItem from '@material-ui/core/MenuItem';
 
 import { API_EXPLORER_URL, DOCUMENTATION_URL } from '../../utils/config';
-import { fetchAPIToken } from '../../services/lab-api';
+import { fetchAPIToken } from '../../services/contaxy-api';
 import { useShowAppDialog } from '../../app/AppDialogServiceProvider';
 import ApiTokenDialog from '../Dialogs/ApiTokenDialog';
 
@@ -19,8 +19,8 @@ const REL = 'noopener noreferrer';
 function UserMenu(props) {
   const { t } = useTranslation();
   const [anchorEl, setAnchorEl] = useState();
-  const { className, user } = props;
   const showAppDialog = useShowAppDialog();
+  const { className, isAuthenticated, user } = props;
 
   const handleClose = () => setAnchorEl(null);
   const handleMenuClick = (event) => setAnchorEl(event.currentTarget);
@@ -30,6 +30,10 @@ function UserMenu(props) {
     const fetchedToken = await fetchAPIToken(user);
     showAppDialog(ApiTokenDialog, { token: JSON.stringify(fetchedToken) });
   };
+
+  const privateElements = (
+    <MenuItem onClick={handleApiTokenClick}>{t('Get API token')}</MenuItem>
+  );
 
   return (
     <div className={`${className} container`}>
@@ -71,7 +75,7 @@ function UserMenu(props) {
         >
           {t('api_explorer')}
         </MenuItem>
-        <MenuItem onClick={handleApiTokenClick}>{t('Get API token')}</MenuItem>
+        {isAuthenticated ? privateElements : false}
       </Menu>
     </div>
   );
@@ -79,11 +83,13 @@ function UserMenu(props) {
 
 UserMenu.propTypes = {
   className: PropTypes.string,
+  isAuthenticated: PropTypes.bool,
   user: PropTypes.instanceOf(Object),
 };
 
 UserMenu.defaultProps = {
   className: '',
+  isAuthenticated: false,
   user: {},
 };
 

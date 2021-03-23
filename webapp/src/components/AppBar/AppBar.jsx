@@ -13,16 +13,15 @@ import { APP_NAME } from '../../utils/config';
 import GlobalStateContainer from '../../app/store';
 
 function AppBar(props) {
-  const { className, onDrawerOpen } = props;
   const {
     activeProject,
-    isAuthenticated,
     projects,
     setActiveProject,
     user,
   } = GlobalStateContainer.useContainer();
+  const { className, isAuthenticated, onDrawerOpen } = props;
 
-  const privateComponents = (
+  const menuIconElement = (
     <IconButton
       color="inherit"
       aria-label="open drawer"
@@ -33,10 +32,22 @@ function AppBar(props) {
     </IconButton>
   );
 
+  const projectSelectorElement = (
+    <ProjectSelector
+      activeProject={activeProject}
+      projects={projects}
+      onProjectChange={setActiveProject}
+    />
+  );
+
+  const userNameElement = (
+    <Typography className={`${className} user`}>{user.name}</Typography>
+  );
+
   return (
     <MaterialUiAppBar className={`${className} root`}>
       <Toolbar disableGutters>
-        {isAuthenticated ? privateComponents : false}
+        {isAuthenticated ? menuIconElement : false}
         <Typography
           variant="h6"
           color="inherit"
@@ -44,13 +55,9 @@ function AppBar(props) {
         >
           {APP_NAME}
         </Typography>
-        <ProjectSelector
-          activeProject={activeProject}
-          projects={projects}
-          onProjectChange={setActiveProject}
-        />
-        <Typography className={`${className} user`}>{user.name}</Typography>
-        <UserMenu user={user} />
+        {isAuthenticated ? projectSelectorElement : false}
+        {isAuthenticated ? userNameElement : false}
+        <UserMenu isAuthenticated={isAuthenticated} user={user} />
       </Toolbar>
     </MaterialUiAppBar>
   );
@@ -58,11 +65,13 @@ function AppBar(props) {
 
 AppBar.propTypes = {
   className: PropTypes.string, // passed by styled-components
+  isAuthenticated: PropTypes.bool,
   onDrawerOpen: PropTypes.func.isRequired,
 };
 
 AppBar.defaultProps = {
   className: '',
+  isAuthenticated: false,
 };
 
 const StyledAppBar = styled(AppBar)`
@@ -72,7 +81,7 @@ const StyledAppBar = styled(AppBar)`
 
   &.title {
     flex: 1;
-    /* margin-left: ${(props) => (props.isAuthenticated ? '96px' : '0px')}; */
+    margin-left: ${(props) => (props.isAuthenticated ? '0px' : '24px')};
     font-weight: 300;
     text-align: left;
   }

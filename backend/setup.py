@@ -65,6 +65,11 @@ setup(
         "loguru",
         # Required by fastapi.security OAuth2PasswordBearer & fastapi.UploadFile for example
         "python-multipart",
+        # Used for multipart stream parsing in file manager
+        "streaming_form_data",
+        # Used in MinioFileManager
+        "filetype",
+        "minio",
         # Used for jwt handling
         "python-jose[cryptography]",
         # Used for password hashing

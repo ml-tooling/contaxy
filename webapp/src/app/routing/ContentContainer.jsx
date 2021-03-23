@@ -3,13 +3,13 @@ import PropTypes from 'prop-types';
 import { Switch } from 'react-router-dom';
 import styled from 'styled-components';
 import Toolbar from '@material-ui/core/Toolbar';
-import { PAGES, APP_DRAWER_ITEM_TYPES } from '../../utils/config';
+import APP_PAGES, { APP_DRAWER_ITEM_TYPES } from '../../utils/app-pages';
 import PrivateRoute from './PrivateRoute';
 import LoginRoute from './LoginRoute';
 
 function ContentContainer(props) {
-  const { className } = props;
-  const routes = PAGES.filter(
+  const { className, isAuthenticated } = props;
+  const routes = APP_PAGES.filter(
     (item) => item.TYPE === APP_DRAWER_ITEM_TYPES.link
   ).map((item) => {
     const RouteElement = item.REQUIRE_LOGIN ? PrivateRoute : LoginRoute;
@@ -20,7 +20,7 @@ function ContentContainer(props) {
         path={item.PATH}
         exact
         component={item.COMPONENT}
-        isAuthenticated
+        isAuthenticated={isAuthenticated}
         componentProps={item.PROPS}
       />
     );
@@ -37,6 +37,7 @@ function ContentContainer(props) {
 
 ContentContainer.propTypes = {
   className: PropTypes.string,
+  isAuthenticated: PropTypes.bool.isRequired,
 };
 
 ContentContainer.defaultProps = {
@@ -47,7 +48,6 @@ const StyledContentContainer = styled(ContentContainer)`
   &.root {
     position: relative;
     width: 100%;
-    // padding: 24px;
   }
 `;
 

@@ -34,7 +34,8 @@ def main(args: dict) -> None:
         )
 
         output_path = openapi_utils.generate_openapi_js_client(
-            openapi_spec_file=f"./{PYTHON_LIB_COMPONENT}/openapi.json"
+            openapi_spec_file=f"./{PYTHON_LIB_COMPONENT}/openapi-spec.json",
+            additional_flags="--global-property skipFormModel=false",
         )
         is_successful = False
         if output_path:
@@ -63,8 +64,8 @@ def main(args: dict) -> None:
         build_docker.build_docker_image(COMPONENT_NAME, version, exit_on_error=True)
 
     # TODO: Uncomment when dockerfile is finalized
-    #if args.get(build_utils.FLAG_CHECK):
-        #build_docker.lint_dockerfile(exit_on_error=True)
+    # if args.get(build_utils.FLAG_CHECK):
+    # build_docker.lint_dockerfile(exit_on_error=True)
 
 
 if __name__ == "__main__":

@@ -19,29 +19,15 @@ const COLUMNS = [
 
 const PAGE_SIZES = [5, 10, 15, 30, 50, 75, 100];
 
-const getServiceUrl = (service) => {
-  // TODO: return url under which the service is reachable
-  return service;
-};
-
-const onShowDeployCommand = (rowData) => {
-  // TODO: return deploy command
-  return rowData;
-};
-
-const onShowLogs = (rowData) => {
-  // TODO: return service logs
-  return rowData;
-};
-
-const onServiceDelete = (rowData) => {
-  // TODO: delete service
-  return rowData;
-};
-
 function ServicesContainer(props) {
   const { t } = useTranslation();
-  const { data } = props;
+  const {
+    data,
+    onReload,
+    onServiceDelete,
+    onShowServiceLogs,
+    onShowServiceMetadata,
+  } = props;
 
   return (
     <MaterialTable
@@ -70,10 +56,17 @@ function ServicesContainer(props) {
       localization={{ header: { actions: '' } }} // disable localization header name
       actions={[
         {
+          icon: 'autorenew',
+          isFreeAction: true,
+          onClick: onReload,
+          tooltip: t('reload'),
+        },
+        {
           icon: 'access',
           iconProps: { className: `` },
           onClick: (event, rowData) => {
-            window.open(getServiceUrl(rowData), '_blank');
+            // window.open(getServiceUrl(rowData), '_blank');
+            console.log(event, rowData);
           },
           tooltip: 'Access service',
         },
@@ -81,15 +74,15 @@ function ServicesContainer(props) {
           icon: 'code',
           iconProps: { className: `` },
           onClick: (event, rowData) => {
-            onShowDeployCommand(rowData);
+            onShowServiceMetadata(rowData);
           },
-          tooltip: 'Show deploy command',
+          tooltip: 'Show service metadata',
         },
         {
           icon: 'assignment',
           iconProps: { className: `` },
           onClick: (event, rowData) => {
-            onShowLogs(rowData);
+            onShowServiceLogs(rowData);
           },
           tooltip: 'Display logs',
         },
@@ -108,10 +101,18 @@ function ServicesContainer(props) {
 
 ServicesContainer.propTypes = {
   data: PropTypes.arrayOf(Object),
+  onReload: PropTypes.func,
+  onServiceDelete: PropTypes.func,
+  onShowServiceLogs: PropTypes.func,
+  onShowServiceMetadata: PropTypes.func,
 };
 
 ServicesContainer.defaultProps = {
   data: [],
+  onReload: () => {},
+  onServiceDelete: () => {},
+  onShowServiceLogs: () => {},
+  onShowServiceMetadata: () => {},
 };
 
 export default ServicesContainer;
