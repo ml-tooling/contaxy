@@ -23,7 +23,7 @@ RUN \
   && apt-get install -y libpq-dev
 
 # Install gunicorn and uvicorn to run FastAPI optimized
-RUN pip install --no-cache-dir "uvicorn[standard]" gunicorn fastapi
+RUN pip install --no-cache-dir "uvicorn[standard]" gunicorn fastapi faker
 
 ENV PYTHONPATH=/resources/app \
     MODULE_NAME=contaxy.api \
