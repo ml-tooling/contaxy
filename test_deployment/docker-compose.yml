@@ -1,33 +1,37 @@
 version: "3.9"
 
 services:
-  contaxy:
-    build:
-      context: ..
-      dockerfile: ./Dockerfile
-    ports:
-      - "30010:8080"
-    networks:
-      - test-contaxy-network
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    environment:
-      - POSTGRES_CONNECTION_URI=postgresql://postgres:postgres@db:5432/postgres
-    depends_on:
-      - db
-      - s3
-  db:
-    image: postgres:13.2
-    environment:
-      - POSTGRES_DB=postgres
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-    networks:
-      - test-contaxy-network
-  s3:
-    image: minio/minio:RELEASE.2021-03-04T00-53-13Z
-    networks:
-      - test-contaxy-network
+    contaxy:
+        build:
+            context: ..
+            dockerfile: ./Dockerfile
+        ports:
+            - "30010:8080"
+        networks:
+            - test-contaxy-network
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock
+        environment:
+            - POSTGRES_CONNECTION_URI=postgresql://postgres:postgres@db:5432/postgres
+            - S3_ENDPOINT=s3:9000
+            - S3_ACCESS_KEY=minioadmin
+            - S3_SECRET_KEY=minioadmin
+        depends_on:
+            - db
+            - s3
+    db:
+        image: postgres:13.2
+        environment:
+            - POSTGRES_DB=postgres
+            - POSTGRES_USER=postgres
+            - POSTGRES_PASSWORD=postgres
+        networks:
+            - test-contaxy-network
+    s3:
+        image: minio/minio:RELEASE.2021-03-04T00-53-13Z
+        command: server /data
+        networks:
+            - test-contaxy-network
 
 networks:
-  test-contaxy-network:
+    test-contaxy-network:

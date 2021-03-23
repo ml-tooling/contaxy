@@ -15,6 +15,7 @@ from contaxy.api.endpoints import (
     file,
     json_db,
     project,
+    seed,
     system,
     user,
 )
@@ -79,6 +80,8 @@ app.include_router(deployment.service_router)
 app.include_router(extension.router)
 app.include_router(file.router)
 app.include_router(json_db.router)
+if config.settings.DEBUG:
+    app.include_router(seed.router)
 
 # Patch Fastapi to allow relative path resolution.
 fastapi_utils.patch_fastapi(app)
