@@ -1,6 +1,7 @@
 from typing import Any, List, Optional
 
 from fastapi import APIRouter, Depends, Query, status
+from fastapi.param_functions import Body
 
 from contaxy.api.dependencies import (
     ComponentManager,
@@ -9,8 +10,9 @@ from contaxy.api.dependencies import (
 )
 from contaxy.schema import AccessLevel, CoreOperations, Project, ProjectInput, User
 from contaxy.schema.auth import USER_ID_PARAM
-from contaxy.schema.project import PROJECT_ID_PARAM
+from contaxy.schema.project import PROJECT_ID_PARAM, ProjectCreation
 from contaxy.schema.shared import MAX_DISPLAY_NAME_LENGTH, MIN_DISPLAY_NAME_LENGTH
+from contaxy.utils import auth_utils
 
 router = APIRouter(
     tags=["projects"],
@@ -29,7 +31,7 @@ router = APIRouter(
     status_code=status.HTTP_200_OK,
 )
 def create_project(
-    project: ProjectInput,
+    project: ProjectCreation,
     component_manager: ComponentManager = Depends(get_component_manager),
     token: str = Depends(get_api_token),
 ) -> Any:
@@ -37,30 +39,20 @@ def create_project(
 
     We suggest to use the `suggest_project_id` endpoint to get a valid and available ID.
     The project ID might also be set manually, however, an error will be returned if it does not comply with the ID requirements or is already used.
-    TODO: put method?
     """
-    pass
+    # TODO: put method?
 
-
-@router.patch(
-    "/projects/{project_id}",
-    operation_id=CoreOperations.UPDATE_PROJECT.value,
-    response_model=Project,
-    summary="Update project metadata.",
-    status_code=status.HTTP_200_OK,
-)
-def update_project(
-    project: ProjectInput,
-    project_id: str = PROJECT_ID_PARAM,
-    component_manager: ComponentManager = Depends(get_component_manager),
-    token: str = Depends(get_api_token),
-) -> Any:
-    """Updates the metadata of the given project.
-
-    This will update only the properties that are explicitly set in the patch request.
-    The patching is based on the JSON Merge Patch Standard [RFC7396](https://tools.ietf.org/html/rfc7396).
-    """
-    pass
+    # Check the token and get the authorized user
+    authorized_access = component_manager.verify_access(token)
+    # TODO: Check for permission in "project resource"
+    # Check if the token has write access on the user
+    component_manager.verify_access(
+        token,
+        auth_utils.construct_permission(
+            authorized_access.authorized_subject, AccessLevel.WRITE
+        ),
+    )
+    return component_manager.get_project_manager().create_project(project)
 
 
 @router.get(
@@ -79,7 +71,38 @@ def list_projects(
     A project is visible to a user, if the user has the atleast a `read` permission for the project.
     System adminstrators will also see technical projects, such as `system-internal` and `system-global`.
     """
-    pass
+    # Check the token and get the authorized user
+    authorized_access = component_manager.verify_access(token)
+    # TODO: Check for permission in "project resource"
+    # Check if the token has read access on the user resource
+    component_manager.verify_access(
+        token,
+        authorized_access.authorized_subject,
+        AccessLevel.READ
+    )
+    return component_manager.get_project_manager().list_projects()
+
+
+@router.patch(
+    "/projects/{project_id}",
+    operation_id=CoreOperations.UPDATE_PROJECT.value,
+    response_model=Project,
+    summary="Update project metadata.",
+    status_code=status.HTTP_200_OK,
+)
+def update_project(
+    project_id: str = PROJECT_ID_PARAM,
+    project: ProjectInput = Body(...),
+    component_manager: ComponentManager = Depends(get_component_manager),
+    token: str = Depends(get_api_token),
+) -> Any:
+    """Updates the metadata of the given project.
+
+    This will update only the properties that are explicitly set in the patch request.
+    The patching is based on the JSON Merge Patch Standard [RFC7396](https://tools.ietf.org/html/rfc7396).
+    """
+    component_manager.verify_access(token, f"projects/{project_id}", AccessLevel.WRITE)
+    component_manager.get_project_manager().update_project(project_id, project)
 
 
 @router.get(
@@ -95,7 +118,8 @@ def get_project(
     token: str = Depends(get_api_token),
 ) -> Any:
     """Returns the metadata of a single project."""
-    pass
+    component_manager.verify_access(token, f"projects/{project_id}", AccessLevel.READ)
+    return component_manager.get_project_manager().get_project(project_id)
 
 
 @router.get(
@@ -119,7 +143,9 @@ def suggest_project_id(
     The project ID will be human-readable and resemble the provided display name,
     but might be cut off or have an attached counter prefix.
     """
-    pass
+    # Only check the token for validity
+    component_manager.verify_access(token)
+    return component_manager.get_project_manager().suggest_project_id(display_name)
 
 
 @router.delete(
@@ -137,7 +163,9 @@ def delete_project(
 
     A project can only be delete by a user with `admin` permission on the project.
     """
-    pass
+    component_manager.verify_access(token, f"projects/{project_id}", AccessLevel.ADMIN)
+    component_manager.get_project_manager().delete_project(project_id)
+    # TODO: return needed?
 
 
 @router.get(
@@ -156,7 +184,8 @@ def list_project_members(
 
     This include all users that have atlease a `read` permission on the given project.
     """
-    pass
+    component_manager.verify_access(token, f"projects/{project_id}", AccessLevel.WRITE)
+    return component_manager.get_project_manager().list_project_members(project_id)
 
 
 @router.put(
@@ -169,7 +198,7 @@ def list_project_members(
 def add_project_member(
     project_id: str = PROJECT_ID_PARAM,
     user_id: str = USER_ID_PARAM,
-    permission_level: Optional[AccessLevel] = Query(
+    access_level: AccessLevel = Query(
         AccessLevel.WRITE,
         description="The permission level.",
         type="string",
@@ -180,13 +209,16 @@ def add_project_member(
     """Adds a user to the project.
 
     This will add the permission for this project to the user item.
-    The `permission_level` defines what the user can do:
+    The `access_level` defines what the user can do:
 
     - The `read` permission level allows read-only access on all resources.
     - The `write` permission level allows to create and delete project resources.
     - The `admin` permission level allows to delete the project or add/remove other users.
     """
-    pass
+    component_manager.verify_access(token, f"projects/{project_id}", AccessLevel.ADMIN)
+    return component_manager.get_project_manager().add_project_member(
+        project_id, user_id, access_level
+    )
 
 
 @router.delete(
@@ -206,4 +238,7 @@ def remove_project_member(
 
     This will remove the permission for this project from the user item.
     """
-    pass
+    component_manager.verify_access(token, f"projects/{project_id}", AccessLevel.ADMIN)
+    return component_manager.get_project_manager().remove_project_member(
+        project_id, user_id
+    )

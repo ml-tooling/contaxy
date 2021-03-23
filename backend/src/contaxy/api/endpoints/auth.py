@@ -18,6 +18,7 @@ from contaxy.schema import (
     OpenIDUserInfo,
     TokenType,
 )
+from contaxy.schema.auth import AccessLevel
 from contaxy.schema.extension import EXTENSION_ID_PARAM
 from contaxy.schema.shared import OPEN_URL_REDIRECT
 
@@ -38,10 +39,11 @@ def open_login_page(
     component_manager: ComponentManager = Depends(get_component_manager),
 ) -> Any:
     """Returns or redirect to the login-page."""
-    rr = RedirectResponse("/welcome", status_code=307)
-    rr.set_cookie(key="session_token", value="test-token", path="/welcome")
-    rr.set_cookie(key="user_token", value="test-user-token", path="/users/me")
-    return rr
+    # rr = RedirectResponse("/welcome", status_code=307)
+    # rr.set_cookie(key="session_token", value="test-token", path="/welcome")
+    # rr.set_cookie(key="user_token", value="test-user-token", path="/users/me")
+    # return rr
+    return component_manager.get_auth_manager().login_page()
 
 
 @router.get(
@@ -57,7 +59,8 @@ def logout_session(
 
     When making requests to the this endpoint, the browser should be redirected to this endpoint.
     """
-    return RedirectResponse("./login", status_code=307)
+    # RedirectResponse("./login", status_code=307)
+    return component_manager.get_auth_manager().logout_session()
 
 
 @router.get(
@@ -72,7 +75,15 @@ def list_api_tokens(
     token: str = Depends(get_api_token),
 ) -> Any:
     """Returns list of created API tokens associated with the authenticated user."""
-    pass
+    authorized_access = component_manager.verify_access(token)
+    # Check if the caller has admin access on the user resource
+    component_manager.verify_access(
+        token, authorized_access.authorized_subject, AccessLevel.ADMIN
+    )
+
+    return component_manager.get_auth_manager().list_api_tokens(
+        authorized_access.authorized_subject
+    )
 
 
 @router.post(
@@ -112,16 +123,16 @@ def create_token(
     the same access level on the given resource. For example, a token with `write` access level on a given resource
     allows to create new tokens with `write` or `read` granted level on that resource.
     """
-    granted_permission = component_manager.get_auth_manager().verify_access(token)
+    authorized_access = component_manager.verify_access(token)
 
-    # Check if the caller has admin access
-    component_manager.get_auth_manager().verify_access(
-        token, granted_permission.authorized_subject + "#admin"
+    # Check if the caller has admin access on the user resource
+    component_manager.verify_access(
+        token, authorized_access.authorized_subject, AccessLevel.ADMIN
     )
 
     if not scopes:
-        scopes = []
         # Get scopes from token
+        scopes = []
         token_introspection = component_manager.get_auth_manager().introspect_token(
             token
         )
@@ -129,14 +140,13 @@ def create_token(
             scopes = token_introspection.scope.split()
 
     return component_manager.get_auth_manager().create_token(
-        granted_permission.authorized_subject, scopes, token_type, description
+        authorized_access.authorized_subject, scopes, token_type, description
     )
 
 
 @router.post(
     "/auth/tokens/verify",
     operation_id=CoreOperations.VERIFY_ACCESS.value,
-    # response_model=List[str],
     summary="Verify a Session or API Token.",
     status_code=status.HTTP_204_NO_CONTENT,
 )
@@ -161,7 +171,7 @@ def verify_access(
     if token_in_body:
         # Prefer token from request body
         token = token_in_body
-    return component_manager.get_auth_manager().verify_access(token, permission)
+    component_manager.get_auth_manager().verify_access(token, permission)
 
 
 # OAuth Endpoints
@@ -215,7 +225,6 @@ def request_token(
 @router.post(
     "/auth/oauth/revoke",
     operation_id=CoreOperations.REVOKE_TOKEN.value,
-    response_model=List[str],
     summary="Revoke a token (OAuth2 Endpoint).",
     status_code=status.HTTP_200_OK,
 )

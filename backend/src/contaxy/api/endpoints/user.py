@@ -10,7 +10,9 @@ from contaxy.api.dependencies import (
     get_component_manager,
 )
 from contaxy.schema import CoreOperations, User, UserInput, UserRegistration
-from contaxy.schema.auth import USER_ID_PARAM
+from contaxy.schema.auth import USER_ID_PARAM, AccessLevel
+from contaxy.schema.exceptions import PermissionDeniedError
+from contaxy.utils import id_utils
 
 router = APIRouter(
     tags=["users"],
@@ -34,6 +36,9 @@ def list_users(
     token: str = Depends(get_api_token),
 ) -> Any:
     """Lists all users that are visible to the authenticated user."""
+    component_manager.verify_access(
+        token, "users", AccessLevel.READ
+    )  # TODO: the right permission?
     return component_manager.get_auth_manager().list_users()
 
 
@@ -53,6 +58,12 @@ def create_user(
 
     If the `password` is not provided, the user can only login by using other methods (social login).
     """
+
+    if component_manager.global_state.settings.USER_REGISTRATION_ENABLED:
+        # TODO: Allow for administrators
+        raise PermissionDeniedError("User self-registration is deactivated.")
+
+    # Everyone can create users
     return component_manager.get_auth_manager().create_user(
         user_input, technical_user=False
     )
@@ -71,8 +82,16 @@ def get_my_user(
     token: str = Depends(get_api_token),
 ) -> Any:
     """Returns the user metadata from the authenticated user."""
-    # TODO: not a manager operation -> just forward to the get_user operation
-    raise NotImplementedError
+    authorized_access = component_manager.verify_access(token)
+    # Check if read access to user object is allowed
+    component_manager.verify_access(
+        token, authorized_access.authorized_subject, AccessLevel.READ
+    )
+    return get_user(
+        id_utils.extract_user_id_from_resource_name(
+            authorized_access.authorized_subject
+        )
+    )
 
 
 @router.get(
@@ -89,6 +108,7 @@ def get_user(
     token: str = Depends(get_api_token),
 ) -> Any:
     """Returns the user metadata for a single user."""
+    component_manager.verify_access(token, "users/{user_id}", AccessLevel.READ)
     return component_manager.get_auth_manager().get_user(user_id)
 
 
@@ -111,7 +131,8 @@ def update_user(
     This will update only the properties that are explicitly set in the patch request.
     The patching is based on the JSON Merge Patch Standard [RFC7396](https://tools.ietf.org/html/rfc7396).
     """
-    # TODO: should only be called by an admin
+    # TODO: should only be called by an admin with access to all users, not by users itself
+    component_manager.verify_access(token, "users", AccessLevel.ADMIN)
     return component_manager.get_auth_manager().update_user(user_id, user_input)
 
 
@@ -137,6 +158,7 @@ def change_user_password(
 
     The password is stored as a hash.
     """
+    # TODO: check bearer token
     return component_manager.get_auth_manager().change_password(user_id, password)
 
 
@@ -156,4 +178,5 @@ def delete_user(
 
     Shared project resources will not be deleted.
     """
-    raise NotImplementedError
+    component_manager.verify_access(token, "users/{user_id}", AccessLevel.ADMIN)
+    component_manager.get_auth_manager().delete_user(user_id)

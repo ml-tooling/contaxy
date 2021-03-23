@@ -9,7 +9,7 @@ from contaxy.api.dependencies import (
     get_component_manager,
 )
 from contaxy.schema import CoreOperations, JsonDocument
-from contaxy.schema.exceptions import PermissionDeniedError
+from contaxy.schema.auth import AccessLevel
 from contaxy.schema.project import PROJECT_ID_PARAM
 
 router = APIRouter(
@@ -40,13 +40,9 @@ def create_json_document(
 
     If no collection exists in the project with the provided `collection_id`, a new collection will be created.
     """
-    if not component_manager.get_auth_manager().verify_access(
-        token, f"projects/{project_id}/json/{collection_id}/{key}#write"
-    ):
-        raise PermissionDeniedError()
-
-    # TODO: convert json to str?
-
+    component_manager.verify_access(
+        token, f"projects/{project_id}/json/{collection_id}/{key}", AccessLevel.WRITE
+    )
     return component_manager.get_json_db_manager().create_json_document(
         project_id, collection_id, key, json.dumps(json_document)
     )
@@ -71,12 +67,9 @@ def update_json_document(
 
     The update is applied on the existing document based on the JSON Merge Patch Standard [RFC7396](https://tools.ietf.org/html/rfc7396).
     """
-    if not component_manager.get_auth_manager().verify_access(
-        token, f"projects/{project_id}/json/{collection_id}/{key}#write"
-    ):
-        raise PermissionDeniedError()
-
-    # TODO: convert json to str?
+    component_manager.verify_access(
+        token, f"projects/{project_id}/json/{collection_id}/{key}", AccessLevel.WRITE
+    )
 
     return component_manager.get_json_db_manager().update_json_document(
         project_id, collection_id, key, json.dumps(json_document)
@@ -107,10 +100,9 @@ def list_json_documents(
 
     # TODO: Add filter examples
     """
-    if not component_manager.get_auth_manager().verify_access(
-        token, f"projects/{project_id}/json/{collection_id}#read"
-    ):
-        raise PermissionDeniedError()
+    component_manager.verify_access(
+        token, f"projects/{project_id}/json/{collection_id}", AccessLevel.READ
+    )
 
     return component_manager.get_json_db_manager().list_json_documents(
         project_id, collection_id, filter
@@ -132,10 +124,10 @@ def get_json_document(
     token: str = Depends(get_api_token),
 ) -> Any:
     """Returns a single JSON document."""
-    if not component_manager.get_auth_manager().verify_access(
-        token, f"projects/{project_id}/json/{collection_id}/{key}#read"
-    ):
-        raise PermissionDeniedError()
+
+    component_manager.verify_access(
+        token, f"projects/{project_id}/json/{collection_id}/{key}", AccessLevel.READ
+    )
 
     return component_manager.get_json_db_manager().get_json_document(
         project_id, collection_id, key
@@ -159,10 +151,9 @@ def delete_json_document(
 
     If no other document exists in the project collection, the collection will be deleted.
     """
-    if not component_manager.get_auth_manager().verify_access(
-        token, f"projects/{project_id}/json/{collection_id}/{key}#write"
-    ):
-        raise PermissionDeniedError()
+    component_manager.verify_access(
+        token, f"projects/{project_id}/json/{collection_id}/{key}", AccessLevel.WRITE
+    )
 
     return component_manager.get_json_db_manager().delete_json_document(
         project_id, collection_id, key
