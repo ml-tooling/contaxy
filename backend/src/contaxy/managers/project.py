@@ -1,13 +1,13 @@
 import re
 from datetime import datetime
-from typing import List, Optional
+from typing import List
 
 from loguru import logger
 
 from contaxy import config
 from contaxy.managers.auth import AuthManager
 from contaxy.operations import JsonDocumentOperations, ProjectOperations
-from contaxy.schema.auth import AccessLevel, User
+from contaxy.schema.auth import USERS_KIND, AccessLevel, User
 from contaxy.schema.exceptions import (
     ClientValueError,
     ResourceAlreadyExistsError,
@@ -15,6 +15,7 @@ from contaxy.schema.exceptions import (
 )
 from contaxy.schema.project import (
     MAX_PROJECT_ID_LENGTH,
+    PROJECTS_KIND,
     Project,
     ProjectCreation,
     ProjectInput,
@@ -58,18 +59,23 @@ class ProjectManager(ProjectOperations):
             resource_permissions = self._auth_manager.list_permissions(authorized_user)
             for permission in resource_permissions:
                 resource_name, _ = auth_utils.parse_permission(permission)
-                match = re.match(self._PROJECT_NAME_TO_ID_REGEX, resource_name)
-                if match:
-                    resource_id = match[1]
+                try:
+                    project_id = id_utils.extract_project_id_from_resource_name(
+                        resource_name
+                    )
                     try:
-                        project = self.get_project(resource_id)
+                        project = self.get_project(project_id)
                         projects.append(project)
                     except ResourceNotFoundError:
                         # this should not happen
                         logger.info(
-                            f"Project not found: {resource_id} during list projects."
+                            f"Project not found: {project_id} during list projects."
                         )
                         continue
+                except ValueError:
+                    # do nothing
+                    continue
+
         else:
             # TODO: also return all projects if user has admin role
             # If called without authorized user -> return all projects
@@ -119,9 +125,10 @@ class ProjectManager(ProjectOperations):
         if authorized_user:
             # Add admin permission for the project to the authorized user
             assert created_project.id is not None
-            self._auth_manager.add_permission(
-                authorized_user,
-                f"projects/{created_project.id}#{AccessLevel.ADMIN.value}",  # TODO how to set the resource name and kind?
+            self.add_project_member(
+                created_project.id,
+                id_utils.extract_user_id_from_resource_name(authorized_user),
+                AccessLevel.ADMIN,
             )
         return created_project
 
@@ -175,15 +182,74 @@ class ProjectManager(ProjectOperations):
         )
 
     def list_project_members(self, project_id: str) -> List[User]:
-        pass
+        project_member_resource_names: List[str] = []
+        admin_permission = auth_utils.construct_permission(
+            f"{PROJECTS_KIND}/{project_id}",
+            AccessLevel.ADMIN,
+        )
+        project_member_resource_names.extend(
+            self._auth_manager.list_resources_with_permission(
+                admin_permission, resource_name_prefix=USERS_KIND
+            )
+        )
+
+        write_permission = auth_utils.construct_permission(
+            f"{PROJECTS_KIND}/{project_id}",
+            AccessLevel.WRITE,
+        )
+        project_member_resource_names.extend(
+            self._auth_manager.list_resources_with_permission(
+                write_permission, resource_name_prefix=USERS_KIND
+            )
+        )
+
+        read_permission = auth_utils.construct_permission(
+            f"{PROJECTS_KIND}/{project_id}",
+            AccessLevel.READ,
+        )
+        project_member_resource_names.extend(
+            self._auth_manager.list_resources_with_permission(
+                read_permission, resource_name_prefix=USERS_KIND
+            )
+        )
+
+        project_users: List[User] = []
+
+        for resource_name in project_member_resource_names:
+            try:
+                user_id = id_utils.extract_user_id_from_resource_name(resource_name)
+                project_users.append(self._auth_manager.get_user(user_id))
+            except ValueError:
+                logger.warning(
+                    "Failed to extract user id from resource name: " + resource_name
+                )
+                continue
+
+        return project_users
 
     def add_project_member(
         self,
         project_id: str,
         user_id: str,
-        permission_level: Optional[AccessLevel],
+        access_level: AccessLevel,
     ) -> List[User]:
-        pass
+        self._auth_manager.add_permission(
+            f"{USERS_KIND}/{user_id}",
+            auth_utils.construct_permission(
+                f"{PROJECTS_KIND}/{project_id}",
+                access_level,
+            )
+            # TODO how to set the resource name and kind?
+        )
+        return self.list_project_members(project_id)
 
     def remove_project_member(self, project_id: str, user_id: str) -> List[User]:
-        pass
+        # Remove all permissions from the user that grant access to any part of the project
+        self._auth_manager.remove_permission(
+            f"{USERS_KIND}/{user_id}",
+            auth_utils.construct_permission(
+                f"{PROJECTS_KIND}/{project_id}", AccessLevel.ADMIN
+            ),
+            remove_sub_permissions=True,
+        )
+        return self.list_project_members(project_id)

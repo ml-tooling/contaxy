@@ -12,7 +12,12 @@ from contaxy.managers.json_db.inmemory_dict import InMemoryDictJsonDocumentManag
 from contaxy.managers.json_db.postgres import PostgresJsonDocumentManager
 from contaxy.managers.project import ProjectManager
 from contaxy.operations.project import ProjectOperations
-from contaxy.schema.auth import AuthorizedAccess
+from contaxy.schema.auth import (
+    USERS_KIND,
+    AccessLevel,
+    AuthorizedAccess,
+    UserRegistration,
+)
 from contaxy.schema.exceptions import ResourceAlreadyExistsError, ResourceNotFoundError
 from contaxy.schema.project import (
     MAX_PROJECT_ID_LENGTH,
@@ -91,9 +96,12 @@ class ProjectOperationsTests(ABC):
             )
 
         # Create project with an authorized user
-        USER = "users/" + id_utils.generate_short_uuid()
+        user = self.project_manager._auth_manager.create_user(
+            UserRegistration(username="test-users")
+        )
+
         self.project_manager._request_state.authorized_access = AuthorizedAccess(
-            authorized_subject=USER
+            authorized_subject=USERS_KIND + "/" + user.id  # TODO: resource name or id
         )
         project_name = faker.bs()
         project_id = self.project_manager.suggest_project_id(project_name)
@@ -106,7 +114,8 @@ class ProjectOperationsTests(ABC):
         )
 
         assert (
-            created_project.created_by == USER
+            created_project.created_by
+            == USERS_KIND + "/" + user.id  # TODO: use user.name
         ), "The authorized user should be set as creator"
 
     def test_list_project(self, faker: Faker) -> None:
@@ -131,9 +140,11 @@ class ProjectOperationsTests(ABC):
         )
 
         # Set an authorized user in the request state
-        USER = "users/" + id_utils.generate_short_uuid()
+        user = self.project_manager._auth_manager.create_user(
+            UserRegistration(username="test-users")
+        )
         self.project_manager._request_state.authorized_access = AuthorizedAccess(
-            authorized_subject=USER
+            authorized_subject=USERS_KIND + "/" + user.id  # TODO: use resource name
         )
         #
         created_projects_with_user: List[Project] = []
@@ -185,6 +196,65 @@ class ProjectOperationsTests(ABC):
             assert project.description != updated_project.description
             assert project.updated_at != updated_project.updated_at
             assert project.created_at == updated_project.created_at
+
+    def test_delete_project(self, faker: Faker) -> None:
+        project_name = faker.bs()
+        project_id = self.project_manager.suggest_project_id(project_name)
+
+        created_project = self.project_manager.create_project(
+            ProjectCreation(
+                id=project_id,
+                display_name=project_name,
+                description=faker.sentence(),
+            ),
+            technical_project=False,
+        )
+
+        self.project_manager.delete_project(created_project.id)
+        with pytest.raises(ResourceNotFoundError):
+            self.project_manager.get_project(created_project.id)
+
+        assert len(self.project_manager.list_projects()) == 0
+
+    def test_project_member_handling(self, faker: Faker) -> None:
+        project_name = faker.bs()
+        project_id = self.project_manager.suggest_project_id(project_name)
+        created_project = self.project_manager.create_project(
+            ProjectCreation(
+                id=project_id,
+                display_name=project_name,
+                description=faker.sentence(),
+            ),
+            technical_project=False,
+        )
+
+        user1 = self.project_manager._auth_manager.create_user(
+            UserRegistration(username="test-user-1")
+        )
+        self.project_manager.add_project_member(project_id, user1.id, AccessLevel.WRITE)
+        assert len(self.project_manager.list_project_members(project_id)) == 1
+
+        user2 = self.project_manager._auth_manager.create_user(
+            UserRegistration(username="test-user-2")
+        )
+        self.project_manager.add_project_member(project_id, user2.id, AccessLevel.ADMIN)
+        assert len(self.project_manager.list_project_members(project_id)) == 2
+
+        self.project_manager._request_state.authorized_access = AuthorizedAccess(
+            authorized_subject=USERS_KIND + "/" + user2.id  # TODO: use resource name
+        )
+
+        assert (
+            len(self.project_manager.list_projects()) == 1
+        ), "The authorized user should see 1 project"
+
+        self.project_manager.remove_project_member(project_id, user2.id)
+        assert (
+            len(self.project_manager.list_project_members(project_id)) == 1
+        ), "The project should only have one member after removal."
+        assert (
+            len(self.project_manager.list_projects()) == 0
+        ), "The authorized user should see 0 projects"
 
 
 @pytest.mark.skipif(

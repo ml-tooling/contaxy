@@ -440,7 +440,7 @@ class AuthManager(AuthOperations):
             ) from ex
 
     def remove_permission(
-        self, resource_name: str, permission: str, apply_as_prefix: bool = False
+        self, resource_name: str, permission: str, remove_sub_permissions: bool = False
     ) -> None:
         # TODO: Remove all sub permissions
         try:
@@ -454,7 +454,7 @@ class AuthManager(AuthOperations):
                     # Permission matched granted permission -> Ignore/remove this permission
                     removed_permissions.append(permission)
                     continue
-                if apply_as_prefix and auth_utils.is_permission_granted(
+                if remove_sub_permissions and auth_utils.is_permission_granted(
                     permission, granted_permission
                 ):
                     # Ignore/remove this permission since it is a subpermission
