@@ -20,7 +20,7 @@ function LoginRoute({ component: Component, isAuthenticated, ...rest }) {
 }
 
 LoginRoute.propTypes = {
-  component: PropTypes.func.isRequired,
+  component: PropTypes.instanceOf(Object).isRequired,
   isAuthenticated: PropTypes.bool,
 };
 

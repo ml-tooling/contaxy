@@ -6,7 +6,7 @@ import WidgetsGrid from '../../components/WidgetsGrid';
 
 import GlobalStateContainer from '../../app/store';
 
-import { filesApi, getFileDownloadUrl } from '../../services/lab-api';
+import { filesApi, getFileDownloadUrl } from '../../services/contaxy-api';
 
 import FilesTable from './FilesTable';
 
@@ -54,7 +54,7 @@ function Files() {
         data={data}
         onFileDownload={(rowData) => onFileDownload(activeProject, rowData)}
         onFileDelete={(rowData) => onFileDelete(activeProject, rowData)}
-        onReload={onReload}
+        onReload={() => onReload(activeProject)}
       />
     </div>
   );

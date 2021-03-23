@@ -8,7 +8,7 @@ import PrivateRoute from './PrivateRoute';
 import LoginRoute from './LoginRoute';
 
 function ContentContainer(props) {
-  const { className } = props;
+  const { className, isAuthenticated } = props;
   const routes = APP_PAGES.filter(
     (item) => item.TYPE === APP_DRAWER_ITEM_TYPES.link
   ).map((item) => {
@@ -20,7 +20,7 @@ function ContentContainer(props) {
         path={item.PATH}
         exact
         component={item.COMPONENT}
-        isAuthenticated
+        isAuthenticated={isAuthenticated}
         componentProps={item.PROPS}
       />
     );
@@ -37,6 +37,7 @@ function ContentContainer(props) {
 
 ContentContainer.propTypes = {
   className: PropTypes.string,
+  isAuthenticated: PropTypes.bool.isRequired,
 };
 
 ContentContainer.defaultProps = {

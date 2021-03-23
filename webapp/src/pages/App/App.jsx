@@ -9,7 +9,7 @@ import AppDrawer from '../../components/AppDrawer/AppDrawer';
 import ContentContainer from '../../app/routing/ContentContainer';
 import GlobalStateContainer from '../../app/store';
 
-import { projectsApi } from '../../services/lab-api';
+import { projectsApi } from '../../services/contaxy-api';
 
 function App() {
   // const { t } = useTranslation();
@@ -24,13 +24,17 @@ function App() {
   return (
     <div className="App">
       <AppBar isAuthenticated={isAuthenticated} onDrawerOpen={onDrawerClick} />
-      <AppDrawer
-        isAdmin
-        open={isDrawerOpen}
-        handleDrawerClose={onDrawerClick}
-      />
+      {isAuthenticated ? (
+        <AppDrawer
+          isAdmin
+          open={isDrawerOpen}
+          handleDrawerClose={onDrawerClick}
+        />
+      ) : (
+        false
+      )}
       <main className="main">
-        <ContentContainer />
+        <ContentContainer isAuthenticated={isAuthenticated} />
       </main>
       <div id="snackbar-container" />
     </div>

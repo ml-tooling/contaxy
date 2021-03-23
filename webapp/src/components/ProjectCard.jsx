@@ -12,7 +12,7 @@ import Typography from '@material-ui/core/Typography';
 
 import * as Jdenticon from 'jdenticon';
 
-import { fetchAPIToken } from '../services/lab-api';
+import { fetchAPIToken } from '../services/contaxy-api';
 import showStandardSnackbar from '../app/showStandardSnackbar';
 import { useShowAppDialog } from '../app/AppDialogServiceProvider';
 import ApiTokenDialog from './Dialogs/ApiTokenDialog';

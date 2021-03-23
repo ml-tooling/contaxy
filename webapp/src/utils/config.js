@@ -9,7 +9,7 @@ export const ENDPOINT =
     ? (
         document.location.origin.toString() +
         document.location.pathname.toString()
-      ).replace('/app/', '/api/')
+      ).replace('/app/', '/api')
     : process.env.REACT_APP_LAB_ENDPOINT;
 
 export const ENDPOINTS = {

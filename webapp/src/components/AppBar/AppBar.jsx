@@ -22,7 +22,7 @@ function AppBar(props) {
     user,
   } = GlobalStateContainer.useContainer();
 
-  const privateComponents = (
+  const menuIconElement = (
     <IconButton
       color="inherit"
       aria-label="open drawer"
@@ -33,10 +33,22 @@ function AppBar(props) {
     </IconButton>
   );
 
+  const projectSelectorElement = (
+    <ProjectSelector
+      activeProject={activeProject}
+      projects={projects}
+      onProjectChange={setActiveProject}
+    />
+  );
+
+  const userNameElement = (
+    <Typography className={`${className} user`}>{user.name}</Typography>
+  );
+
   return (
     <MaterialUiAppBar className={`${className} root`}>
       <Toolbar disableGutters>
-        {isAuthenticated ? privateComponents : false}
+        {isAuthenticated ? menuIconElement : false}
         <Typography
           variant="h6"
           color="inherit"
@@ -44,12 +56,8 @@ function AppBar(props) {
         >
           {APP_NAME}
         </Typography>
-        <ProjectSelector
-          activeProject={activeProject}
-          projects={projects}
-          onProjectChange={setActiveProject}
-        />
-        <Typography className={`${className} user`}>{user.name}</Typography>
+        {isAuthenticated ? projectSelectorElement : false}
+        {isAuthenticated ? userNameElement : false}
         <UserMenu user={user} />
       </Toolbar>
     </MaterialUiAppBar>

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import PropTypes from 'prop-types';
 import styled from 'styled-components';
 
@@ -19,18 +19,14 @@ import TextField from '@material-ui/core/TextField';
 import Typography from '@material-ui/core/Typography';
 
 import GlobalStateContainer from '../../app/store';
+import { useProjectMembers } from '../../services/api-hooks';
 
 function ManageProjectDialog(props) {
-  const [projectMembers, setProjectMembers] = useState([]);
+  const { activeProject, users } = GlobalStateContainer.useContainer();
+  const [projectMembers] = useProjectMembers(activeProject);
   const [userToAdd, setUserToAdd] = useState({}); // set to empty object so that material-ui knows that it is a controlled input
 
-  const { users } = GlobalStateContainer.useContainer();
   const { className, project, onClose } = props;
-
-  useEffect(() => {
-    // TODO: load project members
-    setProjectMembers([{ id: 'alpha', name: 'Alpha Beta' }]);
-  }, [project]);
 
   const handleSelectUser = (e, newValue) => {
     setUserToAdd(newValue);

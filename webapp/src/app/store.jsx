@@ -54,7 +54,7 @@ export const initialState = {
       createdAt: 1607439288065,
     },
   ],
-  isAuthenticated: true,
+  isAuthenticated: false,
   users: [
     {
       id: 'foobar',
