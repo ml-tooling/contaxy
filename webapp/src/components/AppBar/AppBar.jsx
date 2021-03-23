@@ -57,7 +57,7 @@ function AppBar(props) {
         </Typography>
         {isAuthenticated ? projectSelectorElement : false}
         {isAuthenticated ? userNameElement : false}
-        <UserMenu user={user} />
+        <UserMenu isAuthenticated={isAuthenticated} user={user} />
       </Toolbar>
     </MaterialUiAppBar>
   );
@@ -81,7 +81,7 @@ const StyledAppBar = styled(AppBar)`
 
   &.title {
     flex: 1;
-    margin-left: ${(props) => (props.isAuthenticated ? '96px' : '24px')};
+    margin-left: ${(props) => (props.isAuthenticated ? '0px' : '24px')};
     font-weight: 300;
     text-align: left;
   }

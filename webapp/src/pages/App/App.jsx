@@ -21,18 +21,14 @@ function App() {
     projectsApi.listProjects().then((result) => setProjects(result));
   });
 
+  const appDrawerElement = (
+    <AppDrawer isAdmin open={isDrawerOpen} handleDrawerClose={onDrawerClick} />
+  );
+
   return (
     <div className="App">
       <AppBar isAuthenticated={isAuthenticated} onDrawerOpen={onDrawerClick} />
-      {isAuthenticated ? (
-        <AppDrawer
-          isAdmin
-          open={isDrawerOpen}
-          handleDrawerClose={onDrawerClick}
-        />
-      ) : (
-        false
-      )}
+      {isAuthenticated ? appDrawerElement : false}
       <main className="main">
         <ContentContainer isAuthenticated={isAuthenticated} />
       </main>
