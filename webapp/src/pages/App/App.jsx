@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 // import { useTranslation } from 'react-i18next';
 
@@ -9,11 +9,17 @@ import AppDrawer from '../../components/AppDrawer/AppDrawer';
 import ContentContainer from '../../app/routing/ContentContainer';
 import GlobalStateContainer from '../../app/store';
 
+import { projectsApi } from '../../services/lab-api';
+
 function App() {
   // const { t } = useTranslation();
   const [isDrawerOpen, setDrawerOpen] = useState(false);
-  const { isAuthenticated } = GlobalStateContainer.useContainer();
+  const { isAuthenticated, setProjects } = GlobalStateContainer.useContainer();
   const onDrawerClick = () => setDrawerOpen(!isDrawerOpen);
+
+  useEffect(() => {
+    projectsApi.listProjects().then((result) => setProjects(result));
+  });
 
   return (
     <div className="App">

@@ -227,6 +227,13 @@ class KubernetesDeploymentManager(DeploymentManager):
             deployment: V1Deployment = self.apps_api.read_namespaced_deployment(
                 name=service_id, namespace=self.kube_namespace
             )
+
+            # Double check that this service really belongs to the project (even though the serviceId should be unique)
+            if deployment.metadata.labels[Labels.PROJECT_NAME.value] != project_id:
+                raise ResourceNotFoundError(
+                    f"Could not get metadata of service '{service_id}' for project {project_id}."
+                )
+
             return map_kube_service(deployment)
         except ApiException:
             raise ResourceNotFoundError(
@@ -305,6 +312,7 @@ class KubernetesDeploymentManager(DeploymentManager):
     ) -> str:
         try:
             pod = get_pod(
+                project_id=project_id,
                 service_id=service_id,
                 kube_namespace=self.kube_namespace,
                 core_api=self.core_api,
@@ -324,6 +332,7 @@ class KubernetesDeploymentManager(DeploymentManager):
                 if pod.status.phase in ["Pending", "ContainerCreating"]:
                     try:
                         pod = get_pod(
+                            project_id=project_id,
                             service_id=service_id,
                             kube_namespace=self.kube_namespace,
                             core_api=self.core_api,

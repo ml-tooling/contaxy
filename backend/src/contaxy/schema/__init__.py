@@ -10,6 +10,9 @@ from .auth import (
     OAuthTokenIntrospection,
     OpenIDUserInfo,
     TokenType,
+    User,
+    UserInput,
+    UserRegistration,
 )
 from .deployment import (
     Deployment,
@@ -25,6 +28,7 @@ from .exceptions import (
     PermissionDeniedError,
     ResourceAlreadyExistsError,
     ResourceNotFoundError,
+    ResourceUpdateFailedError,
     ServerBaseError,
     UnauthenticatedError,
 )
@@ -34,4 +38,3 @@ from .json_db import JsonDocument
 from .project import Project, ProjectInput
 from .shared import CoreOperations, ExtensibleOperations, ResourceAction
 from .system import SystemInfo, SystemStatistics
-from .user import User, UserInput, UserRegistration

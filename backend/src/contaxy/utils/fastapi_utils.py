@@ -83,9 +83,18 @@ def add_timing_info(app: FastAPI) -> None:
     logger = logging.getLogger(__name__)
     add_timing_middleware(app, record=logger.info, prefix="app", exclude="untimed")
 
+    # @app.middleware("http")
+    # async def add_process_time_header(request: Request, call_next):
+    #    start_time = time.time()
+    #    response = await call_next(request)
+    #    process_time = time.time() - start_time
+    #    response.headers["X-Process-Time"] = str(process_time)
+    #    return response
+    # fastapi-profiler
+    # from fastapi_profiler.profiler_middleware import PyInstrumentProfilerMiddleware
+    # app.add_middleware(PyInstrumentProfilerMiddleware, profiler_output_type="html")
     # import fastapi
     # from asgi_server_timing import ServerTimingMiddleware
-
     # app.add_middleware(
     #    ServerTimingMiddleware,
     #    calls_to_track={
@@ -99,3 +108,21 @@ def add_timing_info(app: FastAPI) -> None:
     #        ),
     #    },
     # )
+
+
+# @app.middleware("http")
+# async def add_process_time_header(request: Request, call_next) -> Response:  # type: ignore
+#    profiler = Profiler()
+#    profiler.start()
+#    start_time = time.time()
+#
+#    response = await call_next(request)
+#    process_time = time.time() - start_time
+#    response.headers["X-Process-Time"] = str(process_time)
+#    profiler.stop()
+#
+#    with open(
+#        "./prof/" + id_utils.generate_readable_id(str(request.url)) + ".html", "w"
+#    ) as f:
+#        f.write(profiler.output_html())
+#    return response

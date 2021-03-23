@@ -1,3 +1,4 @@
+import json
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, Path, Query, status
@@ -39,7 +40,7 @@ def create_json_document(
 
     If no collection exists in the project with the provided `collection_id`, a new collection will be created.
     """
-    if not component_manager.get_auth_manager().verify_token(
+    if not component_manager.get_auth_manager().verify_access(
         token, f"projects/{project_id}/json/{collection_id}/{key}#write"
     ):
         raise PermissionDeniedError()
@@ -47,7 +48,7 @@ def create_json_document(
     # TODO: convert json to str?
 
     return component_manager.get_json_db_manager().create_json_document(
-        project_id, collection_id, key, json_document
+        project_id, collection_id, key, json.dumps(json_document)
     )
 
 
@@ -70,7 +71,7 @@ def update_json_document(
 
     The update is applied on the existing document based on the JSON Merge Patch Standard [RFC7396](https://tools.ietf.org/html/rfc7396).
     """
-    if not component_manager.get_auth_manager().verify_token(
+    if not component_manager.get_auth_manager().verify_access(
         token, f"projects/{project_id}/json/{collection_id}/{key}#write"
     ):
         raise PermissionDeniedError()
@@ -78,7 +79,7 @@ def update_json_document(
     # TODO: convert json to str?
 
     return component_manager.get_json_db_manager().update_json_document(
-        project_id, collection_id, key, json_document
+        project_id, collection_id, key, json.dumps(json_document)
     )
 
 
@@ -106,7 +107,7 @@ def list_json_documents(
 
     # TODO: Add filter examples
     """
-    if not component_manager.get_auth_manager().verify_token(
+    if not component_manager.get_auth_manager().verify_access(
         token, f"projects/{project_id}/json/{collection_id}#read"
     ):
         raise PermissionDeniedError()
@@ -131,7 +132,7 @@ def get_json_document(
     token: str = Depends(get_api_token),
 ) -> Any:
     """Returns a single JSON document."""
-    if not component_manager.get_auth_manager().verify_token(
+    if not component_manager.get_auth_manager().verify_access(
         token, f"projects/{project_id}/json/{collection_id}/{key}#read"
     ):
         raise PermissionDeniedError()
@@ -158,7 +159,7 @@ def delete_json_document(
 
     If no other document exists in the project collection, the collection will be deleted.
     """
-    if not component_manager.get_auth_manager().verify_token(
+    if not component_manager.get_auth_manager().verify_access(
         token, f"projects/{project_id}/json/{collection_id}/{key}#write"
     ):
         raise PermissionDeniedError()

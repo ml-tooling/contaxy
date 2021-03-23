@@ -42,7 +42,7 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
         project_id: str,
         collection_id: str,
         key: str,
-        json_document: Dict,
+        json_document: str,
     ) -> JsonDocument:
         """Creates a json document for a given key.
 
@@ -55,6 +55,7 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
             json_document (Dict): The actual Json document.
 
         Raises:
+            ClientValueError: If contained json
             ServerBaseError: If Upsert failed for an unknown reason.
 
         Returns:
@@ -63,9 +64,15 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
         logger.debug(
             f"Create Json document (`project_id`: {project_id}, `collection_id`: {collection_id} `key`: {key} )"
         )
+
+        try:
+            json_dict = json.loads(json_document)
+        except json.decoder.JSONDecodeError:
+            raise ClientValueError("Invalid Json provided")
+
         table = self._get_collection_table(project_id, collection_id)
 
-        insert_data = {"key": key, "json_value": json_document}
+        insert_data = {"key": key, "json_value": json_dict}
         insert_data = self._add_metadata_for_insert(insert_data)
         upsert_data = self._add_metadata_for_update(insert_data)
 
@@ -123,7 +130,7 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
         project_id: str,
         collection_id: str,
         key: str,
-        json_document: dict,
+        json_document: str,
     ) -> JsonDocument:
         """Updates a Json document via Json Merge Patch strategy.
 
@@ -147,15 +154,13 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
         )
         table = self._get_collection_table(project_id, collection_id)
 
-        json_value = json.dumps(json_document)
-
         update_data = self._add_metadata_for_update({})
 
         sql_statement = (
             table.update()
             .where(table.c.key == key)
             .values(
-                json_value=func.jsonb_merge_patch(table.c.json_value, json_value),
+                json_value=func.jsonb_merge_patch(table.c.json_value, json_document),
                 **update_data,
             )
         )
@@ -308,6 +313,8 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
     def _map_db_row_to_document_model(self, row: Row) -> JsonDocument:
         data: Dict = {}
         for column_name, value in row._mapping.items():
+            if isinstance(value, dict):
+                value = json.dumps(value)
             data.update({column_name: value})
         return JsonDocument(**data)
 
