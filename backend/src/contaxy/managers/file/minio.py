@@ -112,19 +112,30 @@ class MinioFileManager(FileOperations):
     ) -> File:
 
         logger.debug(
-            f"Upload file (`project_id`: {project_id}, `file_key`: {file_key} )"
+            f"Upload file (`project_id`: {project_id}, `file_key`: {file_key})"
         )
 
         # Todo: Handle further metadata: creation, disabled, tags, icon, userdata, extension_id
         bucket_name = get_bucket_name(project_id, self.sys_namespace)
-        result = self.client.put_object(
-            bucket_name,
-            file_key,
-            file_stream,
-            -1,
-            content_type,
-            part_size=10 * 1024 * 1024,
-        )
+
+        if not self.client.bucket_exists(bucket_name):
+            # This can not be done lazily because put_object still consumes the stream although the bucket does not exists yet
+            logger.debug(f"No bucket existing for project {project_id}.")
+            create_bucket(self.client, bucket_name)
+
+        try:
+            result = self.client.put_object(
+                bucket_name,
+                file_key,
+                file_stream,
+                -1,
+                content_type,
+                part_size=10 * 1024 * 1024,
+            )
+        except S3Error as err:
+            raise ServerBaseError(
+                f"The file {file_key} could not be uploaded ({err.code})."
+            )
 
         object_stats = self.client.stat_object(
             bucket_name, file_key, version_id=result.version_id
@@ -132,6 +143,7 @@ class MinioFileManager(FileOperations):
 
         file = self._map_s3_object_to_file_model(object_stats)
         file.md5_hash = file_stream.hash
+        file.content_type = object_stats.content_type
 
         # ? Get the data from the last version if existing?
         json_doc = self._create_metadata_json_document(file)
@@ -284,5 +296,11 @@ class MinioFileManager(FileOperations):
     def _add_data_from_doc_to_file(self, file: File, doc: JsonDocument) -> File:
         json_dict = json.loads(doc.json_value)
         for metadata_field in self.METADATA_FIELD_SET:
-            file.__setattr__(metadata_field, json_dict.get(metadata_field))
+            value = json_dict.get(metadata_field)
+            if not value:
+                logger.debug(
+                    f"The file metadata field {metadata_field} is not in the respective json document."
+                )
+                continue
+            file.__setattr__(metadata_field, value)
         return file

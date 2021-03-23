@@ -1,12 +1,18 @@
 from random import randint
 
 import pytest
+from minio import Minio
 from starlette.datastructures import State
 
 from contaxy.config import settings
 from contaxy.managers.file.minio import MinioFileManager
 from contaxy.managers.json_db.inmemory_dict import InMemoryDictJsonDocumentManager
 from contaxy.utils.file_utils import FormMultipartStream
+from contaxy.utils.minio_utils import (
+    create_minio_client,
+    delete_bucket,
+    get_bucket_name,
+)
 from contaxy.utils.state_utils import GlobalState, RequestState
 
 from .data.metadata import file_data
@@ -33,6 +39,11 @@ def minio_file_manager(
     return MinioFileManager(global_state, request_state, json_db)
 
 
+@pytest.fixture(scope="session")
+def minio_client() -> Minio:
+    return create_minio_client(settings)
+
+
 @pytest.mark.integration
 class TestMinioFileManager:
     def test_get_file_metadata(self, minio_file_manager: MinioFileManager) -> None:
@@ -43,12 +54,12 @@ class TestMinioFileManager:
 
     @pytest.mark.parametrize("metadata", file_data)
     def test_upload_and_list_files(
-        self, minio_file_manager: MinioFileManager, metadata: dict
+        self, minio_file_manager: MinioFileManager, minio_client: Minio, metadata: dict
     ) -> None:
 
-        project_id = randint(1, 10000)
+        project_id = f"{randint(1, 10000)}-file-manager-test"
 
-        with open(str(metadata.get("file_path")), "rb") as file_stream:
+        with open(str(metadata.get("multipart_file_path")), "rb") as file_stream:
             multipart_stream = FormMultipartStream(
                 file_stream, metadata.get("headers"), form_field="file", hash_algo="md5"
             )
@@ -64,7 +75,13 @@ class TestMinioFileManager:
             assert file.key == metadata.get("filename")
             assert file.key == file.display_name
             assert file.content_type == multipart_stream.content_type
-            assert file.md5_hash == multipart_stream.hash()
+            assert file.md5_hash == multipart_stream.hash
+
+        delete_bucket(
+            minio_client,
+            get_bucket_name(project_id, settings.SYSTEM_NAMESPACE),
+            force=True,
+        )
 
     def test_download_file(self, minio_file_manager: MinioFileManager) -> None:
         pass
