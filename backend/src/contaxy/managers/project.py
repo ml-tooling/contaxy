@@ -97,11 +97,11 @@ class ProjectManager(ProjectOperations):
         if self._request_state.authorized_access:
             authorized_user = self._request_state.authorized_access.authorized_subject
 
+        creation_timestamp = datetime.now()
         project = Project(
-            # TODO: also part of input id=project_input.id,
             **project_input.dict(exclude_unset=True),
-            created_at=datetime.now(),
-            updated_at=datetime.now(),
+            created_at=creation_timestamp,
+            updated_at=creation_timestamp,
             created_by=authorized_user,
             updated_by=authorized_user,
             technical_project=technical_project,
@@ -136,6 +136,10 @@ class ProjectManager(ProjectOperations):
     def update_project(self, project_id: str, project_input: ProjectInput) -> Project:
         updated_project = Project.parse_raw(project_input.json(exclude_unset=True))
         updated_project.updated_at = datetime.now()
+        if self._request_state.authorized_access:
+            updated_project.updated_by = (
+                self._request_state.authorized_access.authorized_subject
+            )
 
         updated_document = self._json_db_manager.update_json_document(
             project_id=config.SYSTEM_INTERNAL_PROJECT,
@@ -166,7 +170,9 @@ class ProjectManager(ProjectOperations):
 
     def delete_project(self, project_id: str) -> None:
         # TODO: what to do on project deletion
-        pass
+        self._json_db_manager.delete_json_document(
+            config.SYSTEM_INTERNAL_PROJECT, self._PROJECT_COLLECTION, project_id
+        )
 
     def list_project_members(self, project_id: str) -> List[User]:
         pass

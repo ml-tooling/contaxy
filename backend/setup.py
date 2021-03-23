@@ -99,14 +99,16 @@ setup(
             "pytest",
             "pytest-mock",
             "pytest-cov",
-            # Export profiling information about the tests
-            "pytest-profiling",
             "mypy",
             "black",
             "pydocstyle",
             "isort",
             "lazydocs",
             "locust",
+            # Test profiling
+            "pyinstrument",
+            # Export profiling information about the tests
+            "pytest-profiling",
             # Create fake data for testing
             "faker",
             # For better print debugging via debug

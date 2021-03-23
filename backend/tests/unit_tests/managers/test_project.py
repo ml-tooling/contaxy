@@ -13,8 +13,13 @@ from contaxy.managers.json_db.postgres import PostgresJsonDocumentManager
 from contaxy.managers.project import ProjectManager
 from contaxy.operations.project import ProjectOperations
 from contaxy.schema.auth import AuthorizedAccess
-from contaxy.schema.exceptions import ResourceAlreadyExistsError
-from contaxy.schema.project import MAX_PROJECT_ID_LENGTH, Project, ProjectCreation
+from contaxy.schema.exceptions import ResourceAlreadyExistsError, ResourceNotFoundError
+from contaxy.schema.project import (
+    MAX_PROJECT_ID_LENGTH,
+    Project,
+    ProjectCreation,
+    ProjectInput,
+)
 from contaxy.utils import id_utils
 from contaxy.utils.state_utils import GlobalState, RequestState
 from tests.unit_tests.conftest import test_settings
@@ -66,6 +71,15 @@ class ProjectOperationsTests(ABC):
                 datetime.today() - created_project.created_at
             ).seconds < 300, "Creation timestamp MUST be from a few seconds ago."
 
+        for created_project in created_projects:
+            # Evaluate get project
+            project = self.project_manager.get_project(created_project.id)
+            assert created_project.id == project.id
+            assert created_project.display_name == project.display_name
+
+        with pytest.raises(ResourceNotFoundError):
+            self.project_manager.get_project("foobar")
+
         # Create project with an already existing project ID
         with pytest.raises(ResourceAlreadyExistsError):
             self.project_manager.create_project(
@@ -94,9 +108,6 @@ class ProjectOperationsTests(ABC):
         assert (
             created_project.created_by == USER
         ), "The authorized user should be set as creator"
-
-    def test_get_project(self, faker: Faker) -> None:
-        pass
 
     def test_list_project(self, faker: Faker) -> None:
         # Create 10 projects without authorized user
@@ -144,6 +155,36 @@ class ProjectOperationsTests(ABC):
         assert len(self.project_manager.list_projects()) == len(
             created_projects_with_user
         )
+
+    def test_update_project(self, faker: Faker) -> None:
+        # Create projects
+        created_projects: List[Project] = []
+        for _ in range(10):
+            project_name = faker.bs()
+            project_id = self.project_manager.suggest_project_id(project_name)
+            created_project = self.project_manager.create_project(
+                ProjectCreation(
+                    id=project_id,
+                    display_name=project_name,
+                    description=faker.sentence(),
+                )
+            )
+            created_projects.append(created_project)
+
+        for project in created_projects:
+            self.project_manager.update_project(
+                project.id,
+                ProjectInput(
+                    display_name=project.display_name + " - Updated",
+                    description=project.description + " - Updated",
+                ),
+            )
+            updated_project = self.project_manager.get_project(project.id)
+
+            assert project.display_name != updated_project.display_name
+            assert project.description != updated_project.description
+            assert project.updated_at != updated_project.updated_at
+            assert project.created_at == updated_project.created_at
 
 
 @pytest.mark.skipif(
