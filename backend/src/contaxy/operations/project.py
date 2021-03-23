@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List, Optional
+from typing import List
 
 from contaxy.schema import AccessLevel, Project, ProjectCreation, ProjectInput, User
 
@@ -40,7 +40,7 @@ class ProjectOperations(ABC):
         self,
         project_id: str,
         user_id: str,
-        permission_level: Optional[AccessLevel],
+        access_level: AccessLevel,
     ) -> List[User]:
         pass
 

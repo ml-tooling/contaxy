@@ -20,14 +20,20 @@ for key, value in ACCESS_LEVEL_MAPPING.items():
 
 
 def is_valid_permission(permission_str: str) -> bool:
-    """Returns `true` if the `permission_str` is valid permission."""
+    """Returns `True` if the `permission_str` is valid permission."""
     # TODO: do some basic checks on the permission string
     return PERMISSION_SEPERATOR in permission_str
 
 
 def is_jwt_token(token: str) -> bool:
+    """Returns `True` if the provided token is an JWT token."""
     # TODO: Improve this detection
     return len(token) != config.settings.API_TOKEN_LENGTH and not token.islower()
+
+
+def construct_permission(resource_name: str, access_level: AccessLevel) -> str:
+    """Constructs a permission based on the provided `resource_name`  and `access_level`."""
+    return resource_name + PERMISSION_SEPERATOR + access_level.value
 
 
 def parse_permission(permission: str) -> Tuple[str, AccessLevel]:

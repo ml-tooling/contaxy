@@ -137,14 +137,14 @@ class AuthOperations(ABC):
 
     @abstractmethod
     def remove_permission(
-        self, resource_name: str, permission: str, apply_as_prefix: bool = False
+        self, resource_name: str, permission: str, remove_sub_permissions: bool = False
     ) -> None:
         """Revokes a permission from the specified resource.
 
         Args:
             resource_name: The resource name that the permission should be revoked from.
             permission: The permission to revoke from the specified resource.
-            apply_as_prefix: If `True`, the permission is used as prefix, and all permissions that start with this prefix will be revoked. Defaults to `False`.
+            remove_sub_permissions: If `True`, the permission is used as prefix, and all permissions that start with this prefix will be revoked. Defaults to `False`.
         """
         pass
 

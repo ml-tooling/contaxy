@@ -6,6 +6,8 @@ from pydantic import BaseModel, Field
 
 from contaxy.schema.shared import Resource, ResourceInput
 
+PROJECTS_KIND = "projects"
+
 MIN_PROJECT_ID_LENGTH = 4
 MAX_PROJECT_ID_LENGTH = 25
 

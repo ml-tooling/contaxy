@@ -2,6 +2,7 @@
 
 import hashlib
 import math
+import re
 import secrets
 import string
 from typing import List, Optional
@@ -12,6 +13,38 @@ from slugify import slugify
 from contaxy.config import settings
 
 _PROJECT_ID_SEPERATOR = "-p-"
+_PROJECT_NAME_TO_ID_REGEX = re.compile(r"^projects/([^/:\s]+)$")
+_USER_NAME_TO_ID_REGEX = re.compile(r"^users/([^/:\s]+)$")
+
+
+def extract_user_id_from_resource_name(user_resource_name: str) -> str:
+    """Extract the user id from a provided resource name.
+
+    Raises:
+        ValueError: If the `user_resource_name` is not valid.
+    """
+    match = re.match(_USER_NAME_TO_ID_REGEX, user_resource_name)
+    if match:
+        return match[1]
+    else:
+        raise ValueError(
+            f"The provided user_resource_name is not valid: {user_resource_name}"
+        )
+
+
+def extract_project_id_from_resource_name(project_resource_name: str) -> str:
+    """Extract the project id from a provided resource name.
+
+    Raises:
+        ValueError: If the `project_resource_name` is not valid.
+    """
+    match = re.match(_PROJECT_NAME_TO_ID_REGEX, project_resource_name)
+    if match:
+        return match[1]
+    else:
+        raise ValueError(
+            f"The provided project_resource_name is not valid: {project_resource_name}"
+        )
 
 
 def get_project_resource_prefix(project_id: str) -> str:
