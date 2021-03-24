@@ -2,11 +2,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends
 
-from contaxy.api.dependencies import (
-    ComponentManager,
-    get_api_token,
-    get_component_manager,
-)
+from contaxy.api.dependencies import ComponentManager, get_component_manager
 from contaxy.schema.exceptions import ClientBaseError
 
 router = APIRouter(tags=["seed"])
