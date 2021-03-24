@@ -73,10 +73,12 @@ class Quota(BaseModel):
 
 
 class ProjectBase(BaseModel):
-    quota: Optional[Quota] = Field(
-        None,
-        description="Limitations for resource usage.",
-    )
+    # TODO: add quota
+    # quota: Optional[Quota] = Field(
+    #    None,
+    #    description="Limitations for resource usage.",
+    # )
+    pass
 
 
 class ProjectInput(ResourceInput, ProjectBase):

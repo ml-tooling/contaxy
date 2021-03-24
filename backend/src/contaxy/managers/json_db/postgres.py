@@ -3,10 +3,15 @@ import json
 from typing import Dict, List, Optional
 
 from loguru import logger
-from sqlalchemy import Column, DateTime, MetaData, Table, func
+from sqlalchemy import Column, DateTime, MetaData, Table, func, text
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.engine import Row
-from sqlalchemy.exc import NoResultFound, OperationalError, ProgrammingError
+from sqlalchemy.exc import (
+    IntegrityError,
+    NoResultFound,
+    OperationalError,
+    ProgrammingError,
+)
 from sqlalchemy.future import Engine, create_engine
 
 from contaxy.operations import JsonDocumentOperations
@@ -43,6 +48,7 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
         collection_id: str,
         key: str,
         json_document: str,
+        upsert: bool = True,
     ) -> JsonDocument:
         """Creates a json document for a given key.
 
@@ -53,10 +59,10 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
             collection_id (str): Json document collection Id, i.e. DB table.
             key (str): Json Document Id, i.e. DB row key.
             json_document (Dict): The actual Json document.
+            upsert (bool): Indicates, wheter upsert strategy is used.
 
         Raises:
-            ClientValueError: If contained json
-            ServerBaseError: If Upsert failed for an unknown reason.
+            ClientValueError: If a document already exists for the given key and `upsert` is False or if the given json_document does not contain valid json.
 
         Returns:
             JsonDocument: The created Json document.
@@ -76,17 +82,20 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
         insert_data = self._add_metadata_for_insert(insert_data)
         upsert_data = self._add_metadata_for_update(insert_data)
 
-        upsert_statement = (
-            postgresql.insert(table)
-            .values(**insert_data)
-            .on_conflict_do_update(index_elements=["key"], set_=upsert_data)
-        )
+        stmt = postgresql.insert(table).values(**insert_data)
+        if upsert:
+            stmt = stmt.on_conflict_do_update(index_elements=["key"], set_=upsert_data)
 
         with self._engine.begin() as conn:
-            result = conn.execute(upsert_statement)
-            if result.rowcount == 0:
-                raise ServerBaseError("Upsert failed for an unknown reason")
-            conn.commit()
+            try:
+                result = conn.execute(stmt)
+                if result.rowcount == 0:
+                    raise ServerBaseError(
+                        f"Json Document creation for key {key} for an unknown reason"
+                    )
+                conn.commit()
+            except IntegrityError:
+                raise ClientValueError(f"A Json document for key {key} already exists.")
 
         logger.info(
             f"Json document created (`project_id`: {project_id}, `collection_id`: {collection_id} `key`: {key} )"
@@ -290,6 +299,23 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
             rows = result.fetchall()
         return self._map_db_rows_to_document_models(rows)
 
+    def delete_json_collections(
+        self,
+        project_id: str,
+    ) -> None:
+        """Deletes all JSON collections for a project.
+
+        Args:
+            project_id: Project ID associated with the collections.
+        """
+        # TODO: Check if further error handling is needed
+        with self._engine.begin() as conn:
+            stmt = text(
+                f'DROP SCHEMA IF EXISTS "{self._get_schema_name(project_id)}" cascade'
+            )
+            conn.execute(stmt)
+            conn.commit()
+
     def _add_metadata_for_insert(self, data: dict) -> dict:
         insert_data = data.copy()
         # TODO: Finalize
@@ -329,14 +355,14 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
             Column("created_by", postgresql.VARCHAR),
             Column("updated_at", DateTime),
             Column("updated_by", postgresql.VARCHAR),
-            schema=project_id,  # TODO: Check if sufficient if we set on metadata object
+            schema=self._get_schema_name(project_id),
             keep_existing=True,  # TODO: Depends on how we handle schema modifications
         )
 
         try:
             collection.create(self._engine, checkfirst=True)
         except ProgrammingError:
-            create_schema(self._engine, project_id)
+            create_schema(self._engine, self._get_schema_name(project_id))
             collection.create(self._engine, checkfirst=True)
 
         return collection
@@ -356,3 +382,7 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
                 )
             logger.info("Postgres DB Engine created")
         return state_namespace.db_engine
+
+    def _get_schema_name(self, project_id: str) -> str:
+        prefix = self.global_state.settings.SYSTEM_NAMESPACE
+        return project_id if not prefix else f"{prefix}.{project_id}"

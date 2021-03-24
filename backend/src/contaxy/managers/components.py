@@ -20,9 +20,16 @@ from contaxy.operations import (
     ServiceOperations,
 )
 from contaxy.operations.deployment import DeploymentOperations
-from contaxy.schema.auth import AccessLevel, AuthorizedAccess, UserRegistration
+from contaxy.schema.auth import (
+    ADMIN_ROLE,
+    USERS_KIND,
+    AccessLevel,
+    AuthorizedAccess,
+    UserRegistration,
+)
 from contaxy.schema.deployment import ServiceInput
 from contaxy.schema.extension import CORE_EXTENSION_ID
+from contaxy.schema.project import ProjectCreation
 from contaxy.utils import auth_utils
 from contaxy.utils.state_utils import GlobalState, RequestState
 
@@ -288,6 +295,42 @@ class ComponentManager:
             )
         return self._seed_manager
 
+    def setup_components(self) -> None:
+
+        # Create Admin Role
+        self.get_auth_manager().add_permission(
+            ADMIN_ROLE,
+            auth_utils.construct_permission("*", AccessLevel.ADMIN),
+        )
+
+        # Create Admin User
+        # Set initial user password -> SHOULD be changed after the first login
+        admin_user = self.get_auth_manager().create_user(
+            UserRegistration(
+                username=config.SYSTEM_ADMIN_USERNAME,
+                password=config.SYSTEM_ADMIN_INITIAL_PASSWORD,  # type: ignore
+            ),
+            technical_user=True,
+        )
+
+        # Add admin role to admin user
+        # TODO: use resource name
+        admin_user_resource_name = USERS_KIND + "/" + admin_user.id
+        self.get_auth_manager().add_permission(
+            admin_user_resource_name,
+            ADMIN_ROLE,
+        )
+
+        # Create System Internal Project
+        self.get_project_manager().create_project(
+            ProjectCreation(
+                id=config.SYSTEM_INTERNAL_PROJECT,
+                display_name=config.SYSTEM_INTERNAL_PROJECT,
+                description="This project holds all system internal services and data.",
+            ),
+            technical_project=True,
+        )
+
 
 def install_components() -> None:
     """Currently only a mock implementation."""
@@ -329,16 +372,6 @@ def install_components() -> None:
         global_state.settings.POSTGRES_CONNECTION_URI = PostgresDsn(
             f"postgres://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{service.id}:{POSTGRES_PORT}/{POSTGRES_DB}"
         )
-
-    # Create admin user
-    user = component_manager.get_auth_manager().create_user(
-        UserRegistration(username=config.SYSTEM_ADMIN_USERNAME), technical_user=True
-    )
-
-    # Set initial user password -> SHOULD be changed after the first login
-    component_manager.get_auth_manager().change_password(
-        user.id, config.SYSTEM_ADMIN_INITIAL_PASSWORD
-    )
 
     # TODO: Do other configurations
 
