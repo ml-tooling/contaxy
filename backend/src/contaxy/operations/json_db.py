@@ -12,16 +12,21 @@ class JsonDocumentOperations(ABC):
         collection_id: str,
         key: str,
         json_document: str,
+        upsert: bool = True,
     ) -> JsonDocument:
         """Creates a JSON document for a given key.
 
-        If a document already exists for the given key, the document will be overwritten.
+        If a document already exists for the given key, the document will be overwritten if `upsert` is True, otherwise an error is raised.
 
         Args:
             project_id: Project ID associated with the collection.
             collection_id: ID of the collection (database) to use to store this JSON document.
             key: Key of the JSON document.
             json_document: The actual JSON document value.
+            upsert (bool): Indicates, wheter upsert strategy is used.
+
+        Raises:
+            ClientValueError: If a document already exists for the given key and `upsert` is False or if the given json_document does not contain valid json.
 
         Returns:
             JsonDocument: The created JSON document.
