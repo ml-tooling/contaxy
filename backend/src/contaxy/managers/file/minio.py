@@ -197,6 +197,20 @@ class MinioFileManager(FileOperations):
         file_stream: FileStream,
         content_type: str = "application/octet-stream",
     ) -> File:
+        """Upload a file.
+
+        Args:
+            project_id (str): Project ID associated with the file.
+            file_key (str): Key of the file.
+            file_stream (FileStream): The actual file stream object.
+            content_type (str, optional): The mime-type of the file. Defaults to "application/octet-stream".
+
+        Raises:
+            ServerBaseError: If the upload failed.
+
+        Returns:
+            File: The file metadata object of the uploaded file.
+        """
 
         logger.debug(
             f"upload_file (`project_id`: {project_id}, `file_key`: {file_key})"
@@ -239,6 +253,21 @@ class MinioFileManager(FileOperations):
         file_key: str,
         version: Optional[str] = None,
     ) -> Iterator[bytes]:
+        """Download a file.
+
+        Either the latest version will be returned or the specified one.
+
+        Args:
+            project_id (str): Project ID associated with the file.
+            file_key (str): Key of the file.
+            version (Optional[str], optional): File version. Defaults to None.
+
+        Raises:
+            ResourceNotFoundError: If file does not exist.
+
+        Yields:
+            Iterator[bytes]: [description]
+        """
         logger.debug(
             f"download_file (`project_id`: {project_id}, `file_key`: {file_key}, `version`: {version})"
         )
