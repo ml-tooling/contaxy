@@ -4,12 +4,14 @@ from typing import Generator
 
 import pytest
 from minio import Minio
+from sqlalchemy.future import create_engine
 from starlette.datastructures import State
 
 from contaxy.config import settings
 from contaxy.managers.file.minio import MinioFileManager
 from contaxy.managers.json_db.inmemory_dict import InMemoryDictJsonDocumentManager
-from contaxy.schema import File, FileInput
+from contaxy.managers.json_db.postgres import PostgresJsonDocumentManager
+from contaxy.schema import FileInput
 from contaxy.schema.exceptions import ResourceNotFoundError
 from contaxy.utils.file_utils import FormMultipartStream
 from contaxy.utils.minio_utils import (
@@ -17,7 +19,9 @@ from contaxy.utils.minio_utils import (
     delete_bucket,
     get_bucket_name,
 )
+from contaxy.utils.postgres_utils import create_jsonb_merge_patch_func
 from contaxy.utils.state_utils import GlobalState, RequestState
+from tests.unit_tests.conftest import test_settings
 
 from .data.metadata import file_data
 
@@ -39,7 +43,17 @@ def request_state() -> RequestState:
 def minio_file_manager(
     global_state: GlobalState, request_state: RequestState
 ) -> MinioFileManager:
-    json_db = InMemoryDictJsonDocumentManager(global_state, request_state)
+    if not test_settings.POSTGRES_INTEGRATION_TESTS:
+        json_db = InMemoryDictJsonDocumentManager(global_state, request_state)
+    else:
+        # TODO: Put in conftest
+        assert settings.POSTGRES_CONNECTION_URI
+        engine = create_engine(
+            settings.POSTGRES_CONNECTION_URI,
+            future=True,
+        )
+        create_jsonb_merge_patch_func(engine)
+        json_db = PostgresJsonDocumentManager(global_state, request_state)
     return MinioFileManager(global_state, request_state, json_db)
 
 
@@ -59,6 +73,10 @@ def project_id(minio_client: Minio) -> Generator[str, None, None]:
     )
 
 
+@pytest.mark.skipif(
+    test_settings.MINIO_INTEGRATION_TESTS is None,
+    reason="Minio Integration Tests are deactivated, use POSTGRES_INTEGRATION_TESTS to activate.",
+)
 @pytest.mark.integration
 class TestMinioFileManager:
     @pytest.mark.parametrize("metadata", file_data)

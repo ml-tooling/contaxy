@@ -171,6 +171,7 @@ class MinioFileManager(FileOperations):
         data = file.dict(
             include=self.METADATA_FIELD_SET, exclude_none=True, exclude_unset=True
         )
+        # TODO: Fix metadata creation
         json_value = json.dumps(data)
 
         doc_key = generate_file_id(file_key, s3_object.version_id)
