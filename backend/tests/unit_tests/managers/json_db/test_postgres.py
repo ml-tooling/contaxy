@@ -1,4 +1,5 @@
 import json
+from random import randint
 from typing import List
 from uuid import uuid4
 
@@ -336,6 +337,22 @@ class TestPostgresJsonDocumentManager:
         )
 
         assert len(docs) == 0
+
+    def test_delete_json_collections(
+        self, json_document_manager: PostgresJsonDocumentManager
+    ) -> None:
+        project_id = f"{randint(1,10000)}-test_delete_json_collections"
+        collection_id = "damn-should-be-deleted"
+        key = "test"
+        json_document_manager.create_json_document(
+            project_id, collection_id, key, json_document="{}"
+        )
+        json_document_manager.delete_json_collections(project_id)
+        try:
+            json_document_manager.get_json_document(project_id, collection_id, key)
+            assert False
+        except ResourceNotFoundError:
+            pass
 
     def _create_doc(
         self, jdm: PostgresJsonDocumentManager, defaults: dict

@@ -3,7 +3,7 @@ import json
 from typing import Dict, List, Optional
 
 from loguru import logger
-from sqlalchemy import Column, DateTime, MetaData, Table, func
+from sqlalchemy import Column, DateTime, MetaData, Table, func, text
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.engine import Row
 from sqlalchemy.exc import NoResultFound, OperationalError, ProgrammingError
@@ -290,6 +290,23 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
             rows = result.fetchall()
         return self._map_db_rows_to_document_models(rows)
 
+    def delete_json_collections(
+        self,
+        project_id: str,
+    ) -> None:
+        """Deletes all JSON collections for a project.
+
+        Args:
+            project_id: Project ID associated with the collections.
+        """
+        # TODO: Check if further error handling is needed
+        with self._engine.begin() as conn:
+            stmt = text(
+                f'DROP SCHEMA IF EXISTS "{self._get_schema_name(project_id)}" cascade'
+            )
+            conn.execute(stmt)
+            conn.commit()
+
     def _add_metadata_for_insert(self, data: dict) -> dict:
         insert_data = data.copy()
         # TODO: Finalize
@@ -329,14 +346,14 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
             Column("created_by", postgresql.VARCHAR),
             Column("updated_at", DateTime),
             Column("updated_by", postgresql.VARCHAR),
-            schema=project_id,  # TODO: Check if sufficient if we set on metadata object
+            schema=self._get_schema_name(project_id),
             keep_existing=True,  # TODO: Depends on how we handle schema modifications
         )
 
         try:
             collection.create(self._engine, checkfirst=True)
         except ProgrammingError:
-            create_schema(self._engine, project_id)
+            create_schema(self._engine, self._get_schema_name(project_id))
             collection.create(self._engine, checkfirst=True)
 
         return collection
@@ -356,3 +373,7 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
                 )
             logger.info("Postgres DB Engine created")
         return state_namespace.db_engine
+
+    def _get_schema_name(self, project_id: str) -> str:
+        prefix = self.global_state.settings.SYSTEM_NAMESPACE
+        return project_id if not prefix else f"{prefix}.{project_id}"

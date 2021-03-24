@@ -120,3 +120,15 @@ class JsonDocumentOperations(ABC):
             ResourceNotFoundError: If no JSON document is found with the given `key`.
         """
         pass
+
+    @abstractmethod
+    def delete_json_collections(
+        self,
+        project_id: str,
+    ) -> None:
+        """Deletes all JSON collections for a project.
+
+        Args:
+            project_id: Project ID associated with the collections.
+        """
+        pass
