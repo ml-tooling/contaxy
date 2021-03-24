@@ -8,6 +8,7 @@ import AppBar from '../../components/AppBar/AppBar';
 import AppDrawer from '../../components/AppDrawer/AppDrawer';
 import ContentContainer from '../../app/routing/ContentContainer';
 import GlobalStateContainer from '../../app/store';
+import showStandardSnackbar from '../../app/showStandardSnackbar';
 
 import { projectsApi } from '../../services/contaxy-api';
 
@@ -19,7 +20,10 @@ function App() {
 
   useEffect(() => {
     if (!isAuthenticated) return;
-    projectsApi.listProjects().then((result) => setProjects(result));
+    projectsApi
+      .listProjects()
+      .then((result) => setProjects(result))
+      .catch((err) => showStandardSnackbar(JSON.stringify(err.response.body)));
   }, [isAuthenticated, setProjects]);
 
   const appDrawerElement = (
