@@ -153,6 +153,12 @@ class TestMinioFileManager:
             except ResourceNotFoundError:
                 pass
 
+    def test_list_files(
+        self, minio_file_manager: MinioFileManager, project_id: str
+    ) -> None:
+        result = minio_file_manager.list_files(project_id, prefix="no-files")
+        assert not result
+
     def test_update_file_metadata(self, minio_file_manager: MinioFileManager) -> None:
         # File does not exsists
 
