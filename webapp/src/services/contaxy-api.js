@@ -22,6 +22,8 @@ export function getFileDownloadUrl(projectId, fileKey) {
 const apiClient = new Api.ApiClient();
 apiClient.basePath = ENDPOINT;
 apiClient.enableCookies = true;
+// the generated client includes an User-Agent header which is not allowed to set as it is controlled by the browser
+delete apiClient.defaultHeaders['User-Agent'];
 
 export const authApi = new Api.AuthApi(apiClient);
 export const extensionsApi = new Api.ExtensionsApi(apiClient);
