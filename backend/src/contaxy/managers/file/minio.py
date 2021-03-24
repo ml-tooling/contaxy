@@ -11,7 +11,7 @@ from starlette.responses import Response
 from contaxy.operations import FileOperations
 from contaxy.operations.json_db import JsonDocumentOperations
 from contaxy.schema import File, FileInput, ResourceAction
-from contaxy.schema.exceptions import ServerBaseError
+from contaxy.schema.exceptions import ResourceNotFoundError, ServerBaseError
 from contaxy.schema.json_db import JsonDocument
 from contaxy.utils.file_utils import FileStream, generate_file_id
 from contaxy.utils.minio_utils import (
@@ -92,7 +92,33 @@ class MinioFileManager(FileOperations):
         file_key: str,
         version: Optional[str] = None,
     ) -> File:
-        pass
+        """Get file metadata of a single file.
+
+        If no version is provided then the latest version will be returned.
+
+        Args:
+            project_id (str): Project ID associated with the file.
+            file_key (str): Key of the file.
+            version (Optional[str], optional): File version. Defaults to None.
+
+        Raises:
+            ResourceNotFoundError: If no file is found.
+
+        Returns:
+            File: The file metadata object.
+        """
+
+        file_data = self.list_files(
+            project_id, prefix=file_key, include_versions=True if version else False
+        )
+
+        for file in file_data:
+            if not version or (file.version == version):
+                return file
+
+        msg = f"File not found (key: {file_key}"
+        msg = f"{msg}, version {version})." if version else f"{msg})."
+        raise ResourceNotFoundError(msg)
 
     def update_file_metadata(
         self,
