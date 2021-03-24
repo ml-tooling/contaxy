@@ -27,6 +27,7 @@ router = APIRouter(
     "/users",
     operation_id=CoreOperations.LIST_USERS.value,
     response_model=List[User],
+    response_model_exclude_unset=True,
     summary="List all users.",
     tags=["users"],
     status_code=status.HTTP_200_OK,
@@ -46,6 +47,7 @@ def list_users(
     "/users",
     operation_id=CoreOperations.CREATE_USER.value,
     response_model=User,
+    response_model_exclude_unset=True,
     summary="Create a user.",
     tags=["users"],
     status_code=status.HTTP_200_OK,
@@ -59,7 +61,7 @@ def create_user(
     If the `password` is not provided, the user can only login by using other methods (social login).
     """
 
-    if component_manager.global_state.settings.USER_REGISTRATION_ENABLED:
+    if not component_manager.global_state.settings.USER_REGISTRATION_ENABLED:
         # TODO: Allow for administrators
         raise PermissionDeniedError("User self-registration is deactivated.")
 
@@ -73,6 +75,7 @@ def create_user(
     "/users/me",
     operation_id=CoreOperations.GET_MY_USER.value,
     response_model=User,
+    response_model_exclude_unset=True,
     summary="Get my user metadata.",
     tags=["users"],
     status_code=status.HTTP_200_OK,
@@ -83,11 +86,13 @@ def get_my_user(
 ) -> Any:
     """Returns the user metadata from the authenticated user."""
     authorized_access = component_manager.verify_access(token)
+
     # Check if read access to user object is allowed
     component_manager.verify_access(
         token, authorized_access.authorized_subject, AccessLevel.READ
     )
-    return get_user(
+
+    return component_manager.get_auth_manager().get_user(
         id_utils.extract_user_id_from_resource_name(
             authorized_access.authorized_subject
         )
@@ -98,6 +103,7 @@ def get_my_user(
     "/users/{user_id}",
     operation_id=CoreOperations.GET_USER.value,
     response_model=User,
+    response_model_exclude_unset=True,
     summary="Get user metadata.",
     tags=["users"],
     status_code=status.HTTP_200_OK,
@@ -108,7 +114,7 @@ def get_user(
     token: str = Depends(get_api_token),
 ) -> Any:
     """Returns the user metadata for a single user."""
-    component_manager.verify_access(token, "users/{user_id}", AccessLevel.READ)
+    component_manager.verify_access(token, f"users/{user_id}", AccessLevel.READ)
     return component_manager.get_auth_manager().get_user(user_id)
 
 
@@ -116,6 +122,7 @@ def get_user(
     "/users/{user_id}",
     operation_id=CoreOperations.UPDATE_USER.value,
     response_model=User,
+    response_model_exclude_unset=True,
     summary="Update user metadata.",
     tags=["users"],
     status_code=status.HTTP_200_OK,

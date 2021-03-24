@@ -15,6 +15,8 @@ from contaxy import config
 from contaxy.operations import AuthOperations, JsonDocumentOperations
 from contaxy.schema import AuthorizedAccess, TokenType, User, UserInput
 from contaxy.schema.auth import (
+    USERS_KIND,
+    AccessLevel,
     AccessToken,
     ApiToken,
     OAuth2Error,
@@ -640,7 +642,11 @@ class AuthManager(AuthOperations):
             user_id = self._get_id_by_username(token_request_form.username)
             if not self.verify_password(user_id, token_request_form.password):
                 raise OAuth2Error("unauthorized_client")
-
+            if not token_request_form.scopes:
+                # Default user token is allowed to do everything
+                token_request_form.scopes = [
+                    auth_utils.construct_permission("*", AccessLevel.ADMIN)
+                ]
             token = self.create_token(
                 "users/" + user_id,
                 scopes=token_request_form.scopes,
@@ -822,6 +828,14 @@ class AuthManager(AuthOperations):
             key=user_id,
             json_document=user.json(),
         )
+
+        # TODO: get resource name from object
+        user_resource_name = USERS_KIND + "/" + user_id
+        self.add_permission(
+            user_resource_name,
+            auth_utils.construct_permission(user_resource_name, AccessLevel.ADMIN),
+        )
+        # TODO: Add admin permission to the user
 
         return User.parse_raw(created_document.json_value)
 

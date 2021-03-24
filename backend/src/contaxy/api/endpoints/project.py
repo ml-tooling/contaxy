@@ -12,7 +12,6 @@ from contaxy.schema import AccessLevel, CoreOperations, Project, ProjectInput, U
 from contaxy.schema.auth import USER_ID_PARAM
 from contaxy.schema.project import PROJECT_ID_PARAM, ProjectCreation
 from contaxy.schema.shared import MAX_DISPLAY_NAME_LENGTH, MIN_DISPLAY_NAME_LENGTH
-from contaxy.utils import auth_utils
 
 router = APIRouter(
     tags=["projects"],
@@ -27,6 +26,7 @@ router = APIRouter(
     "/projects",
     operation_id=CoreOperations.CREATE_PROJECT.value,
     response_model=Project,
+    response_model_exclude_unset=True,
     summary="Create a new project.",
     status_code=status.HTTP_200_OK,
 )
@@ -47,10 +47,7 @@ def create_project(
     # TODO: Check for permission in "project resource"
     # Check if the token has write access on the user
     component_manager.verify_access(
-        token,
-        auth_utils.construct_permission(
-            authorized_access.authorized_subject, AccessLevel.WRITE
-        ),
+        token, authorized_access.authorized_subject, AccessLevel.WRITE
     )
     return component_manager.get_project_manager().create_project(project)
 
@@ -59,6 +56,7 @@ def create_project(
     "/projects",
     operation_id=CoreOperations.LIST_PROJECTS.value,
     response_model=List[Project],
+    response_model_exclude_unset=True,
     summary="List all projects.",
     status_code=status.HTTP_200_OK,
 )
@@ -85,6 +83,7 @@ def list_projects(
     "/projects/{project_id}",
     operation_id=CoreOperations.UPDATE_PROJECT.value,
     response_model=Project,
+    response_model_exclude_unset=True,
     summary="Update project metadata.",
     status_code=status.HTTP_200_OK,
 )
@@ -107,6 +106,7 @@ def update_project(
     "/projects/{project_id}",
     operation_id=CoreOperations.GET_PROJECT.value,
     response_model=Project,
+    response_model_exclude_unset=True,
     summary="Get details for a project.",
     status_code=status.HTTP_200_OK,
 )
@@ -171,6 +171,7 @@ def delete_project(
     operation_id=CoreOperations.LIST_PROJECT_MEMBERS.value,
     summary="List project members.",
     response_model=List[User],
+    response_model_exclude_unset=True,
     status_code=status.HTTP_200_OK,
 )
 def list_project_members(
@@ -191,6 +192,7 @@ def list_project_members(
     operation_id=CoreOperations.ADD_PROJECT_MEMBER.value,
     summary="Add user to project.",
     response_model=List[User],
+    response_model_exclude_unset=True,
     status_code=status.HTTP_200_OK,
 )
 def add_project_member(
@@ -224,6 +226,7 @@ def add_project_member(
     operation_id=CoreOperations.REMOVE_PROJECT_MEMBER.value,
     summary="Remove user from project.",
     response_model=List[User],
+    response_model_exclude_unset=True,
     status_code=status.HTTP_200_OK,
 )
 def remove_project_member(

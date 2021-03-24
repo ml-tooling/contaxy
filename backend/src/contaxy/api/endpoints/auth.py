@@ -66,6 +66,7 @@ def logout_session(
     "/auth/tokens",
     operation_id=CoreOperations.LIST_API_TOKENS.value,
     response_model=List[ApiToken],
+    response_model_exclude_unset=True,
     summary="List API tokens.",
     status_code=status.HTTP_200_OK,
 )
@@ -77,7 +78,9 @@ def list_api_tokens(
     authorized_access = component_manager.verify_access(token)
     # Check if the caller has admin access on the user resource
     component_manager.verify_access(
-        token, authorized_access.authorized_subject, AccessLevel.ADMIN
+        token,
+        authorized_access.authorized_subject,
+        AccessLevel.ADMIN,
     )
 
     return component_manager.get_auth_manager().list_api_tokens(
@@ -181,6 +184,7 @@ def verify_access(
     operation_id=CoreOperations.REQUEST_TOKEN.value,
     response_model=OAuthToken,
     summary="Request a token (OAuth2 Endpoint).",
+    response_model_exclude_unset=True,
     status_code=status.HTTP_200_OK,
 )
 def request_token(
@@ -251,6 +255,7 @@ def revoke_token(
     operation_id=CoreOperations.INTROSPECT_TOKEN.value,
     response_model=OAuthTokenIntrospection,
     summary="Introspect a token (OAuth2 Endpoint).",
+    response_model_exclude_unset=True,
     status_code=status.HTTP_200_OK,
 )
 def introspect_token(

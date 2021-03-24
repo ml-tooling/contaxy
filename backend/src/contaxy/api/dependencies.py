@@ -16,11 +16,11 @@ def get_api_token(
     api_token_header: str = Security(
         APIKeyHeader(name=config.API_TOKEN_NAME, auto_error=False)
     ),
-    api_token_cookie: str = Security(
-        APIKeyCookie(name=config.API_TOKEN_NAME, auto_error=False)
-    ),
     bearer_token: str = Security(
         OAuth2PasswordBearer(tokenUrl="auth/oauth/token", auto_error=False)
+    ),
+    api_token_cookie: str = Security(
+        APIKeyCookie(name=config.API_TOKEN_NAME, auto_error=False)
     ),
 ) -> str:
     # TODO: already check token validity here?
@@ -28,10 +28,11 @@ def get_api_token(
         return api_token_query
     elif api_token_header:
         return api_token_header
+    elif bearer_token:
+        # TODO: move the bearer token under the cookie?
+        return bearer_token
     elif api_token_cookie:
         return api_token_cookie
-    elif bearer_token:
-        return bearer_token
     else:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

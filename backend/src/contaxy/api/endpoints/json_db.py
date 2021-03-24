@@ -26,6 +26,7 @@ router = APIRouter(
     operation_id=CoreOperations.CREATE_JSON_DOCUMENT.value,
     summary="Create JSON document.",
     response_model=JsonDocument,
+    response_model_exclude_unset=True,
     status_code=status.HTTP_200_OK,
 )
 def create_json_document(
@@ -53,6 +54,7 @@ def create_json_document(
     operation_id=CoreOperations.UPDATE_JSON_DOCUMENT.value,
     summary="Update a JSON document.",
     response_model=JsonDocument,
+    response_model_exclude_unset=True,
     status_code=status.HTTP_200_OK,
 )
 def update_json_document(
@@ -80,6 +82,7 @@ def update_json_document(
     "/projects/{project_id}/json/{collection_id}",
     operation_id=CoreOperations.LIST_JSON_DOCUMENTS.value,
     response_model=List[JsonDocument],
+    response_model_exclude_unset=True,
     summary="List JSON documents.",
     status_code=status.HTTP_200_OK,
 )
@@ -113,6 +116,7 @@ def list_json_documents(
     "/projects/{project_id}/json/{collection_id}/{key}",
     operation_id=CoreOperations.GET_JSON_DOCUMENT.value,
     response_model=JsonDocument,
+    response_model_exclude_unset=True,
     summary="Get JSON document.",
     status_code=status.HTTP_200_OK,
 )
