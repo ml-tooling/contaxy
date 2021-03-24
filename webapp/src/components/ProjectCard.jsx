@@ -25,24 +25,28 @@ function ProjectCard(props) {
     Jdenticon.update(svgRef.current);
   }, [svgRef]);
 
+  const createdAt = project.created_at
+    ? project.created_at.toLocaleString()
+    : '';
+
   return (
     <>
       <Grid item>
         <Card>
           <CardHeader
             avatar={
-              <Avatar alt={project.name}>
+              <Avatar alt={project.display_name}>
                 <svg
                   ref={svgRef}
                   width="60"
                   height="60"
                   style={{ backgroundColor: 'white' }}
-                  data-jdenticon-value={project.name}
+                  data-jdenticon-value={project.display_name}
                 />
               </Avatar>
             }
-            title={project.name}
-            subheader={project.createdAt}
+            title={project.display_name}
+            subheader={createdAt}
           />
           <CardContent>
             <Typography>{project.description}</Typography>
