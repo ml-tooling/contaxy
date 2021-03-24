@@ -5,12 +5,12 @@ export const DOCUMENTATION_URL = '';
 export const API_EXPLORER_URL = '';
 
 export const ENDPOINT =
-  process.env.REACT_APP_LAB_ENDPOINT === undefined
+  process.env.REACT_APP_ENDPOINT === undefined
     ? (
         document.location.origin.toString() +
         document.location.pathname.toString()
       ).replace('/app/', '/api')
-    : process.env.REACT_APP_LAB_ENDPOINT;
+    : process.env.REACT_APP_ENDPOINT;
 
 export const ENDPOINTS = {
   research: {

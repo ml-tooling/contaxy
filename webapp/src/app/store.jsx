@@ -62,7 +62,7 @@ export const initialState = {
       },
     },
   ],
-  isAuthenticated: true,
+  isAuthenticated: false,
   users: [
     {
       id: 'foobar',

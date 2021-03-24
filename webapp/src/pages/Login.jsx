@@ -6,8 +6,10 @@ import Button from '@material-ui/core/Button';
 import TextField from '@material-ui/core/TextField';
 
 import { authApi } from '../services/contaxy-api';
+import GlobalStateContainer from '../app/store';
 
 function Login(props) {
+  const { setIsAuthenticated } = GlobalStateContainer.useContainer();
   const { className } = props;
 
   const [formInput, setFormInput] = useReducer(
@@ -18,13 +20,19 @@ function Login(props) {
     }
   );
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
+    // TODO: change the status to authenticated if login succeeded
     event.preventDefault();
     console.log(formInput);
-    authApi.requestToken('password', {
+    const response = await authApi.requestToken('password', {
       username: formInput.username,
       password: formInput.password,
     });
+
+    console.log(response);
+    document.cookie = `ct_token=${response.access_token}; path=/`;
+    setIsAuthenticated(true);
+    // TODO: remove this cookie as soon as the server returns a cookie
     return false;
   };
 

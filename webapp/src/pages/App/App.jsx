@@ -18,8 +18,9 @@ function App() {
   const onDrawerClick = () => setDrawerOpen(!isDrawerOpen);
 
   useEffect(() => {
+    if (!isAuthenticated) return;
     projectsApi.listProjects().then((result) => setProjects(result));
-  });
+  }, [isAuthenticated, setProjects]);
 
   const appDrawerElement = (
     <AppDrawer isAdmin open={isDrawerOpen} handleDrawerClose={onDrawerClick} />
