@@ -8,6 +8,8 @@ from pydantic import BaseModel, EmailStr, Field, SecretStr
 from contaxy.schema.shared import MAX_DESCRIPTION_LENGTH
 
 USERS_KIND = "users"
+ADMIN_ROLE = "roles/admin"
+USER_ROLE = "roles/user"
 
 
 class AccessLevel(str, Enum):

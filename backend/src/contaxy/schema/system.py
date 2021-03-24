@@ -1,6 +1,13 @@
+from enum import Enum
 from typing import Dict, Optional
 
 from pydantic import BaseModel, Field
+
+
+class SystemState(str, Enum):
+    STARTING = "starting"
+    INITIALIZING = "initializing"
+    RUNNING = "running"
 
 
 class SystemInfo(BaseModel):
@@ -14,6 +21,9 @@ class SystemInfo(BaseModel):
         ...,
         example="mlhub",
         description="Namespace of this system.",
+    )
+    system_state: SystemState = Field(
+        SystemState.STARTING, description="The state of the system."
     )
     metadata: Optional[Dict[str, str]] = Field(
         None,

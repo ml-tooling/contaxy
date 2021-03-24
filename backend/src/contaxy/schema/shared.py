@@ -140,11 +140,11 @@ class ResourceMetadata(BaseModel):
         example="resources/ac9ldprwdi68oihk34jli3kdp",
         description="Resource Name. A relative URI-path that uniquely identifies a resource within the system. Assigned by the server and read-only.",
     )
-    kind: Optional[str] = Field(
-        None,
-        example="resources",
-        description="Resource Type (Schema). Identifies what kind of resource this is. Assigned by the server and read-only.",
-    )
+    # kind: Optional[str] = Field(
+    #    None,
+    #    example="resources",
+    #    description="Resource Type (Schema). Identifies what kind of resource this is. Assigned by the server and read-only.",
+    # )
     created_at: Optional[datetime] = Field(
         None,
         description="Timestamp of the resource creation. Assigned by the server and read-only.",
