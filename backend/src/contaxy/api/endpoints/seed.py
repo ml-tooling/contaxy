@@ -25,8 +25,11 @@ def create_seed_default(
     #     )
 
     seed_manager = component_manager.get_seed_manager()
-    seed_manager.create_user()
+    user = seed_manager.create_user()
     project = seed_manager.create_project()
     if not project or not project.id:
         raise ClientBaseError(status_code=500, message="Could not create seed data")
+    component_manager.get_project_manager().add_project_member(
+        project_id=project.id, user_id=user.id, access_level=AccessLevel.ADMIN
+    )
     seed_manager.create_file(project_id=project.id)

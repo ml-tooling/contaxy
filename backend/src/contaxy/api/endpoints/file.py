@@ -59,9 +59,11 @@ def list_files(
         token, f"projects/{project_id}/files", AccessLevel.READ
     )
 
-    return component_manager.get_file_manager(extension_id).list_files(
+    files = component_manager.get_file_manager(extension_id).list_files(
         project_id, recursive, include_versions, prefix
     )
+
+    return files if files else []
 
 
 @router.post(
