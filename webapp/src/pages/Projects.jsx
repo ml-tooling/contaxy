@@ -35,7 +35,6 @@ function Projects() {
   };
 
   const onDeleteProject = async (project) => {
-    // TODO: do something with the response
     try {
       await projectsApi.deleteProject(project.id);
       showStandardSnackbar(`Delete project '${project.id}'`);
