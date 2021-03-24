@@ -38,10 +38,11 @@ function Files() {
 
   useEffect(() => onReload(activeProject.id), [activeProject]);
 
+  // TODO: add correct values to widget
   return (
     <div className="pages-native-component">
       <WidgetsGrid>
-        <Widget name="Amount" icon="list" value="2" color="pink" />
+        <Widget name="Amount" icon="list" value={data.length} color="pink" />
         <Widget name="Total Size" icon="cloud" value="2" color="cyan" />
         <Widget
           name="Last Modified"
@@ -52,9 +53,9 @@ function Files() {
       </WidgetsGrid>
       <FilesTable
         data={data}
-        onFileDownload={(rowData) => onFileDownload(activeProject, rowData)}
-        onFileDelete={(rowData) => onFileDelete(activeProject, rowData)}
-        onReload={() => onReload(activeProject)}
+        onFileDownload={(rowData) => onFileDownload(activeProject.id, rowData)}
+        onFileDelete={(rowData) => onFileDelete(activeProject.id, rowData)}
+        onReload={() => onReload(activeProject.id)}
       />
     </div>
   );
