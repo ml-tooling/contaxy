@@ -1,6 +1,7 @@
 import asyncio
 import hashlib
 from collections.abc import AsyncGenerator, Generator
+from hashlib import sha1
 from typing import Any, Callable, Mapping, Optional
 
 import filetype
@@ -169,3 +170,7 @@ class SyncFromAsyncGenerator(Generator):
 
     def __iter__(self) -> Generator:
         return self
+
+
+def generate_file_id(file_name: str, version_id: str) -> str:
+    return sha1(bytes(f"{file_name}{version_id}", "utf8")).hexdigest()
