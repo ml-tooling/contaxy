@@ -95,6 +95,13 @@ class TestPostgresJsonDocumentManager:
             new_json_value,
         )
 
+        # Test insert case with existing key
+        try:
+            self._create_doc(json_document_manager, defaults, upsert=False)
+            assert False
+        except ClientValueError:
+            pass
+
         self._assert_updated_doc(created_doc, overwritten_doc, new_json_value)
 
     def test_get_json_document(
@@ -355,13 +362,14 @@ class TestPostgresJsonDocumentManager:
             pass
 
     def _create_doc(
-        self, jdm: PostgresJsonDocumentManager, defaults: dict
+        self, jdm: PostgresJsonDocumentManager, defaults: dict, upsert: bool = True
     ) -> JsonDocument:
         return jdm.create_json_document(
             defaults.get("project"),
             defaults.get("collection"),
             defaults.get("key"),
             defaults.get("json_value"),
+            upsert,
         )
 
     def _assert_updated_doc(
