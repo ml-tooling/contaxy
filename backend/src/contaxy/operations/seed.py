@@ -34,7 +34,7 @@ class SeedOperations(ABC):
         pass
 
     @abstractmethod
-    def create_document(
+    def create_file(
         self,
         project_id: str,
         file_key: str = "my-test-file",

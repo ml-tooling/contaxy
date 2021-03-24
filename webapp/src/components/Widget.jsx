@@ -42,7 +42,7 @@ Widget.propTypes = {
   icon: PropTypes.string,
   link: PropTypes.string,
   name: PropTypes.string.isRequired,
-  value: PropTypes.string.isRequired,
+  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
 };
 
 Widget.defaultProps = {

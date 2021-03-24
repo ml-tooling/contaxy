@@ -69,7 +69,7 @@ class SeedManager(SeedOperations):
 
         return projects
 
-    def create_document(
+    def create_file(
         self,
         project_id: str,
         file_key: str = "my-test-file",
