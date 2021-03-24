@@ -3,7 +3,6 @@ from datetime import datetime
 from typing import Dict, List, Optional
 
 import json_merge_patch
-import jsonpath_ng.ext
 
 from contaxy.operations import JsonDocumentOperations
 from contaxy.schema.exceptions import ResourceNotFoundError
@@ -146,16 +145,19 @@ class InMemoryDictJsonDocumentManager(JsonDocumentOperations):
             documents.append(JsonDocument(**collection[doc_key]))
 
         if filter:
+            # TODO: filter currently not working since json path of postgres is different than the impl below
+            # TODO: just return all data -> implmenetation needs to take on filtering
+            pass
             # Filter based on jsonpath
-            filtered_documents: List[JsonDocument] = []
-            jsonpath_expr = jsonpath_ng.ext.parse(filter)
-            for document in documents:
-                if [
-                    match.value
-                    for match in jsonpath_expr.find([json.loads(document.json_value)])
-                ]:
-                    filtered_documents.append(document)
-            documents = filtered_documents
+            # filtered_documents: List[JsonDocument] = []
+            # jsonpath_expr = jsonpath_ng.ext.parse(filter)
+            # for document in documents:
+            #    if [
+            #        match.value
+            #        for match in jsonpath_expr.find([json.loads(document.json_value)])
+            #    ]:
+            #        filtered_documents.append(document)
+            # documents = filtered_documents
 
         return documents
 
@@ -210,3 +212,7 @@ class InMemoryDictJsonDocumentManager(JsonDocumentOperations):
                 f"The json document with the key {key} does not exists."
             )
         del collection[key]
+
+    def delete_json_collections(self, project_id: str) -> None:
+        if self._dict_db:
+            self._dict_db[project_id] = {}  # type: ignore

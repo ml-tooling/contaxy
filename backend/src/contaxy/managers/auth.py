@@ -193,7 +193,7 @@ class AuthManager(AuthOperations):
         filtered_token_docs = self._json_db_manager.list_json_documents(
             config.SYSTEM_INTERNAL_PROJECT,
             self._API_TOKEN_COLLECTION,
-            filter=f'$[? (@.subject ==  "{token_subject}")]',  # TODO: $.subject ==  "{token_subject}"
+            filter=f'$.subject ==  "{token_subject}"',  # TODO: $.subject ==  "{token_subject}"  inmemory: $[? (@.subject ==  "{token_subject}")]'
         )
 
         api_tokens: List[ApiToken] = []
@@ -573,7 +573,7 @@ class AuthManager(AuthOperations):
         filtered_resource_docs = self._json_db_manager.list_json_documents(
             config.SYSTEM_INTERNAL_PROJECT,
             self._PERMISSION_COLLECTION,
-            filter=f'$[*].permissions[?(@=="{permission}")]',  # TODO: $.permissions[*] ? (@=="{permission}")
+            filter=f'$.permissions[*] ? (@=="{permission}")',  # TODO: $.permissions[*] ? (@=="{permission}")  - inmemory: $[*].permissions[?(@=="{permission}")]
         )
 
         resource_names: Set[str] = set()

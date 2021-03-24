@@ -1,13 +1,14 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
 from random import randrange
-from typing import Dict, List, Set
+from typing import Dict, Generator, List, Set
 
 import pytest
 from faker import Faker
 from jose import jwt
 from starlette.datastructures import State
 
+from contaxy import config
 from contaxy.config import settings
 from contaxy.managers.auth import AuthManager
 from contaxy.managers.json_db.inmemory_dict import InMemoryDictJsonDocumentManager
@@ -492,9 +493,14 @@ class TestAuthManagerWithPostgresDB(AuthOperationsTests):
     @pytest.fixture(autouse=True)
     def _init_auth_manager(
         self, global_state: GlobalState, request_state: RequestState
-    ) -> None:
+    ) -> Generator:
         json_db = PostgresJsonDocumentManager(global_state, request_state)
+        # Cleanup everything at the startup
+        json_db.delete_json_collections(config.SYSTEM_INTERNAL_PROJECT)
         self._auth_manager = AuthManager(global_state, request_state, json_db)
+        yield
+        json_db.delete_json_collections(config.SYSTEM_INTERNAL_PROJECT)
+        # Do cleanup
 
     @property
     def auth_manager(self) -> AuthManager:
@@ -506,9 +512,12 @@ class TestAuthManagerWithInMemoryDB(AuthOperationsTests):
     @pytest.fixture(autouse=True)
     def _init_auth_manager(
         self, global_state: GlobalState, request_state: RequestState
-    ) -> None:
+    ) -> Generator:
         json_db = InMemoryDictJsonDocumentManager(global_state, request_state)
+        json_db.delete_json_collections(config.SYSTEM_INTERNAL_PROJECT)
         self._auth_manager = AuthManager(global_state, request_state, json_db)
+        yield
+        json_db.delete_json_collections(config.SYSTEM_INTERNAL_PROJECT)
 
     @property
     def auth_manager(self) -> AuthManager:
