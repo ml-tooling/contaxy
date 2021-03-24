@@ -2,6 +2,8 @@
 import { useState } from 'react';
 import { createContainer } from 'unstated-next';
 
+import { usersApi } from '../services/contaxy-api';
+
 // const initialState = {};
 // const store = createContext(initialState);
 // const { Provider } = store;
@@ -63,16 +65,7 @@ export const initialState = {
     },
   ],
   isAuthenticated: false,
-  users: [
-    {
-      id: 'foobar',
-      name: 'Foo Bar',
-    },
-    {
-      id: 'foobar2',
-      name: 'Foo Bar 2',
-    },
-  ],
+  users: null,
 };
 
 const useGlobalState = (_initialState) => {
@@ -84,6 +77,16 @@ const useGlobalState = (_initialState) => {
   const [isAuthenticated, setIsAuthenticated] = useState(state.isAuthenticated);
   const [users, setUsers] = useState(state.users);
 
+  // cache users call so that it is lazy loaded upon first use
+  const getUsers = () => {
+    if (users) return users;
+    usersApi
+      .listUsers()
+      .then((loadedUsers) => setUsers(loadedUsers))
+      .catch(() => setUsers([]));
+    return [];
+  };
+
   return {
     user,
     setUser,
@@ -93,8 +96,9 @@ const useGlobalState = (_initialState) => {
     setProjects,
     isAuthenticated,
     setIsAuthenticated,
-    users,
-    setUsers,
+    // users,
+    // setUsers,
+    getUsers,
   };
 };
 

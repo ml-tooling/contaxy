@@ -9,7 +9,11 @@ from starlette.datastructures import State
 
 from contaxy.config import settings
 from contaxy.managers.json_db.postgres import PostgresJsonDocumentManager
-from contaxy.schema.exceptions import ClientValueError, ResourceNotFoundError
+from contaxy.schema.exceptions import (
+    ClientValueError,
+    ResourceAlreadyExistsError,
+    ResourceNotFoundError,
+)
 from contaxy.schema.json_db import JsonDocument
 from contaxy.utils.postgres_utils import create_jsonb_merge_patch_func
 from contaxy.utils.state_utils import GlobalState, RequestState
@@ -95,14 +99,22 @@ class TestPostgresJsonDocumentManager:
             new_json_value,
         )
 
+        self._assert_updated_doc(created_doc, overwritten_doc, new_json_value)
+
         # Test insert case with existing key
         try:
             self._create_doc(json_document_manager, defaults, upsert=False)
             assert False
-        except ClientValueError:
+        except ResourceAlreadyExistsError:
             pass
 
-        self._assert_updated_doc(created_doc, overwritten_doc, new_json_value)
+        # Test invalid json
+        defaults.update({"json_value": "invalid-json"})
+        try:
+            self._create_doc(json_document_manager, defaults)
+            assert False
+        except ClientValueError:
+            pass
 
     def test_get_json_document(
         self, json_document_manager: PostgresJsonDocumentManager

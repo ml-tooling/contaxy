@@ -45,11 +45,9 @@ const COLUMNS = [
 function FilesTable(props) {
   const { t } = useTranslation();
   const { className, data, onFileDelete, onFileDownload, onReload } = props;
-  // TODO: add correct value on Widget components
-  const filesPluralLiteral = t('file_plural');
   return (
     <MaterialTable
-      title={filesPluralLiteral}
+      title={t('file_plural')}
       columns={COLUMNS}
       data={data}
       options={{

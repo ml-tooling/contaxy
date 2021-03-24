@@ -22,11 +22,11 @@ import GlobalStateContainer from '../../app/store';
 import { useProjectMembers } from '../../services/api-hooks';
 
 function ManageProjectDialog(props) {
-  const { activeProject, users } = GlobalStateContainer.useContainer();
-  const [projectMembers] = useProjectMembers(activeProject);
-  const [userToAdd, setUserToAdd] = useState({}); // set to empty object so that material-ui knows that it is a controlled input
-
   const { className, project, onClose } = props;
+  const users = GlobalStateContainer.useContainer().getUsers();
+  const initialUserToAdd = users && users.length > 0 ? users[0] : {};
+  const [userToAdd, setUserToAdd] = useState(initialUserToAdd); // set to empty object so that material-ui knows that it is a controlled input
+  const [projectMembers] = useProjectMembers(project.id);
 
   const handleSelectUser = (e, newValue) => {
     setUserToAdd(newValue);
@@ -44,9 +44,9 @@ function ManageProjectDialog(props) {
 
   return (
     <Dialog open>
-      <DialogTitle>Manage Project {project.name}</DialogTitle>
+      <DialogTitle>{`Manage "${project.id}"`}</DialogTitle>
       <DialogContent>
-        <Typography variant="subtitle1">Members of Your Project:</Typography>
+        <Typography variant="subtitle1">Project members:</Typography>
         <List>
           {projectMembers.map((member) => {
             return (
@@ -67,7 +67,7 @@ function ManageProjectDialog(props) {
           className={`${className} addUserHeader`}
           variant="subtitle1"
         >
-          Add users:
+          Add members:
         </Typography>
         <div className={`${className} userInputContainer`}>
           <Autocomplete

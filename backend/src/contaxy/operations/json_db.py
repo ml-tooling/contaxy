@@ -26,7 +26,8 @@ class JsonDocumentOperations(ABC):
             upsert (bool): Indicates, wheter upsert strategy is used.
 
         Raises:
-            ClientValueError: If a document already exists for the given key and `upsert` is False or if the given json_document does not contain valid json.
+            ClientValueError: If the given json_document does not contain valid json.
+            ResourceAlreadyExistsError: If a document already exists for the given key and `upsert` is False.
 
         Returns:
             JsonDocument: The created JSON document.

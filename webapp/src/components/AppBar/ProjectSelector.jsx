@@ -7,21 +7,12 @@ import FormControl from '@material-ui/core/FormControl';
 import MenuItem from '@material-ui/core/MenuItem';
 import Select from '@material-ui/core/Select';
 
-import showStandardSnackbar from '../../app/showStandardSnackbar';
-
 function ProjectSelector(props) {
   const { activeProject, className, projects, onProjectChange } = props;
 
-  const changeProject = (e) => {
-    const project = JSON.parse(e.target.value);
-    showStandardSnackbar(`Change to project '${project.name}'`);
-    // TODO: add project to cookie one level above
-    onProjectChange(project);
-  };
-
   const projectElements = projects.map((project) => (
     <MenuItem value={JSON.stringify(project)} key={project.id}>
-      {project.name}
+      {project.id}
     </MenuItem>
   ));
 
@@ -38,7 +29,7 @@ function ProjectSelector(props) {
         className={`${className} select`}
         value={selectId}
         input={<Input id="select-project" />}
-        onChange={changeProject}
+        onChange={(e) => onProjectChange(JSON.parse(e.target.value))}
       >
         {projectElements}
       </Select>

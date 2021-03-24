@@ -22,7 +22,10 @@ function App() {
     if (!isAuthenticated) return;
     projectsApi
       .listProjects()
-      .then((result) => setProjects(result))
+      .then((result) => {
+        console.log(result);
+        setProjects(result);
+      })
       .catch((err) => showStandardSnackbar(JSON.stringify(err.response.body)));
   }, [isAuthenticated, setProjects]);
 
