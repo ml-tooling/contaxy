@@ -1,11 +1,12 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import List
+from typing import Generator, List
 
 import pytest
 from faker import Faker
 from starlette.datastructures import State
 
+from contaxy import config
 from contaxy.config import settings
 from contaxy.managers.auth import AuthManager
 from contaxy.managers.json_db.inmemory_dict import InMemoryDictJsonDocumentManager
@@ -265,12 +266,15 @@ class TestProjectManagerWithPostgresDB(ProjectOperationsTests):
     @pytest.fixture(autouse=True)
     def _init_project_manager(
         self, global_state: GlobalState, request_state: RequestState
-    ) -> None:
+    ) -> Generator:
         json_db = PostgresJsonDocumentManager(global_state, request_state)
+        json_db.delete_json_collections(config.SYSTEM_INTERNAL_PROJECT)
         auth_manager = AuthManager(global_state, request_state, json_db)
         self._project_manager = ProjectManager(
             global_state, request_state, json_db, auth_manager
         )
+        yield
+        json_db.delete_json_collections(config.SYSTEM_INTERNAL_PROJECT)
 
     @property
     def project_manager(self) -> ProjectManager:
@@ -282,12 +286,15 @@ class TestProjectManagerWithInMemoryDB(ProjectOperationsTests):
     @pytest.fixture(autouse=True)
     def _init_project_manager(
         self, global_state: GlobalState, request_state: RequestState
-    ) -> None:
+    ) -> Generator:
         json_db = InMemoryDictJsonDocumentManager(global_state, request_state)
+        json_db.delete_json_collections(config.SYSTEM_INTERNAL_PROJECT)
         auth_manager = AuthManager(global_state, request_state, json_db)
         self._project_manager = ProjectManager(
             global_state, request_state, json_db, auth_manager
         )
+        yield
+        json_db.delete_json_collections(config.SYSTEM_INTERNAL_PROJECT)
 
     @property
     def project_manager(self) -> ProjectOperations:
