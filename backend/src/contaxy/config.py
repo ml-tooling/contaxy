@@ -1,7 +1,7 @@
 from enum import Enum
-from typing import List, Optional
+from typing import List, Optional, Union
 
-from pydantic import AnyHttpUrl, BaseSettings, PostgresDsn
+from pydantic import AnyHttpUrl, BaseSettings, PostgresDsn, validator
 
 API_TOKEN_NAME: str = "ct_token"
 SYSTEM_INTERNAL_PROJECT: str = "system"
@@ -85,7 +85,15 @@ class Settings(BaseSettings):
     # BACKEND_CORS_ORIGINS is a JSON-formatted list of origins
     # e.g: '["http://localhost", "http://localhost:4200", "http://localhost:3000", \
     # "http://localhost:8080", "http://local.dockertoolbox.tiangolo.com"]'
-    BACKEND_CORS_ORIGINS: List[AnyHttpUrl] = []
+    BACKEND_CORS_ORIGINS: Union[str, List[AnyHttpUrl]] = []
+
+    @validator("BACKEND_CORS_ORIGINS", pre=True)
+    def _assemble_cors_origins(
+        cls, cors_origins: Union[str, List[AnyHttpUrl]]
+    ) -> Union[str, List[AnyHttpUrl]]:
+        if isinstance(cors_origins, str):
+            return [item.strip() for item in cors_origins.split(",")]
+        return cors_origins
 
     # TODO: Finalize
     DEBUG: bool = True
