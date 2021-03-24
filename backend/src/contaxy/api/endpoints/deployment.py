@@ -8,6 +8,7 @@ from contaxy.api.dependencies import (
     get_api_token,
     get_component_manager,
 )
+from contaxy.managers.extension import parse_composite_id
 from contaxy.schema import (
     ExtensibleOperations,
     Job,
@@ -16,6 +17,7 @@ from contaxy.schema import (
     Service,
     ServiceInput,
 )
+from contaxy.schema.auth import AccessLevel
 from contaxy.schema.deployment import JOB_ID_PARAM, SERVICE_ID_PARAM
 from contaxy.schema.extension import EXTENSION_ID_PARAM
 from contaxy.schema.project import PROJECT_ID_PARAM
@@ -51,7 +53,12 @@ def list_services(
     token: str = Depends(get_api_token),
 ) -> Any:
     """Lists all services associated with the given project."""
-    raise NotImplementedError
+    component_manager.verify_access(
+        token, f"projects/{project_id}/services", AccessLevel.READ
+    )
+
+    # TODO: List all services from all extensions
+    return component_manager.get_service_manager(extension_id).list_services(project_id)
 
 
 @service_router.get(
@@ -75,7 +82,13 @@ def suggest_service_config(
     The suggestion is based on metadata extracted from the container image (e.g. labels)
     as well as suggestions based on previous project deployments with the same image.
     """
-    raise NotImplementedError
+    component_manager.verify_access(
+        token, f"projects/{project_id}/services:suggest-config", AccessLevel.WRITE
+    )
+
+    return component_manager.get_service_manager(extension_id).suggest_service_config(
+        project_id, container_image
+    )
 
 
 @service_router.get(
@@ -95,7 +108,14 @@ def get_service_metadata(
 
     The returned metadata might be filtered based on the permission level of the authenticated user.
     """
-    raise NotImplementedError
+    component_manager.verify_access(
+        token, f"projects/{project_id}/services/{service_id}", AccessLevel.READ
+    )
+
+    service_id, extension_id = parse_composite_id(service_id)
+    return component_manager.get_service_manager(extension_id).get_service_metadata(
+        project_id, service_id
+    )
 
 
 @service_router.post(
@@ -127,7 +147,14 @@ def list_deploy_service_actions(
 
     The same action mechanism is also used for other type of actions on resources.
     """
-    raise NotImplementedError
+    component_manager.verify_access(
+        token, f"projects/{project_id}/services:deploy-actions", AccessLevel.WRITE
+    )
+
+    # TODO: List alldeploy  actions from all extensions
+    return component_manager.get_service_manager(
+        extension_id
+    ).list_deploy_service_actions(project_id, service)
 
 
 @service_router.post(
@@ -157,8 +184,16 @@ def deploy_service(
 
     The action mechanism is further explained in the description of the [list_deploy_service_actions](#services/list_deploy_service_actions).
     """
-    # TODO: add auto select extension option?
-    raise NotImplementedError
+    component_manager.verify_access(
+        token, f"projects/{project_id}/services", AccessLevel.WRITE
+    )
+
+    extension_id = None
+    if action_id:
+        action_id, extension_id = parse_composite_id(action_id)
+    return component_manager.get_service_manager(extension_id).deploy_service(
+        project_id, service, action_id
+    )
 
 
 @service_router.delete(
@@ -180,7 +215,17 @@ def delete_service(
 
     This will kill and remove the container and all associated deployment artifacts.
     """
-    raise NotImplementedError
+    component_manager.verify_access(
+        token, f"projects/{project_id}/services/{service_id}", AccessLevel.WRITE
+    )
+
+    if not delete_volumes:
+        delete_volumes = False
+
+    service_id, extension_id = parse_composite_id(service_id)
+    return component_manager.get_service_manager(extension_id).delete_service(
+        project_id, service_id, delete_volumes
+    )
 
 
 @service_router.get(
@@ -201,7 +246,14 @@ def get_service_logs(
     token: str = Depends(get_api_token),
 ) -> Any:
     """Returns the stdout/stderr logs of the service."""
-    raise NotImplementedError
+    component_manager.verify_access(
+        token, f"projects/{project_id}/services/{service_id}/logs", AccessLevel.WRITE
+    )
+
+    service_id, extension_id = parse_composite_id(service_id)
+    return component_manager.get_service_manager(extension_id).get_service_logs(
+        project_id, service_id, lines, since
+    )
 
 
 @service_router.get(
@@ -234,7 +286,14 @@ def list_service_actions(
     The same action mechanism is also used for other resources (e.g., files, jobs).
     It can support a very broad set of use-cases, for example: Access to service endpoints, dashboards for monitoring, adminsitration tools, and more...
     """
-    raise NotImplementedError
+    component_manager.verify_access(
+        token, f"projects/{project_id}/services/{service_id}/actions", AccessLevel.WRITE
+    )
+
+    # TODO: List all actions from all extensions
+    return component_manager.get_service_manager(extension_id).list_service_actions(
+        project_id, service_id
+    )
 
 
 @service_router.get(
@@ -263,7 +322,16 @@ def execute_service_action(
 
     The action mechanism is further explained in the description of the [list_service_actions](#services/list_service_actions).
     """
-    raise NotImplementedError
+    component_manager.verify_access(
+        token,
+        f"projects/{project_id}/services/{service_id}/actions/{action_id}",
+        AccessLevel.WRITE,
+    )
+
+    action_id, extension_id = parse_composite_id(action_id)
+    return component_manager.get_service_manager(extension_id).execute_service_action(
+        project_id, service_id, action_id
+    )
 
 
 @service_router.get(
@@ -291,7 +359,16 @@ def access_service(
     The user is expected to be redirected to the specified endpoint.
     If required, cookies can be attached to the response with session tokens to authorize access.
     """
-    raise NotImplementedError
+    component_manager.verify_access(
+        token,
+        f"projects/{project_id}/services/{service_id}/access/{endpoint}",
+        AccessLevel.READ,
+    )
+
+    service_id, extension_id = parse_composite_id(service_id)
+    return component_manager.get_service_manager(extension_id).access_service(
+        project_id, service_id, endpoint
+    )
 
 
 # Job Endpoints
@@ -311,7 +388,14 @@ def list_jobs(
     token: str = Depends(get_api_token),
 ) -> Any:
     """Lists all jobs associated with the given project."""
-    raise NotImplementedError
+    component_manager.verify_access(
+        token,
+        f"projects/{project_id}/jobs",
+        AccessLevel.READ,
+    )
+
+    # TODO: List all jobs from all extensions
+    return component_manager.get_job_manager(extension_id).list_jobs(project_id)
 
 
 @job_router.get(
@@ -331,7 +415,16 @@ def get_job_metadata(
 
     The returned metadata might be filtered based on the permission level of the authenticated user.
     """
-    raise NotImplementedError
+    component_manager.verify_access(
+        token,
+        f"projects/{project_id}/jobs/{job_id}",
+        AccessLevel.READ,
+    )
+
+    job_id, extension_id = parse_composite_id(job_id)
+    return component_manager.get_job_manager(extension_id).get_job_metadata(
+        project_id, job_id
+    )
 
 
 @job_router.get(
@@ -355,7 +448,15 @@ def suggest_job_config(
     The suggestion is based on metadata extracted from the container image (e.g. labels)
     as well as suggestions based on previous project deployments with the same image.
     """
-    raise NotImplementedError
+    component_manager.verify_access(
+        token,
+        f"projects/{project_id}/jobs:suggest-config",
+        AccessLevel.WRITE,
+    )
+
+    return component_manager.get_job_manager(extension_id).suggest_job_config(
+        project_id, container_image
+    )
 
 
 @job_router.post(
@@ -387,7 +488,15 @@ def list_deploy_job_actions(
 
     The same action mechanism is also used for other type of actions on resources.
     """
-    raise NotImplementedError
+    component_manager.verify_access(
+        token,
+        f"projects/{project_id}/jobs:deploy-actions",
+        AccessLevel.WRITE,
+    )
+    # TODO: List all deploy job actions from all extensions
+    return component_manager.get_job_manager(extension_id).list_deploy_job_actions(
+        project_id, job
+    )
 
 
 @job_router.post(
@@ -418,7 +527,19 @@ def deploy_job(
 
     The action mechanism is further explained in the description of the [list_deploy_job_actions](#jobs/list_deploy_job_actions).
     """
-    raise NotImplementedError
+    component_manager.verify_access(
+        token,
+        f"projects/{project_id}/jobs",
+        AccessLevel.WRITE,
+    )
+
+    extension_id = None
+    if action_id:
+        action_id, extension_id = parse_composite_id(action_id)
+
+    return component_manager.get_job_manager(extension_id).deploy_job(
+        project_id, job, action_id
+    )
 
 
 @job_router.delete(
@@ -437,7 +558,16 @@ def delete_job(
 
     This will kill and remove the container and all associated deployment artifacts.
     """
-    raise NotImplementedError
+    component_manager.verify_access(
+        token,
+        f"projects/{project_id}/jobs/{job_id}",
+        AccessLevel.WRITE,
+    )
+
+    job_id, extension_id = parse_composite_id(job_id)
+    return component_manager.get_job_manager(extension_id).delete_job(
+        project_id, job_id
+    )
 
 
 @job_router.get(
@@ -458,7 +588,16 @@ def get_job_logs(
     token: str = Depends(get_api_token),
 ) -> Any:
     """Returns the stdout/stderr logs of the job."""
-    raise NotImplementedError
+    component_manager.verify_access(
+        token,
+        f"projects/{project_id}/jobs/{job_id}/logs",
+        AccessLevel.WRITE,
+    )
+
+    job_id, extension_id = parse_composite_id(job_id)
+    return component_manager.get_job_manager(extension_id).get_job_logs(
+        project_id, job_id, lines, since
+    )
 
 
 @job_router.get(
@@ -491,7 +630,17 @@ def list_job_actions(
     The same action mechanism is also used for other resources (e.g., files, services).
     It can support a very broad set of use-cases, for example: Access to dashboards for monitoring, adminsitration tools, and more...
     """
-    raise NotImplementedError
+    component_manager.verify_access(
+        token,
+        f"projects/{project_id}/jobs/{job_id}/actions",
+        AccessLevel.WRITE,
+    )
+
+    # TODO: List all job actions from all extensions
+
+    return component_manager.get_job_manager(extension_id).list_job_actions(
+        project_id, job_id
+    )
 
 
 @job_router.get(
@@ -520,4 +669,13 @@ def execute_job_action(
 
     The action mechanism is further explained in the description of the [list_job_actions](#jobs/list_job_actions).
     """
-    raise NotImplementedError
+    component_manager.verify_access(
+        token,
+        f"projects/{project_id}/jobs/{job_id}/actions/{action_id}",
+        AccessLevel.WRITE,
+    )
+
+    action_id, extension_id = parse_composite_id(action_id)
+    return component_manager.get_job_manager(extension_id).execute_job_action(
+        project_id, job_id, action_id
+    )

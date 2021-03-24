@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List
 
 from starlette.responses import Response
 
@@ -31,7 +31,7 @@ class DeploymentManager(DeploymentOperations):
         return Response(status_code=501)
 
     def list_service_actions(
-        self, project_id: str, service_id: str, extension_id: Optional[str]
+        self, project_id: str, service_id: str
     ) -> List[ResourceAction]:
         return []
 

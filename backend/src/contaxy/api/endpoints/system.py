@@ -8,6 +8,7 @@ from contaxy.api.dependencies import (
     get_component_manager,
 )
 from contaxy.schema import CoreOperations, SystemInfo, SystemStatistics
+from contaxy.schema.auth import AccessLevel
 
 router = APIRouter(tags=["system"])
 
@@ -53,5 +54,5 @@ def get_system_statistics(
     token: str = Depends(get_api_token),
 ) -> Any:
     """Returns statistics about this instance."""
-    component_manager.get_auth_manager().verify_access(token, "system#admin")
+    component_manager.verify_access(token, "system", AccessLevel.READ)
     return component_manager.get_system_manager().get_system_statistics()

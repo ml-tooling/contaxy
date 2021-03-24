@@ -420,6 +420,7 @@ class AuthManager(AuthOperations):
             self._PERMISSION_COLLECTION,
             resource_name,
             resource_permission.json(),
+            upsert=True,
         )
 
         # Test if permission was applied with short timeout (to wait for conflicting updates)
@@ -470,6 +471,7 @@ class AuthManager(AuthOperations):
                 self._PERMISSION_COLLECTION,
                 resource_name,
                 ResourcePermissions(permissions=updated_permissions).json(),
+                upsert=True,
             )
 
             # Test if permission was applied with short timeout (to wait for conflicting updates)
@@ -568,12 +570,11 @@ class AuthManager(AuthOperations):
         self, permission: str, resource_name_prefix: Optional[str] = None
     ) -> List[str]:
 
-        # TODO: check json path expression
         # Filter all resources for the provided permission
         filtered_resource_docs = self._json_db_manager.list_json_documents(
             config.SYSTEM_INTERNAL_PROJECT,
             self._PERMISSION_COLLECTION,
-            filter=f'$.permissions[*] ? (@=="{permission}")',  # TODO: $.permissions[*] ? (@=="{permission}")  - inmemory: $[*].permissions[?(@=="{permission}")]
+            filter=f'$.permissions[*] ? (@=="{permission}")',  # TODO: - inmemory: $[*].permissions[?(@=="{permission}")]
         )
 
         resource_names: Set[str] = set()
@@ -751,12 +752,16 @@ class AuthManager(AuthOperations):
                 f"A username mapping with username {username} already exists."
             )
         processed_username = username.lower().strip()
-        self._json_db_manager.create_json_document(
-            project_id=config.SYSTEM_INTERNAL_PROJECT,
-            collection_id=self._USERNAME_ID_MAPPING_COLLECTION,
-            key=processed_username,
-            json_document=UsernameIdMapping(user_id=user_id).json(),
-        )
+        try:
+            self._json_db_manager.create_json_document(
+                project_id=config.SYSTEM_INTERNAL_PROJECT,
+                collection_id=self._USERNAME_ID_MAPPING_COLLECTION,
+                key=processed_username,
+                json_document=UsernameIdMapping(user_id=user_id).json(),
+                upsert=False,  # Only create, no updates
+            )
+        except ResourceAlreadyExistsError:
+            pass
 
     def _get_id_by_username(self, username: str) -> str:
         processed_username = username.lower().strip()

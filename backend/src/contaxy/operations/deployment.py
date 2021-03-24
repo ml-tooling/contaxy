@@ -152,7 +152,6 @@ class ServiceOperations(ABC):
         self,
         project_id: str,
         service_id: str,
-        extension_id: Optional[str],
     ) -> List[ResourceAction]:
         """Lists all actions available for the specified service.
 
@@ -161,7 +160,6 @@ class ServiceOperations(ABC):
         Args:
             project_id (str): The project ID associated with the service.
             service_id (str): The ID of the service.
-            extension_id (Optional[str]): Extension ID. If not specified, the system will decide. Use `core` to explicitly select the core platform.
 
         Returns:
             List[ResourceAction]: Available actions for given services.

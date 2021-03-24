@@ -101,8 +101,7 @@ def upload_file(
         token, f"projects/{project_id}/files", AccessLevel.WRITE
     )
 
-    # TODO adapt upload implementation
-    print("Upload file")
+    # TODO What to do on upload
     return None
 
 
@@ -127,12 +126,12 @@ def get_file_metadata(
     component_manager.verify_access(
         token,
         f"/projects/{project_id}/files/{file_key:path}:metadata",
-        AccessLevel.WRITE,
+        AccessLevel.READ,
     )
 
-    resource_id, extension_id = parse_composite_id(file_key)
+    file_key, extension_id = parse_composite_id(file_key)
     return component_manager.get_file_manager(extension_id).get_file_metadata(
-        project_id, resource_id, version
+        project_id, file_key, version
     )
 
 
@@ -161,8 +160,16 @@ def update_file_metadata(
     The update is applied on the existing metadata based on the JSON Merge Patch Standard ([RFC7396](https://tools.ietf.org/html/rfc7396)).
     Thereby, only the specified properties will be updated.
     """
-    print("Update file metadata.")
-    return None
+    component_manager.verify_access(
+        token,
+        f"projects/{project_id}/files/{file_key}",
+        AccessLevel.WRITE,
+    )
+
+    file_key, extension_id = parse_composite_id(file_key)
+    return component_manager.get_file_manager(extension_id).update_file_metadata(
+        file, project_id, file_key, version
+    )
 
 
 @router.get(
@@ -186,10 +193,12 @@ def download_file(
 
     If the file storage supports versioning and no `version` is specified, the latest version will be downloaded.
     """
-    # TODO adapt download implementation
-    print("download")
-    print(file_key)
-    return None
+    component_manager.verify_access(
+        token,
+        f"projects/{project_id}/files/{file_key}:download",
+        AccessLevel.READ,
+    )
+    # TODO: what to do on file download here?
 
 
 @router.get(
@@ -226,9 +235,15 @@ def list_file_actions(
     The same action mechanism is also used for other resources (e.g., services, jobs).
     It can support a very broad set of use-cases, for example: CSV Viewer, Tensorflow Model Deployment, ZIP Archive Explorer ...
     """
-    print("get file actions")
-    print(file_key)
-    return None
+    component_manager.verify_access(
+        token,
+        f"projects/{project_id}/files/{file_key}/actions",
+        AccessLevel.WRITE,
+    )
+
+    return component_manager.get_file_manager(extension_id).list_file_actions(
+        project_id, file_key, version
+    )
 
 
 @router.get(
@@ -261,11 +276,18 @@ def execute_file_action(
 
     The action mechanism is further explained in the description of the [list_file_actions](#files/list_file_actions).
     """
-    print("execute file action")
-    print(file_key)
-    print(action_id)
-    return None
-    # raise NotImplementedError
+    # TODO: write permission?
+    component_manager.verify_access(
+        token,
+        f"projects/{project_id}/files/{file_key}/actions/{action_id}",
+        AccessLevel.WRITE,
+    )
+
+    # TODO: only extract extension ID from action?
+    action_id, extension_id = parse_composite_id(action_id)
+    return component_manager.get_file_manager(extension_id).execute_file_action(
+        project_id, file_key, action_id, version
+    )
 
 
 @router.delete(
@@ -293,6 +315,13 @@ def delete_file(
 
     The parameter `keep_latest_version` is useful if you want to delete all older versions of a file.
     """
-    print("delete file")
-    print(file_key)
-    return None
+    component_manager.verify_access(
+        token, f"projects/{project_id}/files/{file_key}", AccessLevel.WRITE
+    )
+    if keep_latest_version is None:
+        keep_latest_version = False
+
+    file_key, extension_id = parse_composite_id(file_key)
+    return component_manager.get_file_manager(extension_id).delete_file(
+        project_id, file_key, version, keep_latest_version
+    )

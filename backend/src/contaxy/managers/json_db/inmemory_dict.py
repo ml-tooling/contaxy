@@ -5,7 +5,7 @@ from typing import Dict, List, Optional
 import json_merge_patch
 
 from contaxy.operations import JsonDocumentOperations
-from contaxy.schema.exceptions import ResourceNotFoundError
+from contaxy.schema.exceptions import ResourceAlreadyExistsError, ResourceNotFoundError
 from contaxy.schema.json_db import JsonDocument
 from contaxy.utils.state_utils import GlobalState, RequestState
 
@@ -58,6 +58,7 @@ class InMemoryDictJsonDocumentManager(JsonDocumentOperations):
         collection_id: str,
         key: str,
         json_document: str,
+        upsert: bool = True,
     ) -> JsonDocument:
         """Creates a JSON document for a given key.
 
@@ -68,11 +69,17 @@ class InMemoryDictJsonDocumentManager(JsonDocumentOperations):
             collection_id: ID of the collection (database) to use to store this JSON document.
             key: Key of the JSON document.
             json_document: The actual JSON document value.
+            upsert: If `True`, the document will be updated/overwritten if it already exists.
 
         Returns:
             JsonDocument: The created JSON document.
         """
         collection = self._get_collection(project_id, collection_id)
+
+        if not upsert and key in collection:
+            raise ResourceAlreadyExistsError(
+                "A document with the key {key} already exists."
+            )
 
         created_document = JsonDocument(
             key=key,
