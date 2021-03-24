@@ -17,6 +17,7 @@ from sqlalchemy.future import Engine, create_engine
 from contaxy.operations import JsonDocumentOperations
 from contaxy.schema.exceptions import (
     ClientValueError,
+    ResourceAlreadyExistsError,
     ResourceNotFoundError,
     ServerBaseError,
 )
@@ -62,7 +63,8 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
             upsert (bool): Indicates, wheter upsert strategy is used.
 
         Raises:
-            ClientValueError: If a document already exists for the given key and `upsert` is False or if the given json_document does not contain valid json.
+            ClientValueError: If the given json_document does not contain valid json.
+            ResourceAlreadyExistsError: If a document already exists for the given key and `upsert` is False.
 
         Returns:
             JsonDocument: The created Json document.
@@ -95,7 +97,9 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
                     )
                 conn.commit()
             except IntegrityError:
-                raise ClientValueError(f"A Json document for key {key} already exists.")
+                raise ResourceAlreadyExistsError(
+                    f"A Json document for key {key} already exists."
+                )
 
         logger.info(
             f"Json document created (`project_id`: {project_id}, `collection_id`: {collection_id} `key`: {key} )"
