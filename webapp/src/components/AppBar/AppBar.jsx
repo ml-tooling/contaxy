@@ -11,14 +11,11 @@ import ProjectSelector from './ProjectSelector';
 import UserMenu from './UserMenu';
 import { APP_NAME } from '../../utils/config';
 import GlobalStateContainer from '../../app/store';
+import { useProjectSelector } from '../../utils/project-utils';
 
 function AppBar(props) {
-  const {
-    activeProject,
-    projects,
-    setActiveProject,
-    user,
-  } = GlobalStateContainer.useContainer();
+  const { activeProject, projects, user } = GlobalStateContainer.useContainer();
+  const onProjectSelect = useProjectSelector();
   const { className, isAuthenticated, onDrawerOpen } = props;
 
   const menuIconElement = (
@@ -36,7 +33,7 @@ function AppBar(props) {
     <ProjectSelector
       activeProject={activeProject}
       projects={projects}
-      onProjectChange={setActiveProject}
+      onProjectChange={onProjectSelect}
     />
   );
 

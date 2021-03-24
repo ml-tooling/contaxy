@@ -1,9 +1,20 @@
 /* eslint-disable import/prefer-default-export */
+import GlobalStateContainer from '../app/store';
+import showStandardSnackbar from '../app/showStandardSnackbar';
 
-export const getProjects = () => {
-  return [];
-};
+export const useProjectSelector = () => {
+  const { setActiveProject } = GlobalStateContainer.useContainer();
 
-export const setActiveProject = () => {
-  // TODO: set active project for the App
+  const onProjectSelect = (project) => {
+    const newProject = { ...project };
+    // try {
+    //   const projectMetadata = await projectsApi.getProject(project.id);
+    //   newProject.metadata = projectMetadata;
+    // } catch (ignore) {} // eslint-disable-line no-empty
+
+    showStandardSnackbar(`Change to project '${project.id}'`);
+    setActiveProject(newProject);
+  };
+
+  return onProjectSelect;
 };

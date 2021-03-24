@@ -12,6 +12,7 @@ import { fetchAPIToken, projectsApi } from '../services/contaxy-api';
 import ManageProjectDialog from '../components/Dialogs/ManageProjectDialog';
 import { useShowAppDialog } from '../app/AppDialogServiceProvider';
 import ApiTokenDialog from '../components/Dialogs/ApiTokenDialog';
+import { useProjectSelector } from '../utils/project-utils';
 
 const onDeleteProject = async (project) => {
   // TODO: do something with the response
@@ -23,22 +24,8 @@ const onDeleteProject = async (project) => {
 function Projects() {
   const { t } = useTranslation();
   const showAppDialog = useShowAppDialog();
-  const {
-    activeProject,
-    projects,
-    setActiveProject,
-  } = GlobalStateContainer.useContainer();
-
-  const onProjectSelect = async (project) => {
-    const newProject = { ...project };
-    try {
-      const projectMetadata = await projectsApi.getProject(project.id);
-      newProject.metadata = projectMetadata;
-    } catch (ignore) {} // eslint-disable-line no-empty
-
-    showStandardSnackbar(`Change to project '${project.name}'`);
-    setActiveProject(newProject);
-  };
+  const { activeProject, projects } = GlobalStateContainer.useContainer();
+  const onProjectSelect = useProjectSelector();
 
   const onClickManageMembers = (project) => {
     showAppDialog(ManageProjectDialog, { project });
