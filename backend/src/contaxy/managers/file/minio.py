@@ -11,7 +11,11 @@ from starlette.responses import Response
 from contaxy.operations import FileOperations
 from contaxy.operations.json_db import JsonDocumentOperations
 from contaxy.schema import File, FileInput, ResourceAction
-from contaxy.schema.exceptions import ResourceNotFoundError, ServerBaseError
+from contaxy.schema.exceptions import (
+    ClientValueError,
+    ResourceNotFoundError,
+    ServerBaseError,
+)
 from contaxy.schema.json_db import JsonDocument
 from contaxy.utils.file_utils import FileStream, generate_file_id
 from contaxy.utils.minio_utils import (
@@ -31,7 +35,7 @@ class MinioFileManager(FileOperations):
         "md5_hash",
         "description",
         "content_type",
-        "additional_metadata",
+        "metadata",
         "disabled",
         "icon",
         "display_name",
@@ -127,7 +131,55 @@ class MinioFileManager(FileOperations):
         file_key: str,
         version: Optional[str] = None,
     ) -> File:
-        pass
+        """Update the file metadata.
+
+        If no version is provided then the latest version will be returned. Moreover, additional custom metadata provied via `file.metadata` will executed with json merge patch strategy in case a specific version is updated. But if a new version was created it is treated as a new file and hence the metadata from older versions will not be considered. If a version should inherit the metadata from a previous version, then this data needs to be set explictly.
+
+        Args:
+            file (FileInput): The file metadata object. All unset attributes or None values will be ignored.
+            project_id (str): Project ID associated with the file.
+            file_key (str): Key of the file.
+            version (Optional[str], optional): File version. Defaults to None.
+
+        Raises:
+            ClientValueError: If the provided keys do not match.
+
+        Returns:
+            File: The updated file metadata object.
+        """
+
+        if file.key != file_key:
+            raise ClientValueError(
+                f"File keys do not match (file_key: {file_key}, file.key {file.key})"
+            )
+
+        s3_object = self.client.stat_object(
+            get_bucket_name(project_id, self.global_state.settings.SYSTEM_NAMESPACE),
+            file_key,
+            version,
+        )
+
+        data = file.dict(
+            include=self.METADATA_FIELD_SET, exclude_none=True, exclude_unset=True
+        )
+        json_value = json.dumps(data)
+
+        doc_key = generate_file_id(file_key, s3_object.version_id)
+
+        try:
+            self.json_db_manager.update_json_document(
+                project_id, self.DOC_COLLECTION_NAME, doc_key, json_value
+            )
+        except ResourceNotFoundError:
+            # Lazily create and update a metadata entry in the DB, since the resource mmight be uploaded externally
+            self._create_file_metadata_json_document(
+                project_id, file_key, s3_object.version_id
+            )
+            self.json_db_manager.update_json_document(
+                project_id, self.DOC_COLLECTION_NAME, doc_key, json_value
+            )
+
+        return self.get_file_metadata(project_id, file_key, s3_object.version_id)
 
     def upload_file(
         self,
@@ -163,18 +215,9 @@ class MinioFileManager(FileOperations):
                 f"The file {file_key} could not be uploaded ({err.code})."
             )
 
-        object_stats = self.client.stat_object(
-            bucket_name, file_key, version_id=result.version_id
-        )
-
-        file = self._map_s3_object_to_file_model(object_stats)
-        file.md5_hash = file_stream.hash
-        file.content_type = object_stats.content_type
-
         # ? Get the data from the last version if existing?
-        json_doc = self._create_metadata_json_document(file)
-        self.json_db_manager.create_json_document(
-            project_id, self.DOC_COLLECTION_NAME, str(file.id), json_doc
+        self._create_file_metadata_json_document(
+            project_id, file_key, result.version_id, file_stream.hash
         )
 
         # This is necessary in order to have the available versions metadata set
@@ -222,6 +265,29 @@ class MinioFileManager(FileOperations):
             )
         return state_namespace.client
 
+    def _create_file_metadata_json_document(
+        self,
+        project_id: str,
+        file_key: str,
+        version: Optional[str] = None,
+        md5_hash: Optional[str] = None,
+    ) -> JsonDocument:
+        s3_object = self.client.stat_object(
+            get_bucket_name(project_id, self.global_state.settings.SYSTEM_NAMESPACE),
+            file_key,
+            version_id=version,
+        )
+        meta_file = self._map_s3_object_to_file_model(s3_object)
+        if md5_hash:
+            meta_file.md5_hash = md5_hash
+        metadata_json = self._map_file_obj_to_json_document(meta_file)
+        return self.json_db_manager.create_json_document(
+            project_id,
+            self.DOC_COLLECTION_NAME,
+            meta_file.id,  # type: ignore
+            metadata_json,
+        )
+
     def _map_s3_object_to_file_model(self, object: MinioObject) -> File:
         # Todo: Check if directory can be given and what the implications are. Do we want to list such? (see object.is_dir param)
         file_extension = os.path.splitext(object.object_name)[1]
@@ -231,8 +297,6 @@ class MinioFileManager(FileOperations):
             "external_id": object.object_name,
             "key": object.object_name,
             "display_name": display_name,
-            # ! Minio seems to not set the content type, only when reading single object via stat_object, hence we persist it in the db
-            # "content_type": object.content_type,
             "updated_at": object.last_modified,
             "file_extension": file_extension,
             "file_size": object.size,
@@ -240,9 +304,13 @@ class MinioFileManager(FileOperations):
             "latest_version": object.is_latest,
             "version": object.version_id,
         }
+
+        # ! Minio seems to not set the content type, only when reading single object via stat_object, hence we persist it in the db
+        if object.content_type:
+            data.update({"content_type": object.content_type})
         return File(**data)
 
-    def _create_metadata_json_document(self, file: File) -> str:
+    def _map_file_obj_to_json_document(self, file: File) -> str:
         # Todo: Handle creation metadata. Problem: Each version is actually a new object and gets a dedicated db entry. Use list_objects or direct lookup in the DB?
         json_data = json.dumps(
             file.dict(include=self.METADATA_FIELD_SET, exclude_none=True),
@@ -314,7 +382,7 @@ class MinioFileManager(FileOperations):
             if doc_of_file:
                 file = self._add_data_from_doc_to_file(file, doc_of_file)
             else:
-                json_doc = self._create_metadata_json_document(file)
+                json_doc = self._map_file_obj_to_json_document(file)
                 docs_not_in_db.append({str(file.id): json_doc})
 
         return file_data, docs_not_in_db

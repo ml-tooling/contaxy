@@ -99,6 +99,19 @@ class TestMinioFileManager:
             read_file = minio_file_manager.get_file_metadata(project_id, filename)
             assert listed_file == read_file
 
+            # Update metadata
+            exp_description = "Updated description"
+            exp_metadata = {"source": "http://fc.de"}
+            updates = FileInput(
+                key=filename, description=exp_description, metadata=exp_metadata
+            )
+            updated_file = minio_file_manager.update_file_metadata(
+                updates, project_id, filename
+            )
+            assert updated_file != uploaded_file
+            assert updated_file.description == exp_description
+            assert updated_file.metadata == exp_metadata
+
     def test_update_file_metadata(self, minio_file_manager: MinioFileManager) -> None:
         pass
 
