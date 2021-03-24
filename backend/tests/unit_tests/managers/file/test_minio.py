@@ -1,3 +1,4 @@
+import hashlib
 from random import randint
 from typing import Generator
 
@@ -9,6 +10,7 @@ from contaxy.config import settings
 from contaxy.managers.file.minio import MinioFileManager
 from contaxy.managers.json_db.inmemory_dict import InMemoryDictJsonDocumentManager
 from contaxy.schema import File, FileInput
+from contaxy.schema.exceptions import ResourceNotFoundError
 from contaxy.utils.file_utils import FormMultipartStream
 from contaxy.utils.minio_utils import (
     create_minio_client,
@@ -112,12 +114,52 @@ class TestMinioFileManager:
             assert updated_file.description == exp_description
             assert updated_file.metadata == exp_metadata
 
+            # Download
+            file_stream = minio_file_manager.download_file(project_id, filename)
+            actual_hash = hashlib.md5()
+            for chunk in file_stream:
+                actual_hash.update(chunk)
+
+            assert actual_hash.hexdigest() == multipart_stream.hash
+
+            try:
+                minio_file_manager.download_file("invalid-project", filename)
+                assert False
+            except ResourceNotFoundError:
+                pass
+
+            try:
+                minio_file_manager.download_file(project_id, "invalid-file")
+                assert False
+            except ResourceNotFoundError:
+                pass
+
     def test_update_file_metadata(self, minio_file_manager: MinioFileManager) -> None:
+        # File does not exsists
+
+        # File exists
+
+        # - Update latest version
+
+        # - Update specific
+
         pass
 
     def test_download_file(self, minio_file_manager: MinioFileManager) -> None:
+        # File exists
+
+        # File does not exist
+
+        # Bucket does not exist
         pass
 
     def test_delete_file(self, minio_file_manager: MinioFileManager) -> None:
+        # File does not exist
+
+        # File exists
+
+        # - Multiple versions and no version specified
+
+        # - Multiple versions and version specified
 
         pass

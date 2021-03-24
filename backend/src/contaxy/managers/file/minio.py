@@ -69,6 +69,9 @@ class MinioFileManager(FileOperations):
         prefix: Optional[str] = None,
     ) -> List[File]:
         # TODO: Test case when object is folder
+        logger.debug(
+            f"list_files (`project_id`: {project_id}, `recursive`: {recursive}, `include_versions`: {include_versions}, `prefix`: {prefix})."
+        )
 
         bucket_name = get_bucket_name(project_id, self.sys_namespace)
 
@@ -111,6 +114,9 @@ class MinioFileManager(FileOperations):
         Returns:
             File: The file metadata object.
         """
+        logger.debug(
+            f"get_file_metadata (`project_id`: {project_id}, `file_key`: {file_key}, `version`: {version})"
+        )
 
         file_data = self.list_files(
             project_id, prefix=file_key, include_versions=True if version else False
@@ -147,6 +153,9 @@ class MinioFileManager(FileOperations):
         Returns:
             File: The updated file metadata object.
         """
+        logger.debug(
+            f"update_file_metadata (`project_id`: {project_id}, `file_key`: {file_key}, `version`: {version})"
+        )
 
         if file.key != file_key:
             raise ClientValueError(
@@ -190,7 +199,7 @@ class MinioFileManager(FileOperations):
     ) -> File:
 
         logger.debug(
-            f"Upload file (`project_id`: {project_id}, `file_key`: {file_key})"
+            f"upload_file (`project_id`: {project_id}, `file_key`: {file_key})"
         )
 
         # Todo: Handle further metadata: creation, disabled, tags, icon, userdata, extension_id
@@ -230,7 +239,25 @@ class MinioFileManager(FileOperations):
         file_key: str,
         version: Optional[str] = None,
     ) -> Iterator[bytes]:
-        pass
+        logger.debug(
+            f"download_file (`project_id`: {project_id}, `file_key`: {file_key}, `version`: {version})"
+        )
+        bucket_name = get_bucket_name(project_id, self.sys_namespace)
+        try:
+            response = self.client.get_object(bucket_name, file_key, version_id=version)
+        except S3Error as err:
+            if err.code == "NoSuchBucket":
+                logger.debug(f"Download failed - Bucket {bucket_name} does not exist.")
+                raise ResourceNotFoundError(f"The project {project_id} is invalid.")
+            elif err.code == "NoSuchKey":
+                logger.debug(
+                    f"Download failed - Invalid file {file_key} (version: {version})."
+                )
+                raise ResourceNotFoundError(
+                    f"Invalid file {file_key} (version: {version}."
+                )
+
+        return response.stream()
 
     def list_file_actions(
         self, project_id: str, file_key: str, version: Optional[str] = None
