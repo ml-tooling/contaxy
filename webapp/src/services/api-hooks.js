@@ -1,38 +1,66 @@
 /* eslint-disable import/prefer-default-export */
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
-import { projectsApi } from './contaxy-api';
+import { projectsApi, servicesApi } from './contaxy-api';
 
-export function useProjectMembers(projectId) {
-  const [projectMembers, setProjectMembers] = useState([]);
+function useApiHook(apiCall, condition) {
+  const [data, setData] = useState([]);
   const [reloadRequested, setReloadRequested] = useState(new Date().getTime());
-  const isCanceled = useRef(false);
 
   const requestReload = useCallback(() => {
     setReloadRequested(new Date().getTime());
   }, []);
 
-  const memoizedReload = useCallback(async () => {
-    if (!projectId) return;
-    try {
-      const newProjectMembers = await projectsApi.listProjectMembers(projectId);
-      if (isCanceled.current) {
-        isCanceled.current = false;
-        return;
+  useEffect(() => {
+    let isCanceled = false;
+
+    const load = async () => {
+      if (!condition) return;
+      try {
+        const result = await apiCall();
+        if (isCanceled) {
+          return;
+        }
+        setData(result);
+      } catch (err) {
+        // ignore
       }
-      setProjectMembers(newProjectMembers);
+    };
+
+    load();
+
+    return () => {
+      isCanceled = true;
+    };
+  }, [condition, reloadRequested, apiCall]);
+
+  return [data, requestReload];
+}
+
+export function useProjectMembers(projectId) {
+  const apiCall = useCallback(async () => {
+    try {
+      const projectMembers = await projectsApi.listProjectMembers(projectId);
+      return projectMembers;
     } catch (err) {
-      // ignore
+      return [];
     }
   }, [projectId]);
 
-  useEffect(() => {
-    isCanceled.current = false;
-    memoizedReload();
-    return () => {
-      isCanceled.current = true;
-    };
-  }, [memoizedReload, reloadRequested]);
+  const [data, reload] = useApiHook(apiCall, projectId);
+  return [data, reload];
+}
 
-  return [projectMembers, requestReload];
+export function useServices(projectId) {
+  const apiCall = useCallback(async () => {
+    try {
+      const services = await servicesApi.listServices(projectId);
+      return services;
+    } catch (err) {
+      return [];
+    }
+  }, [projectId]);
+
+  const [data, reload] = useApiHook(apiCall, projectId);
+  return [data, reload];
 }

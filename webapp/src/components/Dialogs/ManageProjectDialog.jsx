@@ -41,7 +41,7 @@ function ManageProjectDialog(props) {
 
   const handleRemoveMemberFromProject = async (user) => {
     try {
-      projectsApi.removeProjectMember(project.id, user.id);
+      await projectsApi.removeProjectMember(project.id, user.id);
       showStandardSnackbar(`Removed member.`);
       reloadProjectMembers();
     } catch (err) {
