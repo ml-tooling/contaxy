@@ -12,20 +12,20 @@ const PAGE_SIZES = [5, 10, 15, 30, 50, 75, 100];
 
 const COLUMNS = [
   {
-    field: 'name',
+    field: 'display_name',
     title: 'Name',
     numeric: false,
     align: 'center',
   },
   {
-    field: 'modifiedAt',
+    field: 'updated_at',
     title: 'Last modified',
     numeric: false,
     type: 'date',
     align: 'center',
   },
   {
-    field: 'modifiedBy',
+    field: 'updated_by',
     title: 'Modified By',
     align: 'center',
   },
@@ -36,7 +36,7 @@ const COLUMNS = [
     align: 'center',
   },
   {
-    field: 'size',
+    field: 'file_size',
     title: 'Size',
     align: 'center',
   },
