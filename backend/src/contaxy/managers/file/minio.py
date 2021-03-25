@@ -5,6 +5,7 @@ from typing import Dict, Iterator, List, Optional, Tuple
 from loguru import logger
 from minio import Minio
 from minio.datatypes import Object as MinioObject
+from minio.deleteobjects import DeleteObject
 from minio.error import S3Error
 from starlette.responses import Response
 
@@ -118,11 +119,13 @@ class MinioFileManager(FileOperations):
             f"get_file_metadata (`project_id`: {project_id}, `file_key`: {file_key}, `version`: {version})"
         )
 
-        file_data = self.list_files(
+        files_to_prefix = self.list_files(
             project_id, prefix=file_key, include_versions=True if version else False
         )
 
-        for file in file_data:
+        file_versions = filter(lambda file: file.key == file_key, files_to_prefix)
+
+        for file in file_versions:
             if not version or (file.version == version):
                 return file
 
@@ -239,18 +242,25 @@ class MinioFileManager(FileOperations):
                 f"The file {file_key} could not be uploaded ({err.code})."
             )
 
-        # Hereby, we can still use io.BytesIO() as file stream for testing
-        file_hash = None if not file_stream.hash else file_stream.hash
+        if hasattr(file_stream, "hash"):
+            file_hash: Optional[str] = file_stream.hash
+        else:
+            file_hash = None
+            logger.error(
+                "The provided stream object does not provide a hash property. No hash will be available."
+            )
 
         # ? Get the data from the last version if existing?
         self._create_file_metadata_json_document(
             project_id, file_key, result.version_id, file_hash
         )
 
-        # This is necessary in order to have the available versions metadata field set
-        # TODO
-        file = self.list_files(project_id, False, False, file_key)[0]
-        return file
+        # This is necessary in order to have the available versions metadata set
+        files_to_prefix = self.list_files(
+            project_id, recursive=False, include_versions=False, prefix=file_key
+        )
+        file_versions = filter(lambda file: file.key == file_key, files_to_prefix)
+        return file_versions.__next__()
 
     def download_file(
         self,
@@ -293,6 +303,37 @@ class MinioFileManager(FileOperations):
 
         return response.stream()
 
+    def delete_file(
+        self,
+        project_id: str,
+        file_key: str,
+        version: Optional[str] = None,
+        keep_latest_version: bool = False,
+    ) -> None:
+        logger.debug(
+            f"delete_file (`project_id`: {project_id}, `file_key`: {file_key}, `version`: {version}, `keep_latest_version`: {keep_latest_version})"
+        )
+
+        if keep_latest_version:
+            self._delete_old_versions(project_id, file_key)
+            return
+
+        bucket_name = get_bucket_name(project_id, self.sys_namespace)
+
+        try:
+            self.client.remove_object(bucket_name, file_key, version_id=version)
+        except S3Error as err:
+            if err.code == "NoSuchBucket":
+                logger.debug(f"Deletion failed - Bucket {bucket_name} does not exist.")
+                raise ResourceNotFoundError(f"The project {project_id} is invalid.")
+            elif err.code == "NoSuchKey":
+                logger.debug(
+                    f"Deletion failed - Invalid file {file_key} (version: {version})."
+                )
+                raise ResourceNotFoundError(
+                    f"Invalid file {file_key} (version: {version}."
+                )
+
     def list_file_actions(
         self, project_id: str, file_key: str, version: Optional[str] = None
     ) -> ResourceAction:
@@ -305,15 +346,6 @@ class MinioFileManager(FileOperations):
         action_id: str,
         version: Optional[str] = None,
     ) -> Response:
-        pass
-
-    def delete_file(
-        self,
-        project_id: str,
-        file_key: str,
-        version: Optional[str] = None,
-        keep_latest_version: bool = False,
-    ) -> None:
         pass
 
     def _create_client(self) -> Minio:
@@ -459,3 +491,32 @@ class MinioFileManager(FileOperations):
                 continue
             file.__setattr__(metadata_field, value)
         return file
+
+    def _delete_old_versions(self, project_id: str, file_key: str) -> None:
+        bucket_name = get_bucket_name(project_id, self.sys_namespace)
+        files_to_prefix = self.list_files(
+            project_id, recursive=False, include_versions=False, prefix=file_key
+        )
+        delete_objects = [
+            DeleteObject() if file.key == file_key and not file.latest_version else None
+            for file in files_to_prefix
+        ]
+        file_versions = filter(
+            lambda file: file.key == file_key and not file.latest_version,
+            files_to_prefix,
+        )
+
+        delete_objects = [
+            DeleteObject(file_key, file.version) for file in file_versions
+        ]
+        if not delete_objects:
+            logger.debug(f"No versions for deletion (file_key: {file_key}).")
+        # TODO: Validate bypass_governance_mode behavior
+        errors = self.client.remove_objects(
+            bucket_name, delete_objects, bypass_governance_mode=True
+        )
+        if errors:
+            # TODO: Critical is only for testing an should be handled when tested
+            logger.critical(
+                f"Error removing old versions of file {file_key} (Errors: {errors}).",
+            )

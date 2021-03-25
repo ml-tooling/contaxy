@@ -38,14 +38,19 @@ def create_minio_client(settings: Settings) -> Minio:
 def purge_bucket(client: Minio, bucket_name: str) -> None:
     # TODO: Validate the effect of `bypass_governance_mode`
     delete_object_list = [
-        DeleteObject(file.object_name)
-        for file in client.list_objects(bucket_name, include_version=True)
+        DeleteObject(file.object_name, file.version_id)
+        for file in client.list_objects(
+            bucket_name, include_version=True, recursive=True
+        )
     ]
 
     if delete_object_list:
-        client.remove_objects(
-            bucket_name, delete_object_list, bypass_governance_mode=True
-        )
+        try:
+            errors = client.remove_objects(bucket_name, delete_object_list)
+            for error in errors:
+                print("error occured when deleting object", error)
+        except BaseException as err:
+            pass
 
 
 def delete_bucket(client: Minio, bucket_name: str, force: bool = False) -> None:
