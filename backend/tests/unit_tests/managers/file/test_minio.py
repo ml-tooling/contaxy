@@ -1,5 +1,4 @@
 import hashlib
-import numbers
 from random import randint
 from typing import Generator
 
@@ -191,7 +190,14 @@ class TestMinioFileManager:
         assert len(files_1) == len(files_prefix_1) and not files_2
 
         # Test - Include versions and validate available versions metadata
-        # TODO
+        update_file = files_prefix_1[0]
+        seeder.create_file(project_id, update_file.key)
+        result = minio_file_manager.list_files(project_id, include_versions=True)
+        file_versions = list(filter(lambda file: file.key == update_file.key, result))
+        assert len(file_versions[0].available_versions) == 2
+        assert (
+            file_versions[0].available_versions == file_versions[1].available_versions
+        )
 
         # Test - Recursive
         # TODO
