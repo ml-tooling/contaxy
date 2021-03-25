@@ -31,8 +31,8 @@ export default [
   },
   {
     ICON: 'folder',
-    NAME: 'Datasets',
-    PATH: '/datasets',
+    NAME: 'Files',
+    PATH: '/files',
     REQUIRE_LOGIN: true,
     APP_DRAWER_ITEM: true,
     TYPE: APP_DRAWER_ITEM_TYPES.link,
