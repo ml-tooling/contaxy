@@ -2,6 +2,7 @@ import datetime
 import json
 from typing import Dict, List, Optional
 
+import json_merge_patch
 from loguru import logger
 from sqlalchemy import Column, DateTime, MetaData, Table, func, text
 from sqlalchemy.dialects import postgresql
@@ -169,23 +170,29 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
 
         update_data = self._add_metadata_for_update({})
 
-        sql_statement = (
-            table.update()
-            .where(table.c.key == key)
-            .values(
-                json_value=func.jsonb_merge_patch(table.c.json_value, json_document),
-                **update_data,
-            )
-        )
+        # TODO: add for_update
+        select_statement = table.select().where(table.c.key == key)
 
         with self._engine.begin() as conn:
-            result = conn.execute(sql_statement)
+
+            result = conn.execute(select_statement)
+
             if result.rowcount == 0:
-                # This will raise a ResourceNotFoundError if doc not exists
-                self.get_json_document(project_id, collection_id, key)
-                raise ServerBaseError(
-                    f"Document {key} could not be updated (project_id: {project_id}, collection_id {collection_id})"
+                raise ResourceNotFoundError(
+                    f"Update failed - No document with key {key} found"
                 )
+            row = result.one()
+
+            updated_json = json_merge_patch.merge(
+                row["json_value"], json.loads(json_document)
+            )
+            update_data["json_value"] = json.dumps(updated_json)
+            update_statement = (
+                table.update().where(table.c.key == key).values(**update_data)
+            )
+
+            result = conn.execute(update_statement)
+
             conn.commit()
 
         logger.info(
@@ -389,4 +396,4 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
 
     def _get_schema_name(self, project_id: str) -> str:
         prefix = self.global_state.settings.SYSTEM_NAMESPACE
-        return project_id if not prefix else f"{prefix}.{project_id}"
+        return project_id if not prefix else f"{prefix}_{project_id}"

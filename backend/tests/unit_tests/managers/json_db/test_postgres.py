@@ -170,6 +170,9 @@ class TestPostgresJsonDocumentManager:
             "phoneNumber": "+01-123-456-7890",
             "author": {"familyName": None},
             "tags": ["example"],
+            "added-str": "foo-str",
+            "added-list": ["foo", "bar", 5],
+            "added-dict": {"foo": "bar"},
         }
         desired_dict = {
             "title": "Hello!",
@@ -177,6 +180,9 @@ class TestPostgresJsonDocumentManager:
             "tags": ["example"],
             "content": "This will be unchanged",
             "phoneNumber": "+01-123-456-7890",
+            "added-list": ["foo", "bar", 5],
+            "added-str": "foo-str",
+            "added-dict": {"foo": "bar"},
         }
         desired_json_value = json.dumps(desired_dict)
 
