@@ -91,7 +91,7 @@ function FilesTable(props) {
           iconProps: { className: `${className} actionIcon` },
           onClick: (event, rowData) => {
             showStandardSnackbar('Copy file key');
-            setClipboardText(rowData.name);
+            setClipboardText(rowData.id);
           },
           tooltip: 'Copy File Key',
         },
