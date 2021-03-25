@@ -239,12 +239,16 @@ class MinioFileManager(FileOperations):
                 f"The file {file_key} could not be uploaded ({err.code})."
             )
 
+        # Hereby, we can still use io.BytesIO() as file stream for testing
+        file_hash = None if not file_stream.hash else file_stream.hash
+
         # ? Get the data from the last version if existing?
         self._create_file_metadata_json_document(
-            project_id, file_key, result.version_id, file_stream.hash
+            project_id, file_key, result.version_id, file_hash
         )
 
-        # This is necessary in order to have the available versions metadata set
+        # This is necessary in order to have the available versions metadata field set
+        # TODO
         file = self.list_files(project_id, False, False, file_key)[0]
         return file
 

@@ -11,6 +11,7 @@ from contaxy.config import settings
 from contaxy.managers.file.minio import MinioFileManager
 from contaxy.managers.json_db.inmemory_dict import InMemoryDictJsonDocumentManager
 from contaxy.managers.json_db.postgres import PostgresJsonDocumentManager
+from contaxy.managers.seed import SeedManager
 from contaxy.schema import FileInput
 from contaxy.schema.exceptions import ResourceNotFoundError
 from contaxy.utils.file_utils import FormMultipartStream
@@ -26,8 +27,7 @@ from tests.unit_tests.conftest import test_settings
 from .data.metadata import file_data
 
 
-# TODO: Put in global conftest
-@pytest.fixture(scope="session")
+@pytest.fixture()
 def global_state() -> GlobalState:
     state = GlobalState(State())
     state.settings = settings
@@ -39,6 +39,7 @@ def request_state() -> RequestState:
     return RequestState(State())
 
 
+@pytest.fixture()
 @pytest.fixture()
 def minio_file_manager(
     global_state: GlobalState, request_state: RequestState
@@ -156,18 +157,64 @@ class TestMinioFileManager:
     def test_list_files(
         self, minio_file_manager: MinioFileManager, project_id: str
     ) -> None:
+        # Test - No files to selection
         result = minio_file_manager.list_files(project_id, prefix="no-files")
         assert not result
 
-    def test_update_file_metadata(self, minio_file_manager: MinioFileManager) -> None:
-        # File does not exsists
+        # Test - List all files
 
+        # Test - By prefix
+
+        # Test - Available versions
+
+        # Test - Include versions
+
+        # Test - Recursive
+
+    def test_get_file_metadata(
+        self, minio_file_manager: MinioFileManager, project_id: str
+    ) -> None:
+        # Test - File does not exsists
+        try:
+            minio_file_manager.get_file_metadata(project_id, "invalid-file")
+            assert False
+        except ResourceNotFoundError:
+            pass
+
+        # Test - File exists
+
+        #     -- Get latest version
+
+        #     -- Get specific version
+
+        pass
+
+    def test_update_file_metadata(
+        self, minio_file_manager: MinioFileManager, project_id: str
+    ) -> None:
+        # Test - File does not exsists
+        try:
+            minio_file_manager.update_file_metadata(
+                FileInput(key="invalid-file"), project_id, "invalid-file"
+            )
+            assert False
+        except ResourceNotFoundError:
+            pass
+
+        # Test - File exists
+
+        #    -- Update latest version
+
+        #    -- Update specific
+
+        pass
+
+    def test_upload_file(self, minio_file_manager: MinioFileManager) -> None:
         # File exists
 
-        # - Update latest version
+        # File does not exist
 
-        # - Update specific
-
+        # Bucket does not exist
         pass
 
     def test_download_file(self, minio_file_manager: MinioFileManager) -> None:
