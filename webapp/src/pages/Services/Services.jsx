@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import PropTypes from 'prop-types';
 import styled from 'styled-components';
 import { useTranslation } from 'react-i18next';
@@ -11,6 +11,8 @@ import ServicesContainer from './ServicesContainer';
 import GlobalStateContainer from '../../app/store';
 
 import { servicesApi } from '../../services/contaxy-api';
+import { useServices } from '../../services/api-hooks';
+import showStandardSnackbar from '../../app/showStandardSnackbar';
 
 // const getServiceUrl = (service) => {
 //   // TODO: return url under which the service is reachable
@@ -31,18 +33,11 @@ const onShowServiceLogs = async (projectId, serviceId) => {
   const logs = servicesApi.getServiceLogs(projectId, serviceId);
   console.log(logs);
 };
-
-const onServiceDelete = async (projectId, serviceId) => {
-  // TODO: do something with the response, e.g. show a toast
-  const response = servicesApi.deleteService(projectId, serviceId);
-  console.log(response);
-};
-
 function Services(props) {
   const { t } = useTranslation();
   const { activeProject } = GlobalStateContainer.useContainer();
   const showAppDialog = useShowAppDialog();
-  const [services, setServices] = useState([]);
+  const [services, reloadServices] = useServices(activeProject.id);
   const { className } = props;
 
   const onServiceDeploy = () => {
@@ -53,18 +48,25 @@ function Services(props) {
           display_name: deploymentName,
           parameters: deploymentParameters,
         };
-        servicesApi.deployService(activeProject.id, serviceInput);
+        try {
+          servicesApi.deployService(activeProject.id, serviceInput);
+          showStandardSnackbar(`Deployed service '${deploymentName}'`);
+        } catch (err) {
+          showStandardSnackbar(`Could not deploy service '${deploymentName}'`);
+        }
       },
     });
   };
 
-  const onReload = async (projectId) => {
-    if (!projectId) return;
-    const projectServices = await servicesApi.listServices(projectId);
-    setServices(projectServices);
+  const onServiceDelete = async (projectId, serviceId) => {
+    try {
+      servicesApi.deleteService(projectId, serviceId);
+      showStandardSnackbar(`Deleted service '${serviceId}'`);
+      reloadServices();
+    } catch (err) {
+      showStandardSnackbar(`Could not delete service '${serviceId}'`);
+    }
   };
-
-  useEffect(() => onReload(activeProject.id), [activeProject]);
 
   return (
     <div className="pages-native-component">
@@ -78,7 +80,7 @@ function Services(props) {
       </Button>
       <ServicesContainer
         data={services}
-        onReload={() => onReload(activeProject.id)}
+        onReload={reloadServices}
         onServiceDelete={(rowData) =>
           onServiceDelete(activeProject.id, rowData.id)
         }

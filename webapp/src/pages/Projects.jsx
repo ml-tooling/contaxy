@@ -12,7 +12,7 @@ import { fetchAPIToken, projectsApi } from '../services/contaxy-api';
 import ManageProjectDialog from '../components/Dialogs/ManageProjectDialog';
 import { useShowAppDialog } from '../app/AppDialogServiceProvider';
 import ApiTokenDialog from '../components/Dialogs/ApiTokenDialog';
-import { loadProjects, useProjectSelector } from '../utils/project-utils';
+import { useProjectSelector } from '../utils/project-utils';
 
 function Projects() {
   const { t } = useTranslation();
@@ -20,7 +20,7 @@ function Projects() {
   const {
     activeProject,
     projects,
-    setProjects,
+    loadProjects,
   } = GlobalStateContainer.useContainer();
   const onProjectSelect = useProjectSelector();
 
@@ -38,7 +38,7 @@ function Projects() {
     try {
       await projectsApi.deleteProject(project.id);
       showStandardSnackbar(`Delete project '${project.id}'`);
-      setProjects(await loadProjects());
+      loadProjects();
     } catch (err) {
       // ignore
     }
