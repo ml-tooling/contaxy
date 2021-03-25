@@ -4,6 +4,7 @@ from typing import List, Optional, Union
 from pydantic import AnyHttpUrl, BaseSettings, PostgresDsn, validator
 
 API_TOKEN_NAME: str = "ct_token"
+AUTHORIZED_USER_COOKIE: str = "ctxy_authorized_user"
 SYSTEM_INTERNAL_PROJECT: str = "system"
 SYSTEM_ADMIN_USERNAME: str = "admin"
 SYSTEM_ADMIN_INITIAL_PASSWORD: str = "admin"
@@ -92,7 +93,7 @@ class Settings(BaseSettings):
         cls, cors_origins: Union[str, List[AnyHttpUrl]]
     ) -> Union[str, List[AnyHttpUrl]]:
         if isinstance(cors_origins, str):
-            return [item.strip() for item in cors_origins.split(",")]
+            return [item.strip() for item in cors_origins.split(",")]  # type: ignore
         return cors_origins
 
     # TODO: Finalize

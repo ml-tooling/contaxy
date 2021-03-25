@@ -127,7 +127,11 @@ class AuthManager(AuthOperations):
         pass
 
     def logout_session(self) -> RedirectResponse:
-        pass
+        # TODO: where to redirect to
+        rr = RedirectResponse("/welcome", status_code=307)
+        rr.delete_cookie(config.API_TOKEN_NAME)
+        rr.delete_cookie(config.AUTHORIZED_USER_COOKIE)
+        return rr
 
     def _create_session_token(
         self,
@@ -445,7 +449,6 @@ class AuthManager(AuthOperations):
     def remove_permission(
         self, resource_name: str, permission: str, remove_sub_permissions: bool = False
     ) -> None:
-        # TODO: Remove all sub permissions
         try:
             # Try to get the permission document
             resource_permission = self._get_resource_permissions_from_db(resource_name)
@@ -596,43 +599,6 @@ class AuthManager(AuthOperations):
 
     # OAuth Opertions
     def request_token(self, token_request_form: OAuth2TokenRequestForm) -> OAuthToken:
-        """Returns an access tokens, ID tokens, or refresh tokens depending on the request parameters.
-
-        The token endpoint is used by the client to obtain an access token by
-        presenting its authorization grant or refresh token.
-
-        The token endpoint supports the following grant types:
-        - [Password Grant](https://tools.ietf.org/html/rfc6749#section-4.3.2): Used when the application exchanges the user’s username and password for an access token.
-            - `grant_type` must be set to `password`
-            - `username` (required): The user’s username.
-            - `password` (required): The user’s password.
-            - `scope` (optional): Optional requested scope values for the access token.
-        - [Refresh Token Grant](https://tools.ietf.org/html/rfc6749#section-6): Allows to use refresh tokens to obtain new access tokens.
-            - `grant_type` must be set to `refresh_token`
-            - `refresh_token` (required): The refresh token previously issued to the client.
-            - `scope` (optional): Requested scope values for the new access token. Must not include any scope values not originally granted by the resource owner, and if omitted is treated as equal to the originally granted scope.
-        - [Client Credentials Grant](https://tools.ietf.org/html/rfc6749#section-4.4.2): Request an access token using only its client
-        credentials.
-            - `grant_type` must be set to `client_credentials`
-            - `scope` (optional): Optional requested scope values for the access token.
-            - Client Authentication required (e.g. via client_id and client_secret or auth header)
-        - [Authorization Code Grant](https://tools.ietf.org/html/rfc6749#section-4.1): Used to obtain both access tokens and refresh tokens based on an authorization code from the `/authorize` endpoint.
-            - `grant_type` must be set to `authorization_code`
-            - `code` (required): The authorization code that the client previously received from the authorization server.
-            - `redirect_uri` (required): The redirect_uri parameter included in the original authorization request.
-            - Client Authentication required (e.g. via client_id and client_secret or auth header)
-
-        For password, client credentials, and refresh token flows, calling this endpoint is the only step of the flow.
-        For the authorization code flow, calling this endpoint is the second step of the flow.
-
-        This endpoint implements the [OAuth2 Token Endpoint](https://tools.ietf.org/html/rfc6749#section-3.2).
-
-        Args:
-            token_request_form: The request instructions.
-
-        Returns:
-            OAuthToken: The access token and additonal metadata (depending on the grant type).
-        """
         if token_request_form.grant_type != OAuth2TokenGrantTypes.PASSWORD:
             # Only the password grant type is currently implemented.
             raise OAuth2Error(error="invalid_grant")

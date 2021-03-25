@@ -1,7 +1,9 @@
 from typing import Any, List, Optional
 
 from fastapi import APIRouter, Body, Depends, Form, Query, status
+from starlette.responses import Response
 
+from contaxy import config
 from contaxy.api.dependencies import (
     ComponentManager,
     get_api_token,
@@ -20,6 +22,7 @@ from contaxy.schema import (
 from contaxy.schema.auth import AccessLevel
 from contaxy.schema.extension import EXTENSION_ID_PARAM
 from contaxy.schema.shared import OPEN_URL_REDIRECT
+from contaxy.utils import id_utils
 
 router = APIRouter(
     tags=["auth"], responses={401: {"detail": "No API token was provided"}}
@@ -222,6 +225,24 @@ def request_token(
 
     This endpoint implements the [OAuth2 Token Endpoint](https://tools.ietf.org/html/rfc6749#section-3.2).
     """
+    oauth_token = component_manager.get_auth_manager().request_token(token_request_form)
+    if token_request_form.set_as_cookie:
+        response = Response(status_code=status.HTTP_200_OK)
+        # TODO: Set cookie and path or other configurations
+        token_info = component_manager.get_auth_manager().introspect_token(
+            oauth_token.access_token
+        )
+        response.set_cookie(
+            key=config.API_TOKEN_NAME, value=oauth_token.access_token, httponly=True
+        )
+        if token_info.sub:
+            # Set user ID as cookie as well
+            response.set_cookie(
+                key=config.AUTHORIZED_USER_COOKIE,
+                value=id_utils.extract_user_id_from_resource_name(token_info.sub),
+            )
+
+        return response
     return component_manager.get_auth_manager().request_token(token_request_form)
 
 
