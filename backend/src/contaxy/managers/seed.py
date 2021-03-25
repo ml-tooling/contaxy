@@ -86,3 +86,19 @@ class SeedManager(SeedOperations):
         return self.file_manager.upload_file(
             project_id=project_id, file_key=file_key, file_stream=file_stream  # type: ignore
         )
+
+    def create_files(
+        self,
+        project_id: str,
+        number_of_files: int,
+        prefix: str = "my-test-file",
+        max_number_chars: int = 200,
+    ) -> List[File]:
+        return [
+            self.create_file(
+                project_id,
+                f"{prefix}-{randint(1,10000)}",
+                max_number_chars,
+            )
+            for index in range(number_of_files)
+        ]
