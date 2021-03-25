@@ -1,5 +1,6 @@
 import io
-from typing import List
+from random import randint
+from typing import List, Optional
 
 from faker import Faker
 from pydantic import EmailStr, SecretStr
@@ -17,11 +18,11 @@ Faker.seed(0)
 class SeedManager(SeedOperations):
     def __init__(
         self,
-        global_state: GlobalState,
-        request_state: RequestState,
-        auth_manager: AuthOperations,
-        file_manager: FileOperations,
-        project_manager: ProjectOperations,
+        global_state: Optional[GlobalState] = None,
+        request_state: Optional[RequestState] = None,
+        auth_manager: Optional[AuthOperations] = None,
+        file_manager: Optional[FileOperations] = None,
+        project_manager: Optional[ProjectOperations] = None,
     ):
         self.global_state = global_state
         self.request_state = request_state
@@ -75,6 +76,10 @@ class SeedManager(SeedOperations):
         file_key: str = "my-test-file",
         max_number_chars: int = 200,
     ) -> File:
+        if not self.file_manager:
+            raise RuntimeError(
+                "The SeedManager needs to be initialzed with a FileManager to create files."
+            )
         file_stream = io.BytesIO(
             FAKER.text(max_nb_chars=max_number_chars).encode("UTF-8")
         )
