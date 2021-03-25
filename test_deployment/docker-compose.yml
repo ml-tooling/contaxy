@@ -19,6 +19,14 @@ services:
             - db
             - s3
 
+    contaxy-setup:
+        image: curlimages/curl:7.75.0
+        entrypoint:
+            ["sh", "-c", "sleep 5 && curl contaxy:8080/api/seed/default"]
+        restart: "no"
+        depends_on:
+            - contaxy
+
     db:
         image: postgres:13.2
         environment:
