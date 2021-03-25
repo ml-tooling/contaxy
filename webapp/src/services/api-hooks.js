@@ -1,31 +1,38 @@
 /* eslint-disable import/prefer-default-export */
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { projectsApi } from './contaxy-api';
 
 export function useProjectMembers(projectId) {
   const [projectMembers, setProjectMembers] = useState([]);
+  const [reloadRequested, setReloadRequested] = useState(new Date().getTime());
+  const isCanceled = useRef(false);
 
-  useEffect(() => {
-    let isCanceled = false;
-    const reload = async () => {
-      if (!projectId) return;
-      try {
-        const newProjectMembers = await projectsApi.listProjectMembers(
-          projectId
-        );
-        if (isCanceled) return;
-        setProjectMembers(newProjectMembers);
-      } catch (err) {
-        // ignore
+  const requestReload = useCallback(() => {
+    setReloadRequested(new Date().getTime());
+  }, []);
+
+  const memoizedReload = useCallback(async () => {
+    if (!projectId) return;
+    try {
+      const newProjectMembers = await projectsApi.listProjectMembers(projectId);
+      if (isCanceled.current) {
+        isCanceled.current = false;
+        return;
       }
-    };
-
-    reload();
-    return () => {
-      isCanceled = true;
-    };
+      setProjectMembers(newProjectMembers);
+    } catch (err) {
+      // ignore
+    }
   }, [projectId]);
 
-  return projectMembers;
+  useEffect(() => {
+    isCanceled.current = false;
+    memoizedReload();
+    return () => {
+      isCanceled.current = true;
+    };
+  }, [memoizedReload, reloadRequested]);
+
+  return [projectMembers, requestReload];
 }

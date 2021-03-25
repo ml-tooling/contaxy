@@ -2,7 +2,7 @@ import asyncio
 import hashlib
 from collections.abc import AsyncGenerator, Generator
 from hashlib import sha1
-from typing import Any, Callable, Mapping, Optional
+from typing import IO, Any, Callable, Mapping, Optional
 
 import filetype
 from streaming_form_data import StreamingFormDataParser
@@ -18,7 +18,7 @@ class MultipartStreamTarget(BaseTarget):
     """
 
     def __init__(
-        self, validator: Optional[Callable] = None, hash_algo: Optional[str] = None
+        self, validator: Optional[Callable] = None, hash_algo: Optional[str] = "md5"
     ) -> None:
         super().__init__(validator)
 
@@ -55,7 +55,7 @@ class FormMultipartStream(FileStream):
         headers: Mapping[str, str],
         form_field: str = "file",
         pre_read_size: int = 1024,
-        hash_algo: Optional[str] = None,
+        hash_algo: Optional[str] = "md5",
     ) -> None:
         """Currently, it is a requirement that the multipart/form-data stream embodies only one form field, i.e. the form_field parameter.
 
@@ -174,3 +174,18 @@ class SyncFromAsyncGenerator(Generator):
 
 def generate_file_id(file_name: str, version_id: str) -> str:
     return sha1(bytes(f"{file_name}{version_id}", "utf8")).hexdigest()
+
+
+class FileStreamWrapper(FileStream):
+    def __init__(self, stream: IO[bytes], hash_algo: str = "md5"):
+        self.stream = stream
+        self._hash = hashlib.new(hash_algo)
+
+    @property
+    def hash(self) -> str:
+        return self._hash.hexdigest()
+
+    def read(self, size: int = -1) -> bytes:
+        chunk = self.stream.read(size)
+        self._hash.update(chunk)
+        return chunk
