@@ -17,7 +17,7 @@ const onFileDelete = async (projectId, rowData) => {
 
 const onFileDownload = (projectId, rowData) => {
   const a = document.createElement('a');
-  a.href = getFileDownloadUrl(projectId, rowData.fileKey);
+  a.href = getFileDownloadUrl(projectId, rowData.id);
   a.target = '_blank';
   a.download = rowData.name || 'download';
   a.click();
