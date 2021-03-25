@@ -20,13 +20,15 @@ import Typography from '@material-ui/core/Typography';
 
 import GlobalStateContainer from '../../app/store';
 import { useProjectMembers } from '../../services/api-hooks';
+import { projectsApi } from '../../services/contaxy-api';
+import showStandardSnackbar from '../../app/showStandardSnackbar';
 
 function ManageProjectDialog(props) {
   const { className, project, onClose } = props;
   const users = GlobalStateContainer.useContainer().getUsers();
   const initialUserToAdd = users && users.length > 0 ? users[0] : {};
   const [userToAdd, setUserToAdd] = useState(initialUserToAdd); // set to empty object so that material-ui knows that it is a controlled input
-  const projectMembers = useProjectMembers(project.id);
+  const [projectMembers, reloadProjectMembers] = useProjectMembers(project.id);
 
   const handleSelectUser = (e, newValue) => {
     setUserToAdd(newValue);
@@ -37,9 +39,14 @@ function ManageProjectDialog(props) {
     // TODO: add user `userToAdd` to project
   };
 
-  const handleRemoveMemberFromProject = (user) => {
-    // TODO: remove user from project in backend
-    return user;
+  const handleRemoveMemberFromProject = async (user) => {
+    try {
+      projectsApi.removeProjectMember(project.id, user.id);
+      showStandardSnackbar(`Removed member.`);
+      reloadProjectMembers();
+    } catch (err) {
+      showStandardSnackbar(`Could not remove member. Reason: ${err}.`);
+    }
   };
 
   return (
@@ -54,7 +61,9 @@ function ManageProjectDialog(props) {
                 <AccountCircle />
                 <ListItemText primary={member.username} />
                 <ListItemSecondaryAction>
-                  <IconButton onClick={handleRemoveMemberFromProject}>
+                  <IconButton
+                    onClick={() => handleRemoveMemberFromProject(member)}
+                  >
                     <HighlightOff color="secondary" />
                   </IconButton>
                 </ListItemSecondaryAction>
