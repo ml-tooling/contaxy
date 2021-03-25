@@ -25,7 +25,9 @@ import showStandardSnackbar from '../../app/showStandardSnackbar';
 
 function ManageProjectDialog(props) {
   const { className, project, onClose } = props;
-  const users = GlobalStateContainer.useContainer().getUsers();
+  const globalStateContainer = GlobalStateContainer.useContainer();
+  const users = globalStateContainer.getUsers();
+  const { loadProjects } = globalStateContainer;
   const initialUserToAdd = users && users.length > 0 ? users[0] : {};
   const [userToAdd, setUserToAdd] = useState(initialUserToAdd); // set to empty object so that material-ui knows that it is a controlled input
   const [projectMembers, reloadProjectMembers] = useProjectMembers(project.id);
@@ -44,6 +46,7 @@ function ManageProjectDialog(props) {
       await projectsApi.removeProjectMember(project.id, user.id);
       showStandardSnackbar(`Removed member.`);
       reloadProjectMembers();
+      loadProjects();
     } catch (err) {
       showStandardSnackbar(`Could not remove member. Reason: ${err}.`);
     }

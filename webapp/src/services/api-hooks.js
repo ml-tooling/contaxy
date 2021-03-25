@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { projectsApi, servicesApi } from './contaxy-api';
 
 function useApiHook(apiCall, condition) {
+  const sanitizedCondition = condition !== undefined ? condition : true;
+
   const [data, setData] = useState([]);
   const [reloadRequested, setReloadRequested] = useState(new Date().getTime());
 
@@ -15,7 +17,7 @@ function useApiHook(apiCall, condition) {
     let isCanceled = false;
 
     const load = async () => {
-      if (!condition) return;
+      if (!sanitizedCondition) return;
       try {
         const result = await apiCall();
         if (isCanceled) {
@@ -32,7 +34,7 @@ function useApiHook(apiCall, condition) {
     return () => {
       isCanceled = true;
     };
-  }, [condition, reloadRequested, apiCall]);
+  }, [sanitizedCondition, reloadRequested, apiCall]);
 
   return [data, requestReload];
 }

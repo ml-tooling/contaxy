@@ -1,8 +1,8 @@
 // import React, { createContext, useReducer } from 'react';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { createContainer } from 'unstated-next';
 
-import { usersApi } from '../services/contaxy-api';
+import { usersApi, projectsApi } from '../services/contaxy-api';
 
 // const initialState = {};
 // const store = createContext(initialState);
@@ -87,6 +87,14 @@ const useGlobalState = (_initialState) => {
     return [];
   };
 
+  const loadProjects = useCallback(async () => {
+    try {
+      setProjects(await projectsApi.listProjects());
+    } catch (err) {
+      setProjects([]);
+    }
+  }, []);
+
   return {
     user,
     setUser,
@@ -94,6 +102,7 @@ const useGlobalState = (_initialState) => {
     setActiveProject,
     projects,
     setProjects,
+    loadProjects,
     isAuthenticated,
     setIsAuthenticated,
     // users,
