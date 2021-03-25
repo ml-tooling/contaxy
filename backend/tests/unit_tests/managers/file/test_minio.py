@@ -15,10 +15,9 @@ from contaxy.managers.seed import SeedManager
 from contaxy.schema import FileInput
 from contaxy.schema.exceptions import ResourceNotFoundError
 from contaxy.utils.file_utils import FormMultipartStream
-from contaxy.utils.minio_utils import (
+from contaxy.utils.minio_utils import (  # delete_bucket,
     create_bucket,
     create_minio_client,
-    delete_bucket,
     get_bucket_name,
 )
 from contaxy.utils.postgres_utils import create_jsonb_merge_patch_func
@@ -56,6 +55,11 @@ def minio_file_manager(
         create_jsonb_merge_patch_func(engine)
         json_db = PostgresJsonDocumentManager(global_state, request_state)
     return MinioFileManager(global_state, request_state, json_db)
+
+
+@pytest.fixture()
+def seeder(minio_file_manager: MinioFileManager) -> SeedManager:
+    return SeedManager(file_manager=minio_file_manager)
 
 
 @pytest.fixture(scope="session")
@@ -159,13 +163,10 @@ class TestMinioFileManager:
                 pass
 
     def test_list_files(
-        self,
-        minio_file_manager: MinioFileManager,
-        project_id: str,
+        self, minio_file_manager: MinioFileManager, project_id: str, seeder: SeedManager
     ) -> None:
-
         number_of_files = 3
-        seeder = SeedManager(file_manager=minio_file_manager)
+
         prefix_1 = "test-file"
         files_prefix_1 = seeder.create_files(project_id, number_of_files, prefix_1)
         prefix_2 = "file-test"
@@ -203,8 +204,12 @@ class TestMinioFileManager:
         # TODO
 
     def test_get_file_metadata(
-        self, minio_file_manager: MinioFileManager, project_id: str
+        self, minio_file_manager: MinioFileManager, project_id: str, seeder: SeedManager
     ) -> None:
+
+        version_1 = seeder.create_file(project_id)
+        version_2 = seeder.create_file(project_id)
+
         # Test - File does not exsists
         try:
             minio_file_manager.get_file_metadata(project_id, "invalid-file")
@@ -213,12 +218,18 @@ class TestMinioFileManager:
             pass
 
         # Test - File exists
-
         #     -- Get latest version
+        result_v2 = minio_file_manager.get_file_metadata(project_id, version_1.key)
+        assert result_v2.version == version_2.version
+        assert result_v2.version != version_1.version
+        assert len(result_v2.available_versions) == 2
 
         #     -- Get specific version
-
-        pass
+        result_v1 = minio_file_manager.get_file_metadata(
+            project_id, version_1.key, version_1.version
+        )
+        assert result_v1.version == version_1.version
+        assert len(result_v2.available_versions) == 2
 
     def test_update_file_metadata(
         self, minio_file_manager: MinioFileManager, project_id: str
