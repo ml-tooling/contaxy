@@ -5,6 +5,7 @@ import math
 import re
 import secrets
 import string
+from email.utils import parseaddr
 from typing import List, Optional
 
 import shortuuid
@@ -15,6 +16,13 @@ from contaxy.config import settings
 _PROJECT_ID_SEPERATOR = "-p-"
 _PROJECT_NAME_TO_ID_REGEX = re.compile(r"^projects/([^/:\s]+)$")
 _USER_NAME_TO_ID_REGEX = re.compile(r"^users/([^/:\s]+)$")
+
+
+def is_email(text: str) -> bool:
+    """Returns `True` if the given `text` has the format of an email address."""
+    if not re.match(r"[^@]+@[^@]+\.[^@]+", text):
+        return False
+    return "@" in parseaddr(text)[1]
 
 
 def extract_user_id_from_resource_name(user_resource_name: str) -> str:

@@ -29,6 +29,7 @@ from contaxy.schema.auth import (
     UserRegistration,
 )
 from contaxy.schema.exceptions import (
+    ClientValueError,
     PermissionDeniedError,
     ResourceAlreadyExistsError,
     ResourceNotFoundError,
@@ -46,7 +47,7 @@ class UserPassword(BaseModel):
     hashed_password: str
 
 
-class UsernameIdMapping(BaseModel):
+class LoginIdMapping(BaseModel):
     user_id: str
 
 
@@ -60,7 +61,7 @@ class AuthManager(AuthOperations):
     _PERMISSION_COLLECTION = "permission"
     _API_TOKEN_COLLECTION = "tokens"
     _USER_COLLECTION = "users"
-    _USERNAME_ID_MAPPING_COLLECTION = "username-id-mapping"
+    _LOGIN_ID_MAPPING_COLLECTION = "login-id-mapping"
 
     def __init__(
         self,
@@ -606,7 +607,7 @@ class AuthManager(AuthOperations):
         if not token_request_form.username or not token_request_form.password:
             raise OAuth2Error("invalid_request")
         try:
-            user_id = self._get_id_by_username(token_request_form.username)
+            user_id = self._get_user_id_by_login_id(token_request_form.username)
             if not self.verify_password(user_id, token_request_form.password):
                 raise OAuth2Error("unauthorized_client")
             if not token_request_form.scopes:
@@ -712,36 +713,36 @@ class AuthManager(AuthOperations):
             user_list.append(User.parse_raw(json_document.json_value))
         return user_list
 
-    def _create_username_mapping(self, username: str, user_id: str) -> None:
-        if self._username_exists(username=username):
+    def _create_login_id_mapping(self, login_id: str, user_id: str) -> None:
+        if self._login_id_exists(login_id):
             raise ResourceAlreadyExistsError(
-                f"A username mapping with username {username} already exists."
+                f"A login id mapping with {login_id} already exists."
             )
-        processed_username = username.lower().strip()
+        processed_login_id = login_id.lower().strip()
         try:
             self._json_db_manager.create_json_document(
                 project_id=config.SYSTEM_INTERNAL_PROJECT,
-                collection_id=self._USERNAME_ID_MAPPING_COLLECTION,
-                key=processed_username,
-                json_document=UsernameIdMapping(user_id=user_id).json(),
+                collection_id=self._LOGIN_ID_MAPPING_COLLECTION,
+                key=processed_login_id,
+                json_document=LoginIdMapping(user_id=user_id).json(),
                 upsert=False,  # Only create, no updates
             )
         except ResourceAlreadyExistsError:
             pass
 
-    def _get_id_by_username(self, username: str) -> str:
-        processed_username = username.lower().strip()
-        username_id_mapping_doc = self._json_db_manager.get_json_document(
+    def _get_user_id_by_login_id(self, login_id: str) -> str:
+        processed_login_id = login_id.lower().strip()
+        login_id_mapping_doc = self._json_db_manager.get_json_document(
             project_id=config.SYSTEM_INTERNAL_PROJECT,
-            collection_id=self._USERNAME_ID_MAPPING_COLLECTION,
-            key=processed_username,
+            collection_id=self._LOGIN_ID_MAPPING_COLLECTION,
+            key=processed_login_id,
         )
 
-        return UsernameIdMapping.parse_raw(username_id_mapping_doc.json_value).user_id
+        return LoginIdMapping.parse_raw(login_id_mapping_doc.json_value).user_id
 
-    def _username_exists(self, username: str) -> bool:
+    def _login_id_exists(self, login_id: str) -> bool:
         try:
-            self._get_id_by_username(username)
+            self._get_user_id_by_login_id(login_id)
             return True
         except ResourceNotFoundError:
             return False
@@ -767,6 +768,16 @@ class AuthManager(AuthOperations):
             self.change_password(user_id, user_input.password.get_secret_value())
             del user_input.password
 
+        if user_input.username and id_utils.is_email(user_input.username):
+            raise ClientValueError(
+                f"The username ({user_input.username}) is not allowed to contain an email address."
+            )
+
+        if user_input.email and id_utils.is_email(user_input.email) is False:
+            raise ClientValueError(
+                f"The email ({user_input.email}) MUST contain a valid email address."
+            )
+
         user = User(
             id=user_id,
             technical_user=technical_user,
@@ -775,23 +786,23 @@ class AuthManager(AuthOperations):
         )
 
         # Check if username already exists
-        if user.username and self._username_exists(user.username):
+        if user.username and self._login_id_exists(user.username):
             raise ResourceAlreadyExistsError(
                 f"The user with username {user.username} already exists."
             )
 
         # Check if email already exists
-        if user.email and self._username_exists(user.email):
+        if user.email and self._login_id_exists(user.email):
             raise ResourceAlreadyExistsError(
                 f"The user with email {user.email} already exists."
             )
 
         # TODO: roll back mappings if user creation fails?
         if user.username:
-            self._create_username_mapping(user.username, user_id)
+            self._create_login_id_mapping(user.username, user_id)
 
         if user.email:
-            self._create_username_mapping(user.email, user_id)
+            self._create_login_id_mapping(user.email, user_id)
 
         created_document = self._json_db_manager.create_json_document(
             project_id=config.SYSTEM_INTERNAL_PROJECT,
