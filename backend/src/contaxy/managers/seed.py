@@ -75,7 +75,9 @@ class SeedManager(SeedOperations):
         file_key: str = "my-test-file",
         max_number_chars: int = 200,
     ) -> File:
-        file_stream = io.StringIO(FAKER.text(max_nb_chars=max_number_chars))
+        file_stream = io.BytesIO(
+            FAKER.text(max_nb_chars=max_number_chars).encode("UTF-8")
+        )
         return self.file_manager.upload_file(
             project_id=project_id, file_key=file_key, file_stream=file_stream  # type: ignore
         )

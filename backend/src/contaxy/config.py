@@ -86,6 +86,7 @@ class Settings(BaseSettings):
     # BACKEND_CORS_ORIGINS is a JSON-formatted list of origins
     # e.g: '["http://localhost", "http://localhost:4200", "http://localhost:3000", \
     # "http://localhost:8080", "http://local.dockertoolbox.tiangolo.com"]'
+    # see this GitHub issue for issue with env list decoding and why validator is needed: https://github.com/samuelcolvin/pydantic/issues/1458
     BACKEND_CORS_ORIGINS: Union[str, List[AnyHttpUrl]] = []
 
     @validator("BACKEND_CORS_ORIGINS", pre=True)

@@ -10,6 +10,7 @@ class TestSettings(BaseSettings):
 
     ACTIVATE_TEST_PROFILING: bool = True
     POSTGRES_INTEGRATION_TESTS: bool = False
+    MINIO_INTEGRATION_TESTS: bool = False
 
 
 test_settings = TestSettings()

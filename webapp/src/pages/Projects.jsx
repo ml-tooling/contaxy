@@ -12,19 +12,16 @@ import { fetchAPIToken, projectsApi } from '../services/contaxy-api';
 import ManageProjectDialog from '../components/Dialogs/ManageProjectDialog';
 import { useShowAppDialog } from '../app/AppDialogServiceProvider';
 import ApiTokenDialog from '../components/Dialogs/ApiTokenDialog';
-import { useProjectSelector } from '../utils/project-utils';
-
-const onDeleteProject = async (project) => {
-  // TODO: do something with the response
-  const response = await projectsApi.deleteProject(project.id);
-  showStandardSnackbar(`Delete project '${project.name}'`);
-  console.log(response);
-};
+import { loadProjects, useProjectSelector } from '../utils/project-utils';
 
 function Projects() {
   const { t } = useTranslation();
   const showAppDialog = useShowAppDialog();
-  const { activeProject, projects } = GlobalStateContainer.useContainer();
+  const {
+    activeProject,
+    projects,
+    setProjects,
+  } = GlobalStateContainer.useContainer();
   const onProjectSelect = useProjectSelector();
 
   const onClickManageMembers = (project) => {
@@ -33,8 +30,18 @@ function Projects() {
 
   const onApiTokenClick = async (project) => {
     // TODO: pass correct resource for which the API Token should be generated
-    const fetchedToken = await fetchAPIToken(project.name);
+    const fetchedToken = await fetchAPIToken(project.id);
     showAppDialog(ApiTokenDialog, { token: fetchedToken });
+  };
+
+  const onDeleteProject = async (project) => {
+    try {
+      await projectsApi.deleteProject(project.id);
+      showStandardSnackbar(`Delete project '${project.id}'`);
+      setProjects(await loadProjects());
+    } catch (err) {
+      // ignore
+    }
   };
 
   const projectElements = projects.map((project) => {

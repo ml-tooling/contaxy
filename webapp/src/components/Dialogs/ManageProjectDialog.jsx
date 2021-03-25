@@ -26,7 +26,7 @@ function ManageProjectDialog(props) {
   const users = GlobalStateContainer.useContainer().getUsers();
   const initialUserToAdd = users && users.length > 0 ? users[0] : {};
   const [userToAdd, setUserToAdd] = useState(initialUserToAdd); // set to empty object so that material-ui knows that it is a controlled input
-  const [projectMembers] = useProjectMembers(project.id);
+  const projectMembers = useProjectMembers(project.id);
 
   const handleSelectUser = (e, newValue) => {
     setUserToAdd(newValue);
@@ -52,7 +52,7 @@ function ManageProjectDialog(props) {
             return (
               <ListItem key={member.id}>
                 <AccountCircle />
-                <ListItemText primary={member.name} />
+                <ListItemText primary={member.username} />
                 <ListItemSecondaryAction>
                   <IconButton onClick={handleRemoveMemberFromProject}>
                     <HighlightOff color="secondary" />
