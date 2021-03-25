@@ -61,6 +61,7 @@ function UserMenu(props) {
       >
         <MenuItem
           className={`${className} menuItem`}
+          component="a"
           href={DOCUMENTATION_URL}
           rel={REL}
           target="_blank"
@@ -69,6 +70,7 @@ function UserMenu(props) {
         </MenuItem>
         <MenuItem
           className={`${className} menuItem`}
+          component="a"
           href={API_EXPLORER_URL}
           rel={REL}
           target="_blank"
