@@ -1,6 +1,6 @@
 import hashlib
 from random import randint
-from typing import Generator
+from typing import Generator, Optional
 
 import pytest
 from minio import Minio
@@ -15,17 +15,14 @@ from contaxy.managers.seed import SeedManager
 from contaxy.operations.json_db import JsonDocumentOperations
 from contaxy.schema import FileInput
 from contaxy.schema.exceptions import ResourceNotFoundError
-from contaxy.utils.file_utils import FormMultipartStream
-from contaxy.utils.minio_utils import (  # delete_bucket,
-    create_bucket,
+from contaxy.utils.minio_utils import (
     create_minio_client,
+    delete_bucket,
     get_bucket_name,
 )
 from contaxy.utils.postgres_utils import create_jsonb_merge_patch_func
 from contaxy.utils.state_utils import GlobalState, RequestState
 from tests.unit_tests.conftest import test_settings
-
-from .data.metadata import file_data
 
 
 @pytest.fixture()
@@ -71,101 +68,28 @@ def minio_client() -> Minio:
 
 
 @pytest.fixture(scope="function")
-def project_id(minio_client: Minio) -> Generator[str, None, None]:
-    # Creates one project + bucket per test function
+def project_id(minio_file_manager: MinioFileManager) -> Generator[str, None, None]:
     project_id = f"{randint(1, 100000)}-file-manager-test"
     bucket_name = get_bucket_name(project_id, settings.SYSTEM_NAMESPACE)
-    create_bucket(minio_client, bucket_name)
     yield project_id
-    # TODO: Fix bucket deletion
-    # delete_bucket(
-    #     minio_client,
-    #     get_bucket_name(project_id, settings.SYSTEM_NAMESPACE),
-    #     force=True,
-    # )
+    # Cleanup project related entities
+    if test_settings.MINIO_INTEGRATION_TESTS:
+        delete_bucket(
+            minio_file_manager.client,
+            bucket_name,
+            force=True,
+        )
+    if test_settings.POSTGRES_INTEGRATION_TESTS:
+        jdm = minio_file_manager.json_db_manager
+        jdm.delete_json_collections(project_id)
 
 
 @pytest.mark.skipif(
     test_settings.MINIO_INTEGRATION_TESTS is None,
-    reason="Minio Integration Tests are deactivated, use POSTGRES_INTEGRATION_TESTS to activate.",
+    reason="Minio Integration Tests are deactivated, use MINIO_INTEGRATION_TESTS to activate.",
 )
 @pytest.mark.integration
 class TestMinioFileManager:
-    @pytest.mark.skip
-    @pytest.mark.parametrize("metadata", file_data)
-    def test_upload_and_list_files(
-        self,
-        minio_file_manager: MinioFileManager,
-        project_id: str,
-        metadata: dict,
-    ) -> None:
-
-        filename = metadata.get("filename")
-        assert filename
-        file_path = metadata.get("multipart_file_path")
-        assert file_path
-
-        with open(file_path, "rb") as file_stream:
-            # TODO: Replace use seeder
-            multipart_stream = FormMultipartStream(
-                file_stream, metadata.get("headers"), form_field="file", hash_algo="md5"
-            )
-
-            uploaded_file = minio_file_manager.upload_file(
-                project_id,
-                filename,
-                multipart_stream,
-                multipart_stream.content_type,
-            )
-
-            # TODO: Enhance
-            assert uploaded_file.key == metadata.get("filename")
-            assert uploaded_file.key == uploaded_file.display_name
-            assert uploaded_file.content_type == multipart_stream.content_type
-            assert uploaded_file.md5_hash == multipart_stream.hash
-            assert uploaded_file.version in uploaded_file.available_versions
-
-            listed_file = minio_file_manager.list_files(project_id, prefix=filename)[0]
-            assert listed_file
-            assert uploaded_file == listed_file
-
-            read_file = minio_file_manager.get_file_metadata(project_id, filename)
-            assert listed_file == read_file
-
-            # Update metadata
-            exp_description = "Updated description"
-            exp_metadata = {"source": "http://fc.de"}
-            updates = FileInput(
-                key=filename, description=exp_description, metadata=exp_metadata
-            )
-            updated_file = minio_file_manager.update_file_metadata(
-                updates, project_id, filename
-            )
-            assert updated_file != uploaded_file
-            assert updated_file.description == exp_description
-            # TODO: Fix
-            # assert updated_file.metadata == exp_metadata
-
-            # Download
-            file_stream = minio_file_manager.download_file(project_id, filename)
-            actual_hash = hashlib.md5()
-            for chunk in file_stream:
-                actual_hash.update(chunk)
-
-            assert actual_hash.hexdigest() == multipart_stream.hash
-
-            try:
-                minio_file_manager.download_file("invalid-project", filename)
-                assert False
-            except ResourceNotFoundError:
-                pass
-
-            try:
-                minio_file_manager.download_file(project_id, "invalid-file")
-                assert False
-            except ResourceNotFoundError:
-                pass
-
     def test_list_files(
         self, minio_file_manager: MinioFileManager, project_id: str, seeder: SeedManager
     ) -> None:
@@ -208,6 +132,8 @@ class TestMinioFileManager:
         # Test - Recursive
         # TODO
 
+        # Test - Externally uploaded file
+
     def test_get_file_metadata(
         self, minio_file_manager: MinioFileManager, project_id: str, seeder: SeedManager
     ) -> None:
@@ -215,11 +141,7 @@ class TestMinioFileManager:
         version_2 = seeder.create_file(project_id)
 
         # Test - File does not exsists
-        try:
-            minio_file_manager.get_file_metadata(project_id, "invalid-file")
-            assert False
-        except ResourceNotFoundError:
-            pass
+        self._validate_file_not_found(minio_file_manager, project_id, "invalid-file")
 
         # Test - File exists
         #     -- Get latest version
@@ -332,13 +254,71 @@ class TestMinioFileManager:
         # TODO
         pass
 
-    def test_delete_file(self, minio_file_manager: MinioFileManager) -> None:
-        # File does not exist
+    def test_delete_file(
+        self, minio_file_manager: MinioFileManager, project_id: str, seeder: SeedManager
+    ) -> None:
+
+        # Test - File does not exist
+        minio_file_manager.delete_file(project_id, "invalid-key")
 
         # File exists
+        file = seeder.create_file(project_id)
+        minio_file_manager.delete_file(project_id, file.key)
+        self._validate_file_not_found(minio_file_manager, project_id, file.key)
 
-        # - Multiple versions and no version specified
+        # Test - Multiple versions and no version specified
+        file_key = "delete-1.bin"
+        version_1 = seeder.create_file(project_id, file_key)
+        version_2 = seeder.create_file(project_id, file_key)
+        minio_file_manager.delete_file(project_id, file_key)
+        self._validate_file_not_found(minio_file_manager, project_id, file_key)
 
-        # - Multiple versions and version specified
+        # Test - Multiple versions and version specified
+        file_key = "delete-2.bin"
+        version_1 = seeder.create_file(project_id, file_key)
+        version_2 = seeder.create_file(project_id, file_key)
+        version_3 = seeder.create_file(project_id, file_key)
 
-        pass
+        #      -- Delete latest
+        minio_file_manager.delete_file(project_id, file_key, version_3.version)
+        self._validate_file_not_found(
+            minio_file_manager, project_id, file_key, version_3.version
+        )
+        file = minio_file_manager.get_file_metadata(project_id, file_key)
+        assert file.version == version_2.version
+
+        #      -- Delete oldest
+        minio_file_manager.delete_file(project_id, file_key, version_1.version)
+        self._validate_file_not_found(
+            minio_file_manager, project_id, file_key, version_1.version
+        )
+        file = minio_file_manager.get_file_metadata(project_id, file_key)
+        assert file.version == version_2.version
+
+        # Test - Keep latest version
+        file_key = "delete-3.bin"
+        version_1 = seeder.create_file(project_id, file_key)
+        version_2 = seeder.create_file(project_id, file_key)
+        version_3 = seeder.create_file(project_id, file_key)
+        minio_file_manager.delete_file(project_id, file_key, keep_latest_version=True)
+        self._validate_file_not_found(
+            minio_file_manager, project_id, file_key, version_1.version
+        )
+        self._validate_file_not_found(
+            minio_file_manager, project_id, file_key, version_2.version
+        )
+        file = minio_file_manager.get_file_metadata(project_id, file_key)
+        assert file.version == version_3.version
+
+    def _validate_file_not_found(
+        self,
+        minio_file_manager: MinioFileManager,
+        project_id: str,
+        file_key: str,
+        version: Optional[str] = None,
+    ) -> None:
+        try:
+            minio_file_manager.get_file_metadata(project_id, file_key, version)
+            assert False
+        except ResourceNotFoundError:
+            pass
