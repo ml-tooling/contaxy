@@ -12,6 +12,7 @@ from contaxy.managers.file.minio import MinioFileManager
 from contaxy.managers.json_db.inmemory_dict import InMemoryDictJsonDocumentManager
 from contaxy.managers.json_db.postgres import PostgresJsonDocumentManager
 from contaxy.managers.seed import SeedManager
+from contaxy.operations.json_db import JsonDocumentOperations
 from contaxy.schema import FileInput
 from contaxy.schema.exceptions import ResourceNotFoundError
 from contaxy.utils.file_utils import FormMultipartStream
@@ -44,7 +45,9 @@ def minio_file_manager(
     global_state: GlobalState, request_state: RequestState
 ) -> MinioFileManager:
     if not test_settings.POSTGRES_INTEGRATION_TESTS:
-        json_db = InMemoryDictJsonDocumentManager(global_state, request_state)
+        json_db: JsonDocumentOperations = InMemoryDictJsonDocumentManager(
+            global_state, request_state
+        )
     else:
         # TODO: Put in conftest
         assert settings.POSTGRES_CONNECTION_URI
@@ -195,6 +198,7 @@ class TestMinioFileManager:
         seeder.create_file(project_id, update_file.key)
         result = minio_file_manager.list_files(project_id, include_versions=True)
         file_versions = list(filter(lambda file: file.key == update_file.key, result))
+        assert file_versions
         assert len(file_versions[0].available_versions) == 2
         assert (
             file_versions[0].available_versions == file_versions[1].available_versions
@@ -206,7 +210,6 @@ class TestMinioFileManager:
     def test_get_file_metadata(
         self, minio_file_manager: MinioFileManager, project_id: str, seeder: SeedManager
     ) -> None:
-
         version_1 = seeder.create_file(project_id)
         version_2 = seeder.create_file(project_id)
 
@@ -232,24 +235,46 @@ class TestMinioFileManager:
         assert len(result_v2.available_versions) == 2
 
     def test_update_file_metadata(
-        self, minio_file_manager: MinioFileManager, project_id: str
+        self, minio_file_manager: MinioFileManager, project_id: str, seeder: SeedManager
     ) -> None:
+        version_1 = seeder.create_file(project_id)
+        version_2 = seeder.create_file(project_id)
+
         # Test - File does not exsists
-        # try:
-        #     minio_file_manager.update_file_metadata(
-        #         FileInput(key="invalid-file"), project_id, "invalid-file"
-        #     )
-        #     assert False
-        # except ResourceNotFoundError:
-        #     pass
+        try:
+            minio_file_manager.update_file_metadata(
+                FileInput(key="invalid-file"), project_id, "invalid-file"
+            )
+            assert False
+        except ResourceNotFoundError:
+            pass
 
         # Test - File exists
-
         #    -- Update latest version
-
+        exp_description = "Updated description"
+        exp_metadata = {"source": "http://fc.de"}
+        updates = FileInput(
+            key=version_1.key, description=exp_description, metadata=exp_metadata
+        )
+        updated_file = minio_file_manager.update_file_metadata(
+            updates, project_id, version_1.key
+        )
+        assert updated_file.version == version_2.version
+        assert updated_file != version_1
+        assert updated_file.description == exp_description
+        assert updated_file.metadata == exp_metadata
+        version_1 = minio_file_manager.get_file_metadata(
+            project_id, version_1.key, version_1.version
+        )
+        assert updated_file.description != version_1.description
+        assert updated_file.metadata != version_1.metadata
         #    -- Update specific
-
-        pass
+        updated_file = minio_file_manager.update_file_metadata(
+            updates, project_id, version_1.key, version_1.version
+        )
+        assert updated_file.version == version_1.version
+        assert updated_file.description == exp_description
+        assert updated_file.metadata == exp_metadata
 
     def test_upload_file(self, minio_file_manager: MinioFileManager) -> None:
         # File exists

@@ -165,11 +165,20 @@ class MinioFileManager(FileOperations):
                 f"File keys do not match (file_key: {file_key}, file.key {file.key})"
             )
 
-        s3_object = self.client.stat_object(
-            get_bucket_name(project_id, self.global_state.settings.SYSTEM_NAMESPACE),
-            file_key,
-            version,
-        )
+        try:
+            s3_object = self.client.stat_object(
+                get_bucket_name(
+                    project_id, self.global_state.settings.SYSTEM_NAMESPACE
+                ),
+                file_key,
+                version_id=version,
+            )
+        except S3Error as err:
+            if err.code == "NoSuchKey":
+                raise ResourceNotFoundError(
+                    f"Invalid file {file_key} (version: {version}."
+                )
+            raise err
 
         data = file.dict(
             include=self.METADATA_FIELD_SET, exclude_none=True, exclude_unset=True
@@ -184,7 +193,7 @@ class MinioFileManager(FileOperations):
                 project_id, self.DOC_COLLECTION_NAME, doc_key, json_value
             )
         except ResourceNotFoundError:
-            # Lazily create and update a metadata entry in the DB, since the resource mmight be uploaded externally
+            # Lazily create and update a metadata entry in the DB, since the resource might be uploaded externally
             self._create_file_metadata_json_document(
                 project_id, file_key, s3_object.version_id
             )
