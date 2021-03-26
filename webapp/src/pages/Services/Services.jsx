@@ -7,7 +7,7 @@ import Button from '@material-ui/core/Button';
 
 import { useShowAppDialog } from '../../app/AppDialogServiceProvider';
 import DeployServiceDialog from '../../components/Dialogs/DeployContainerDialog';
-import GenericDialog from '../../components/Dialogs/ContentDialog';
+import ContentDialog from '../../components/Dialogs/ContentDialog';
 import ServicesContainer from './ServicesContainer';
 import GlobalStateContainer from '../../app/store';
 
@@ -20,11 +20,6 @@ import showStandardSnackbar from '../../app/showStandardSnackbar';
 //   return service;
 // };
 
-const onShowServiceLogs = async (projectId, serviceId) => {
-  // TODO: do something with the logs
-  const logs = servicesApi.getServiceLogs(projectId, serviceId);
-  console.log(logs);
-};
 function Services(props) {
   const { t } = useTranslation();
   const { activeProject } = GlobalStateContainer.useContainer();
@@ -60,12 +55,21 @@ function Services(props) {
         projectId,
         serviceId
       );
-      showAppDialog(GenericDialog, {
+      showAppDialog(ContentDialog, {
         jsonContent: serviceMetadata,
         title: 'Service Metadata',
       });
     } catch (err) {
       showStandardSnackbar('Could not load service metadata');
+    }
+  };
+
+  const onShowServiceLogs = async (projectId, serviceId) => {
+    try {
+      const logs = await servicesApi.getServiceLogs(projectId, serviceId);
+      showAppDialog(ContentDialog, { content: logs, title: 'Service Logs' });
+    } catch (err) {
+      showStandardSnackbar('Could not load service logs');
     }
   };
 
