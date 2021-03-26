@@ -69,6 +69,18 @@ class MinioFileManager(FileOperations):
         include_versions: bool = False,
         prefix: Optional[str] = None,
     ) -> List[File]:
+        """List files.
+
+        Args:
+            project_id (str): Project ID associated with the file.
+            recursive (bool, optional): List recursively as directory structure emulation. Defaults to True.
+            include_versions (bool, optional): Flag to control whether include object versions. Defaults to False.
+            prefix (Optional[str], optional): File key starts with prefix. Defaults to None.
+
+        Returns:
+            List[File]: List of file metadata objects.
+        """
+
         # TODO: Test case when object is folder
         logger.debug(
             f"list_files (`project_id`: {project_id}, `recursive`: {recursive}, `include_versions`: {include_versions}, `prefix`: {prefix})."
@@ -319,6 +331,17 @@ class MinioFileManager(FileOperations):
         version: Optional[str] = None,
         keep_latest_version: bool = False,
     ) -> None:
+        """Delete a file.
+
+        If a specific file `version` is provided, only this one will be deleted. If no `version` is provided and `keep_latest_version` is True, all but the latest version will be deleted. Otherwise, all existing versions will be removed.
+
+        Args:
+            project_id (str): Project ID associated with the file.
+            file_key (str): Key of the file.
+            version (Optional[str], optional): File version. Defaults to None.
+            keep_latest_version (bool, optional): [description]. Defaults to False.
+        """
+
         logger.debug(
             f"delete_file (`project_id`: {project_id}, `file_key`: {file_key}, `version`: {version}, `keep_latest_version`: {keep_latest_version})"
         )
