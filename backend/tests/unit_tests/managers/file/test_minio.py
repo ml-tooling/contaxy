@@ -91,6 +91,7 @@ def project_id(minio_client: Minio) -> Generator[str, None, None]:
 )
 @pytest.mark.integration
 class TestMinioFileManager:
+    @pytest.mark.skip
     @pytest.mark.parametrize("metadata", file_data)
     def test_upload_and_list_files(
         self,
@@ -293,15 +294,42 @@ class TestMinioFileManager:
         assert version_1.version != version_2.version
         assert version_2.md5_hash == file_stream.hash
 
-        # Bucket does not exist
+        # Test - Bucket does not exist
         # TODO
 
-    def test_download_file(self, minio_file_manager: MinioFileManager) -> None:
-        # File exists
+    def test_download_file(
+        self, minio_file_manager: MinioFileManager, project_id: str, seeder: SeedManager
+    ) -> None:
+        file_key = "test-download-file.bin"
+        version_1 = seeder.create_file(project_id, file_key)
+        version_2 = seeder.create_file(project_id, file_key)
 
-        # File does not exist
+        # Test - File does not exist
+        try:
+            minio_file_manager.download_file(project_id, "invalid-key")
+            assert False
+        except ResourceNotFoundError:
+            pass
 
-        # Bucket does not exist
+        # Test - File exists
+        #     -- Latest version
+        hash = hashlib.md5()
+        file_stream = minio_file_manager.download_file(project_id, file_key)
+        for chunk in file_stream:
+            hash.update(chunk)
+        assert version_2.md5_hash == hash.hexdigest()
+
+        #     -- Specific version
+        hash = hashlib.md5()
+        file_stream = minio_file_manager.download_file(
+            project_id, file_key, version_1.version
+        )
+        for chunk in file_stream:
+            hash.update(chunk)
+        assert version_1.md5_hash == hash.hexdigest()
+
+        # Test - Bucket does not exist
+        # TODO
         pass
 
     def test_delete_file(self, minio_file_manager: MinioFileManager) -> None:
