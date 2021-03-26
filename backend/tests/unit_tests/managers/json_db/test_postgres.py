@@ -1,10 +1,9 @@
 import json
 from random import randint
-from typing import List
+from typing import Generator, List
 from uuid import uuid4
 
 import pytest
-from sqlalchemy.future import Engine, create_engine
 from starlette.datastructures import State
 
 from contaxy.config import settings
@@ -16,16 +15,9 @@ from contaxy.schema.exceptions import (
 )
 from contaxy.schema.json_db import JsonDocument
 from contaxy.utils.state_utils import GlobalState, RequestState
+from tests.unit_tests.conftest import test_settings
 
 
-def get_engine() -> Engine:
-    return create_engine(
-        str(settings.POSTGRES_CONNECTION_URI),
-        future=True,
-    )
-
-
-# TODO: Put in global conftest
 @pytest.fixture(scope="session")
 def global_state() -> GlobalState:
     state = GlobalState(State())
@@ -54,106 +46,106 @@ def get_defaults() -> dict:
     }
 
     return {
-        "collection": "jdm_test",
-        "project": "test-project",
         "key": str(uuid4()),
         "json_value": json.dumps(json_dict),
     }
 
 
-def db_is_available() -> bool:
-    try:
-        with get_engine().begin():
-            pass
-        return True
-    except:  # noqa: E722
-        return False
+@pytest.fixture(scope="function")
+def project_id(
+    json_document_manager: PostgresJsonDocumentManager,
+) -> Generator[str, None, None]:
+    project_id = f"{randint(1, 100000)}-file-manager-test"
+    yield project_id
+    if test_settings.POSTGRES_INTEGRATION_TESTS:
+        json_document_manager.delete_json_collections(project_id)
 
 
 @pytest.mark.skipif(
-    not db_is_available(),
-    reason="A Kubernetes cluster must be accessible to run the KubeSpawner tests",
+    test_settings.POSTGRES_INTEGRATION_TESTS is None,
+    reason="Postgres Integration Tests are deactivated, use POSTGRES_INTEGRATION_TESTS to activate.",
 )
 class TestPostgresJsonDocumentManager:
+    COLLECTTION = "test-collection"
+
     def test_create_json_document(
-        self, json_document_manager: PostgresJsonDocumentManager
+        self, json_document_manager: PostgresJsonDocumentManager, project_id: str
     ) -> None:
         # TODO: Check for user data
 
         defaults = get_defaults()
-        created_doc = self._create_doc(json_document_manager, defaults)
+        created_doc = self._create_doc(json_document_manager, project_id, defaults)
 
         assert defaults.get("key") == created_doc.key
         assert created_doc.created_at
 
-        # Test upsert case
+        # Test - Upsert case
         new_json_value = "{}"
         overwritten_doc = json_document_manager.create_json_document(
-            defaults.get("project"),
-            defaults.get("collection"),
+            project_id,
+            self.COLLECTTION,
             created_doc.key,
             new_json_value,
         )
 
         self._assert_updated_doc(created_doc, overwritten_doc, new_json_value)
 
-        # Test insert case with existing key
+        # Test - Insert case with existing key
         try:
-            self._create_doc(json_document_manager, defaults, upsert=False)
+            self._create_doc(json_document_manager, project_id, defaults, upsert=False)
             assert False
         except ResourceAlreadyExistsError:
             pass
 
-        # Test invalid json
+        # Test - Invalid json
         defaults.update({"json_value": "invalid-json"})
         try:
-            self._create_doc(json_document_manager, defaults)
+            self._create_doc(json_document_manager, project_id, defaults)
             assert False
         except ClientValueError:
             pass
 
     def test_get_json_document(
-        self, json_document_manager: PostgresJsonDocumentManager
+        self, json_document_manager: PostgresJsonDocumentManager, project_id: str
     ) -> None:
         defaults = get_defaults()
-        created_doc = self._create_doc(json_document_manager, defaults)
+        created_doc = self._create_doc(json_document_manager, project_id, defaults)
 
         read_doc = json_document_manager.get_json_document(
-            defaults.get("project"), defaults.get("collection"), created_doc.key
+            project_id, self.COLLECTTION, created_doc.key
         )
 
         assert read_doc.key == created_doc.key
         assert read_doc.created_at == created_doc.created_at
+        assert json.loads(read_doc.json_value) == json.loads(created_doc.json_value)
 
         try:
             json_document_manager.get_json_document(
-                defaults.get("project"), defaults.get("collection"), str(uuid4())
+                project_id, self.COLLECTTION, str(uuid4())
             )
             assert False
         except ResourceNotFoundError:
             pass
 
     def test_delete_json_document(
-        self, json_document_manager: PostgresJsonDocumentManager
+        self, json_document_manager: PostgresJsonDocumentManager, project_id: str
     ) -> None:
         defaults = get_defaults()
-        created_doc = self._create_doc(json_document_manager, defaults)
+        created_doc = self._create_doc(json_document_manager, project_id, defaults)
         json_document_manager.delete_json_document(
-            defaults.get("project"), defaults.get("collection"), created_doc.key
+            project_id, self.COLLECTTION, created_doc.key
         )
         try:
             json_document_manager.get_json_document(
-                defaults.get("project"), defaults.get("collection"), created_doc.key
+                project_id, self.COLLECTTION, created_doc.key
             )
             assert False
         except ResourceNotFoundError:
             assert True
 
     def test_update_json_document(
-        self, json_document_manager: PostgresJsonDocumentManager
+        self, json_document_manager: PostgresJsonDocumentManager, project_id: str
     ) -> None:
-
-        defaults = get_defaults()
 
         original_dict = {
             "title": "Goodbye!",
@@ -183,15 +175,15 @@ class TestPostgresJsonDocumentManager:
         desired_json_value = json.dumps(desired_dict)
 
         created_doc = json_document_manager.create_json_document(
-            defaults.get("project"),
-            defaults.get("collection"),
+            project_id,
+            self.COLLECTTION,
             str(uuid4()),
             json.dumps(original_dict),
         )
 
         updated_doc = json_document_manager.update_json_document(
-            defaults.get("project"),
-            defaults.get("collection"),
+            project_id,
+            self.COLLECTTION,
             created_doc.key,
             json.dumps(changes_dict),
         )
@@ -199,15 +191,15 @@ class TestPostgresJsonDocumentManager:
         self._assert_updated_doc(created_doc, updated_doc, desired_json_value)
 
         read_doc = json_document_manager.get_json_document(
-            defaults.get("project"), defaults.get("collection"), updated_doc.key
+            project_id, self.COLLECTTION, updated_doc.key
         )
 
         self._assert_updated_doc(created_doc, read_doc, desired_json_value)
 
         try:
             json_document_manager.update_json_document(
-                defaults.get("project"),
-                defaults.get("collection"),
+                project_id,
+                self.COLLECTTION,
                 str(uuid4()),
                 "{}",
             )
@@ -216,11 +208,10 @@ class TestPostgresJsonDocumentManager:
             pass
 
     def test_list_json_documents(
-        self, json_document_manager: PostgresJsonDocumentManager
+        self, json_document_manager: PostgresJsonDocumentManager, project_id: str
     ) -> None:
 
-        project_id = "test_get_collection_project"
-        collection_id = "test_get_collection"
+        collection_id = self.COLLECTTION
 
         data = [
             {
@@ -298,7 +289,7 @@ class TestPostgresJsonDocumentManager:
             pass
 
     def test_list_json_documents_by_key(
-        self, json_document_manager: PostgresJsonDocumentManager
+        self, json_document_manager: PostgresJsonDocumentManager, project_id: str
     ) -> None:
 
         docs = []
@@ -309,12 +300,12 @@ class TestPostgresJsonDocumentManager:
                 json_value = json.loads(defaults["json_value"])
                 del json_value["author"]["familyName"]
                 defaults["json_value"] = json.dumps(json_value)
-            doc = self._create_doc(json_document_manager, defaults)
+            doc = self._create_doc(json_document_manager, project_id, defaults)
             docs.append(doc)
             db_keys.append(doc.key)
 
         read_docs = json_document_manager.list_json_documents(
-            defaults.get("project"), defaults.get("collection"), keys=db_keys
+            project_id, self.COLLECTTION, keys=db_keys
         )
 
         assert len(db_keys) == len(read_docs)
@@ -326,8 +317,8 @@ class TestPostgresJsonDocumentManager:
             '$ ? (@.author.givenName == "John" && @.author.familyName == "Doe")'
         )
         read_docs = json_document_manager.list_json_documents(
-            defaults.get("project"),
-            defaults.get("collection"),
+            project_id,
+            self.COLLECTTION,
             json_path_filter,
             db_keys,
         )
@@ -340,47 +331,48 @@ class TestPostgresJsonDocumentManager:
             db_keys.index(doc.key)
 
     def test_delete_documents(
-        self, json_document_manager: PostgresJsonDocumentManager
+        self, json_document_manager: PostgresJsonDocumentManager, project_id: str
     ) -> None:
 
         db_keys: List[str] = []
         for i in range(5):
-            doc = self._create_doc(json_document_manager, get_defaults())
+            doc = self._create_doc(json_document_manager, project_id, get_defaults())
             db_keys.append(doc.key)
 
-        defaults = get_defaults()
         delete_count = json_document_manager.delete_documents(
-            defaults.get("project"), defaults.get("collection"), db_keys
+            project_id, self.COLLECTTION, db_keys
         )
         assert delete_count == len(db_keys)
         docs = json_document_manager.list_json_documents(
-            defaults.get("project"), defaults.get("collection"), keys=db_keys
+            project_id, self.COLLECTTION, keys=db_keys
         )
 
         assert len(docs) == 0
 
     def test_delete_json_collections(
-        self, json_document_manager: PostgresJsonDocumentManager
+        self, json_document_manager: PostgresJsonDocumentManager, project_id: str
     ) -> None:
-        project_id = f"{randint(1,10000)}-test_delete_json_collections"
-        collection_id = "damn-should-be-deleted"
         key = "test"
         json_document_manager.create_json_document(
-            project_id, collection_id, key, json_document="{}"
+            project_id, self.COLLECTTION, key, json_document="{}"
         )
         json_document_manager.delete_json_collections(project_id)
         try:
-            json_document_manager.get_json_document(project_id, collection_id, key)
+            json_document_manager.get_json_document(project_id, self.COLLECTTION, key)
             assert False
         except ResourceNotFoundError:
             pass
 
     def _create_doc(
-        self, jdm: PostgresJsonDocumentManager, defaults: dict, upsert: bool = True
+        self,
+        jdm: PostgresJsonDocumentManager,
+        project_id: str,
+        defaults: dict,
+        upsert: bool = True,
     ) -> JsonDocument:
         return jdm.create_json_document(
-            defaults.get("project"),
-            defaults.get("collection"),
+            project_id,
+            self.COLLECTTION,
             defaults.get("key"),
             defaults.get("json_value"),
             upsert,
