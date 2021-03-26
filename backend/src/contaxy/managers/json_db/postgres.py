@@ -170,8 +170,7 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
 
         update_data = self._add_metadata_for_update({})
 
-        # TODO: add for_update
-        select_statement = table.select().where(table.c.key == key)
+        select_statement = table.select().with_for_update().where(table.c.key == key)
 
         with self._engine.begin() as conn:
 

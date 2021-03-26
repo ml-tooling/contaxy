@@ -4,7 +4,6 @@ from typing import Generator, Optional
 
 import pytest
 from minio import Minio
-from sqlalchemy.future import create_engine
 from starlette.datastructures import State
 
 from contaxy.config import settings
@@ -20,7 +19,6 @@ from contaxy.utils.minio_utils import (
     delete_bucket,
     get_bucket_name,
 )
-from contaxy.utils.postgres_utils import create_jsonb_merge_patch_func
 from contaxy.utils.state_utils import GlobalState, RequestState
 from tests.unit_tests.conftest import test_settings
 
@@ -46,13 +44,6 @@ def minio_file_manager(
             global_state, request_state
         )
     else:
-        # TODO: Put in conftest
-        assert settings.POSTGRES_CONNECTION_URI
-        engine = create_engine(
-            settings.POSTGRES_CONNECTION_URI,
-            future=True,
-        )
-        create_jsonb_merge_patch_func(engine)
         json_db = PostgresJsonDocumentManager(global_state, request_state)
     return MinioFileManager(global_state, request_state, json_db)
 

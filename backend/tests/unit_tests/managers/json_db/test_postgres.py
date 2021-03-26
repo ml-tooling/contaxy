@@ -15,7 +15,6 @@ from contaxy.schema.exceptions import (
     ResourceNotFoundError,
 )
 from contaxy.schema.json_db import JsonDocument
-from contaxy.utils.postgres_utils import create_jsonb_merge_patch_func
 from contaxy.utils.state_utils import GlobalState, RequestState
 
 
@@ -43,9 +42,6 @@ def request_state() -> RequestState:
 def json_document_manager(
     global_state: GlobalState, request_state: RequestState
 ) -> PostgresJsonDocumentManager:
-    engine = get_engine()
-    # Ensure existence of db function for json merge patch
-    create_jsonb_merge_patch_func(engine)
     return PostgresJsonDocumentManager(global_state, request_state)
 
 
