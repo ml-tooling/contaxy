@@ -1,11 +1,14 @@
 import React from 'react';
-import PropTypes from 'prop-types';
+
 import { Switch } from 'react-router-dom';
+import PropTypes from 'prop-types';
 import styled from 'styled-components';
+
 import Toolbar from '@material-ui/core/Toolbar';
+
 import APP_PAGES, { APP_DRAWER_ITEM_TYPES } from '../../utils/app-pages';
-import PrivateRoute from './PrivateRoute';
 import LoginRoute from './LoginRoute';
+import PrivateRoute from './PrivateRoute';
 
 function ContentContainer(props) {
   const { className, isAuthenticated } = props;

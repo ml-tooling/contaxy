@@ -1,8 +1,5 @@
 /* eslint-disable import/prefer-default-export */
-export const APP_NAME = 'Machine Learning Lab';
-
-export const DOCUMENTATION_URL = '';
-export const API_EXPLORER_URL = '';
+export const APP_NAME = 'Contaxy';
 
 export const ENDPOINT =
   process.env.REACT_APP_ENDPOINT === undefined
@@ -11,6 +8,9 @@ export const ENDPOINT =
         document.location.pathname.toString()
       ).replace('/app/', '/api')
     : process.env.REACT_APP_ENDPOINT;
+
+export const DOCUMENTATION_URL = '';
+export const API_EXPLORER_URL = `${ENDPOINT}/docs`;
 
 export const ENDPOINTS = {
   research: {

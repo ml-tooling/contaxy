@@ -11,18 +11,17 @@ import GlobalStateContainer from '../../app/store';
 // import showStandardSnackbar from '../../app/showStandardSnackbar';
 
 // import { projectsApi } from '../../services/contaxy-api';
-import { loadProjects } from '../../utils/project-utils';
 
 function App() {
   // const { t } = useTranslation();
   const [isDrawerOpen, setDrawerOpen] = useState(false);
-  const { isAuthenticated, setProjects } = GlobalStateContainer.useContainer();
+  const { isAuthenticated, loadProjects } = GlobalStateContainer.useContainer();
   const onDrawerClick = () => setDrawerOpen(!isDrawerOpen);
 
   useEffect(() => {
     if (!isAuthenticated) return;
-    loadProjects().then((projects) => setProjects(projects));
-  }, [isAuthenticated, setProjects]);
+    loadProjects();
+  }, [isAuthenticated, loadProjects]);
 
   const appDrawerElement = (
     <AppDrawer isAdmin open={isDrawerOpen} handleDrawerClose={onDrawerClick} />

@@ -4,6 +4,7 @@ from typing import List
 from pydantic import EmailStr, SecretStr
 
 from contaxy.schema import File, Project, ProjectCreation, User, UserRegistration
+from contaxy.utils.file_utils import FileStreamWrapper
 
 
 class SeedOperations(ABC):
@@ -40,4 +41,21 @@ class SeedOperations(ABC):
         file_key: str = "my-test-file",
         max_number_chars: int = 200,
     ) -> File:
+        pass
+
+    @abstractmethod
+    def create_files(
+        self,
+        project_id: str,
+        number_of_files: int,
+        prefix: str = "my-test-file",
+        max_number_chars: int = 200,
+    ) -> List[File]:
+        pass
+
+    @abstractmethod
+    def create_file_stream(
+        self,
+        max_number_chars: int = 200,
+    ) -> FileStreamWrapper:
         pass

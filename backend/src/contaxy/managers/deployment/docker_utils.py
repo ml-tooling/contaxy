@@ -423,7 +423,7 @@ def create_container_config(
     )
     # Make sure that the user-entered compute requirements are not bigger than the system's maximum available
     nano_cpus = min(max_cpus, system_cpu_count) * 1e9
-    # Additionally for memory Docker requires at least 4MB for a container
+    # With regards to memory, Docker requires at least 6MB for a container
     mem_limit = f"{max(6, min(max_memory, system_memory_in_mb))}MB"
 
     mounts = define_mounts(

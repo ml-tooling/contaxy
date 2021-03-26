@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import List, Optional
 
 import docker
+from loguru import logger
 
 from contaxy.managers.deployment.docker_utils import (
     create_container_config,
@@ -65,7 +66,8 @@ class DockerDeploymentManager(DeploymentManager):
 
         try:
             container = self.client.containers.run(**container_config)
-        except docker.errors.APIError:
+        except docker.errors.APIError as e:
+            logger.error(f"Error in deploy service '{service.display_name}': {e}")
             raise ClientValueError(
                 f"Could not deploy service '{service.display_name}'."
             )

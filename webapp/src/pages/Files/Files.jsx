@@ -1,23 +1,17 @@
 import React, { useEffect, useState } from 'react';
+
 import styled from 'styled-components';
 
+import { filesApi, getFileDownloadUrl } from '../../services/contaxy-api';
+import FilesTable from './FilesTable';
+import GlobalStateContainer from '../../app/store';
 import Widget from '../../components/Widget';
 import WidgetsGrid from '../../components/WidgetsGrid';
-
-import GlobalStateContainer from '../../app/store';
-
-import { filesApi, getFileDownloadUrl } from '../../services/contaxy-api';
-
-import FilesTable from './FilesTable';
-
-const onFileDelete = async (projectId, rowData) => {
-  const result = filesApi.deleteFile(projectId, rowData.fileKey);
-  return result;
-};
+import showStandardSnackbar from '../../app/showStandardSnackbar';
 
 const onFileDownload = (projectId, rowData) => {
   const a = document.createElement('a');
-  a.href = getFileDownloadUrl(projectId, rowData.fileKey);
+  a.href = getFileDownloadUrl(projectId, rowData.id);
   a.target = '_blank';
   a.download = rowData.name || 'download';
   a.click();
@@ -34,6 +28,16 @@ function Files() {
 
     const files = await filesApi.listFiles(projectId);
     setData(files);
+  };
+
+  const onFileDelete = async (projectId, rowData) => {
+    try {
+      await filesApi.deleteFile(projectId, rowData.id);
+      showStandardSnackbar(`Deleted file (${rowData.id})`);
+      onReload(activeProject.id);
+    } catch (err) {
+      showStandardSnackbar(`Error in deleting file (${rowData.id})`);
+    }
   };
 
   useEffect(() => onReload(activeProject.id), [activeProject]);

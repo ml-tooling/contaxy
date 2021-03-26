@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
+
+import { useTranslation } from 'react-i18next';
 import PropTypes from 'prop-types';
 import styled from 'styled-components';
-import { useTranslation } from 'react-i18next';
 
 import AccountCircle from '@material-ui/icons/AccountCircle';
 import IconButton from '@material-ui/core/IconButton';
@@ -61,6 +62,7 @@ function UserMenu(props) {
       >
         <MenuItem
           className={`${className} menuItem`}
+          component="a"
           href={DOCUMENTATION_URL}
           rel={REL}
           target="_blank"
@@ -69,6 +71,7 @@ function UserMenu(props) {
         </MenuItem>
         <MenuItem
           className={`${className} menuItem`}
+          component="a"
           href={API_EXPLORER_URL}
           rel={REL}
           target="_blank"

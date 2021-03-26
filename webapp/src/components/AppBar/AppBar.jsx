@@ -1,17 +1,19 @@
 import React from 'react';
+
 import PropTypes from 'prop-types';
 import styled from 'styled-components';
+
+import IconButton from '@material-ui/core/IconButton';
 import MaterialUiAppBar from '@material-ui/core/AppBar';
+import MenuIcon from '@material-ui/icons/Menu';
 import Toolbar from '@material-ui/core/Toolbar';
 import Typography from '@material-ui/core/Typography';
-import IconButton from '@material-ui/core/IconButton';
-import MenuIcon from '@material-ui/icons/Menu';
 
+import { APP_NAME } from '../../utils/config';
+import { useProjectSelector } from '../../utils/project-utils';
+import GlobalStateContainer from '../../app/store';
 import ProjectSelector from './ProjectSelector';
 import UserMenu from './UserMenu';
-import { APP_NAME } from '../../utils/config';
-import GlobalStateContainer from '../../app/store';
-import { useProjectSelector } from '../../utils/project-utils';
 
 function AppBar(props) {
   const { activeProject, projects, user } = GlobalStateContainer.useContainer();

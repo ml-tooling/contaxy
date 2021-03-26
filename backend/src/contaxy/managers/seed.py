@@ -37,6 +37,8 @@ class SeedManager(SeedOperations):
             username="Foo", email=EmailStr("foo@bar.com"), password=SecretStr("Foobar")
         ),
     ) -> User:
+        if not self.auth_manager:
+            raise RuntimeError("Seeder needs to be initialized with an auth manager")
         return self.auth_manager.create_user(user_input=user_input)
 
     def create_users(self, amount: int) -> List[User]:
@@ -59,9 +61,13 @@ class SeedManager(SeedOperations):
             id="my-test-project", display_name="My Test Project!"
         ),
     ) -> Project:
+        if not self.project_manager:
+            raise RuntimeError("Seeder needs to be initialized with a project manager")
         return self.project_manager.create_project(project_input=project_input)
 
     def create_projects(self, amount: int) -> List[Project]:
+        if not self.project_manager:
+            raise RuntimeError("Seeder needs to be initialized with a project manager")
         projects = []
         for _ in range(amount):
             project = self.create_project(
@@ -77,6 +83,8 @@ class SeedManager(SeedOperations):
         file_key: str = "my-test-file",
         max_number_chars: int = 200,
     ) -> File:
+        if not self.file_manager:
+            raise RuntimeError("Seeder needs to be initialized with a file manager")
         file_stream = FileStreamWrapper(
             io.BytesIO(FAKER.text(max_nb_chars=max_number_chars).encode("UTF-8"))
         )
@@ -88,7 +96,7 @@ class SeedManager(SeedOperations):
         self,
         project_id: str,
         number_of_files: int,
-        prefix: str = "my-test-file",
+        prefix: Optional[str] = "my-test-file",
         max_number_chars: int = 200,
     ) -> List[File]:
         return [
@@ -99,3 +107,11 @@ class SeedManager(SeedOperations):
             )
             for index in range(number_of_files)
         ]
+
+    def create_file_stream(
+        self,
+        max_number_chars: int = 200,
+    ) -> FileStreamWrapper:
+        return FileStreamWrapper(
+            io.BytesIO(FAKER.text(max_nb_chars=max_number_chars).encode("UTF-8"))
+        )

@@ -1,11 +1,12 @@
 import React, { useRef, useState } from 'react';
+
 import PropTypes from 'prop-types';
 import styled from 'styled-components';
 
-import Button from '@material-ui/core/Button';
-import TextField from '@material-ui/core/TextField';
 import AddIcon from '@material-ui/icons/Add';
+import Button from '@material-ui/core/Button';
 import DelIcon from '@material-ui/icons/Delete';
+import TextField from '@material-ui/core/TextField';
 
 const ENV_NAME_REGEX = new RegExp('^([a-zA-Z_]{1,}[a-zA-Z0-9_]{0,})?$');
 
@@ -90,7 +91,12 @@ function KeyValueInputs(props) {
     });
 
     setKeyValuePairs(() => [...newKeyValuePairs]);
-    onKeyValuePairChange(newKeyValuePairs);
+
+    // Transform array to object. If the same key existed multiple times, only the last one of them in the array will be used.
+    const keyValueInput = Object.fromEntries(
+      newKeyValuePairs.map((e) => [e.key, e.value])
+    );
+    onKeyValuePairChange(keyValueInput);
   };
 
   const handleAddParameterClick = () => {
@@ -140,6 +146,7 @@ function KeyValueInputs(props) {
 }
 
 KeyValueInputs.propTypes = {
+  /* Returns an object with the key-value pairs. The same key can only exist one time. */
   onKeyValuePairChange: PropTypes.func.isRequired,
 };
 

@@ -1,70 +1,87 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
+
+import { useTranslation } from 'react-i18next';
 import PropTypes from 'prop-types';
 import styled from 'styled-components';
-import { useTranslation } from 'react-i18next';
 
 import Button from '@material-ui/core/Button';
 
-import { useShowAppDialog } from '../../app/AppDialogServiceProvider';
-import DeployServiceDialog from '../../components/Dialogs/DeployContainerDialog';
-import ServicesContainer from './ServicesContainer';
-import GlobalStateContainer from '../../app/store';
-
 import { servicesApi } from '../../services/contaxy-api';
+import { useServices } from '../../services/api-hooks';
+import { useShowAppDialog } from '../../app/AppDialogServiceProvider';
+import ContentDialog from '../../components/Dialogs/ContentDialog';
+import DeployServiceDialog from '../../components/Dialogs/DeployContainerDialog';
+import GlobalStateContainer from '../../app/store';
+import ServicesContainer from './ServicesContainer';
+import showStandardSnackbar from '../../app/showStandardSnackbar';
 
 // const getServiceUrl = (service) => {
 //   // TODO: return url under which the service is reachable
 //   return service;
 // };
 
-const onShowServiceMetadata = async (projectId, serviceId) => {
-  // TODO: do something with the service metadata
-  const serviceMetadata = await servicesApi.getServiceMetadata(
-    projectId,
-    serviceId
-  );
-  console.log(serviceMetadata);
-};
-
-const onShowServiceLogs = async (projectId, serviceId) => {
-  // TODO: do something with the logs
-  const logs = servicesApi.getServiceLogs(projectId, serviceId);
-  console.log(logs);
-};
-
-const onServiceDelete = async (projectId, serviceId) => {
-  // TODO: do something with the response, e.g. show a toast
-  const response = servicesApi.deleteService(projectId, serviceId);
-  console.log(response);
-};
-
 function Services(props) {
   const { t } = useTranslation();
   const { activeProject } = GlobalStateContainer.useContainer();
   const showAppDialog = useShowAppDialog();
-  const [services, setServices] = useState([]);
+  const [services, reloadServices] = useServices(activeProject.id);
   const { className } = props;
 
   const onServiceDeploy = () => {
     showAppDialog(DeployServiceDialog, {
-      onDeploy: (containerImage, deploymentName, deploymentParameters) => {
+      onDeploy: async (
+        { containerImage, deploymentName, deploymentParameters },
+        onClose
+      ) => {
         const serviceInput = {
           container_image: containerImage,
           display_name: deploymentName,
           parameters: deploymentParameters,
         };
-        servicesApi.deployService(activeProject.id, serviceInput);
+        try {
+          await servicesApi.deployService(activeProject.id, serviceInput);
+          showStandardSnackbar(`Deployed service '${deploymentName}'`);
+          onClose();
+        } catch (err) {
+          showStandardSnackbar(`Could not deploy service '${deploymentName}'.`);
+        }
       },
     });
   };
 
-  const onReload = async (projectId) => {
-    if (!projectId) return;
-    const projectServices = await servicesApi.listServices(projectId);
-    setServices(projectServices);
+  const onShowServiceMetadata = async (projectId, serviceId) => {
+    try {
+      const serviceMetadata = await servicesApi.getServiceMetadata(
+        projectId,
+        serviceId
+      );
+      showAppDialog(ContentDialog, {
+        jsonContent: serviceMetadata,
+        title: 'Service Metadata',
+      });
+    } catch (err) {
+      showStandardSnackbar('Could not load service metadata');
+    }
   };
 
-  useEffect(() => onReload(activeProject.id), [activeProject]);
+  const onShowServiceLogs = async (projectId, serviceId) => {
+    try {
+      const logs = await servicesApi.getServiceLogs(projectId, serviceId);
+      showAppDialog(ContentDialog, { content: logs, title: 'Service Logs' });
+    } catch (err) {
+      showStandardSnackbar('Could not load service logs');
+    }
+  };
+
+  const onServiceDelete = async (projectId, serviceId) => {
+    try {
+      await servicesApi.deleteService(projectId, serviceId);
+      showStandardSnackbar(`Deleted service '${serviceId}'`);
+      reloadServices();
+    } catch (err) {
+      showStandardSnackbar(`Could not delete service '${serviceId}'`);
+    }
+  };
 
   return (
     <div className="pages-native-component">
@@ -78,7 +95,7 @@ function Services(props) {
       </Button>
       <ServicesContainer
         data={services}
-        onReload={() => onReload(activeProject.id)}
+        onReload={reloadServices}
         onServiceDelete={(rowData) =>
           onServiceDelete(activeProject.id, rowData.id)
         }

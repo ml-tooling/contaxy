@@ -1,26 +1,32 @@
 import React from 'react';
-import { useTranslation } from 'react-i18next';
 
+import { useTranslation } from 'react-i18next';
+import PropTypes from 'prop-types';
+import styled from 'styled-components';
+
+import Button from '@material-ui/core/Button';
 import Grid from '@material-ui/core/Grid';
 
+import { fetchAPIToken, projectsApi } from '../services/contaxy-api';
+import { useProjectSelector } from '../utils/project-utils';
+import { useShowAppDialog } from '../app/AppDialogServiceProvider';
+import AddProjectDialog from '../components/Dialogs/AddProjectDialog';
+import ApiTokenDialog from '../components/Dialogs/ApiTokenDialog';
+import GlobalStateContainer from '../app/store';
+import ManageProjectDialog from '../components/Dialogs/ManageProjectDialog';
 import ProjectCard from '../components/ProjectCard';
 import Widget from '../components/Widget';
 import WidgetsGrid from '../components/WidgetsGrid';
-import GlobalStateContainer from '../app/store';
 import showStandardSnackbar from '../app/showStandardSnackbar';
-import { fetchAPIToken, projectsApi } from '../services/contaxy-api';
-import ManageProjectDialog from '../components/Dialogs/ManageProjectDialog';
-import { useShowAppDialog } from '../app/AppDialogServiceProvider';
-import ApiTokenDialog from '../components/Dialogs/ApiTokenDialog';
-import { loadProjects, useProjectSelector } from '../utils/project-utils';
 
-function Projects() {
+function Projects(props) {
+  const { className } = props;
   const { t } = useTranslation();
   const showAppDialog = useShowAppDialog();
   const {
     activeProject,
     projects,
-    setProjects,
+    loadProjects,
   } = GlobalStateContainer.useContainer();
   const onProjectSelect = useProjectSelector();
 
@@ -34,11 +40,33 @@ function Projects() {
     showAppDialog(ApiTokenDialog, { token: fetchedToken });
   };
 
+  const onAddProject = () => {
+    showAppDialog(AddProjectDialog, {
+      onAdd: async ({ id, name, description }, onClose) => {
+        const projectInput = {
+          id,
+          display_name: name,
+          description,
+        };
+        try {
+          await projectsApi.createProject(projectInput);
+          showStandardSnackbar(`Created project '${id}'`);
+          onClose();
+          loadProjects();
+        } catch (err) {
+          showStandardSnackbar(
+            `Could not create project. Error: ${err.statusText}`
+          );
+        }
+      },
+    });
+  };
+
   const onDeleteProject = async (project) => {
     try {
       await projectsApi.deleteProject(project.id);
       showStandardSnackbar(`Delete project '${project.id}'`);
-      setProjects(await loadProjects());
+      loadProjects();
     } catch (err) {
       // ignore
     }
@@ -80,6 +108,14 @@ function Projects() {
           color="orange"
         />
       </WidgetsGrid>
+      <Button
+        variant="contained"
+        color="primary"
+        onClick={onAddProject}
+        className={`${className} button`}
+      >
+        {`${t('add')} ${t('project')}`}
+      </Button>
       <Grid container spacing={3}>
         {projectElements}
       </Grid>
@@ -87,4 +123,18 @@ function Projects() {
   );
 }
 
-export default Projects;
+Projects.propTypes = {
+  className: PropTypes.string,
+};
+
+Projects.defaultProps = {
+  className: '',
+};
+
+const StyledProjects = styled(Projects)`
+  &.button {
+    margin: 8px 0px;
+  }
+`;
+
+export default StyledProjects;

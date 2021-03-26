@@ -1,31 +1,30 @@
 import React from 'react';
-import PropTypes from 'prop-types';
+
 import { useTranslation } from 'react-i18next';
+import PropTypes from 'prop-types';
 
 import MaterialTable from 'material-table';
-
 import setClipboardText from '../../utils/clipboard';
-
 import showStandardSnackbar from '../../app/showStandardSnackbar';
 
 const PAGE_SIZES = [5, 10, 15, 30, 50, 75, 100];
 
 const COLUMNS = [
   {
-    field: 'name',
+    field: 'display_name',
     title: 'Name',
     numeric: false,
     align: 'center',
   },
   {
-    field: 'modifiedAt',
+    field: 'updated_at',
     title: 'Last modified',
     numeric: false,
     type: 'date',
     align: 'center',
   },
   {
-    field: 'modifiedBy',
+    field: 'updated_by',
     title: 'Modified By',
     align: 'center',
   },
@@ -36,7 +35,7 @@ const COLUMNS = [
     align: 'center',
   },
   {
-    field: 'size',
+    field: 'file_size',
     title: 'Size',
     align: 'center',
   },
@@ -91,7 +90,7 @@ function FilesTable(props) {
           iconProps: { className: `${className} actionIcon` },
           onClick: (event, rowData) => {
             showStandardSnackbar('Copy file key');
-            setClipboardText(rowData.name);
+            setClipboardText(rowData.id);
           },
           tooltip: 'Copy File Key',
         },

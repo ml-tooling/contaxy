@@ -1,4 +1,5 @@
 import React, { useReducer } from 'react';
+
 import PropTypes from 'prop-types';
 import styled from 'styled-components';
 
@@ -27,6 +28,7 @@ function Login(props) {
     const response = await authApi.requestToken('password', {
       username: formInput.username,
       password: formInput.password,
+      setAsCookie: true,
     });
 
     console.log(response);

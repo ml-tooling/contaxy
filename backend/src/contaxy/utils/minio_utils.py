@@ -37,20 +37,21 @@ def create_minio_client(settings: Settings) -> Minio:
 
 def purge_bucket(client: Minio, bucket_name: str) -> None:
     # TODO: Validate the effect of `bypass_governance_mode`
-    delete_object_list = [
-        DeleteObject(file.object_name, file.version_id)
-        for file in client.list_objects(
-            bucket_name, include_version=True, recursive=True
-        )
-    ]
+    delete_objects = []
+    for file in client.list_objects(bucket_name, include_version=True, recursive=True):
+        delete_objects.append(DeleteObject(file.object_name, file.version_id))
 
-    if delete_object_list:
-        try:
-            errors = client.remove_objects(bucket_name, delete_object_list)
-            for error in errors:
-                print("error occured when deleting object", error)
-        except BaseException as err:
-            pass
+    if delete_objects:
+        # TODO: Validate bypass_governance_mode behavior
+        errors = client.remove_objects(
+            bucket_name, delete_objects, bypass_governance_mode=True
+        )
+
+        for error in errors:
+            # TODO: Critical is only for testing an should be handled when tested
+            logger.critical(
+                f"Error purging bucket {bucket_name} (Errors: {error}).",
+            )
 
 
 def delete_bucket(client: Minio, bucket_name: str, force: bool = False) -> None:
@@ -62,6 +63,7 @@ def delete_bucket(client: Minio, bucket_name: str, force: bool = False) -> None:
         elif err.code == "BucketNotEmpty":
             if force:
                 purge_bucket(client, bucket_name)
+                client.remove_bucket(bucket_name)
             else:
                 msg = (
                     f"Bucket {bucket_name} can not be deleted because it is not empty."

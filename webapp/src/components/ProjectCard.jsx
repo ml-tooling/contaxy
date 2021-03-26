@@ -1,11 +1,13 @@
 import React, { useEffect, useRef } from 'react';
+
 import PropTypes from 'prop-types';
+import styled from 'styled-components';
 
 import Avatar from '@material-ui/core/Avatar';
 import Button from '@material-ui/core/Button';
 import Card from '@material-ui/core/Card';
-import CardContent from '@material-ui/core/CardContent';
 import CardActions from '@material-ui/core/CardActions';
+import CardContent from '@material-ui/core/CardContent';
 import CardHeader from '@material-ui/core/CardHeader';
 import Grid from '@material-ui/core/Grid';
 import Typography from '@material-ui/core/Typography';
@@ -14,6 +16,7 @@ import * as Jdenticon from 'jdenticon';
 
 function ProjectCard(props) {
   const {
+    className,
     onApiTokenClick,
     onClickManageMembers,
     onDeleteProject,
@@ -32,7 +35,7 @@ function ProjectCard(props) {
   return (
     <>
       <Grid item>
-        <Card>
+        <Card className={`${className} card`}>
           <CardHeader
             avatar={
               <Avatar alt={project.display_name}>
@@ -45,7 +48,7 @@ function ProjectCard(props) {
                 />
               </Avatar>
             }
-            title={project.display_name}
+            title={project.display_name || project.id}
             subheader={createdAt}
           />
           <CardContent>
@@ -66,6 +69,7 @@ function ProjectCard(props) {
 }
 
 ProjectCard.propTypes = {
+  className: PropTypes.string,
   onApiTokenClick: PropTypes.func.isRequired,
   onClickManageMembers: PropTypes.func.isRequired,
   onDeleteProject: PropTypes.func.isRequired,
@@ -73,4 +77,14 @@ ProjectCard.propTypes = {
   project: PropTypes.instanceOf(Object).isRequired,
 };
 
-export default ProjectCard;
+ProjectCard.defaultProps = {
+  className: '',
+};
+
+const StyledProjectCard = styled(ProjectCard)`
+  &.card {
+    height: 100%;
+  }
+`;
+
+export default StyledProjectCard;

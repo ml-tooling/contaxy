@@ -1,9 +1,9 @@
 /* eslint-disable import/prefer-default-export */
-import { ENDPOINT } from '../utils/config';
 import * as Api from './contaxy-client';
+import { ENDPOINT } from '../utils/config';
 
 export const ENDPOINT_PROJECTS = `${ENDPOINT}/projects/{project_id}`;
-export const ENDPOINT_FILES = `${ENDPOINT_PROJECTS}/files/{file_key:path}:download'`;
+export const ENDPOINT_FILES = `${ENDPOINT_PROJECTS}/files/{file_key:path}:download`;
 
 export function fetchAPIToken(resource) {
   // TODO: fetch API token of resource

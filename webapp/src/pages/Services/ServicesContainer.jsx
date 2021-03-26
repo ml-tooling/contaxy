@@ -1,6 +1,8 @@
 import React from 'react';
-import PropTypes from 'prop-types';
+
 import { useTranslation } from 'react-i18next';
+import PropTypes from 'prop-types';
+
 import MaterialTable from 'material-table';
 
 const COLUMNS = [
@@ -9,11 +11,19 @@ const COLUMNS = [
     title: 'Name',
     numeric: false,
     align: 'left',
+    render: (rowData) => rowData.metadata['ctxy.deploymentName'],
   },
   {
-    field: 'startedAt',
+    field: 'container_image',
+    title: 'Image',
+    numeric: false,
+    align: 'left',
+  },
+  {
+    field: 'started_at',
     title: 'Started At',
     align: 'left',
+    render: (rowData) => rowData.started_at.getTime(),
   },
 ];
 
@@ -62,7 +72,7 @@ function ServicesContainer(props) {
           tooltip: t('reload'),
         },
         {
-          icon: 'access',
+          icon: 'login',
           iconProps: { className: `` },
           onClick: (event, rowData) => {
             // window.open(getServiceUrl(rowData), '_blank');
