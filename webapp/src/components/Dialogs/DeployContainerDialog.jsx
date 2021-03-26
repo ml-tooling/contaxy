@@ -8,29 +8,36 @@ import Dialog from '@material-ui/core/Dialog';
 import DialogActions from '@material-ui/core/DialogActions';
 import DialogTitle from '@material-ui/core/DialogTitle';
 import DialogContent from '@material-ui/core/DialogContent';
+import DialogContentText from '@material-ui/core/DialogContentText';
 import TextField from '@material-ui/core/TextField';
-import { DialogContentText } from '@material-ui/core';
 
 import KeyValueInputs from './KeyValueInputs';
 
-const IMAGE_NAME = new RegExp('[^a-zA-Z0-9-_:/.]');
+const VALID_IMAGE_NAME = new RegExp('[^a-zA-Z0-9-_:/.]');
 const SERVICE_NAME_REGEX = new RegExp(
   '^([a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9])?$'
 );
 
 function DeployContainerDialog(props) {
-  const { t } = useTranslation();
-  const [containerImage, setContainerImage] = useState('');
-  const [deploymentName, setDeploymentName] = useState('');
-  const [deploymentParameters, setDeploymentParameters] = useState([]);
-
-  const handleContainerImageChange = (e) => setContainerImage(e.target.value);
-  const handleNameChange = (e) => setDeploymentName(e.target.value);
-
   const { onClose, onDeploy } = props;
 
-  const isContainerImageInvalid = IMAGE_NAME.test(containerImage);
-  const isDeploymentNameInvalid = !SERVICE_NAME_REGEX.test(deploymentName);
+  const { t } = useTranslation();
+
+  const [deploymentInput, setDeploymentInput] = useState({
+    containerImage: '',
+    deploymentName: '',
+    deploymentParameters: [],
+  });
+
+  const onChange = (e) =>
+    setDeploymentInput({ ...deploymentInput, [e.target.name]: e.target.value });
+
+  const isContainerImageInvalid = VALID_IMAGE_NAME.test(
+    deploymentInput.containerImage
+  );
+  const isDeploymentNameInvalid = !SERVICE_NAME_REGEX.test(
+    deploymentInput.deploymentName
+  );
 
   return (
     <Dialog open>
@@ -42,10 +49,12 @@ function DeployContainerDialog(props) {
           service.
         </DialogContentText>
         <TextField
+          required
           label="Container Image"
           type="text"
-          value={containerImage}
-          onChange={handleContainerImageChange}
+          name="containerImage"
+          value={deploymentInput.containerImage}
+          onChange={onChange}
           onBlur={() => {}} // TODO: add here the "caching" logic handling
           autoComplete="on"
           error={isContainerImageInvalid}
@@ -56,10 +65,11 @@ function DeployContainerDialog(props) {
           margin="dense"
         />
         <TextField
-          label="Deployment Name (optional)"
+          label="Deployment Name"
           type="text"
-          value={deploymentName}
-          onChange={handleNameChange}
+          name="deploymentName"
+          value={deploymentInput.deploymentName}
+          onChange={onChange}
           autoComplete="on"
           error={isDeploymentNameInvalid}
           helperText={isDeploymentNameInvalid ? 'Name is not valid' : null}
@@ -68,7 +78,10 @@ function DeployContainerDialog(props) {
         />
         <KeyValueInputs
           onKeyValuePairChange={(keyValuePairs) => {
-            setDeploymentParameters(keyValuePairs);
+            setDeploymentInput({
+              ...deploymentInput,
+              deploymentParameters: keyValuePairs,
+            });
           }}
         />
       </DialogContent>
@@ -77,9 +90,12 @@ function DeployContainerDialog(props) {
           CANCEL
         </Button>
         <Button
-          onClick={() =>
-            onDeploy(containerImage, deploymentName, deploymentParameters)
+          disabled={
+            isContainerImageInvalid ||
+            isDeploymentNameInvalid ||
+            !deploymentInput.containerImage
           }
+          onClick={() => onDeploy(deploymentInput, onClose)}
           color="primary"
         >
           DEPLOY

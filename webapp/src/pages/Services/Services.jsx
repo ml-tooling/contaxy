@@ -42,15 +42,19 @@ function Services(props) {
 
   const onServiceDeploy = () => {
     showAppDialog(DeployServiceDialog, {
-      onDeploy: (containerImage, deploymentName, deploymentParameters) => {
+      onDeploy: async (
+        { containerImage, deploymentName, deploymentParameters },
+        onClose
+      ) => {
         const serviceInput = {
           container_image: containerImage,
           display_name: deploymentName,
           parameters: deploymentParameters,
         };
         try {
-          servicesApi.deployService(activeProject.id, serviceInput);
+          await servicesApi.deployService(activeProject.id, serviceInput);
           showStandardSnackbar(`Deployed service '${deploymentName}'`);
+          onClose();
         } catch (err) {
           showStandardSnackbar(`Could not deploy service '${deploymentName}'`);
         }
@@ -60,7 +64,7 @@ function Services(props) {
 
   const onServiceDelete = async (projectId, serviceId) => {
     try {
-      servicesApi.deleteService(projectId, serviceId);
+      await servicesApi.deleteService(projectId, serviceId);
       showStandardSnackbar(`Deleted service '${serviceId}'`);
       reloadServices();
     } catch (err) {
