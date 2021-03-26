@@ -1,16 +1,16 @@
 import React from 'react';
+
+import { useTranslation } from 'react-i18next';
 import PropTypes from 'prop-types';
 import styled from 'styled-components';
-import { useTranslation } from 'react-i18next';
 
-import MaterialTable from 'material-table';
 import Button from '@material-ui/core/Button';
-
-import Widget from '../components/Widget';
-import WidgetsGrid from '../components/WidgetsGrid';
+import MaterialTable from 'material-table';
 
 import { useShowAppDialog } from '../app/AppDialogServiceProvider';
 import DeployServiceDialog from '../components/Dialogs/DeployContainerDialog';
+import Widget from '../components/Widget';
+import WidgetsGrid from '../components/WidgetsGrid';
 
 const PAGE_SIZES = [5, 10, 15, 30, 50, 75, 100];
 

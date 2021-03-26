@@ -1,9 +1,9 @@
-import Projects from '../pages/Projects';
 import Files from '../pages/Files/Files';
-import Services from '../pages/Services';
+import Iframe from '../pages/Iframe';
 import Jobs from '../pages/Jobs';
 import Login from '../pages/Login';
-import Iframe from '../pages/Iframe';
+import Projects from '../pages/Projects';
+import Services from '../pages/Services';
 
 export const APP_DRAWER_ITEM_TYPES = {
   divider: 'divider',

@@ -1,11 +1,10 @@
 import React from 'react';
-import PropTypes from 'prop-types';
+
 import { useTranslation } from 'react-i18next';
+import PropTypes from 'prop-types';
 
 import MaterialTable from 'material-table';
-
 import setClipboardText from '../../utils/clipboard';
-
 import showStandardSnackbar from '../../app/showStandardSnackbar';
 
 const PAGE_SIZES = [5, 10, 15, 30, 50, 75, 100];

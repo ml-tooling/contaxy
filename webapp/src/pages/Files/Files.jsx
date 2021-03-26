@@ -1,15 +1,12 @@
 import React, { useEffect, useState } from 'react';
+
 import styled from 'styled-components';
 
+import { filesApi, getFileDownloadUrl } from '../../services/contaxy-api';
+import FilesTable from './FilesTable';
+import GlobalStateContainer from '../../app/store';
 import Widget from '../../components/Widget';
 import WidgetsGrid from '../../components/WidgetsGrid';
-
-import GlobalStateContainer from '../../app/store';
-
-import { filesApi, getFileDownloadUrl } from '../../services/contaxy-api';
-
-import FilesTable from './FilesTable';
-
 import showStandardSnackbar from '../../app/showStandardSnackbar';
 
 const onFileDownload = (projectId, rowData) => {

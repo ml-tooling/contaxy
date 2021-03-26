@@ -1,9 +1,11 @@
 import React from 'react';
+
 import PropTypes from 'prop-types';
 import styled from 'styled-components';
+
 import Drawer from '@material-ui/core/Drawer';
-import Toolbar from '@material-ui/core/Toolbar';
 import List from '@material-ui/core/List';
+import Toolbar from '@material-ui/core/Toolbar';
 
 import APP_PAGES from '../../utils/app-pages';
 import AppDrawerItem from './AppDrawerItem';

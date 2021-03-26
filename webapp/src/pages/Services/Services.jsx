@@ -1,18 +1,18 @@
 import React from 'react';
+
+import { useTranslation } from 'react-i18next';
 import PropTypes from 'prop-types';
 import styled from 'styled-components';
-import { useTranslation } from 'react-i18next';
 
 import Button from '@material-ui/core/Button';
 
-import { useShowAppDialog } from '../../app/AppDialogServiceProvider';
-import DeployServiceDialog from '../../components/Dialogs/DeployContainerDialog';
-import ContentDialog from '../../components/Dialogs/ContentDialog';
-import ServicesContainer from './ServicesContainer';
-import GlobalStateContainer from '../../app/store';
-
 import { servicesApi } from '../../services/contaxy-api';
 import { useServices } from '../../services/api-hooks';
+import { useShowAppDialog } from '../../app/AppDialogServiceProvider';
+import ContentDialog from '../../components/Dialogs/ContentDialog';
+import DeployServiceDialog from '../../components/Dialogs/DeployContainerDialog';
+import GlobalStateContainer from '../../app/store';
+import ServicesContainer from './ServicesContainer';
 import showStandardSnackbar from '../../app/showStandardSnackbar';
 
 // const getServiceUrl = (service) => {

@@ -1,8 +1,8 @@
 // import React, { createContext, useReducer } from 'react';
-import { useCallback, useState } from 'react';
 import { createContainer } from 'unstated-next';
+import { useCallback, useState } from 'react';
 
-import { usersApi, projectsApi } from '../services/contaxy-api';
+import { projectsApi, usersApi } from '../services/contaxy-api';
 
 // const initialState = {};
 // const store = createContext(initialState);

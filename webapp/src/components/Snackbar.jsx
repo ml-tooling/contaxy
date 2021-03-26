@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
+
 import PropTypes from 'prop-types';
+
 import MaterialUiSnackbar from '@material-ui/core/Snackbar';
 
 function Snackbar({ message }) {

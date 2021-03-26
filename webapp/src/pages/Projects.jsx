@@ -1,23 +1,23 @@
 import React from 'react';
-import PropTypes from 'prop-types';
-import styled from 'styled-components';
 
 import { useTranslation } from 'react-i18next';
+import PropTypes from 'prop-types';
+import styled from 'styled-components';
 
 import Button from '@material-ui/core/Button';
 import Grid from '@material-ui/core/Grid';
 
+import { fetchAPIToken, projectsApi } from '../services/contaxy-api';
+import { useProjectSelector } from '../utils/project-utils';
+import { useShowAppDialog } from '../app/AppDialogServiceProvider';
+import AddProjectDialog from '../components/Dialogs/AddProjectDialog';
+import ApiTokenDialog from '../components/Dialogs/ApiTokenDialog';
+import GlobalStateContainer from '../app/store';
+import ManageProjectDialog from '../components/Dialogs/ManageProjectDialog';
 import ProjectCard from '../components/ProjectCard';
 import Widget from '../components/Widget';
 import WidgetsGrid from '../components/WidgetsGrid';
-import GlobalStateContainer from '../app/store';
 import showStandardSnackbar from '../app/showStandardSnackbar';
-import { fetchAPIToken, projectsApi } from '../services/contaxy-api';
-import ManageProjectDialog from '../components/Dialogs/ManageProjectDialog';
-import { useShowAppDialog } from '../app/AppDialogServiceProvider';
-import ApiTokenDialog from '../components/Dialogs/ApiTokenDialog';
-import { useProjectSelector } from '../utils/project-utils';
-import AddProjectDialog from '../components/Dialogs/AddProjectDialog';
 
 function Projects(props) {
   const { className } = props;
