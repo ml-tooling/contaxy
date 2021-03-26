@@ -99,3 +99,11 @@ class SeedManager(SeedOperations):
             )
             for index in range(number_of_files)
         ]
+
+    def create_file_stream(
+        self,
+        max_number_chars: int = 200,
+    ) -> FileStreamWrapper:
+        return FileStreamWrapper(
+            io.BytesIO(FAKER.text(max_nb_chars=max_number_chars).encode("UTF-8"))
+        )
