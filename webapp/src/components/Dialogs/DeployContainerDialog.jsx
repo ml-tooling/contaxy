@@ -26,7 +26,7 @@ function DeployContainerDialog(props) {
   const [deploymentInput, setDeploymentInput] = useState({
     containerImage: '',
     deploymentName: '',
-    deploymentParameters: [],
+    deploymentParameters: {},
   });
 
   const onChange = (e) =>

@@ -56,7 +56,7 @@ function Services(props) {
           showStandardSnackbar(`Deployed service '${deploymentName}'`);
           onClose();
         } catch (err) {
-          showStandardSnackbar(`Could not deploy service '${deploymentName}'`);
+          showStandardSnackbar(`Could not deploy service '${deploymentName}'.`);
         }
       },
     });

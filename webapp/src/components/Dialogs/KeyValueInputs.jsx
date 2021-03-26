@@ -90,7 +90,12 @@ function KeyValueInputs(props) {
     });
 
     setKeyValuePairs(() => [...newKeyValuePairs]);
-    onKeyValuePairChange(newKeyValuePairs);
+
+    // Transform array to object. If the same key existed multiple times, only the last one of them in the array will be used.
+    const keyValueInput = Object.fromEntries(
+      newKeyValuePairs.map((e) => [e.key, e.value])
+    );
+    onKeyValuePairChange(keyValueInput);
   };
 
   const handleAddParameterClick = () => {
@@ -140,6 +145,7 @@ function KeyValueInputs(props) {
 }
 
 KeyValueInputs.propTypes = {
+  /* Returns an object with the key-value pairs. The same key can only exist one time. */
   onKeyValuePairChange: PropTypes.func.isRequired,
 };
 
