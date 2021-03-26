@@ -7,6 +7,7 @@ import Button from '@material-ui/core/Button';
 
 import { useShowAppDialog } from '../../app/AppDialogServiceProvider';
 import DeployServiceDialog from '../../components/Dialogs/DeployContainerDialog';
+import GenericDialog from '../../components/Dialogs/ContentDialog';
 import ServicesContainer from './ServicesContainer';
 import GlobalStateContainer from '../../app/store';
 
@@ -18,15 +19,6 @@ import showStandardSnackbar from '../../app/showStandardSnackbar';
 //   // TODO: return url under which the service is reachable
 //   return service;
 // };
-
-const onShowServiceMetadata = async (projectId, serviceId) => {
-  // TODO: do something with the service metadata
-  const serviceMetadata = await servicesApi.getServiceMetadata(
-    projectId,
-    serviceId
-  );
-  console.log(serviceMetadata);
-};
 
 const onShowServiceLogs = async (projectId, serviceId) => {
   // TODO: do something with the logs
@@ -60,6 +52,21 @@ function Services(props) {
         }
       },
     });
+  };
+
+  const onShowServiceMetadata = async (projectId, serviceId) => {
+    try {
+      const serviceMetadata = await servicesApi.getServiceMetadata(
+        projectId,
+        serviceId
+      );
+      showAppDialog(GenericDialog, {
+        jsonContent: serviceMetadata,
+        title: 'Service Metadata',
+      });
+    } catch (err) {
+      showStandardSnackbar('Could not load service metadata');
+    }
   };
 
   const onServiceDelete = async (projectId, serviceId) => {

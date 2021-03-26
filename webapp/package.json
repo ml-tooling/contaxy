@@ -22,6 +22,7 @@
     "react-dom": "^17.0.1",
     "react-i18next": "^11.8.4",
     "react-iframe": "^1.8.0",
+    "react-json-view": "^1.21.3",
     "react-router-dom": "^5.2.0",
     "react-scripts": "4.0.1",
     "styled-components": "^5.2.1",
@@ -54,7 +55,7 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "start-debug": "REACT_APP_ENDPOINT=http://localhost:30010/api yarn start",
+    "start-debug": "REACT_APP_ENDPOINT=http://localhost:8082 yarn start",
     "container": "run(){ docker build -t project-template-dev ../.github/actions/build-environment && echo 'Starting the container. That can take a moment...' && docker run -it --rm -p 3000:3000 -p 6006:6006 -v $(pwd):/workspace:delegated --entrypoint \"/bin/bash\" project-template-dev -c \"cd workspace/ && yarn $1\"; }; run",
     "build": "react-scripts build",
     "test": "react-scripts test a --watchAll=false",

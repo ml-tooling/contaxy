@@ -70,7 +70,7 @@ function ServicesContainer(props) {
           tooltip: t('reload'),
         },
         {
-          icon: 'access',
+          icon: 'login',
           iconProps: { className: `` },
           onClick: (event, rowData) => {
             // window.open(getServiceUrl(rowData), '_blank');
