@@ -323,25 +323,34 @@ class MinioFileManager(FileOperations):
             f"delete_file (`project_id`: {project_id}, `file_key`: {file_key}, `version`: {version}, `keep_latest_version`: {keep_latest_version})"
         )
 
-        if keep_latest_version:
-            self._delete_old_versions(project_id, file_key)
+        if keep_latest_version or version is None:
+            self._delete_file_versions(project_id, file_key, keep_latest_version)
             return
 
         bucket_name = get_bucket_name(project_id, self.sys_namespace)
 
         try:
+            # Does not work without version
             self.client.remove_object(bucket_name, file_key, version_id=version)
         except S3Error as err:
-            if err.code == "NoSuchBucket":
-                logger.debug(f"Deletion failed - Bucket {bucket_name} does not exist.")
-                raise ResourceNotFoundError(f"The project {project_id} is invalid.")
-            elif err.code == "NoSuchKey":
+            if err.code == "NoSuchKey":
                 logger.debug(
-                    f"Deletion failed - Invalid file {file_key} (version: {version})."
+                    f"Deletion failed - No file {file_key} exists in bucket {bucket_name}."
                 )
-                raise ResourceNotFoundError(
-                    f"Invalid file {file_key} (version: {version}."
-                )
+            elif err.code == "NoSuchBucket":
+                logger.debug(f"Deletion failed - Bucket {bucket_name} does not exist.")
+            raise err
+
+        try:
+            self.json_db_manager.delete_json_document(
+                project_id,
+                self.DOC_COLLECTION_NAME,
+                generate_file_id(file_key, version),
+            )
+        except ResourceNotFoundError:
+            logger.warning(
+                f"No file metadata Json doc found for file_key: {file_key}, version: {version}"
+            )
 
     def list_file_actions(
         self, project_id: str, file_key: str, version: Optional[str] = None
@@ -467,7 +476,7 @@ class MinioFileManager(FileOperations):
 
     def _enrich_data_from_db(
         self, project_id: str, file_data: List[File], document_keys: List[str]
-    ) -> Tuple[List[File], List[Dict[str, str]]]:
+    ) -> Tuple[List[File], List[Tuple[str, str]]]:
 
         json_docs = self.json_db_manager.list_json_documents(
             project_id, self.DOC_COLLECTION_NAME, keys=document_keys
@@ -478,14 +487,14 @@ class MinioFileManager(FileOperations):
         for doc in json_docs:
             doc_dict.update({doc.key: doc})
 
-        docs_not_in_db: List[Dict[str, str]] = []
+        docs_not_in_db: List[Tuple[str, str]] = []
         for file in file_data:
             doc_of_file = doc_dict.get(str(file.id))
             if doc_of_file:
                 file = self._add_data_from_doc_to_file(file, doc_of_file)
             else:
                 json_doc = self._map_file_obj_to_json_document(file)
-                docs_not_in_db.append({str(file.id): json_doc})
+                docs_not_in_db.append((str(file.id), json_doc))
 
         return file_data, docs_not_in_db
 
@@ -501,31 +510,53 @@ class MinioFileManager(FileOperations):
             file.__setattr__(metadata_field, value)
         return file
 
-    def _delete_old_versions(self, project_id: str, file_key: str) -> None:
+    def _delete_file_versions(
+        self, project_id: str, file_key: str, keep_latest_version: bool
+    ) -> None:
         bucket_name = get_bucket_name(project_id, self.sys_namespace)
         files_to_prefix = self.list_files(
-            project_id, recursive=False, include_versions=False, prefix=file_key
-        )
-        delete_objects = [
-            DeleteObject() if file.key == file_key and not file.latest_version else None
-            for file in files_to_prefix
-        ]
-        file_versions = filter(
-            lambda file: file.key == file_key and not file.latest_version,
-            files_to_prefix,
+            project_id, recursive=False, include_versions=True, prefix=file_key
         )
 
-        delete_objects = [
-            DeleteObject(file_key, file.version) for file in file_versions
-        ]
+        delete_objects = []
+        latest_version_db_key = ""
+        for file in files_to_prefix:
+            if file.key != file_key:
+                # This might happen, since list_files takes only a prefix
+                continue
+            if keep_latest_version and file.latest_version:
+                latest_version_db_key = generate_file_id(file_key, str(file.version))
+                continue
+
+            delete_objects.append(DeleteObject(file_key, file.version))
+
         if not delete_objects:
             logger.debug(f"No versions for deletion (file_key: {file_key}).")
+            return
+
         # TODO: Validate bypass_governance_mode behavior
         errors = self.client.remove_objects(
             bucket_name, delete_objects, bypass_governance_mode=True
         )
-        if errors:
+
+        for error in errors:
             # TODO: Critical is only for testing an should be handled when tested
             logger.critical(
-                f"Error removing old versions of file {file_key} (Errors: {errors}).",
+                f"Error removing old versions of file {file_key} (Errors: {error}).",
+            )
+
+        # Check related versions against the DB so that everything gets cleaned up
+        json_path_filter = f'$ ? (@.key == "{file_key}")'
+        db_keys = [
+            doc.key
+            for doc in self.json_db_manager.list_json_documents(
+                project_id, self.DOC_COLLECTION_NAME, json_path_filter
+            )
+        ]
+        if keep_latest_version:
+            db_keys.remove(latest_version_db_key)
+
+        for db_key in db_keys:
+            self.json_db_manager.delete_json_document(
+                project_id, self.DOC_COLLECTION_NAME, db_key
             )
