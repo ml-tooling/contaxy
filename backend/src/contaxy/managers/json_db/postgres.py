@@ -183,10 +183,11 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
                 )
             row = result.one()
 
-            updated_json = json_merge_patch.merge(
+            update_data["json_value"] = json_merge_patch.merge(
                 row["json_value"], json.loads(json_document)
             )
-            update_data["json_value"] = json.dumps(updated_json)
+
+            # The json_value needs to be a dict otherwise the string gets escaped
             update_statement = (
                 table.update().where(table.c.key == key).values(**update_data)
             )
