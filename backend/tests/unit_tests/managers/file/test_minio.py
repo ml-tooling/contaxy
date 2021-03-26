@@ -276,13 +276,25 @@ class TestMinioFileManager:
         assert updated_file.description == exp_description
         assert updated_file.metadata == exp_metadata
 
-    def test_upload_file(self, minio_file_manager: MinioFileManager) -> None:
-        # File exists
+    def test_upload_file(
+        self, minio_file_manager: MinioFileManager, project_id: str, seeder: SeedManager
+    ) -> None:
+        file_stream = seeder.create_file_stream()
+        file_key = "my-test.bin"
 
-        # File does not exist
+        # Test - File does not exist
+        version_1 = minio_file_manager.upload_file(project_id, file_key, file_stream)
+        assert version_1.md5_hash == file_stream.hash
+        assert version_1.key == file_key
+
+        # Test - File exists
+        file_stream = seeder.create_file_stream()
+        version_2 = minio_file_manager.upload_file(project_id, file_key, file_stream)
+        assert version_1.version != version_2.version
+        assert version_2.md5_hash == file_stream.hash
 
         # Bucket does not exist
-        pass
+        # TODO
 
     def test_download_file(self, minio_file_manager: MinioFileManager) -> None:
         # File exists
