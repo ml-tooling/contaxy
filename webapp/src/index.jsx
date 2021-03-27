@@ -1,18 +1,18 @@
 import React, { Suspense } from 'react';
+
+import { CookiesProvider } from 'react-cookie';
+import { HashRouter } from 'react-router-dom';
 import ReactDOM from 'react-dom';
 
 import { ThemeProvider as MuiThemeProvider } from '@material-ui/core/styles';
 import { ThemeProvider } from 'styled-components';
 
-import { HashRouter } from 'react-router-dom';
-import { CookiesProvider } from 'react-cookie';
-
 import './index.css';
-import theme from './utils/theme';
 import App from './pages/App';
-import reportWebVitals from './utils/reportWebVitals';
-import GlobalStateContainer from './app/store';
 import AppDialogServiceProvider from './app/AppDialogServiceProvider';
+import GlobalStateContainer from './app/store';
+import reportWebVitals from './utils/reportWebVitals';
+import theme from './utils/theme';
 
 // import i18n (needs to be bundled ;))
 import './i18n';
