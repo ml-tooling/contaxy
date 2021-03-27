@@ -11,7 +11,7 @@ import showStandardSnackbar from '../../app/showStandardSnackbar';
 
 const onFileDownload = (projectId, rowData) => {
   const a = document.createElement('a');
-  a.href = getFileDownloadUrl(projectId, rowData.id);
+  a.href = getFileDownloadUrl(projectId, rowData.key);
   a.target = '_blank';
   a.download = rowData.name || 'download';
   a.click();
@@ -32,11 +32,11 @@ function Files() {
 
   const onFileDelete = async (projectId, rowData) => {
     try {
-      await filesApi.deleteFile(projectId, rowData.id);
-      showStandardSnackbar(`Deleted file (${rowData.id})`);
+      await filesApi.deleteFile(projectId, rowData.key);
+      showStandardSnackbar(`Deleted file (${rowData.key})`);
       onReload(activeProject.id);
     } catch (err) {
-      showStandardSnackbar(`Error in deleting file (${rowData.id})`);
+      showStandardSnackbar(`Error in deleting file (${rowData.key})`);
     }
   };
 
