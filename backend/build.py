@@ -51,7 +51,7 @@ def main(args: dict) -> None:
             if not locust_cmd_args:
                 test_results_dir = "./tests/results"
                 Path(test_results_dir).mkdir(parents=False, exist_ok=True)
-                locust_cmd_args = f"-f tests/endpoint_tests/locustfile.py --host=http://localhost:8000 --headless -t1m --csv {test_results_dir}/locust"
+                locust_cmd_args = f"-f tests/stress_tests/locustfile.py --host=http://localhost:8000 --headless -t1m --csv {test_results_dir}/locust"
 
             build_utils.run(f"locust {locust_cmd_args}")
 
@@ -67,7 +67,8 @@ def main(args: dict) -> None:
         build_python.install_build_env()
         # Run pytest in pipenv environment
         build_utils.run(
-            f"pipenv run pytest tests -m {pytest_marker} ", exit_on_error=True
+            f"pipenv run pytest tests -m {pytest_marker} --cov=src --cov-append --cov-config=setup.cfg --cov-report=xml --cov-report term --cov-report=html",
+            exit_on_error=True,
         )
 
         # Update pipfile.lock when all tests are successfull (lock environment)
