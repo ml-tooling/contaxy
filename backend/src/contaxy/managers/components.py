@@ -50,7 +50,7 @@ class ComponentManager:
 
         # Individual components can store global state via the `global_state` variable
         self._global_state = GlobalState(request.app.state)
-        self._request_state = RequestState(request.app.state)
+        self._request_state = RequestState(request.state)
 
         # Initialized variables which will be lazyloaded
         self._auth_manager: Optional[AuthManager] = None

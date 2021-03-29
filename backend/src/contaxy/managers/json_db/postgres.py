@@ -379,7 +379,7 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
         return collection
 
     def _create_db_engine(self) -> Engine:
-        state_namespace = self.request_state[PostgresJsonDocumentManager]
+        state_namespace = self.global_state[PostgresJsonDocumentManager]
         if not state_namespace.db_engine:
             url = self.global_state.settings.POSTGRES_CONNECTION_URI
             engine = create_engine(url, future=True)
@@ -387,10 +387,11 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
             try:
                 with engine.begin():
                     state_namespace.db_engine = engine
-            except OperationalError:
+            except OperationalError as ex:
+                logger.exception("POSTGRES DB Problem")
                 raise ServerBaseError(
                     "Postgres DB connection failed. Validate connection URI."
-                )
+                ) from ex
             logger.info("Postgres DB Engine created")
         return state_namespace.db_engine
 

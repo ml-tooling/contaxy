@@ -1,5 +1,6 @@
 """Used for Locust stress tests."""
 import random
+from datetime import datetime
 from logging import error
 
 from faker import Faker
@@ -29,6 +30,8 @@ class CommonUser(HttpUser):
     # For Locust, the base_url is set via the `--host` flag when running `locust`
     host: str
 
+    authorized_user: str
+
     def on_start(self) -> None:
         if not self.host:
             # If host is not set, use remote backend endpoint from test settings
@@ -51,7 +54,7 @@ class CommonUser(HttpUser):
 
         auth_client = AuthClient(self.client)
         # Create user
-        auth_client.create_user(
+        created_user = auth_client.create_user(
             UserRegistration(username=username, password=password),
             request_kwargs={"name": CoreOperations.CREATE_USER.value},
         )
@@ -68,6 +71,7 @@ class CommonUser(HttpUser):
             ),
             request_kwargs={"name": CoreOperations.REQUEST_TOKEN.value},
         )
+        self.authorized_user = created_user.id
 
     def _get_user_project(self) -> Project:
         """Returns a random user project."""

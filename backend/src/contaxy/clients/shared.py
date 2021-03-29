@@ -17,10 +17,14 @@ def handle_errors(response: Response) -> None:
 
     message = None
     try:
-        error = UnifiedErrorFormat.parse_raw(response.json())
+        error = UnifiedErrorFormat.parse_raw(response.text)
         message = error.message
     except Exception:
-        pass
+        try:
+            # Use full body
+            message = response.text
+        except Exception:
+            pass
 
     if response.status_code == status.HTTP_401_UNAUTHORIZED:
         raise UnauthenticatedError(message)
@@ -41,7 +45,6 @@ def handle_errors(response: Response) -> None:
     if response.status_code == status.HTTP_400_BAD_REQUEST:
         raise ClientValueError(message)
 
-    print(f"STATUS CODE {response.status_code}")
     # If different error, raise generic http exception
     # This should not happen
     raise HTTPException(status_code=response.status_code, detail=response.text)

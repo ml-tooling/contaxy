@@ -431,19 +431,19 @@ class AuthManager(AuthOperations):
 
         # Test if permission was applied with short timeout (to wait for conflicting updates)
         # It is very unlikely that the resource update fails
-        time.sleep(0.01)
+        time.sleep(0.005)
         try:
             resource_permissions = self._get_resource_permissions_from_db(resource_name)
 
             if permission not in resource_permissions.permissions:
                 raise ResourceUpdateFailedError(
-                    message=f"Unable to update the permissions for {resource_name}. Try again.",
+                    message=f"Unable to add permission ({permission}) for {resource_name}. Try again.",
                     explanation="The permission was not added to the resource.",
                     resource=resource_name,
                 )
         except ResourceNotFoundError as ex:
             raise ResourceUpdateFailedError(
-                message=f"Unable to update the permissions for {resource_name}. Try again.",
+                message=f"Unable to add permission ({permission}) for {resource_name}. Try again. 2",
                 explanation="The resource did not exist anymore after the update.",
                 resource=resource_name,
             ) from ex
@@ -481,7 +481,7 @@ class AuthManager(AuthOperations):
 
             # Test if permission was applied with short timeout (to wait for conflicting updates)
             # It is very unlikely that the resource update fails
-            time.sleep(0.01)
+            time.sleep(0.001)
             try:
                 resource_permissions = self._get_resource_permissions_from_db(
                     resource_name
@@ -489,7 +489,7 @@ class AuthManager(AuthOperations):
                 for removed_permission in removed_permissions:
                     if removed_permission in resource_permissions.permissions:
                         raise ResourceUpdateFailedError(
-                            message=f"Unable to update the permissions for {resource_name}. Try again.",
+                            message=f"Unable to remove permission ({permission}) for {resource_name}. Try again.",
                             explanation=f"The permission {removed_permission} was not removed during the update.",
                             resource=resource_name,
                         )
@@ -500,7 +500,7 @@ class AuthManager(AuthOperations):
         except ResourceNotFoundError as ex:
             # Ignore error, create a new resource
             raise ResourceUpdateFailedError(
-                message=f"Unable to update the permissions for {resource_name}.",
+                message=f"Unable to remove permission ({permission}) for {resource_name}. Try again.",
                 explanation="The resource does not have any permissions.",
                 resource=resource_name,
             ) from ex
