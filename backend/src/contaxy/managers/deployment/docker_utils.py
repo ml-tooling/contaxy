@@ -19,6 +19,8 @@ from contaxy.managers.deployment.utils import (
     get_network_name,
     get_project_selection_labels,
     get_volume_name,
+    map_endpoints_label_to_endpoints,
+    map_endpoints_to_endpoints_label,
     map_labels,
 )
 from contaxy.schema import ResourceAction
@@ -51,15 +53,15 @@ system_gpu_count = get_gpu_info()
 def map_container(
     container: docker.models.containers.Container,
 ) -> Dict[str, Any]:
-    labels = map_labels(container.labels)
+    mapped_labels = map_labels(container.labels)
 
     host_config = container.attrs["HostConfig"]
     compute_resources = DeploymentCompute(
         max_cpus=host_config["NanoCpus"] / 1e9,
         max_memory=host_config["Memory"] / 1000 / 1000,
         max_gpus=None,  # TODO: fill with sensible information - where to get it from?
-        min_lifetime=labels.min_lifetime,
-        volume_Path=labels.volume_path,
+        min_lifetime=mapped_labels.min_lifetime,
+        volume_Path=mapped_labels.volume_path,
         # TODO: add max_volume_size, max_replicas
     )
 
@@ -86,13 +88,13 @@ def map_container(
         "container_image": container.image.tags[0],
         "command": " ".join(container.attrs.get("Args", [])),
         "compute": compute_resources,
-        "metadata": labels.metadata,
-        "deployment_type": labels.deployment_type,
-        "description": labels.description,
-        "display_name": labels.display_name,
-        "endpoints": labels.endpoints,
+        "metadata": mapped_labels.metadata,
+        "deployment_type": mapped_labels.deployment_type,
+        "description": mapped_labels.description,
+        "display_name": mapped_labels.display_name,
+        "endpoints": mapped_labels.endpoints,
         #         "exit_code": container.attrs.get("State", {}).get("ExitCode", -1),
-        "icon": labels.icon,
+        "icon": mapped_labels.icon,
         "id": container.name,
         "internal_id": container.id,
         "parameters": parameters,
@@ -451,7 +453,7 @@ def create_container_config(
         else "0"
     )
 
-    endpoints_label = ",".join(service.endpoints) if service.endpoints else None
+    endpoints_label = map_endpoints_to_endpoints_label(service.endpoints)
     requirements_label = (
         ",".join(service.requirements) if service.requirements else None
     )

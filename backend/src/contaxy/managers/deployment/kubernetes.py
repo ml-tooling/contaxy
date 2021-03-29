@@ -406,6 +406,7 @@ class KubernetesDeploymentManager(DeploymentManager):
             display_name=job.display_name.replace(" ", "__"),
             labels=job.metadata,
             compute_resources=job.compute,
+            endpoints=job.endpoints,
             deployment_type=DeploymentType.JOB,
         )
 
