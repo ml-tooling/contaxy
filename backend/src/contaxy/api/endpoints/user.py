@@ -1,6 +1,6 @@
 from typing import Any, List
 
-from fastapi import APIRouter, Depends, Security, status
+from fastapi import APIRouter, Depends, Response, Security, status
 from fastapi.param_functions import Body
 from fastapi.security import OAuth2PasswordBearer
 
@@ -166,7 +166,8 @@ def change_password(
     The password is stored as a hash.
     """
     # TODO: check bearer token
-    return component_manager.get_auth_manager().change_password(user_id, password)
+    component_manager.get_auth_manager().change_password(user_id, password)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.delete(
@@ -187,3 +188,4 @@ def delete_user(
     """
     component_manager.verify_access(token, "users/{user_id}", AccessLevel.ADMIN)
     component_manager.get_auth_manager().delete_user(user_id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

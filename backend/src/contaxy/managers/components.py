@@ -1,4 +1,3 @@
-import threading
 from typing import Optional
 
 from fastapi import Request
@@ -48,7 +47,6 @@ class ComponentManager:
         Args:
             request: Current request.
         """
-        print(str(threading.get_ident()) + ": Initialize Componenten Manager")
 
         # Individual components can store global state via the `global_state` variable
         self._global_state = GlobalState(request.app.state)
@@ -80,7 +78,6 @@ class ComponentManager:
         This is called once the request is finished
         and will close the `request_state` and all its registered close callbacks.
         """
-        print(str(threading.get_ident()) + ": Close Component Manager")
         self.request_state.close()
         del self._request_state
 

@@ -81,8 +81,8 @@ class CommonUser(HttpUser):
         logger.debug("User does not have any projects.")
         # Creating a new user project
         project_name = (
-            TEST_RESOURCE_PREFIX + id_utils.generate_short_uuid()
-        )  # fake.bs()
+            id_utils.generate_short_uuid()
+        )  # TEST_RESOURCE_PREFIX +  fake.bs()
         project_id = project_client.suggest_project_id(
             project_name,
             request_kwargs={"name": CoreOperations.SUGGEST_PROJECT_ID.value},
@@ -102,8 +102,8 @@ class CommonUser(HttpUser):
     def create_project(self) -> None:
         project_client = ProjectClient(self.client)
         project_name = (
-            TEST_RESOURCE_PREFIX + id_utils.generate_short_uuid()
-        )  # + fake.bs()
+            id_utils.generate_short_uuid()
+        )  # TEST_RESOURCE_PREFIX +  fake.bs()
         project_id = project_client.suggest_project_id(
             project_name,
             request_kwargs={"name": CoreOperations.SUGGEST_PROJECT_ID.value},

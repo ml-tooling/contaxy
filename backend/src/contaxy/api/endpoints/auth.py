@@ -222,6 +222,7 @@ def verify_access(
         # Prefer token from request body
         token = token_in_body
     component_manager.get_auth_manager().verify_access(token, permission)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 # OAuth Endpoints

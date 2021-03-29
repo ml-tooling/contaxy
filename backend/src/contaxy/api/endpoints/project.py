@@ -1,6 +1,6 @@
 from typing import Any, List
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, Response, status
 from fastapi.param_functions import Body
 
 from contaxy.api.dependencies import (
@@ -163,7 +163,7 @@ def delete_project(
     """
     component_manager.verify_access(token, f"projects/{project_id}", AccessLevel.ADMIN)
     component_manager.get_project_manager().delete_project(project_id)
-    # TODO: return needed?
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.get(

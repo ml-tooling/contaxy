@@ -99,6 +99,7 @@ class Settings(BaseSettings):
 
     # TODO: Finalize
     DEBUG: bool = True
+    DEBUG_DEACTIVATE_VERIFICATION: bool = False
 
     class Config:
         # Support local .env files

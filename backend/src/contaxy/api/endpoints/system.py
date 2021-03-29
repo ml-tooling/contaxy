@@ -70,3 +70,4 @@ def initialize_system(
     """Initializes the system."""
     # TODO: only allow this to be called once
     component_manager.get_system_manager().initialize_system()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

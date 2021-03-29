@@ -1,6 +1,6 @@
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, Path, Query, Request, status
+from fastapi import APIRouter, Depends, Path, Query, Request, Response, status
 from fastapi.responses import StreamingResponse
 
 from contaxy.api.dependencies import (
@@ -343,9 +343,10 @@ def delete_file(
         keep_latest_version = False
 
     file_key, extension_id = parse_composite_id(file_key)
-    return component_manager.get_file_manager(extension_id).delete_file(
+    component_manager.get_file_manager(extension_id).delete_file(
         project_id, file_key, version, keep_latest_version
     )
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 def modify_openapi_schema(openapi_schema: dict) -> Dict[str, Any]:

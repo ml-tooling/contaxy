@@ -1,7 +1,7 @@
 import json
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, Path, Query, status
+from fastapi import APIRouter, Depends, Path, Query, Response, status
 
 from contaxy.api.dependencies import (
     ComponentManager,
@@ -168,9 +168,10 @@ def delete_json_document(
         token, f"projects/{project_id}/json/{collection_id}/{key}", AccessLevel.WRITE
     )
 
-    return component_manager.get_json_db_manager().delete_json_document(
+    component_manager.get_json_db_manager().delete_json_document(
         project_id, collection_id, key
     )
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.delete(
@@ -189,4 +190,5 @@ def delete_json_collections(
         token, f"projects/{project_id}/json", AccessLevel.ADMIN
     )
 
-    return component_manager.get_json_db_manager().delete_json_collections(project_id)
+    component_manager.get_json_db_manager().delete_json_collections(project_id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

@@ -12,6 +12,7 @@ from pydantic import BaseModel
 from starlette.responses import RedirectResponse
 
 from contaxy import config
+from contaxy.config import settings
 from contaxy.operations import AuthOperations, JsonDocumentOperations
 from contaxy.schema import AuthorizedAccess, TokenType, User, UserInput
 from contaxy.schema.auth import (
@@ -336,7 +337,7 @@ class AuthManager(AuthOperations):
     ) -> AuthorizedAccess:
         # This will thows UnauthenticatedError if the token is not valid or does not existx
         resolved_token = self._resolve_token(token, use_cache=use_cache)
-        if not permission:
+        if not permission or settings.DEBUG_DEACTIVATE_VERIFICATION:
             # no permissions to check -> return granted permission
             return AuthorizedAccess(
                 authorized_subject=resolved_token.subject, access_token=resolved_token

@@ -1,4 +1,4 @@
-from fastapi import status
+from fastapi import HTTPException, status
 from requests.models import Response
 
 from contaxy.api.error_handling import UnifiedErrorFormat
@@ -12,7 +12,7 @@ from contaxy.schema.exceptions import (
 
 
 def handle_errors(response: Response) -> None:
-    if response.status_code < 400 and response.status_code >= 600:
+    if response.status_code < 400 or response.status_code >= 600:
         return
 
     message = None
@@ -40,3 +40,8 @@ def handle_errors(response: Response) -> None:
 
     if response.status_code == status.HTTP_400_BAD_REQUEST:
         raise ClientValueError(message)
+
+    print(f"STATUS CODE {response.status_code}")
+    # If different error, raise generic http exception
+    # This should not happen
+    raise HTTPException(status_code=response.status_code, detail=response.text)

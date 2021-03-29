@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any, List, Optional
 
-from fastapi import APIRouter, Depends, Path, Query, status
+from fastapi import APIRouter, Depends, Path, Query, Response, status
 
 from contaxy.api.dependencies import (
     ComponentManager,
@@ -223,9 +223,10 @@ def delete_service(
         delete_volumes = False
 
     service_id, extension_id = parse_composite_id(service_id)
-    return component_manager.get_service_manager(extension_id).delete_service(
+    component_manager.get_service_manager(extension_id).delete_service(
         project_id, service_id, delete_volumes
     )
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @service_router.get(
@@ -565,9 +566,8 @@ def delete_job(
     )
 
     job_id, extension_id = parse_composite_id(job_id)
-    return component_manager.get_job_manager(extension_id).delete_job(
-        project_id, job_id
-    )
+    component_manager.get_job_manager(extension_id).delete_job(project_id, job_id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @job_router.get(
