@@ -1,6 +1,7 @@
-from typing import Any
+from typing import Any, Dict
 
 from fastapi import FastAPI
+from fastapi.openapi.utils import get_openapi
 from loguru import logger
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.cors import CORSMiddleware
@@ -82,6 +83,23 @@ app.include_router(file.router)
 app.include_router(json_db.router)
 if config.settings.DEBUG:
     app.include_router(seed.router)
+
+
+def custom_openapi() -> Dict[str, Any]:
+    if app.openapi_schema:
+        return app.openapi_schema
+    openapi_schema = get_openapi(
+        title=app.title,
+        description=app.description,
+        version=app.version,
+        routes=app.routes,
+    )
+
+    app.openapi_schema = file.modify_openapi_schema(openapi_schema)
+    return app.openapi_schema
+
+
+app.openapi = custom_openapi  # type: ignore
 
 # Patch Fastapi to allow relative path resolution.
 fastapi_utils.patch_fastapi(app)

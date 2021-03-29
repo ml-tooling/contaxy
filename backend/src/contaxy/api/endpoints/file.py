@@ -1,4 +1,4 @@
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, Path, Query, Request, status
 from fastapi.responses import StreamingResponse
@@ -338,3 +338,43 @@ def delete_file(
     return component_manager.get_file_manager(extension_id).delete_file(
         project_id, file_key, version, keep_latest_version
     )
+
+
+def modify_openapi_schema(openapi_schema: dict) -> Dict[str, Any]:
+
+    request_body = {
+        "required": True,
+        "content": {
+            "multipart/form-data": {
+                "schema": {
+                    "$ref": "#/components/schemas/Body_upload_file_projects__project_id__files__file_key___post"
+                }
+            }
+        },
+    }
+
+    openapi_schema["paths"]["/projects/{project_id}/files/{file_key}"]["post"][
+        "requestBody"
+    ] = request_body
+
+    component_schema = {
+        "title": "Body_upload_file_projects__project_id__files__file_key___post",
+        "required": ["file"],
+        "type": "object",
+        "properties": {
+            "file": {"title": "File", "type": "string", "format": "binary"},
+            # "file_name": {"title": "File Name", "type": "string"},
+        },
+    }
+
+    if (
+        "components" not in openapi_schema
+        or "schemas" not in openapi_schema["components"]
+    ):
+        openapi_schema["components"] = {"schemas": {}}
+
+    openapi_schema["components"]["schemas"][
+        "Body_upload_file_projects__project_id__files__file_key___post"
+    ] = component_schema
+
+    return openapi_schema
