@@ -3,7 +3,6 @@ import * as Api from './contaxy-client';
 import { ENDPOINT } from '../utils/config';
 
 export const ENDPOINT_PROJECTS = `${ENDPOINT}/projects/{project_id}`;
-export const ENDPOINT_FILES = `${ENDPOINT_PROJECTS}/files/{file_key:path}:download`;
 
 export function fetchAPIToken(resource) {
   // TODO: fetch API token of resource
@@ -13,10 +12,15 @@ export function fetchAPIToken(resource) {
 }
 
 export function getFileDownloadUrl(projectId, fileKey) {
-  return ENDPOINT_FILES.replace('{project_id}', projectId).replace(
-    '{file_key:path}',
-    fileKey
-  );
+  return `${ENDPOINT_PROJECTS}/files/{file_key:path}:download`
+    .replace('{project_id}', projectId)
+    .replace('{file_key:path}', fileKey);
+}
+
+export function getFileUploadUrl(projectId, fileKey) {
+  return `${ENDPOINT_PROJECTS}/files/{file_key}`
+    .replace('{project_id}', projectId)
+    .replace('{file_key}', fileKey);
 }
 
 const apiClient = new Api.ApiClient();
