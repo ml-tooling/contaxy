@@ -284,7 +284,7 @@ def list_service_actions(
     6. The return value of the operation can be either a simple message (shown to the user) or a redirect to another URL (e.g., to show a web UI).
 
     The same action mechanism is also used for other resources (e.g., files, jobs).
-    It can support a very broad set of use-cases, for example: Access to service endpoints, dashboards for monitoring, adminsitration tools, and more...
+    It can support a very broad set of use-cases, for example: Access to service endpoints, dashboards for monitoring, administration tools, and more...
     """
     component_manager.verify_access(
         token, f"projects/{project_id}/services/{service_id}/actions", AccessLevel.WRITE
