@@ -16,12 +16,10 @@ const FIELD_VALUE = 'Value';
 function KeyValueInput(props) {
   const [key, setKey] = useState('');
   const [value, setValue] = useState('');
-  const [isInvalid, setIsInvalid] = useState(false);
 
   const { className, index, onChange } = props;
 
   const handleKeyChange = (e) => {
-    setIsInvalid(!ENV_NAME_REGEX.test(e.target.value));
     setKey(e.target.value);
     onChange(index, key, value);
   };
@@ -30,6 +28,8 @@ function KeyValueInput(props) {
     setValue(e.target.value);
     onChange(index, key, value);
   };
+
+  const isInvalid = !ENV_NAME_REGEX.test(key);
 
   return (
     <>
@@ -79,6 +79,7 @@ function KeyValueInputs(props) {
   // Use a ref here so that the `handleKeyValuePairChange` callback
   // access the right state value and not the one it had when the
   // callback was passed to the child
+  // TODO: maybe only needed when memoized functions are used?
   const stateRef = useRef();
   stateRef.current = keyValuePairs;
 
@@ -93,15 +94,15 @@ function KeyValueInputs(props) {
     setKeyValuePairs(() => [...newKeyValuePairs]);
 
     // Transform array to object. If the same key existed multiple times, only the last one of them in the array will be used.
-    const keyValueInput = Object.fromEntries(
+    const keyValueInputs = Object.fromEntries(
       newKeyValuePairs.map((e) => [e.key, e.value])
     );
-    onKeyValuePairChange(keyValueInput);
+    onKeyValuePairChange(keyValueInputs);
   };
 
-  const handleAddParameterClick = () => {
-    setKeyValuePairs((_keyValuePairs) => [
-      ..._keyValuePairs,
+  const handleAddKeyValuePairClick = () => {
+    setKeyValuePairs((previousKeyValuePairs) => [
+      ...previousKeyValuePairs,
       { index: Date.now(), key: '', value: '' },
     ]);
   };
@@ -115,7 +116,11 @@ function KeyValueInputs(props) {
     }, []);
 
     setKeyValuePairs(() => [...newKeyValuePairs]);
-    onKeyValuePairChange(newKeyValuePairs);
+
+    const keyValueInputs = Object.fromEntries(
+      newKeyValuePairs.map((e) => [e.key, e.value])
+    );
+    onKeyValuePairChange(keyValueInputs);
   };
 
   return (
@@ -137,8 +142,8 @@ function KeyValueInputs(props) {
         </div>
       ))}
 
-      <Button color="primary" onClick={handleAddParameterClick}>
-        Add Parameter
+      <Button color="primary" onClick={handleAddKeyValuePairClick}>
+        Add
         <AddIcon />
       </Button>
     </>

@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 
-import PropTypes from 'prop-types';
-
 import { useTranslation } from 'react-i18next';
+import PropTypes from 'prop-types';
+import styled from 'styled-components';
 
 import Button from '@material-ui/core/Button';
 import Dialog from '@material-ui/core/Dialog';
@@ -11,8 +11,10 @@ import DialogContent from '@material-ui/core/DialogContent';
 import DialogContentText from '@material-ui/core/DialogContentText';
 import DialogTitle from '@material-ui/core/DialogTitle';
 import TextField from '@material-ui/core/TextField';
+import Typography from '@material-ui/core/Typography';
 
 import KeyValueInputs from './KeyValueInputs';
+import ValueInputs from './ValueInputs';
 
 const VALID_IMAGE_NAME = new RegExp('[^a-zA-Z0-9-_:/.]');
 const SERVICE_NAME_REGEX = new RegExp(
@@ -20,7 +22,7 @@ const SERVICE_NAME_REGEX = new RegExp(
 );
 
 function DeployContainerDialog(props) {
-  const { onClose, onDeploy } = props;
+  const { className, onClose, onDeploy } = props;
 
   const { t } = useTranslation();
 
@@ -28,6 +30,7 @@ function DeployContainerDialog(props) {
     containerImage: '',
     deploymentName: '',
     deploymentParameters: {},
+    deploymentEndpoints: [],
   });
 
   const onChange = (e) =>
@@ -39,6 +42,8 @@ function DeployContainerDialog(props) {
   const isDeploymentNameInvalid = !SERVICE_NAME_REGEX.test(
     deploymentInput.deploymentName
   );
+
+  console.log(deploymentInput);
 
   return (
     <Dialog open>
@@ -77,11 +82,27 @@ function DeployContainerDialog(props) {
           fullWidth
           margin="dense"
         />
+
+        <Typography className={`${className} subtitle`} variant="subtitle2">
+          Configuration Variables
+        </Typography>
         <KeyValueInputs
           onKeyValuePairChange={(keyValuePairs) => {
             setDeploymentInput({
               ...deploymentInput,
               deploymentParameters: keyValuePairs,
+            });
+          }}
+        />
+
+        <Typography className={`${className} subtitle`} variant="subtitle2">
+          Endpoints
+        </Typography>
+        <ValueInputs
+          onValueInputsChange={(valueInputs) => {
+            setDeploymentInput({
+              ...deploymentInput,
+              deploymentEndpoints: valueInputs,
             });
           }}
         />
@@ -107,8 +128,19 @@ function DeployContainerDialog(props) {
 }
 
 DeployContainerDialog.propTypes = {
+  className: PropTypes.string,
   onClose: PropTypes.func.isRequired,
   onDeploy: PropTypes.func.isRequired,
 };
 
-export default DeployContainerDialog;
+DeployContainerDialog.defaultProps = {
+  className: '',
+};
+
+const StyledDeployContainerDialog = styled(DeployContainerDialog)`
+  &.subtitle {
+    margin-top: 16px;
+  }
+`;
+
+export default StyledDeployContainerDialog;

@@ -30,18 +30,25 @@ function Services(props) {
   const onServiceDeploy = () => {
     showAppDialog(DeployServiceDialog, {
       onDeploy: async (
-        { containerImage, deploymentName, deploymentParameters },
+        {
+          containerImage,
+          deploymentName,
+          deploymentParameters,
+          deploymentEndpoints,
+        },
         onClose
       ) => {
         const serviceInput = {
           container_image: containerImage,
           display_name: deploymentName,
+          endpoints: deploymentEndpoints,
           parameters: deploymentParameters,
         };
         try {
           await servicesApi.deployService(activeProject.id, serviceInput);
           showStandardSnackbar(`Deployed service '${deploymentName}'`);
           onClose();
+          reloadServices();
         } catch (err) {
           showStandardSnackbar(`Could not deploy service '${deploymentName}'.`);
         }
