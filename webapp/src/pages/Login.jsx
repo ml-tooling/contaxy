@@ -24,17 +24,13 @@ function Login(props) {
   const handleSubmit = async (event) => {
     // TODO: change the status to authenticated if login succeeded
     event.preventDefault();
-    console.log(formInput);
-    const response = await authApi.requestToken('password', {
+    await authApi.requestToken('password', {
       username: formInput.username,
       password: formInput.password,
       setAsCookie: true,
     });
 
-    console.log(response);
-    document.cookie = `ct_token=${response.access_token}; path=/`;
     setIsAuthenticated(true);
-    // TODO: remove this cookie as soon as the server returns a cookie
     return false;
   };
 

@@ -1,4 +1,5 @@
 import asyncio
+import io
 import os
 import threading
 from typing import AsyncGenerator
@@ -11,30 +12,59 @@ from contaxy.utils.file_utils import (
     SyncFromAsyncGenerator,
 )
 
-# TODO: not found from tests.unit_tests.managers.file.data.metadata import file_data
-file_data = []
+
+@pytest.fixture()
+def metadata() -> dict:
+    return {
+        "filename": "test.csv",
+        "headers": {
+            "content-type": "multipart/form-data; boundary=----WebKitFormBoundaryr1D8WqBUjhPTDqlM"
+        },
+        "hash": "8fec240e6375b677643833f672cfbc5c",
+        "content_type": "text/csv",
+    }
+
+
+@pytest.fixture()
+def multipart_data(metadata: dict) -> dict:
+
+    stream = b'------WebKitFormBoundaryr1D8WqBUjhPTDqlM\r\nContent-Disposition: form-data; name="file"; filename="test.csv"\r\nContent-Type: text/csv\r\n\r\n'
+    stream += 5000 * b"foo;bar\n"
+    stream += b"\r\n------WebKitFormBoundaryr1D8WqBUjhPTDqlM--\r\n"
+
+    metadata.update({"stream": io.BytesIO(stream)})
+
+    return metadata
+
+
+@pytest.fixture()
+def file_data(metadata: dict) -> dict:
+    metadata.update({"stream": io.BytesIO(5000 * b"foo;bar\n")})
+    return metadata
 
 
 @pytest.mark.unit
 class TestFormMultipartStream:
-    @pytest.mark.parametrize("metadata", file_data)
-    def test_multipart_stream(self, metadata: dict) -> None:
-        with open(str(metadata.get("file_path")), "rb") as file_stream:
-            multipart_stream = FormMultipartStream(
-                file_stream, metadata.get("headers"), hash_algo="md5"
-            )
+    def test_multipart_stream(self, multipart_data: dict) -> None:
 
-            assert multipart_stream.filename == metadata.get("filename")
-            assert multipart_stream.content_type == metadata.get("content_type")
+        file_stream = multipart_data.get("stream")
+        assert file_stream
 
-            with open(os.devnull, "wb") as file:
-                while True:
-                    chunk = multipart_stream.read(10 * 1024)
-                    if not chunk:
-                        break
-                    file.write(chunk)
+        multipart_stream = FormMultipartStream(
+            file_stream, multipart_data.get("headers"), hash_algo="md5"
+        )
 
-            assert multipart_stream.hash == metadata.get("hash")
+        assert multipart_stream.filename == multipart_data.get("filename")
+        assert multipart_stream.content_type == multipart_data.get("content_type")
+
+        with open(os.devnull, "wb") as file:
+            while True:
+                chunk = multipart_stream.read(10 * 1024)
+                if not chunk:
+                    break
+                file.write(chunk)
+
+        assert multipart_stream.hash == multipart_data.get("hash")
 
 
 @pytest.mark.unit
@@ -62,16 +92,15 @@ class TestSyncFromAsyncGenerator:
 
 @pytest.mark.unit
 class TestFileStreamWrapper:
-    @pytest.mark.parametrize("metadata", file_data)
-    def test_file_stream_wrapper(self, metadata: dict) -> None:
-        with open(str(metadata.get("file_path")), "rb") as file_stream:
-            wrapped_file_stream = FileStreamWrapper(file_stream)
-            initial_hash = wrapped_file_stream.hash
+    def test_file_stream_wrapper(self, file_data: dict) -> None:
 
-            while True:
-                chunk = wrapped_file_stream.read(10 * 1024)
-                if not chunk:
-                    break
+        wrapped_file_stream = FileStreamWrapper(file_data.get("stream"))
+        initial_hash = wrapped_file_stream.hash
 
-            assert initial_hash != wrapped_file_stream.hash
-            assert wrapped_file_stream.hash == metadata.get("hash")
+        while True:
+            chunk = wrapped_file_stream.read(10 * 1024)
+            if not chunk:
+                break
+
+        assert initial_hash != wrapped_file_stream.hash
+        assert wrapped_file_stream.hash == file_data.get("hash")
