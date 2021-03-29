@@ -36,7 +36,8 @@ from contaxy.schema.project import (
 )
 from contaxy.utils import auth_utils
 from contaxy.utils.state_utils import GlobalState, RequestState
-from tests.unit_tests.conftest import test_settings
+
+from .conftest import test_settings
 
 DEFAULT_PASSWORD = "pwd"
 

@@ -1,6 +1,5 @@
 """Used for Locust stress tests."""
 import random
-from datetime import datetime
 from logging import error
 
 from faker import Faker
@@ -17,7 +16,6 @@ from contaxy.schema.auth import (
 from contaxy.schema.project import Project, ProjectCreation, ProjectInput
 from contaxy.schema.shared import CoreOperations
 from contaxy.utils import auth_utils, id_utils
-from tests.unit_tests.conftest import test_settings
 
 TEST_RESOURCE_PREFIX = "lt-"
 JSON_COLLECTION_OPTIONS = [f"{TEST_RESOURCE_PREFIX}coll-{i}" for i in range(5)]
@@ -34,17 +32,18 @@ class CommonUser(HttpUser):
 
     def on_start(self) -> None:
         if not self.host:
+            error(
+                "For stress testing, the host/endpoint has to be provided. Please provide the endpoint via `--host` argument "
+            )
+            self.environment.runner.quit()
+            return
+
+            # TODO: is the setting via env variable required?
+            # Either provide the endpoint via `--host` argument or set the `REMOTE_BACKEND_ENDPOINT` environment variable (e.g `REMOTE_BACKEND_ENDPOINT=http://localhost:8000`).
             # If host is not set, use remote backend endpoint from test settings
-            assert test_settings.REMOTE_BACKEND_ENDPOINT is not None
-            if test_settings.REMOTE_BACKEND_ENDPOINT is not None:
-                self.host = test_settings.REMOTE_BACKEND_ENDPOINT
-            else:
-                error(
-                    "For stress testing, the host/endpoint has to be provided. Either provide the endpoint via `--host` argument or set the `REMOTE_BACKEND_ENDPOINT` environment variable (e.g `REMOTE_BACKEND_ENDPOINT=http://localhost:8000`)."
-                )
-                self.environment.runner.quit()
-                return
-        logger.info("Logging in user.")
+            # assert test_settings.REMOTE_BACKEND_ENDPOINT is not None
+            # if test_settings.REMOTE_BACKEND_ENDPOINT is not None:
+            #    self.host = test_settings.REMOTE_BACKEND_ENDPOINT
         username = (
             TEST_RESOURCE_PREFIX
             + fake.simple_profile()["username"]

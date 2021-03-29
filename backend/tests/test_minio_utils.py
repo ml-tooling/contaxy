@@ -12,7 +12,8 @@ from contaxy.utils.minio_utils import (
     delete_bucket,
     get_bucket_name,
 )
-from tests.unit_tests.conftest import test_settings
+
+from .conftest import test_settings
 
 
 # TODO:

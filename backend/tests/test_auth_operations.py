@@ -24,7 +24,8 @@ from contaxy.schema.auth import (
 from contaxy.schema.exceptions import PermissionDeniedError, UnauthenticatedError
 from contaxy.utils import id_utils
 from contaxy.utils.state_utils import GlobalState, RequestState
-from tests.unit_tests.conftest import test_settings
+
+from .conftest import test_settings
 
 DEFAULT_USERS_TO_GENERATE = 10
 

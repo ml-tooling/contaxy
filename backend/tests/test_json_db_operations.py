@@ -27,7 +27,8 @@ from contaxy.schema.exceptions import (
 from contaxy.schema.json_db import JsonDocument
 from contaxy.utils import auth_utils
 from contaxy.utils.state_utils import GlobalState, RequestState
-from tests.unit_tests.conftest import test_settings
+
+from .conftest import test_settings
 
 
 def get_defaults() -> dict:
