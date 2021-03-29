@@ -15,3 +15,7 @@ class SystemOperations(ABC):
     @abstractmethod
     def get_system_statistics(self) -> SystemStatistics:
         pass
+
+    @abstractmethod
+    def initialize_system(self) -> None:
+        pass

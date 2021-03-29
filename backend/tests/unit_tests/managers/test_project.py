@@ -4,19 +4,27 @@ from typing import Generator, List
 
 import pytest
 from faker import Faker
+from fastapi.testclient import TestClient
 from starlette.datastructures import State
 
 from contaxy import config
+from contaxy.clients import AuthClient, JsonDocumentClient
+from contaxy.clients.project import ProjectClient
+from contaxy.clients.system import SystemClient
 from contaxy.config import settings
 from contaxy.managers.auth import AuthManager
 from contaxy.managers.json_db.inmemory_dict import InMemoryDictJsonDocumentManager
 from contaxy.managers.json_db.postgres import PostgresJsonDocumentManager
 from contaxy.managers.project import ProjectManager
+from contaxy.operations.auth import AuthOperations
 from contaxy.operations.project import ProjectOperations
 from contaxy.schema.auth import (
     USERS_KIND,
     AccessLevel,
     AuthorizedAccess,
+    OAuth2TokenGrantTypes,
+    OAuth2TokenRequestFormNew,
+    User,
     UserRegistration,
 )
 from contaxy.schema.exceptions import ResourceAlreadyExistsError, ResourceNotFoundError
@@ -26,8 +34,11 @@ from contaxy.schema.project import (
     ProjectCreation,
     ProjectInput,
 )
+from contaxy.utils import auth_utils
 from contaxy.utils.state_utils import GlobalState, RequestState
-from tests.unit_tests.conftest import test_settings
+from tests.unit_tests.conftest import BaseUrlSession, test_settings
+
+DEFAULT_PASSWORD = "pwd"
 
 
 @pytest.fixture()
@@ -45,13 +56,24 @@ def request_state() -> RequestState:
 class ProjectOperationsTests(ABC):
     @property
     @abstractmethod
-    def project_manager(self) -> ProjectManager:
+    def project_manager(self) -> ProjectOperations:
+        pass
+
+    @property
+    @abstractmethod
+    def auth_manager(self) -> AuthOperations:
+        pass
+
+    @abstractmethod
+    def login_user(self, username: str, password: str) -> User:
         pass
 
     def test_suggest_project_id(self, faker: Faker) -> None:
         for _ in range(10):
             project_id = self.project_manager.suggest_project_id(faker.bs())
-            assert len(project_id) <= MAX_PROJECT_ID_LENGTH
+            assert (
+                len(project_id) <= MAX_PROJECT_ID_LENGTH
+            ), f"Project id ({project_id}) should not be longer than the maximum allowed."
             # TODO additional tests
 
     def test_create_project(self, faker: Faker) -> None:
@@ -96,13 +118,13 @@ class ProjectOperationsTests(ABC):
             )
 
         # Create project with an authorized user
-        user = self.project_manager._auth_manager.create_user(
-            UserRegistration(username="test-users")
+        user = self.auth_manager.create_user(
+            UserRegistration(
+                username=faker.simple_profile()["username"], password=DEFAULT_PASSWORD
+            )
         )
+        self.login_user(username=user.username, password=DEFAULT_PASSWORD)
 
-        self.project_manager._request_state.authorized_access = AuthorizedAccess(
-            authorized_subject=USERS_KIND + "/" + user.id  # TODO: resource name or id
-        )
         project_name = faker.bs()
         project_id = self.project_manager.suggest_project_id(project_name)
         created_project = self.project_manager.create_project(
@@ -140,13 +162,12 @@ class ProjectOperationsTests(ABC):
         )
 
         # Set an authorized user in the request state
-        user = self.project_manager._auth_manager.create_user(
-            UserRegistration(username="test-users")
+        username = faker.simple_profile()["username"]
+        self.auth_manager.create_user(
+            UserRegistration(username=username, password=DEFAULT_PASSWORD)
         )
-        self.project_manager._request_state.authorized_access = AuthorizedAccess(
-            authorized_subject=USERS_KIND + "/" + user.id  # TODO: use resource name
-        )
-        #
+        self.login_user(username=username, password=DEFAULT_PASSWORD)
+
         created_projects_with_user: List[Project] = []
         for _ in range(5):
             project_name = faker.bs()
@@ -228,21 +249,32 @@ class ProjectOperationsTests(ABC):
             technical_project=False,
         )
 
-        user1 = self.project_manager._auth_manager.create_user(
-            UserRegistration(username="test-user-1")
+        user1 = self.auth_manager.create_user(
+            UserRegistration(
+                username=faker.simple_profile()["username"], password=DEFAULT_PASSWORD
+            )
         )
+
         self.project_manager.add_project_member(project_id, user1.id, AccessLevel.WRITE)
-        assert len(self.project_manager.list_project_members(project_id)) == 1
+        assert user1.id in [
+            user.id for user in self.project_manager.list_project_members(project_id)
+        ]
 
-        user2 = self.project_manager._auth_manager.create_user(
-            UserRegistration(username="test-user-2")
+        user2 = self.auth_manager.create_user(
+            UserRegistration(
+                username=faker.simple_profile()["username"], password=DEFAULT_PASSWORD
+            )
         )
+
         self.project_manager.add_project_member(project_id, user2.id, AccessLevel.ADMIN)
-        assert len(self.project_manager.list_project_members(project_id)) == 2
+        assert user1.id in [
+            user.id for user in self.project_manager.list_project_members(project_id)
+        ]
+        assert user2.id in [
+            user.id for user in self.project_manager.list_project_members(project_id)
+        ]
 
-        self.project_manager._request_state.authorized_access = AuthorizedAccess(
-            authorized_subject=USERS_KIND + "/" + user2.id  # TODO: use resource name
-        )
+        self.login_user(username=user2.username, password=DEFAULT_PASSWORD)
 
         assert (
             len(self.project_manager.list_projects()) == 1
@@ -250,11 +282,38 @@ class ProjectOperationsTests(ABC):
 
         self.project_manager.remove_project_member(project_id, user2.id)
         assert (
-            len(self.project_manager.list_project_members(project_id)) == 1
-        ), "The project should only have one member after removal."
-        assert (
             len(self.project_manager.list_projects()) == 0
         ), "The authorized user should see 0 projects"
+
+
+@pytest.mark.unit
+class TestProjectManagerWithInMemoryDB(ProjectOperationsTests):
+    @pytest.fixture(autouse=True)
+    def _init_managers(
+        self, global_state: GlobalState, request_state: RequestState
+    ) -> Generator:
+        json_db = InMemoryDictJsonDocumentManager(global_state, request_state)
+        json_db.delete_json_collections(config.SYSTEM_INTERNAL_PROJECT)
+        self._auth_manager = AuthManager(global_state, request_state, json_db)
+        self._project_manager = ProjectManager(
+            global_state, request_state, json_db, self._auth_manager
+        )
+        yield
+        json_db.delete_json_collections(config.SYSTEM_INTERNAL_PROJECT)
+
+    @property
+    def project_manager(self) -> ProjectOperations:
+        return self._project_manager
+
+    @property
+    def auth_manager(self) -> AuthOperations:
+        return self._auth_manager
+
+    def login_user(self, username: str, password: str) -> None:
+        user_id = self.auth_manager._get_user_id_by_login_id(username)
+        self.project_manager._request_state.authorized_access = AuthorizedAccess(
+            authorized_subject=USERS_KIND + "/" + user_id  # TODO: use resource name
+        )
 
 
 @pytest.mark.skipif(
@@ -264,38 +323,136 @@ class ProjectOperationsTests(ABC):
 @pytest.mark.integration
 class TestProjectManagerWithPostgresDB(ProjectOperationsTests):
     @pytest.fixture(autouse=True)
-    def _init_project_manager(
+    def _init_managers(
         self, global_state: GlobalState, request_state: RequestState
     ) -> Generator:
         json_db = PostgresJsonDocumentManager(global_state, request_state)
         json_db.delete_json_collections(config.SYSTEM_INTERNAL_PROJECT)
-        auth_manager = AuthManager(global_state, request_state, json_db)
+        self._auth_manager = AuthManager(global_state, request_state, json_db)
         self._project_manager = ProjectManager(
-            global_state, request_state, json_db, auth_manager
+            global_state, request_state, json_db, self._auth_manager
         )
-        yield
-        json_db.delete_json_collections(config.SYSTEM_INTERNAL_PROJECT)
 
-    @property
-    def project_manager(self) -> ProjectManager:
-        return self._project_manager
-
-
-@pytest.mark.unit
-class TestProjectManagerWithInMemoryDB(ProjectOperationsTests):
-    @pytest.fixture(autouse=True)
-    def _init_project_manager(
-        self, global_state: GlobalState, request_state: RequestState
-    ) -> Generator:
-        json_db = InMemoryDictJsonDocumentManager(global_state, request_state)
-        json_db.delete_json_collections(config.SYSTEM_INTERNAL_PROJECT)
-        auth_manager = AuthManager(global_state, request_state, json_db)
-        self._project_manager = ProjectManager(
-            global_state, request_state, json_db, auth_manager
-        )
         yield
         json_db.delete_json_collections(config.SYSTEM_INTERNAL_PROJECT)
 
     @property
     def project_manager(self) -> ProjectOperations:
         return self._project_manager
+
+    @property
+    def auth_manager(self) -> AuthOperations:
+        return self._auth_manager
+
+    def login_user(self, username: str, password: str) -> None:
+        user_id = self.auth_manager._get_user_id_by_login_id(username)
+        self.project_manager._request_state.authorized_access = AuthorizedAccess(
+            authorized_subject=USERS_KIND + "/" + user_id  # TODO: use resource name
+        )
+
+
+@pytest.mark.skipif(
+    not settings.USE_INMEMORY_DB and not test_settings.POSTGRES_INTEGRATION_TESTS,
+    reason="Postgres Integration Tests are deactivated, use POSTGRES_INTEGRATION_TESTS to activate.",
+)
+@pytest.mark.integration
+class TestProjectOperationsViaLocalEndpoints(ProjectOperationsTests):
+    @pytest.fixture(autouse=True)
+    def _init_managers(self) -> Generator:
+        from contaxy.api import app
+
+        with TestClient(app=app, root_path="/") as test_client:
+            self._test_client = test_client
+            system_manager = SystemClient(self._test_client)
+            json_db = JsonDocumentClient(self._test_client)
+            self._auth_manager = AuthClient(self._test_client)
+            self._project_manager = ProjectClient(self._test_client)
+
+            # system_manager.cleanup_system()
+            system_manager.initialize_system()
+
+            self.login_user(
+                config.SYSTEM_ADMIN_USERNAME, config.SYSTEM_ADMIN_INITIAL_PASSWORD
+            )
+            yield
+            # Login as admin again -> logged in user might have been changed
+            self.login_user(
+                config.SYSTEM_ADMIN_USERNAME, config.SYSTEM_ADMIN_INITIAL_PASSWORD
+            )
+            json_db.delete_json_collections(config.SYSTEM_INTERNAL_PROJECT)
+
+    @property
+    def project_manager(self) -> ProjectOperations:
+        return self._project_manager
+
+    @property
+    def auth_manager(self) -> AuthOperations:
+        return self._auth_manager
+
+    def login_user(self, username: str, password: str) -> None:
+        self.auth_manager.request_token(
+            OAuth2TokenRequestFormNew(
+                grant_type=OAuth2TokenGrantTypes.PASSWORD,
+                username=username,
+                password=password,
+                scope=auth_utils.construct_permission(
+                    "*", AccessLevel.ADMIN
+                ),  # Get full scope
+                set_as_cookie=True,
+            )
+        )
+
+
+@pytest.mark.skipif(
+    not test_settings.REMOTE_BACKEND_ENDPOINT,
+    reason="No remote backend is configured (via REMOTE_BACKEND_ENDPOINT).",
+)
+@pytest.mark.skipif(
+    not test_settings.REMOTE_BACKEND_TESTS,
+    reason="Remote Backend Tests are deactivated, use REMOTE_BACKEND_TESTS to activate.",
+)
+@pytest.mark.integration
+class TestProjectOperationsViaRemoteEndpoints(ProjectOperationsTests):
+    @pytest.fixture(autouse=True)
+    def _init_managers(self) -> Generator:
+        self._test_client = BaseUrlSession(
+            base_url=test_settings.REMOTE_BACKEND_ENDPOINT
+        )
+        system_manager = SystemClient(self._test_client)
+        json_db = JsonDocumentClient(self._test_client)
+        self._auth_manager = AuthClient(self._test_client)
+        self._project_manager = ProjectClient(self._test_client)
+
+        # system_manager.cleanup_system()
+        system_manager.initialize_system()
+
+        self.login_user(
+            config.SYSTEM_ADMIN_USERNAME, config.SYSTEM_ADMIN_INITIAL_PASSWORD
+        )
+        yield
+        # Login as admin again -> logged in user might have been changed
+        self.login_user(
+            config.SYSTEM_ADMIN_USERNAME, config.SYSTEM_ADMIN_INITIAL_PASSWORD
+        )
+        json_db.delete_json_collections(config.SYSTEM_INTERNAL_PROJECT)
+
+    @property
+    def project_manager(self) -> ProjectOperations:
+        return self._project_manager
+
+    @property
+    def auth_manager(self) -> AuthOperations:
+        return self._auth_manager
+
+    def login_user(self, username: str, password: str) -> None:
+        self.auth_manager.request_token(
+            OAuth2TokenRequestFormNew(
+                grant_type=OAuth2TokenGrantTypes.PASSWORD,
+                username=username,
+                password=password,
+                scope=auth_utils.construct_permission(
+                    "*", AccessLevel.ADMIN
+                ),  # Get full scope
+                set_as_cookie=True,
+            )
+        )

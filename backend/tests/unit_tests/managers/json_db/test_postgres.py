@@ -1,21 +1,33 @@
 import json
+from abc import ABC, abstractmethod
 from random import randint
 from typing import Generator, List
 from uuid import uuid4
 
 import pytest
+from fastapi.testclient import TestClient
 from starlette.datastructures import State
 
+from contaxy import config
+from contaxy.clients import AuthClient, JsonDocumentClient
+from contaxy.clients.system import SystemClient
 from contaxy.config import settings
 from contaxy.managers.json_db.postgres import PostgresJsonDocumentManager
+from contaxy.operations.json_db import JsonDocumentOperations
+from contaxy.schema.auth import (
+    AccessLevel,
+    OAuth2TokenGrantTypes,
+    OAuth2TokenRequestFormNew,
+)
 from contaxy.schema.exceptions import (
     ClientValueError,
     ResourceAlreadyExistsError,
     ResourceNotFoundError,
 )
 from contaxy.schema.json_db import JsonDocument
+from contaxy.utils import auth_utils
 from contaxy.utils.state_utils import GlobalState, RequestState
-from tests.unit_tests.conftest import test_settings
+from tests.unit_tests.conftest import BaseUrlSession, test_settings
 
 
 @pytest.fixture(scope="session")
@@ -28,13 +40,6 @@ def global_state() -> GlobalState:
 @pytest.fixture()
 def request_state() -> RequestState:
     return RequestState(State())
-
-
-@pytest.fixture()
-def json_document_manager(
-    global_state: GlobalState, request_state: RequestState
-) -> PostgresJsonDocumentManager:
-    return PostgresJsonDocumentManager(global_state, request_state)
 
 
 def get_defaults() -> dict:
@@ -51,38 +56,35 @@ def get_defaults() -> dict:
     }
 
 
-@pytest.fixture(scope="function")
-def project_id(
-    json_document_manager: PostgresJsonDocumentManager,
-) -> Generator[str, None, None]:
-    project_id = f"{randint(1, 100000)}-file-manager-test"
-    yield project_id
-    if test_settings.POSTGRES_INTEGRATION_TESTS:
-        json_document_manager.delete_json_collections(project_id)
-
-
-@pytest.mark.skipif(
-    test_settings.POSTGRES_INTEGRATION_TESTS is None,
-    reason="Postgres Integration Tests are deactivated, use POSTGRES_INTEGRATION_TESTS to activate.",
-)
-class TestPostgresJsonDocumentManager:
+class JsonDocumentOperationsTests(ABC):
     COLLECTTION = "test-collection"
 
-    def test_create_json_document(
-        self, json_document_manager: PostgresJsonDocumentManager, project_id: str
-    ) -> None:
+    @property
+    @abstractmethod
+    def json_document_manager(self) -> JsonDocumentOperations:
+        pass
+
+    @property
+    @abstractmethod
+    def project_id(self) -> str:
+        """Returns the project id for the given run."""
+        pass
+
+    def test_create_json_document(self) -> None:
         # TODO: Check for user data
 
         defaults = get_defaults()
-        created_doc = self._create_doc(json_document_manager, project_id, defaults)
+        created_doc = self._create_doc(
+            self.json_document_manager, self.project_id, defaults
+        )
 
         assert defaults.get("key") == created_doc.key
         assert created_doc.created_at
 
         # Test - Upsert case
         new_json_value = "{}"
-        overwritten_doc = json_document_manager.create_json_document(
-            project_id,
+        overwritten_doc = self.json_document_manager.create_json_document(
+            self.project_id,
             self.COLLECTTION,
             created_doc.key,
             new_json_value,
@@ -91,61 +93,50 @@ class TestPostgresJsonDocumentManager:
         self._assert_updated_doc(created_doc, overwritten_doc, new_json_value)
 
         # Test - Insert case with existing key
-        try:
-            self._create_doc(json_document_manager, project_id, defaults, upsert=False)
-            assert False
-        except ResourceAlreadyExistsError:
-            pass
+        with pytest.raises(ResourceAlreadyExistsError):
+            self._create_doc(
+                self.json_document_manager, self.project_id, defaults, upsert=False
+            )
 
         # Test - Invalid json
         defaults.update({"json_value": "invalid-json"})
-        try:
-            self._create_doc(json_document_manager, project_id, defaults)
-            assert False
-        except ClientValueError:
-            pass
+        with pytest.raises(ClientValueError):
+            self._create_doc(self.json_document_manager, self.project_id, defaults)
 
-    def test_get_json_document(
-        self, json_document_manager: PostgresJsonDocumentManager, project_id: str
-    ) -> None:
+    def test_get_json_document(self) -> None:
         defaults = get_defaults()
-        created_doc = self._create_doc(json_document_manager, project_id, defaults)
+        created_doc = self._create_doc(
+            self.json_document_manager, self.project_id, defaults
+        )
 
-        read_doc = json_document_manager.get_json_document(
-            project_id, self.COLLECTTION, created_doc.key
+        read_doc = self.json_document_manager.get_json_document(
+            self.project_id, self.COLLECTTION, created_doc.key
         )
 
         assert read_doc.key == created_doc.key
         assert read_doc.created_at == created_doc.created_at
         assert json.loads(read_doc.json_value) == json.loads(created_doc.json_value)
 
-        try:
-            json_document_manager.get_json_document(
-                project_id, self.COLLECTTION, str(uuid4())
+        with pytest.raises(ResourceNotFoundError):
+            self.json_document_manager.get_json_document(
+                self.project_id, self.COLLECTTION, str(uuid4())
             )
-            assert False
-        except ResourceNotFoundError:
-            pass
 
-    def test_delete_json_document(
-        self, json_document_manager: PostgresJsonDocumentManager, project_id: str
-    ) -> None:
+    def test_delete_json_document(self) -> None:
         defaults = get_defaults()
-        created_doc = self._create_doc(json_document_manager, project_id, defaults)
-        json_document_manager.delete_json_document(
-            project_id, self.COLLECTTION, created_doc.key
+        created_doc = self._create_doc(
+            self.json_document_manager, self.project_id, defaults
         )
-        try:
-            json_document_manager.get_json_document(
-                project_id, self.COLLECTTION, created_doc.key
-            )
-            assert False
-        except ResourceNotFoundError:
-            assert True
+        self.json_document_manager.delete_json_document(
+            self.project_id, self.COLLECTTION, created_doc.key
+        )
 
-    def test_update_json_document(
-        self, json_document_manager: PostgresJsonDocumentManager, project_id: str
-    ) -> None:
+        with pytest.raises(ResourceNotFoundError):
+            self.json_document_manager.get_json_document(
+                self.project_id, self.COLLECTTION, created_doc.key
+            )
+
+    def test_update_json_document(self) -> None:
 
         original_dict = {
             "title": "Goodbye!",
@@ -174,15 +165,15 @@ class TestPostgresJsonDocumentManager:
         }
         desired_json_value = json.dumps(desired_dict)
 
-        created_doc = json_document_manager.create_json_document(
-            project_id,
+        created_doc = self.json_document_manager.create_json_document(
+            self.project_id,
             self.COLLECTTION,
             str(uuid4()),
             json.dumps(original_dict),
         )
 
-        updated_doc = json_document_manager.update_json_document(
-            project_id,
+        updated_doc = self.json_document_manager.update_json_document(
+            self.project_id,
             self.COLLECTTION,
             created_doc.key,
             json.dumps(changes_dict),
@@ -190,26 +181,21 @@ class TestPostgresJsonDocumentManager:
 
         self._assert_updated_doc(created_doc, updated_doc, desired_json_value)
 
-        read_doc = json_document_manager.get_json_document(
-            project_id, self.COLLECTTION, updated_doc.key
+        read_doc = self.json_document_manager.get_json_document(
+            self.project_id, self.COLLECTTION, updated_doc.key
         )
 
         self._assert_updated_doc(created_doc, read_doc, desired_json_value)
 
-        try:
-            json_document_manager.update_json_document(
-                project_id,
+        with pytest.raises(ResourceNotFoundError):
+            self.json_document_manager.update_json_document(
+                self.project_id,
                 self.COLLECTTION,
                 str(uuid4()),
                 "{}",
             )
-            assert False
-        except ResourceNotFoundError:
-            pass
 
-    def test_list_json_documents(
-        self, json_document_manager: PostgresJsonDocumentManager, project_id: str
-    ) -> None:
+    def test_list_json_documents(self) -> None:
 
         collection_id = self.COLLECTTION
 
@@ -230,32 +216,34 @@ class TestPostgresJsonDocumentManager:
         ]
 
         for json_dict in data:
-            json_document_manager.create_json_document(
-                project_id, collection_id, str(uuid4()), json.dumps(json_dict)
+            self.json_document_manager.create_json_document(
+                self.project_id, collection_id, str(uuid4()), json.dumps(json_dict)
             )
 
-        docs = json_document_manager.list_json_documents(project_id, collection_id)
+        docs = self.json_document_manager.list_json_documents(
+            self.project_id, collection_id
+        )
         assert len(docs) >= len(data)
 
         json_path_filter = '$ ? (@.title == "Hello!")'
-        docs = json_document_manager.list_json_documents(
-            project_id, collection_id, json_path_filter
+        docs = self.json_document_manager.list_json_documents(
+            self.project_id, collection_id, json_path_filter
         )
         for doc in docs:
             json_value = json.loads(doc.json_value)
             assert json_value.get("title") == "Hello!"
 
         json_path_filter = '$ ? (@.title == "Goodbye!")'
-        docs = json_document_manager.list_json_documents(
-            project_id, collection_id, json_path_filter
+        docs = self.json_document_manager.list_json_documents(
+            self.project_id, collection_id, json_path_filter
         )
         for doc in docs:
             json_value = json.loads(doc.json_value)
             assert json_value.get("title") == "Goodbye!"
 
         json_path_filter = '$ ? (@.author.givenName == "John")'
-        docs = json_document_manager.list_json_documents(
-            project_id, collection_id, json_path_filter
+        docs = self.json_document_manager.list_json_documents(
+            self.project_id, collection_id, json_path_filter
         )
         for doc in docs:
             json_value = json.loads(doc.json_value)
@@ -267,8 +255,8 @@ class TestPostgresJsonDocumentManager:
             '$ ? (@.author.givenName == "John" && @.author.familyName == "Doe")'
         )
 
-        docs = json_document_manager.list_json_documents(
-            project_id, collection_id, json_path_filter
+        docs = self.json_document_manager.list_json_documents(
+            self.project_id, collection_id, json_path_filter
         )
         for doc in docs:
             json_value = json.loads(doc.json_value)
@@ -279,18 +267,13 @@ class TestPostgresJsonDocumentManager:
         assert previous_result_count >= len(docs)
         previous_result_count = len(docs)
 
-        try:
+        with pytest.raises(ClientValueError):
             json_path_filter = '? (@.title == "Hello!")'
-            json_document_manager.list_json_documents(
-                project_id, collection_id, json_path_filter
+            self.json_document_manager.list_json_documents(
+                self.project_id, collection_id, json_path_filter
             )
-            assert False
-        except ClientValueError:
-            pass
 
-    def test_list_json_documents_by_key(
-        self, json_document_manager: PostgresJsonDocumentManager, project_id: str
-    ) -> None:
+    def test_list_json_documents_by_key(self) -> None:
 
         docs = []
         db_keys = []
@@ -300,12 +283,14 @@ class TestPostgresJsonDocumentManager:
                 json_value = json.loads(defaults["json_value"])
                 del json_value["author"]["familyName"]
                 defaults["json_value"] = json.dumps(json_value)
-            doc = self._create_doc(json_document_manager, project_id, defaults)
+            doc = self._create_doc(
+                self.json_document_manager, self.project_id, defaults
+            )
             docs.append(doc)
             db_keys.append(doc.key)
 
-        read_docs = json_document_manager.list_json_documents(
-            project_id, self.COLLECTTION, keys=db_keys
+        read_docs = self.json_document_manager.list_json_documents(
+            self.project_id, self.COLLECTTION, keys=db_keys
         )
 
         assert len(db_keys) == len(read_docs)
@@ -316,8 +301,8 @@ class TestPostgresJsonDocumentManager:
         json_path_filter = (
             '$ ? (@.author.givenName == "John" && @.author.familyName == "Doe")'
         )
-        read_docs = json_document_manager.list_json_documents(
-            project_id,
+        read_docs = self.json_document_manager.list_json_documents(
+            self.project_id,
             self.COLLECTTION,
             json_path_filter,
             db_keys,
@@ -330,42 +315,21 @@ class TestPostgresJsonDocumentManager:
             )
             db_keys.index(doc.key)
 
-    def test_delete_documents(
-        self, json_document_manager: PostgresJsonDocumentManager, project_id: str
-    ) -> None:
-
-        db_keys: List[str] = []
-        for i in range(5):
-            doc = self._create_doc(json_document_manager, project_id, get_defaults())
-            db_keys.append(doc.key)
-
-        delete_count = json_document_manager.delete_documents(
-            project_id, self.COLLECTTION, db_keys
-        )
-        assert delete_count == len(db_keys)
-        docs = json_document_manager.list_json_documents(
-            project_id, self.COLLECTTION, keys=db_keys
-        )
-
-        assert len(docs) == 0
-
-    def test_delete_json_collections(
-        self, json_document_manager: PostgresJsonDocumentManager, project_id: str
-    ) -> None:
+    def test_delete_json_collections(self) -> None:
         key = "test"
-        json_document_manager.create_json_document(
-            project_id, self.COLLECTTION, key, json_document="{}"
+        self.json_document_manager.create_json_document(
+            self.project_id, self.COLLECTTION, key, json_document="{}"
         )
-        json_document_manager.delete_json_collections(project_id)
-        try:
-            json_document_manager.get_json_document(project_id, self.COLLECTTION, key)
-            assert False
-        except ResourceNotFoundError:
-            pass
+        self.json_document_manager.delete_json_collections(self.project_id)
+
+        with pytest.raises(ResourceNotFoundError):
+            self.json_document_manager.get_json_document(
+                self.project_id, self.COLLECTTION, key
+            )
 
     def _create_doc(
         self,
-        jdm: PostgresJsonDocumentManager,
+        jdm: JsonDocumentOperations,
         project_id: str,
         defaults: dict,
         upsert: bool = True,
@@ -388,3 +352,149 @@ class TestPostgresJsonDocumentManager:
             assert not updated_doc.json_value
         assert updated_doc.updated_at and updated_doc.created_at
         assert updated_doc.created_at < updated_doc.updated_at
+
+
+@pytest.mark.skipif(
+    not test_settings.POSTGRES_INTEGRATION_TESTS,
+    reason="Postgres Integration Tests are deactivated, use POSTGRES_INTEGRATION_TESTS to activate.",
+)
+@pytest.mark.integration
+class TestJsonDocumentManagerWithPostgres(JsonDocumentOperationsTests):
+    @pytest.fixture(autouse=True)
+    def _init_managers(
+        self, global_state: GlobalState, request_state: RequestState
+    ) -> Generator:
+        self._json_db = PostgresJsonDocumentManager(global_state, request_state)
+        self._project_id = f"{randint(1, 100000)}-file-manager-test"
+        self._json_db.delete_json_collections(self.project_id)
+        yield
+        self._json_db.delete_json_collections(self.project_id)
+
+    @property
+    def json_document_manager(self) -> JsonDocumentOperations:
+        return self._json_db
+
+    @property
+    def project_id(self) -> str:
+        return self._project_id
+
+    def test_delete_documents(self) -> None:
+        # Not implemented in default operations and endpoints.
+        db_keys: List[str] = []
+        for _ in range(5):
+            doc = self._create_doc(
+                self.json_document_manager, self.project_id, get_defaults()
+            )
+            db_keys.append(doc.key)
+
+        delete_count = self.json_document_manager.delete_documents(
+            self.project_id, self.COLLECTTION, db_keys
+        )
+        assert delete_count == len(db_keys)
+        docs = self.json_document_manager.list_json_documents(
+            self.project_id, self.COLLECTTION, keys=db_keys
+        )
+
+        assert len(docs) == 0
+
+
+@pytest.mark.skipif(
+    not settings.USE_INMEMORY_DB and not test_settings.POSTGRES_INTEGRATION_TESTS,
+    reason="Postgres Integration Tests are deactivated, use POSTGRES_INTEGRATION_TESTS to activate.",
+)
+@pytest.mark.integration
+class TestJsonDocumentManagerViaLocalEndpoints(JsonDocumentOperationsTests):
+    @pytest.fixture(autouse=True)
+    def _init_managers(self) -> Generator:
+        from contaxy.api import app
+
+        with TestClient(app=app, root_path="/") as test_client:
+            self._test_client = test_client
+            system_manager = SystemClient(self._test_client)
+            self._json_db = JsonDocumentClient(self._test_client)
+            self._auth_manager = AuthClient(self._test_client)
+            self._project_id = f"{randint(1, 100000)}-file-manager-test"
+            system_manager.initialize_system()
+
+            self.login_user(
+                config.SYSTEM_ADMIN_USERNAME, config.SYSTEM_ADMIN_INITIAL_PASSWORD
+            )
+            yield
+            # Login as admin again -> logged in user might have been changed
+            self.login_user(
+                config.SYSTEM_ADMIN_USERNAME, config.SYSTEM_ADMIN_INITIAL_PASSWORD
+            )
+            self._json_db.delete_json_collections(self._project_id)
+
+    @property
+    def json_document_manager(self) -> JsonDocumentOperations:
+        return self._json_db
+
+    @property
+    def project_id(self) -> str:
+        return self._project_id
+
+    def login_user(self, username: str, password: str) -> None:
+        self._auth_manager.request_token(
+            OAuth2TokenRequestFormNew(
+                grant_type=OAuth2TokenGrantTypes.PASSWORD,
+                username=username,
+                password=password,
+                scope=auth_utils.construct_permission(
+                    "*", AccessLevel.ADMIN
+                ),  # Get full scope
+                set_as_cookie=True,
+            )
+        )
+
+
+@pytest.mark.skipif(
+    not test_settings.REMOTE_BACKEND_ENDPOINT,
+    reason="No remote backend is configured (via REMOTE_BACKEND_ENDPOINT).",
+)
+@pytest.mark.skipif(
+    not test_settings.REMOTE_BACKEND_TESTS,
+    reason="Remote Backend Tests are deactivated, use REMOTE_BACKEND_TESTS to activate.",
+)
+@pytest.mark.integration
+class TestJsonDocumentManagerViaRemoteEndpoints(JsonDocumentOperationsTests):
+    @pytest.fixture(autouse=True)
+    def _init_managers(self) -> Generator:
+        self._test_client = BaseUrlSession(
+            base_url=test_settings.REMOTE_BACKEND_ENDPOINT
+        )
+        system_manager = SystemClient(self._test_client)
+        self._json_db = JsonDocumentClient(self._test_client)
+        self._auth_manager = AuthClient(self._test_client)
+        self._project_id = f"{randint(1, 100000)}-file-manager-test"
+        system_manager.initialize_system()
+
+        self.login_user(
+            config.SYSTEM_ADMIN_USERNAME, config.SYSTEM_ADMIN_INITIAL_PASSWORD
+        )
+        yield
+        self.login_user(
+            config.SYSTEM_ADMIN_USERNAME, config.SYSTEM_ADMIN_INITIAL_PASSWORD
+        )
+        self._json_db.delete_json_collections(self._project_id)
+
+    @property
+    def json_document_manager(self) -> JsonDocumentOperations:
+        return self._json_db
+
+    @property
+    def project_id(self) -> str:
+        return self._project_id
+
+    def login_user(self, username: str, password: str) -> None:
+        self._auth_manager.request_token(
+            OAuth2TokenRequestFormNew(
+                grant_type=OAuth2TokenGrantTypes.PASSWORD,
+                username=username,
+                password=password,
+                scope=auth_utils.construct_permission(
+                    "*", AccessLevel.ADMIN
+                ),  # Get full scope
+                set_as_cookie=True,
+            )
+        )

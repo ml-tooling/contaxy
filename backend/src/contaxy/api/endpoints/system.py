@@ -56,3 +56,17 @@ def get_system_statistics(
     """Returns statistics about this instance."""
     component_manager.verify_access(token, "system", AccessLevel.READ)
     return component_manager.get_system_manager().get_system_statistics()
+
+
+@router.post(
+    "/system/initialize",
+    operation_id=CoreOperations.INITIALIZE_SYSTEM.value,
+    summary="Initialize the system.",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def initialize_system(
+    component_manager: ComponentManager = Depends(get_component_manager),
+) -> Any:
+    """Initializes the system."""
+    # TODO: only allow this to be called once
+    component_manager.get_system_manager().initialize_system()

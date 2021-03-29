@@ -1,7 +1,9 @@
 from typing import Any, List, Optional
 
 from fastapi import APIRouter, Body, Depends, Form, Query, status
+from starlette.responses import RedirectResponse, Response
 
+from contaxy import config
 from contaxy.api.dependencies import (
     ComponentManager,
     get_api_token,
@@ -11,15 +13,14 @@ from contaxy.schema import (
     ApiToken,
     CoreOperations,
     ExtensibleOperations,
-    OAuth2TokenRequestForm,
+    OAuth2TokenRequestFormNew,
     OAuthToken,
     OAuthTokenIntrospection,
     OpenIDUserInfo,
     TokenType,
 )
-from contaxy.schema.auth import AccessLevel
-from contaxy.schema.extension import EXTENSION_ID_PARAM
-from contaxy.schema.shared import OPEN_URL_REDIRECT
+from contaxy.schema.auth import AccessLevel, OAuth2TokenGrantTypes
+from contaxy.utils import auth_utils, id_utils
 
 router = APIRouter(
     tags=["auth"], responses={401: {"detail": "No API token was provided"}}
@@ -27,14 +28,12 @@ router = APIRouter(
 
 
 @router.get(
-    "/auth/login",
+    "/auth/login-page",
     operation_id=ExtensibleOperations.OPEN_LOGIN_PAGE.value,
     summary="Open the login page.",
-    status_code=status.HTTP_200_OK,
-    responses={**OPEN_URL_REDIRECT},
+    status_code=status.HTTP_307_TEMPORARY_REDIRECT,
 )
 def open_login_page(
-    extension_id: Optional[str] = EXTENSION_ID_PARAM,
     component_manager: ComponentManager = Depends(get_component_manager),
 ) -> Any:
     """Returns or redirect to the login-page."""
@@ -46,12 +45,61 @@ def open_login_page(
 
 
 @router.get(
+    "/auth/login",
+    operation_id=CoreOperations.LOGIN_USER_SESSION.value,
+    summary="Login a user session.",
+    status_code=status.HTTP_307_TEMPORARY_REDIRECT,
+)
+def login_user_session(
+    username: str = Form(
+        ..., description="The user’s username or email used for login."
+    ),
+    password: str = Form(..., description="The user’s password."),
+    component_manager: ComponentManager = Depends(get_component_manager),
+) -> Any:
+    """Signs in the user based on username and password credentials.
+
+    This will set http-only cookies containg tokens with full user access.
+    """
+    oauth_token = component_manager.get_auth_manager().request_token(
+        OAuth2TokenRequestFormNew(
+            grant_type=OAuth2TokenGrantTypes.PASSWORD,
+            username=username,
+            password=password,
+            scope=auth_utils.construct_permission(
+                "*", AccessLevel.ADMIN
+            ),  # Get full scope
+        )
+    )
+
+    # TODO: set the right start page of webapp
+    response = RedirectResponse(
+        url="/app", status_code=status.HTTP_307_TEMPORARY_REDIRECT
+    )
+    # TODO: Set cookie and path or other configurations
+    token_info = component_manager.get_auth_manager().introspect_token(
+        oauth_token.access_token
+    )
+    response.set_cookie(
+        key=config.API_TOKEN_NAME, value=oauth_token.access_token, httponly=True
+    )
+    if token_info.sub:
+        # Set user ID as cookie as well
+        response.set_cookie(
+            key=config.AUTHORIZED_USER_COOKIE,
+            value=id_utils.extract_user_id_from_resource_name(token_info.sub),
+        )
+
+    return response
+
+
+@router.get(
     "/auth/logout",
-    operation_id=CoreOperations.LOGOUT_SESSION.value,
+    operation_id=CoreOperations.LOGOUT_USER_SESSION.value,
     summary="Logout a user session.",
     status_code=status.HTTP_307_TEMPORARY_REDIRECT,
 )
-def logout_session(
+def logout_user_session(
     component_manager: ComponentManager = Depends(get_component_manager),
 ) -> Any:
     """Removes all session token cookies and redirects to the login page.
@@ -188,7 +236,9 @@ def verify_access(
     status_code=status.HTTP_200_OK,
 )
 def request_token(
-    token_request_form: OAuth2TokenRequestForm = Depends(),
+    token_request_form: OAuth2TokenRequestFormNew = Depends(
+        OAuth2TokenRequestFormNew.as_form  # type: ignore
+    ),
     component_manager: ComponentManager = Depends(get_component_manager),
 ) -> Any:
     """Returns an access tokens, ID tokens, or refresh tokens depending on the request parameters.
@@ -222,6 +272,24 @@ def request_token(
 
     This endpoint implements the [OAuth2 Token Endpoint](https://tools.ietf.org/html/rfc6749#section-3.2).
     """
+    oauth_token = component_manager.get_auth_manager().request_token(token_request_form)
+    if token_request_form.set_as_cookie:
+        response = Response(status_code=status.HTTP_200_OK)
+        # TODO: Set cookie and path or other configurations
+        token_info = component_manager.get_auth_manager().introspect_token(
+            oauth_token.access_token
+        )
+        response.set_cookie(
+            key=config.API_TOKEN_NAME, value=oauth_token.access_token, httponly=True
+        )
+        if token_info.sub:
+            # Set user ID as cookie as well
+            response.set_cookie(
+                key=config.AUTHORIZED_USER_COOKIE,
+                value=id_utils.extract_user_id_from_resource_name(token_info.sub),
+            )
+
+        return response
     return component_manager.get_auth_manager().request_token(token_request_form)
 
 

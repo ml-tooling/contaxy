@@ -40,7 +40,8 @@ class CoreOperations(str, Enum):
     VERIFY_ACCESS = "verify_access"
     LIST_API_TOKENS = "list_api_tokens"
     CREATE_TOKEN = "create_token"
-    LOGOUT_SESSION = "logout_session"
+    LOGOUT_USER_SESSION = "logout_user_session"
+    LOGIN_USER_SESSION = "login_user_session"
     # OAuth2 Endpoints
     AUTHORIZE_CLIENT = "authorize_client"
     REQUEST_TOKEN = "request_token"
@@ -60,6 +61,8 @@ class CoreOperations(str, Enum):
     GET_SYSTEM_INFO = "get_system_info"
     GET_SYSTEM_STATISTICS = "get_system_statistics"
     LIST_SYSTEM_NODES = "list_system_nodes"
+    INITIALIZE_SYSTEM = "initialize_system"
+    CLEANUP_SYSTEM = "cleanup_system"
     # Secrets Endpoints
     CREATE_SECRET = "create_secret"
     DELETE_SECRET = "delete_secret"
@@ -76,6 +79,7 @@ class CoreOperations(str, Enum):
     CREATE_JSON_DOCUMENT = "create_json_document"
     UPDATE_JSON_DOCUMENT = "update_json_document"
     DELETE_JSON_DOCUMENT = "delete_json_document"
+    DELETE_JSON_COLLECTIONS = "delete_json_collections"
     GET_JSON_DOCUMENT = "get_json_document"
 
 

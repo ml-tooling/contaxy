@@ -2,10 +2,11 @@ from datetime import datetime
 from enum import Enum
 from typing import List, Optional
 
-from fastapi import Form, HTTPException, Path, status
-from pydantic import BaseModel, EmailStr, Field, SecretStr
+from fastapi import HTTPException, Path, status
+from pydantic import BaseModel, EmailStr, Field
 
 from contaxy.schema.shared import MAX_DESCRIPTION_LENGTH
+from contaxy.utils.fastapi_utils import as_form
 
 USERS_KIND = "users"
 ADMIN_ROLE = "roles/admin"
@@ -105,67 +106,116 @@ class OAuth2TokenGrantTypes(str, Enum):
     AUTHORIZATION_CODE = "authorization_code"
 
 
-class OAuth2TokenRequestForm:
+# TODO: Replaced with pydantic class
+# class OAuth2TokenRequestForm:
+#     """OAuth2 Token Endpoint Request Form."""
+
+#     def __init__(
+#         self,
+#         grant_type: OAuth2TokenGrantTypes = Form(
+#             ...,
+#             description="Grant type. Determines the mechanism used to authorize the creation of the tokens.",
+#         ),
+#         username: Optional[str] = Form(
+#             None, description="Required for `password` grant type. The user’s username."
+#         ),
+#         password: Optional[str] = Form(
+#             None, description="Required for `password` grant type. The user’s password."
+#         ),
+#         scope: Optional[str] = Form(
+#             None,
+#             description="Scopes that the client wants to be included in the access token. List of space-delimited, case-sensitive strings",
+#         ),
+#         client_id: Optional[str] = Form(
+#             None,
+#             description="The client identifier issued to the client during the registration process",
+#         ),
+#         client_secret: Optional[str] = Form(
+#             None,
+#             description=" The client secret. The client MAY omit the parameter if the client secret is an empty string.",
+#         ),
+#         code: Optional[str] = Form(
+#             None,
+#             description="Required for `authorization_code` grant type. The value is what was returned from the authorization endpoint.",
+#         ),
+#         redirect_uri: Optional[str] = Form(
+#             None,
+#             description="Required for `authorization_code` grant type. Specifies the callback location where the authorization was sent. This value must match the `redirect_uri` used to generate the original authorization_code.",
+#         ),
+#         refresh_token: Optional[str] = Form(
+#             None,
+#             description="Required for `refresh_token` grant type. The refresh token previously issued to the client.",
+#         ),
+#         state: Optional[str] = Form(
+#             None,
+#             description="An opaque value used by the client to maintain state between the request and callback. The parameter SHOULD be used for preventing cross-site request forgery.",
+#         ),
+#         set_as_cookie: Optional[bool] = Form(
+#             False,
+#             description="If `true`, the access (and refresh) token will be set as cookie instead of the response body.",
+#         ),
+#     ):
+#         self.grant_type = grant_type
+#         self.username = username
+#         self.password = password
+#         self.scopes = []
+#         if scope:
+#             self.scopes = str(scope).split()
+#         self.client_id = client_id
+#         self.client_secret = client_secret
+#         self.code = code
+#         self.redirect_uri = redirect_uri
+#         self.refresh_token = refresh_token
+#         self.state = state
+#         self.set_as_cookie = set_as_cookie
+
+
+@as_form
+class OAuth2TokenRequestFormNew(BaseModel):
     """OAuth2 Token Endpoint Request Form."""
 
-    def __init__(
-        self,
-        grant_type: OAuth2TokenGrantTypes = Form(
-            ...,
-            description="Grant type. Determines the mechanism used to authorize the creation of the tokens.",
-        ),
-        username: Optional[str] = Form(
-            None, description="Required for `password` grant type. The user’s username."
-        ),
-        password: Optional[str] = Form(
-            None, description="Required for `password` grant type. The user’s password."
-        ),
-        scope: Optional[str] = Form(
-            None,
-            description="Scopes that the client wants to be included in the access token. List of space-delimited, case-sensitive strings",
-        ),
-        client_id: Optional[str] = Form(
-            None,
-            description="The client identifier issued to the client during the registration process",
-        ),
-        client_secret: Optional[str] = Form(
-            None,
-            description=" The client secret. The client MAY omit the parameter if the client secret is an empty string.",
-        ),
-        code: Optional[str] = Form(
-            None,
-            description="Required for `authorization_code` grant type. The value is what was returned from the authorization endpoint.",
-        ),
-        redirect_uri: Optional[str] = Form(
-            None,
-            description="Required for `authorization_code` grant type. Specifies the callback location where the authorization was sent. This value must match the `redirect_uri` used to generate the original authorization_code.",
-        ),
-        refresh_token: Optional[str] = Form(
-            None,
-            description="Required for `refresh_token` grant type. The refresh token previously issued to the client.",
-        ),
-        state: Optional[str] = Form(
-            None,
-            description="An opaque value used by the client to maintain state between the request and callback. The parameter SHOULD be used for preventing cross-site request forgery.",
-        ),
-        set_as_cookie: Optional[bool] = Form(
-            False,
-            description="If `true`, the access (and refresh) token will be set as cookie instead of the response body.",
-        ),
-    ):
-        self.grant_type = grant_type
-        self.username = username
-        self.password = password
-        self.scopes = []
-        if scope:
-            self.scopes = str(scope).split()
-        self.client_id = client_id
-        self.client_secret = client_secret
-        self.code = code
-        self.redirect_uri = redirect_uri
-        self.refresh_token = refresh_token
-        self.state = state
-        self.set_as_cookie = set_as_cookie
+    grant_type: OAuth2TokenGrantTypes = Field(
+        ...,
+        description="Grant type. Determines the mechanism used to authorize the creation of the tokens.",
+    )
+    username: Optional[str] = Field(
+        None, description="Required for `password` grant type. The user’s username."
+    )
+    password: Optional[str] = Field(
+        None, description="Required for `password` grant type. The user’s password."
+    )
+    scope: Optional[str] = Field(
+        None,
+        description="Scopes that the client wants to be included in the access token. List of space-delimited, case-sensitive strings",
+    )
+    client_id: Optional[str] = Field(
+        None,
+        description="The client identifier issued to the client during the registration process",
+    )
+    client_secret: Optional[str] = Field(
+        None,
+        description=" The client secret. The client MAY omit the parameter if the client secret is an empty string.",
+    )
+    code: Optional[str] = Field(
+        None,
+        description="Required for `authorization_code` grant type. The value is what was returned from the authorization endpoint.",
+    )
+    redirect_uri: Optional[str] = Field(
+        None,
+        description="Required for `authorization_code` grant type. Specifies the callback location where the authorization was sent. This value must match the `redirect_uri` used to generate the original authorization_code.",
+    )
+    refresh_token: Optional[str] = Field(
+        None,
+        description="Required for `refresh_token` grant type. The refresh token previously issued to the client.",
+    )
+    state: Optional[str] = Field(
+        None,
+        description="An opaque value used by the client to maintain state between the request and callback. The parameter SHOULD be used for preventing cross-site request forgery.",
+    )
+    set_as_cookie: Optional[bool] = Field(
+        False,
+        description="If `true`, the access (and refresh) token will be set as cookie instead of the response body.",
+    )
 
 
 class OAuthToken(BaseModel):
@@ -296,34 +346,35 @@ class OAuth2Error(HTTPException):
         )
 
 
-class OAuth2AuthorizeRequestForm:
-    """OAuth2 Authorize Endpoint Request Form."""
+# TODO: Not used right now
+# class OAuth2AuthorizeRequestForm:
+#     """OAuth2 Authorize Endpoint Request Form."""
 
-    def __init__(
-        self,
-        response_type: AuthorizeResponseType = Form(
-            ...,
-            description="Either code for requesting an authorization code or token for requesting an access token (implicit grant).",
-        ),
-        client_id: Optional[str] = Form(
-            None, description="The public identifier of the client."
-        ),
-        redirect_uri: Optional[str] = Form(None, description="Redirection URL."),
-        scope: Optional[str] = Form(
-            None, description="The scope of the access request."
-        ),
-        state: Optional[str] = Form(
-            None,
-            description="An opaque value used by the client to maintain state between the request and callback. The parameter SHOULD be used for preventing cross-site request forgery",
-        ),
-        nonce: Optional[str] = Form(None),
-    ):
-        self.response_type = response_type
-        self.client_id = client_id
-        self.redirect_uri = redirect_uri
-        self.scope = scope
-        self.state = state
-        self.nonce = nonce
+#     def __init__(
+#         self,
+#         response_type: AuthorizeResponseType = Form(
+#             ...,
+#             description="Either code for requesting an authorization code or token for requesting an access token (implicit grant).",
+#         ),
+#         client_id: Optional[str] = Form(
+#             None, description="The public identifier of the client."
+#         ),
+#         redirect_uri: Optional[str] = Form(None, description="Redirection URL."),
+#         scope: Optional[str] = Form(
+#             None, description="The scope of the access request."
+#         ),
+#         state: Optional[str] = Form(
+#             None,
+#             description="An opaque value used by the client to maintain state between the request and callback. The parameter SHOULD be used for preventing cross-site request forgery",
+#         ),
+#         nonce: Optional[str] = Form(None),
+#     ):
+#         self.response_type = response_type
+#         self.client_id = client_id
+#         self.redirect_uri = redirect_uri
+#         self.scope = scope
+#         self.state = state
+#         self.nonce = nonce
 
 
 USER_ID_PARAM = Path(
@@ -359,7 +410,7 @@ class UserRegistration(UserInput):
     # The password is only part of the user input object and should never returned
     # TODO: a password can only be changed when used via oauth password bearer
     # TODO: System admin can change passwords for all users
-    password: Optional[SecretStr] = Field(
+    password: Optional[str] = Field(
         None,
         description="Password for the user. The password will be stored in as a hash.",
     )

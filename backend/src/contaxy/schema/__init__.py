@@ -5,7 +5,7 @@ from .auth import (
     AccessLevel,
     ApiToken,
     AuthorizedAccess,
-    OAuth2TokenRequestForm,
+    OAuth2TokenRequestFormNew,
     OAuthToken,
     OAuthTokenIntrospection,
     OpenIDUserInfo,

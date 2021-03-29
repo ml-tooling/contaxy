@@ -17,7 +17,7 @@ from contaxy.schema.auth import (
     AccessLevel,
     OAuth2Error,
     OAuth2TokenGrantTypes,
-    OAuth2TokenRequestForm,
+    OAuth2TokenRequestFormNew,
     TokenType,
     User,
     UserRegistration,
@@ -57,7 +57,7 @@ def _generate_user_data(users_to_generate: int) -> List[UserRegistration]:
 
         generated_users.append(
             UserRegistration(
-                username=fake.user_name(),
+                username=fake.user_name() + id_utils.generate_short_uuid(),
                 email=fake.email(),
                 password=fake.password(length=12),
             )
@@ -359,11 +359,11 @@ class AuthOperationsTests(ABC):
 
     def test_request_token_password_grant(self) -> None:
         generated_user = _generate_user_data(1)[0]
-        password = generated_user.password.get_secret_value()
+        password = generated_user.password  # .get_secret_value()
         self.auth_manager.create_user(generated_user)
         USER_SCOPE = "projects/" + id_utils.generate_short_uuid() + "#write"
         oauth_token = self.auth_manager.request_token(
-            OAuth2TokenRequestForm(
+            OAuth2TokenRequestFormNew(
                 grant_type=OAuth2TokenGrantTypes.PASSWORD,
                 username=generated_user.username,
                 password=password,
@@ -377,7 +377,7 @@ class AuthOperationsTests(ABC):
 
         with pytest.raises(OAuth2Error):
             self.auth_manager.request_token(
-                OAuth2TokenRequestForm(
+                OAuth2TokenRequestFormNew(
                     grant_type=OAuth2TokenGrantTypes.PASSWORD,
                     username=generated_user.username,
                     password="blub",
@@ -386,7 +386,7 @@ class AuthOperationsTests(ABC):
 
         with pytest.raises(OAuth2Error):
             self.auth_manager.request_token(
-                OAuth2TokenRequestForm(
+                OAuth2TokenRequestFormNew(
                     grant_type=OAuth2TokenGrantTypes.PASSWORD,
                     username="blub",
                     password=password,
@@ -395,7 +395,7 @@ class AuthOperationsTests(ABC):
 
         with pytest.raises(OAuth2Error):
             self.auth_manager.request_token(
-                OAuth2TokenRequestForm(
+                OAuth2TokenRequestFormNew(
                     grant_type=OAuth2TokenGrantTypes.CLIENT_CREDENTIALS,
                     username=generated_user.username,
                     password=password,

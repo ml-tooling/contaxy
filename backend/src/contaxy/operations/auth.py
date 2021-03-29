@@ -5,7 +5,7 @@ from starlette.responses import RedirectResponse
 
 from contaxy.schema import (
     AuthorizedAccess,
-    OAuth2TokenRequestForm,
+    OAuth2TokenRequestFormNew,
     OAuthToken,
     OAuthTokenIntrospection,
     OpenIDUserInfo,
@@ -184,7 +184,9 @@ class AuthOperations(ABC):
     #    pass
 
     @abstractmethod
-    def request_token(self, token_request_form: OAuth2TokenRequestForm) -> OAuthToken:
+    def request_token(
+        self, token_request_form: OAuth2TokenRequestFormNew
+    ) -> OAuthToken:
         """Returns an access tokens, ID tokens, or refresh tokens depending on the request parameters.
 
         The token endpoint is used by the client to obtain an access token by

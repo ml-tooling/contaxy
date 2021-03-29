@@ -21,7 +21,7 @@ from contaxy.schema.auth import (
     ApiToken,
     OAuth2Error,
     OAuth2TokenGrantTypes,
-    OAuth2TokenRequestForm,
+    OAuth2TokenRequestFormNew,
     OAuthToken,
     OAuthTokenIntrospection,
     OpenIDUserInfo,
@@ -29,6 +29,7 @@ from contaxy.schema.auth import (
     UserRegistration,
 )
 from contaxy.schema.exceptions import (
+    ClientValueError,
     PermissionDeniedError,
     ResourceAlreadyExistsError,
     ResourceNotFoundError,
@@ -46,7 +47,7 @@ class UserPassword(BaseModel):
     hashed_password: str
 
 
-class UsernameIdMapping(BaseModel):
+class LoginIdMapping(BaseModel):
     user_id: str
 
 
@@ -60,7 +61,7 @@ class AuthManager(AuthOperations):
     _PERMISSION_COLLECTION = "permission"
     _API_TOKEN_COLLECTION = "tokens"
     _USER_COLLECTION = "users"
-    _USERNAME_ID_MAPPING_COLLECTION = "username-id-mapping"
+    _LOGIN_ID_MAPPING_COLLECTION = "login-id-mapping"
 
     def __init__(
         self,
@@ -127,7 +128,11 @@ class AuthManager(AuthOperations):
         pass
 
     def logout_session(self) -> RedirectResponse:
-        pass
+        # TODO: where to redirect to
+        rr = RedirectResponse("/welcome", status_code=307)
+        rr.delete_cookie(config.API_TOKEN_NAME)
+        rr.delete_cookie(config.AUTHORIZED_USER_COOKIE)
+        return rr
 
     def _create_session_token(
         self,
@@ -445,7 +450,6 @@ class AuthManager(AuthOperations):
     def remove_permission(
         self, resource_name: str, permission: str, remove_sub_permissions: bool = False
     ) -> None:
-        # TODO: Remove all sub permissions
         try:
             # Try to get the permission document
             resource_permission = self._get_resource_permissions_from_db(resource_name)
@@ -595,44 +599,9 @@ class AuthManager(AuthOperations):
         return list(resource_names)
 
     # OAuth Opertions
-    def request_token(self, token_request_form: OAuth2TokenRequestForm) -> OAuthToken:
-        """Returns an access tokens, ID tokens, or refresh tokens depending on the request parameters.
-
-        The token endpoint is used by the client to obtain an access token by
-        presenting its authorization grant or refresh token.
-
-        The token endpoint supports the following grant types:
-        - [Password Grant](https://tools.ietf.org/html/rfc6749#section-4.3.2): Used when the application exchanges the user’s username and password for an access token.
-            - `grant_type` must be set to `password`
-            - `username` (required): The user’s username.
-            - `password` (required): The user’s password.
-            - `scope` (optional): Optional requested scope values for the access token.
-        - [Refresh Token Grant](https://tools.ietf.org/html/rfc6749#section-6): Allows to use refresh tokens to obtain new access tokens.
-            - `grant_type` must be set to `refresh_token`
-            - `refresh_token` (required): The refresh token previously issued to the client.
-            - `scope` (optional): Requested scope values for the new access token. Must not include any scope values not originally granted by the resource owner, and if omitted is treated as equal to the originally granted scope.
-        - [Client Credentials Grant](https://tools.ietf.org/html/rfc6749#section-4.4.2): Request an access token using only its client
-        credentials.
-            - `grant_type` must be set to `client_credentials`
-            - `scope` (optional): Optional requested scope values for the access token.
-            - Client Authentication required (e.g. via client_id and client_secret or auth header)
-        - [Authorization Code Grant](https://tools.ietf.org/html/rfc6749#section-4.1): Used to obtain both access tokens and refresh tokens based on an authorization code from the `/authorize` endpoint.
-            - `grant_type` must be set to `authorization_code`
-            - `code` (required): The authorization code that the client previously received from the authorization server.
-            - `redirect_uri` (required): The redirect_uri parameter included in the original authorization request.
-            - Client Authentication required (e.g. via client_id and client_secret or auth header)
-
-        For password, client credentials, and refresh token flows, calling this endpoint is the only step of the flow.
-        For the authorization code flow, calling this endpoint is the second step of the flow.
-
-        This endpoint implements the [OAuth2 Token Endpoint](https://tools.ietf.org/html/rfc6749#section-3.2).
-
-        Args:
-            token_request_form: The request instructions.
-
-        Returns:
-            OAuthToken: The access token and additonal metadata (depending on the grant type).
-        """
+    def request_token(
+        self, token_request_form: OAuth2TokenRequestFormNew
+    ) -> OAuthToken:
         if token_request_form.grant_type != OAuth2TokenGrantTypes.PASSWORD:
             # Only the password grant type is currently implemented.
             raise OAuth2Error(error="invalid_grant")
@@ -640,23 +609,24 @@ class AuthManager(AuthOperations):
         if not token_request_form.username or not token_request_form.password:
             raise OAuth2Error("invalid_request")
         try:
-            user_id = self._get_id_by_username(token_request_form.username)
+            user_id = self._get_user_id_by_login_id(token_request_form.username)
             if not self.verify_password(user_id, token_request_form.password):
                 raise OAuth2Error("unauthorized_client")
-            if not token_request_form.scopes:
+            scopes: List[str] = []
+            if not token_request_form.scope:
                 # Default user token is allowed to do everything
-                token_request_form.scopes = [
-                    auth_utils.construct_permission("*", AccessLevel.ADMIN)
-                ]
+                scopes = [auth_utils.construct_permission("*", AccessLevel.ADMIN)]
+            else:
+                scopes = token_request_form.scope.split()
             token = self.create_token(
                 "users/" + user_id,
-                scopes=token_request_form.scopes,
+                scopes=scopes,
                 token_type=TokenType.API_TOKEN,
                 description="Login Token.",
             )
 
             # TODO: change this here if we validated token scopes
-            granted_scopes = " ".join(token_request_form.scopes)
+            granted_scopes = " ".join(scopes)
 
             return OAuthToken(
                 token_type="bearer", access_token=token, scope=granted_scopes
@@ -746,36 +716,36 @@ class AuthManager(AuthOperations):
             user_list.append(User.parse_raw(json_document.json_value))
         return user_list
 
-    def _create_username_mapping(self, username: str, user_id: str) -> None:
-        if self._username_exists(username=username):
+    def _create_login_id_mapping(self, login_id: str, user_id: str) -> None:
+        if self._login_id_exists(login_id):
             raise ResourceAlreadyExistsError(
-                f"A username mapping with username {username} already exists."
+                f"A login id mapping with {login_id} already exists."
             )
-        processed_username = username.lower().strip()
+        processed_login_id = login_id.lower().strip()
         try:
             self._json_db_manager.create_json_document(
                 project_id=config.SYSTEM_INTERNAL_PROJECT,
-                collection_id=self._USERNAME_ID_MAPPING_COLLECTION,
-                key=processed_username,
-                json_document=UsernameIdMapping(user_id=user_id).json(),
+                collection_id=self._LOGIN_ID_MAPPING_COLLECTION,
+                key=processed_login_id,
+                json_document=LoginIdMapping(user_id=user_id).json(),
                 upsert=False,  # Only create, no updates
             )
         except ResourceAlreadyExistsError:
             pass
 
-    def _get_id_by_username(self, username: str) -> str:
-        processed_username = username.lower().strip()
-        username_id_mapping_doc = self._json_db_manager.get_json_document(
+    def _get_user_id_by_login_id(self, login_id: str) -> str:
+        processed_login_id = login_id.lower().strip()
+        login_id_mapping_doc = self._json_db_manager.get_json_document(
             project_id=config.SYSTEM_INTERNAL_PROJECT,
-            collection_id=self._USERNAME_ID_MAPPING_COLLECTION,
-            key=processed_username,
+            collection_id=self._LOGIN_ID_MAPPING_COLLECTION,
+            key=processed_login_id,
         )
 
-        return UsernameIdMapping.parse_raw(username_id_mapping_doc.json_value).user_id
+        return LoginIdMapping.parse_raw(login_id_mapping_doc.json_value).user_id
 
-    def _username_exists(self, username: str) -> bool:
+    def _login_id_exists(self, login_id: str) -> bool:
         try:
-            self._get_id_by_username(username)
+            self._get_user_id_by_login_id(login_id)
             return True
         except ResourceNotFoundError:
             return False
@@ -798,8 +768,18 @@ class AuthManager(AuthOperations):
         user_id = id_utils.generate_short_uuid()
 
         if user_input.password:
-            self.change_password(user_id, user_input.password.get_secret_value())
+            self.change_password(user_id, user_input.password)  # .get_secret_value()
             del user_input.password
+
+        if user_input.username and id_utils.is_email(user_input.username):
+            raise ClientValueError(
+                f"The username ({user_input.username}) is not allowed to contain an email address."
+            )
+
+        if user_input.email and id_utils.is_email(user_input.email) is False:
+            raise ClientValueError(
+                f"The email ({user_input.email}) MUST contain a valid email address."
+            )
 
         user = User(
             id=user_id,
@@ -809,23 +789,23 @@ class AuthManager(AuthOperations):
         )
 
         # Check if username already exists
-        if user.username and self._username_exists(user.username):
+        if user.username and self._login_id_exists(user.username):
             raise ResourceAlreadyExistsError(
                 f"The user with username {user.username} already exists."
             )
 
         # Check if email already exists
-        if user.email and self._username_exists(user.email):
+        if user.email and self._login_id_exists(user.email):
             raise ResourceAlreadyExistsError(
                 f"The user with email {user.email} already exists."
             )
 
         # TODO: roll back mappings if user creation fails?
         if user.username:
-            self._create_username_mapping(user.username, user_id)
+            self._create_login_id_mapping(user.username, user_id)
 
         if user.email:
-            self._create_username_mapping(user.email, user_id)
+            self._create_login_id_mapping(user.email, user_id)
 
         created_document = self._json_db_manager.create_json_document(
             project_id=config.SYSTEM_INTERNAL_PROJECT,

@@ -20,16 +20,9 @@ from contaxy.operations import (
     ServiceOperations,
 )
 from contaxy.operations.deployment import DeploymentOperations
-from contaxy.schema.auth import (
-    ADMIN_ROLE,
-    USERS_KIND,
-    AccessLevel,
-    AuthorizedAccess,
-    UserRegistration,
-)
+from contaxy.schema.auth import AccessLevel, AuthorizedAccess
 from contaxy.schema.deployment import ServiceInput
 from contaxy.schema.extension import CORE_EXTENSION_ID
-from contaxy.schema.project import ProjectCreation
 from contaxy.utils import auth_utils
 from contaxy.utils.state_utils import GlobalState, RequestState
 
@@ -144,14 +137,6 @@ class ComponentManager:
         self.request_state.authorized_access = authorized_access
         return authorized_access
 
-    def get_system_manager(self) -> SystemManager:
-        """Returns a System Manager instance."""
-        if not self._system_manager:
-            self._system_manager = SystemManager(self.global_state, self.request_state)
-
-        assert self._system_manager is not None
-        return self._system_manager
-
     def get_project_manager(self) -> ProjectManager:
         """Returns a Project Manager instance."""
         if not self._project_manager:
@@ -169,6 +154,20 @@ class ComponentManager:
 
         assert self._auth_manager is not None
         return self._auth_manager
+
+    def get_system_manager(self) -> SystemManager:
+        """Returns a System Manager instance."""
+        if not self._system_manager:
+            self._system_manager = SystemManager(
+                self.global_state,
+                self.request_state,
+                self.get_json_db_manager(),
+                self.get_auth_manager(),
+                self.get_project_manager(),
+            )
+
+        assert self._system_manager is not None
+        return self._system_manager
 
     def get_extension_manager(self) -> ExtensionManager:
         """Returns an Extension Manager instance."""
@@ -191,7 +190,7 @@ class ComponentManager:
             return self.get_extension_manager().get_extension_client(extension_id)
 
         if not self._json_db_manager:
-            if config.settings.USER_INMEMORY_DB:
+            if config.settings.USE_INMEMORY_DB:
                 self._json_db_manager = InMemoryDictJsonDocumentManager(
                     self.global_state, self.request_state
                 )
@@ -294,42 +293,6 @@ class ComponentManager:
                 project_manager=self.get_project_manager(),
             )
         return self._seed_manager
-
-    def setup_components(self) -> None:
-
-        # Create Admin Role
-        self.get_auth_manager().add_permission(
-            ADMIN_ROLE,
-            auth_utils.construct_permission("*", AccessLevel.ADMIN),
-        )
-
-        # Create Admin User
-        # Set initial user password -> SHOULD be changed after the first login
-        admin_user = self.get_auth_manager().create_user(
-            UserRegistration(
-                username=config.SYSTEM_ADMIN_USERNAME,
-                password=config.SYSTEM_ADMIN_INITIAL_PASSWORD,  # type: ignore
-            ),
-            technical_user=True,
-        )
-
-        # Add admin role to admin user
-        # TODO: use resource name
-        admin_user_resource_name = USERS_KIND + "/" + admin_user.id
-        self.get_auth_manager().add_permission(
-            admin_user_resource_name,
-            ADMIN_ROLE,
-        )
-
-        # Create System Internal Project
-        self.get_project_manager().create_project(
-            ProjectCreation(
-                id=config.SYSTEM_INTERNAL_PROJECT,
-                display_name=config.SYSTEM_INTERNAL_PROJECT,
-                description="This project holds all system internal services and data.",
-            ),
-            technical_project=True,
-        )
 
 
 def install_components() -> None:
