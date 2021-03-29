@@ -15,6 +15,7 @@ from contaxy.schema.extension import EXTENSION_ID_PARAM
 from contaxy.schema.file import FILE_KEY_PARAM
 from contaxy.schema.project import PROJECT_ID_PARAM
 from contaxy.schema.shared import OPEN_URL_REDIRECT, RESOURCE_ID_REGEX
+from contaxy.utils.file_utils import FormMultipartStream, SyncFromAsyncGenerator
 
 router = APIRouter(
     tags=["files"],
@@ -96,18 +97,25 @@ def upload_file(
     Additional file metadata (`additional_metadata`) can be set by using the `x-amz-meta-` prefix for HTTP header keys (e.g. `x-amz-meta-my-metadata`).
     This corresponds to how AWS S3 handles [custom metadata](https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingMetadata.html).
     """
-    # component_manager.verify_access(
-    #     token, f"projects/{project_id}/files", AccessLevel.WRITE
-    # )
+    component_manager.verify_access(
+        token, f"projects/{project_id}/files", AccessLevel.WRITE
+    )
 
-    # file_stream = SyncFromAsyncGenerator(request.stream(), app_items["loop"])
+    file_stream = SyncFromAsyncGenerator(
+        request.stream(), component_manager.global_state.shared_namespace.async_loop
+    )
 
-    # multipart_stream = FormMultipartStream(
-    #     file_stream, request.headers, form_field="file", hash_algo="md5"
-    # )
-
-    # return component_manager.get_file_manager().upload_file(project_id, file_key)
-    pass
+    multipart_stream = FormMultipartStream(
+        file_stream, request.headers, form_field="file", hash_algo="md5"
+    )
+    content_type = (
+        multipart_stream.content_type
+        if multipart_stream.content_type
+        else "application/octet-stream"
+    )
+    return component_manager.get_file_manager().upload_file(
+        project_id, file_key, multipart_stream, content_type
+    )
 
 
 @router.get(

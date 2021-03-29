@@ -1,3 +1,4 @@
+import asyncio
 from typing import Any, Dict
 
 from fastapi import FastAPI
@@ -44,6 +45,9 @@ def on_startup() -> None:
     """Initializes the global app state object."""
     logger.info("Starting API server instance.")
     state_utils.GlobalState(app.state).settings = config.settings
+    state_utils.GlobalState(
+        app.state
+    ).shared_namespace.async_loop = asyncio.get_running_loop()
 
 
 @app.on_event("shutdown")
