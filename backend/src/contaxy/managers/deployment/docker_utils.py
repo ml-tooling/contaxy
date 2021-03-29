@@ -19,7 +19,6 @@ from contaxy.managers.deployment.utils import (
     get_network_name,
     get_project_selection_labels,
     get_volume_name,
-    map_endpoints_label_to_endpoints,
     map_endpoints_to_endpoints_label,
     map_labels,
 )

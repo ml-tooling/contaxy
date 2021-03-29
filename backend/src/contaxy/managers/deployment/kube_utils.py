@@ -37,7 +37,6 @@ from contaxy.managers.deployment.utils import (
     clean_labels,
     get_label_string,
     get_project_selection_labels,
-    map_endpoints_label_to_endpoints,
     map_endpoints_to_endpoints_label,
     map_labels,
 )

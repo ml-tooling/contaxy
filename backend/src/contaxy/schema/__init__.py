@@ -33,7 +33,7 @@ from .exceptions import (
     UnauthenticatedError,
 )
 from .extension import Extension, ExtensionInput
-from .file import File, FileInput
+from .file import File, FileInput, FileStream
 from .json_db import JsonDocument
 from .project import Project, ProjectCreation, ProjectInput
 from .shared import CoreOperations, ExtensibleOperations, ResourceAction

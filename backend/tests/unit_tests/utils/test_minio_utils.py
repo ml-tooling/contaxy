@@ -12,6 +12,7 @@ from contaxy.utils.minio_utils import (
     delete_bucket,
     get_bucket_name,
 )
+from tests.unit_tests.conftest import test_settings
 
 
 # TODO:
@@ -20,6 +21,10 @@ def minio_client() -> Minio:
     return create_minio_client(settings)
 
 
+@pytest.mark.skipif(
+    not test_settings.MINIO_INTEGRATION_TESTS,
+    reason="Minio Integration Tests are deactivated, use MINIO_INTEGRATION_TESTS to activate.",
+)
 @pytest.mark.integration
 class TestMinioUtils:
     def test_create_client(self) -> None:

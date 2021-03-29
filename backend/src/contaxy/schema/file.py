@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod, abstractproperty
 from typing import List, Optional
 
 from fastapi import Path
@@ -16,6 +17,16 @@ FILE_KEY_PARAM = Path(
     min_length=1,
     max_length=1024,
 )
+
+
+class FileStream(ABC):
+    @abstractproperty
+    def hash(self) -> str:
+        pass
+
+    @abstractmethod
+    def read(self, size: int = -1) -> bytes:
+        pass
 
 
 class FileBase(BaseModel):

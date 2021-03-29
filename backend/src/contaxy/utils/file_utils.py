@@ -8,7 +8,7 @@ import filetype
 from streaming_form_data import StreamingFormDataParser
 from streaming_form_data.targets import BaseTarget
 
-from contaxy.operations.file import FileStream
+from contaxy.schema.file import FileStream
 
 
 class MultipartStreamTarget(BaseTarget):

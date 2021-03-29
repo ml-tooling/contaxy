@@ -1,19 +1,9 @@
-from abc import ABC, abstractmethod, abstractproperty
+from abc import ABC, abstractmethod
 from typing import Iterator, List, Optional
 
 from starlette.responses import Response
 
-from contaxy.schema import File, FileInput, ResourceAction
-
-
-class FileStream(ABC):
-    @abstractproperty
-    def hash(self) -> str:
-        pass
-
-    @abstractmethod
-    def read(self, size: int = -1) -> bytes:
-        pass
+from contaxy.schema import File, FileInput, FileStream, ResourceAction
 
 
 class FileOperations(ABC):

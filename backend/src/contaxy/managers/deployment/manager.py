@@ -2,7 +2,7 @@ from typing import List
 
 from starlette.responses import Response
 
-from contaxy.operations import DeploymentOperations, project
+from contaxy.operations import DeploymentOperations
 from contaxy.schema import JobInput, ResourceAction, ServiceInput
 
 

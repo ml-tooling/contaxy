@@ -17,8 +17,9 @@ from contaxy.schema.exceptions import (
     ResourceNotFoundError,
     ServerBaseError,
 )
+from contaxy.schema.file import FileStream
 from contaxy.schema.json_db import JsonDocument
-from contaxy.utils.file_utils import FileStream, generate_file_id
+from contaxy.utils.file_utils import generate_file_id
 from contaxy.utils.minio_utils import (
     create_bucket,
     create_minio_client,
