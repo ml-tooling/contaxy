@@ -34,7 +34,7 @@ class MappedLabels:
     deployment_type: Optional[str] = None
     description: Optional[str] = None
     display_name: Optional[str] = None
-    endpoints: Optional[str] = None
+    endpoints: Optional[List[str]] = None
     icon: Optional[str] = None
     min_lifetime: Optional[int] = None
     volume_path: Optional[str] = None
@@ -66,7 +66,9 @@ def map_labels(labels: Dict[str, Any]) -> MappedLabels:
         mapped_labels.display_name = _labels.get(Labels.DISPLAY_NAME.value)
         del _labels[Labels.DISPLAY_NAME.value]
     if Labels.ENDPOINTS.value in _labels:
-        mapped_labels.endpoints = _labels.get(Labels.ENDPOINTS.value, "").split(",")
+        mapped_labels.endpoints = map_endpoints_label_to_endpoints(
+            _labels.get(Labels.ENDPOINTS.value, "")
+        )
         del _labels[Labels.ENDPOINTS.value]
     if Labels.ICON.value in _labels:
         mapped_labels.icon = _labels.get(Labels.ICON.value)
@@ -201,3 +203,13 @@ def get_project_selection_labels(
         (Labels.PROJECT_NAME.value, project_id),
         (Labels.DEPLOYMENT_TYPE.value, deployment_type.value),
     ]
+
+
+def map_endpoints_to_endpoints_label(endpoints: Optional[List[str]]) -> Optional[str]:
+    return ",".join(endpoints) if endpoints else None
+
+
+def map_endpoints_label_to_endpoints(
+    endpoints_label: Optional[str],
+) -> Optional[List[str]]:
+    return endpoints_label.split(",") if endpoints_label else None

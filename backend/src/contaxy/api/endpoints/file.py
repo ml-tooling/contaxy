@@ -1,6 +1,7 @@
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Body, Depends, Path, Query, status
+from fastapi import APIRouter, Depends, Path, Query, Request, status
+from fastapi.responses import StreamingResponse
 
 from contaxy.api.dependencies import (
     ComponentManager,
@@ -14,6 +15,7 @@ from contaxy.schema.extension import EXTENSION_ID_PARAM
 from contaxy.schema.file import FILE_KEY_PARAM
 from contaxy.schema.project import PROJECT_ID_PARAM
 from contaxy.schema.shared import OPEN_URL_REDIRECT, RESOURCE_ID_REGEX
+from contaxy.utils.file_utils import FormMultipartStream, SyncFromAsyncGenerator
 
 router = APIRouter(
     tags=["files"],
@@ -59,11 +61,9 @@ def list_files(
         token, f"projects/{project_id}/files", AccessLevel.READ
     )
 
-    files = component_manager.get_file_manager(extension_id).list_files(
+    return component_manager.get_file_manager(extension_id).list_files(
         project_id, recursive, include_versions, prefix
     )
-
-    return files if files else []
 
 
 @router.post(
@@ -74,7 +74,7 @@ def list_files(
     status_code=status.HTTP_200_OK,
 )
 def upload_file(
-    body: str = Body(...),
+    request: Request,
     project_id: str = PROJECT_ID_PARAM,
     file_key: str = FILE_KEY_PARAM,
     component_manager: ComponentManager = Depends(get_component_manager),
@@ -101,8 +101,21 @@ def upload_file(
         token, f"projects/{project_id}/files", AccessLevel.WRITE
     )
 
-    # TODO What to do on upload
-    return None
+    file_stream = SyncFromAsyncGenerator(
+        request.stream(), component_manager.global_state.shared_namespace.async_loop
+    )
+
+    multipart_stream = FormMultipartStream(
+        file_stream, request.headers, form_field="file", hash_algo="md5"
+    )
+    content_type = (
+        multipart_stream.content_type
+        if multipart_stream.content_type
+        else "application/octet-stream"
+    )
+    return component_manager.get_file_manager().upload_file(
+        project_id, file_key, multipart_stream, content_type
+    )
 
 
 @router.get(
@@ -198,7 +211,15 @@ def download_file(
         f"projects/{project_id}/files/{file_key}:download",
         AccessLevel.READ,
     )
-    # TODO: what to do on file download here?
+    file_manager = component_manager.get_file_manager()
+    metadata = file_manager.get_file_metadata(project_id, file_key, version)
+    file_stream = file_manager.download_file(project_id, file_key, version)
+
+    return StreamingResponse(
+        file_stream,
+        media_type=metadata.content_type,
+        headers={"Content-Disposition": f"attachment;filename={file_key}"},
+    )
 
 
 @router.get(
@@ -325,3 +346,43 @@ def delete_file(
     return component_manager.get_file_manager(extension_id).delete_file(
         project_id, file_key, version, keep_latest_version
     )
+
+
+def modify_openapi_schema(openapi_schema: dict) -> Dict[str, Any]:
+
+    request_body = {
+        "required": True,
+        "content": {
+            "multipart/form-data": {
+                "schema": {
+                    "$ref": "#/components/schemas/Body_upload_file_projects__project_id__files__file_key___post"
+                }
+            }
+        },
+    }
+
+    openapi_schema["paths"]["/projects/{project_id}/files/{file_key}"]["post"][
+        "requestBody"
+    ] = request_body
+
+    component_schema = {
+        "title": "Body_upload_file_projects__project_id__files__file_key___post",
+        "required": ["file"],
+        "type": "object",
+        "properties": {
+            "file": {"title": "File", "type": "string", "format": "binary"},
+            # "file_name": {"title": "File Name", "type": "string"},
+        },
+    }
+
+    if (
+        "components" not in openapi_schema
+        or "schemas" not in openapi_schema["components"]
+    ):
+        openapi_schema["components"] = {"schemas": {}}
+
+    openapi_schema["components"]["schemas"][
+        "Body_upload_file_projects__project_id__files__file_key___post"
+    ] = component_schema
+
+    return openapi_schema

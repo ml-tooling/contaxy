@@ -7,6 +7,12 @@ import MaterialTable from 'material-table';
 
 const COLUMNS = [
   {
+    field: 'status',
+    title: 'Status',
+    numeric: false,
+    align: 'left',
+  },
+  {
     field: 'name',
     title: 'Name',
     numeric: false,

@@ -2,7 +2,7 @@ from typing import List
 
 from starlette.responses import Response
 
-from contaxy.operations import DeploymentOperations
+from contaxy.operations import DeploymentOperations, project
 from contaxy.schema import JobInput, ResourceAction, ServiceInput
 
 
@@ -33,7 +33,23 @@ class DeploymentManager(DeploymentOperations):
     def list_service_actions(
         self, project_id: str, service_id: str
     ) -> List[ResourceAction]:
-        return []
+        service_metadata = self.get_service_metadata(
+            project_id=project_id, service_id=service_id
+        )
+
+        resource_actions: List[ResourceAction] = []
+        if service_metadata.endpoints:
+            for endpoint in service_metadata.endpoints:
+                print(endpoint)
+                endpoint = endpoint.replace("/", "")
+                resource_actions.append(
+                    ResourceAction(
+                        action_id=f"access-{endpoint}",
+                        display_name=endpoint,
+                    )
+                )
+
+        return resource_actions
 
     def list_job_actions(
         self,

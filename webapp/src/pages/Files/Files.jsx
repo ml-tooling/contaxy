@@ -1,25 +1,35 @@
 import React, { useEffect, useState } from 'react';
 
+import PropTypes from 'prop-types';
 import styled from 'styled-components';
 
-import { filesApi, getFileDownloadUrl } from '../../services/contaxy-api';
+import Button from '@material-ui/core/Button';
+
+import {
+  filesApi,
+  getFileDownloadUrl,
+  getFileUploadUrl,
+} from '../../services/contaxy-api';
 import FilesTable from './FilesTable';
 import GlobalStateContainer from '../../app/store';
+import UploadFilesDialog from '../../components/Dialogs/UploadFilesDialog';
 import Widget from '../../components/Widget';
 import WidgetsGrid from '../../components/WidgetsGrid';
 import showStandardSnackbar from '../../app/showStandardSnackbar';
 
 const onFileDownload = (projectId, rowData) => {
   const a = document.createElement('a');
-  a.href = getFileDownloadUrl(projectId, rowData.id);
+  a.href = getFileDownloadUrl(projectId, rowData.key);
   a.target = '_blank';
   a.download = rowData.name || 'download';
   a.click();
 };
 
-function Files() {
+function Files(props) {
+  const { className } = props;
   const [data, setData] = useState([]);
   const { activeProject } = GlobalStateContainer.useContainer();
+  const [isUploadFileDialogOpen, setUploadFileDialogOpen] = useState(false);
 
   const onReload = async (projectId) => {
     if (!projectId) {
@@ -32,11 +42,11 @@ function Files() {
 
   const onFileDelete = async (projectId, rowData) => {
     try {
-      await filesApi.deleteFile(projectId, rowData.id);
-      showStandardSnackbar(`Deleted file (${rowData.id})`);
+      await filesApi.deleteFile(projectId, rowData.key);
+      showStandardSnackbar(`Deleted file (${rowData.key})`);
       onReload(activeProject.id);
     } catch (err) {
-      showStandardSnackbar(`Error in deleting file (${rowData.id})`);
+      showStandardSnackbar(`Error in deleting file (${rowData.key})`);
     }
   };
 
@@ -55,19 +65,44 @@ function Files() {
           color="light-green"
         />
       </WidgetsGrid>
+      <Button
+        variant="contained"
+        color="primary"
+        onClick={() => setUploadFileDialogOpen(true)}
+        className={`${className} button`}
+      >
+        Upload
+      </Button>
       <FilesTable
         data={data}
         onFileDownload={(rowData) => onFileDownload(activeProject.id, rowData)}
         onFileDelete={(rowData) => onFileDelete(activeProject.id, rowData)}
         onReload={() => onReload(activeProject.id)}
       />
+      <UploadFilesDialog
+        endpoint={getFileUploadUrl(activeProject.id, '')}
+        open={isUploadFileDialogOpen}
+        onClose={() => setUploadFileDialogOpen(false)}
+      />
     </div>
   );
 }
 
+Files.propTypes = {
+  className: PropTypes.string,
+};
+
+Files.defaultProps = {
+  className: '',
+};
+
 const StyledFiles = styled(Files)`
   &.actionIcon {
     color: rgba(0, 0, 0, 0.54);
+  }
+
+  &.button {
+    margin: 8px 0px;
   }
 `;
 

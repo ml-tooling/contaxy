@@ -313,6 +313,19 @@ class TestDeploymentManagers:
         assert logs
         assert logs.startswith(log_input)
 
+    def test_list_service_actions(self) -> None:
+        test_service_input = create_test_service_input()
+        service = self.handler.deploy_service(
+            project_id=test_project_name,
+            service=test_service_input,
+        )
+        resource_actions = self.handler.deployment_manager.list_service_actions(
+            project_id=test_project_name, service_id=service.id
+        )
+
+        assert len(resource_actions) == 2
+        assert resource_actions[0].action_id == f"access-{service.endpoints[0]}"
+
     def test_list_deploy_service_actions(self) -> None:
         test_service_input = create_test_service_input()
         resource_actions = self.handler.deployment_manager.list_deploy_service_actions(

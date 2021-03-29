@@ -1,16 +1,17 @@
 import React, { useMemo } from 'react';
+
+import { Link, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import PropTypes from 'prop-types';
 import styled from 'styled-components';
-import { useTranslation } from 'react-i18next';
-import { Link, useLocation } from 'react-router-dom';
 
 import Divider from '@material-ui/core/Divider';
-import ListItem from '@material-ui/core/ListItem';
-import ListItemIcon from '@material-ui/core/ListItemIcon';
-import ListItemText from '@material-ui/core/ListItemText';
-import ListItemSecondaryAction from '@material-ui/core/ListItemSecondaryAction';
 import Icon from '@material-ui/core/Icon';
 import IconButton from '@material-ui/core/IconButton';
+import ListItem from '@material-ui/core/ListItem';
+import ListItemIcon from '@material-ui/core/ListItemIcon';
+import ListItemSecondaryAction from '@material-ui/core/ListItemSecondaryAction';
+import ListItemText from '@material-ui/core/ListItemText';
 import Tooltip from '@material-ui/core/Tooltip';
 
 import { useShowAppDialog } from '../../app/AppDialogServiceProvider';

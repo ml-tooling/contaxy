@@ -37,6 +37,8 @@ from contaxy.managers.deployment.utils import (
     clean_labels,
     get_label_string,
     get_project_selection_labels,
+    map_endpoints_label_to_endpoints,
+    map_endpoints_to_endpoints_label,
     map_labels,
 )
 from contaxy.schema import Job, JobInput, Service, ServiceInput
@@ -159,7 +161,6 @@ def build_kube_service_config(
     if service.endpoints:
         for endpoint in service.endpoints:
 
-            # TODO: put this logic into utils and share with the DockerDeploymentManager
             # An endpoint can be in the form of one of the examples ["8080", "9001/webapp/ui", "9002b"]. See the Contaxy endpoint docs <LINK> for more information.
             port_number = endpoint.split("/")[0].replace("b", "")
 
@@ -275,6 +276,7 @@ def build_deployment_metadata(
     display_name: Optional[str],
     labels: Optional[Dict[str, str]],
     compute_resources: Optional[DeploymentCompute],
+    endpoints: Optional[List[str]],
     deployment_type: DeploymentType = DeploymentType.SERVICE,
 ) -> V1ObjectMeta:
     display_name = display_name or ""
@@ -286,15 +288,15 @@ def build_deployment_metadata(
         namespace=kube_namespace,
         name=deployment_id,
         labels={
-            # TODO: use Annotation for DISPLAY_NAME, MIN_LIFETIME, ...
-            Labels.DISPLAY_NAME.value: display_name.replace(
-                " ", "__"
-            ),  # TODO: Kubernetes validation regex for labels: (([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?')
             Labels.NAMESPACE.value: settings.SYSTEM_NAMESPACE,
-            Labels.MIN_LIFETIME.value: str(min_lifetime),
             Labels.PROJECT_NAME.value: project_id,
             Labels.DEPLOYMENT_NAME.value: deployment_id,
             Labels.DEPLOYMENT_TYPE.value: deployment_type.value,
+        },
+        annotations={
+            Labels.DISPLAY_NAME.value: display_name,
+            Labels.MIN_LIFETIME.value: str(min_lifetime),
+            Labels.ENDPOINTS.value: map_endpoints_to_endpoints_label(endpoints),
             **cleaned_labels,
         },
     )
@@ -313,6 +315,7 @@ def build_kube_deployment_config(
         display_name=service.display_name,
         labels=service.metadata,
         compute_resources=compute_resources,
+        endpoints=service.endpoints,
     )
 
     # ---
@@ -498,7 +501,9 @@ def wait_for_deletion(
 def map_deployment(deployment: Union[V1Deployment, V1Job]) -> Dict[str, Any]:
     # We assume a 1:1 mapping between deployment/pod & containers
     container = deployment.spec.template.spec.containers[0]
-    labels = map_labels(deployment.metadata.labels)
+    mapped_labels = map_labels(
+        {**deployment.metadata.labels, **deployment.metadata.annotations}
+    )
 
     resources = container.resources
     compute_resources = DeploymentCompute(
@@ -507,8 +512,8 @@ def map_deployment(deployment: Union[V1Deployment, V1Job]) -> Dict[str, Any]:
         min_memory=resources.requests["memory"].replace("M", ""),  # / 1000 / 1000,
         max_memory=resources.limits["memory"].replace("M", ""),  # / 1000 / 1000,
         max_gpus=None,  # TODO: fill with sensible information - where to get it from?
-        min_lifetime=labels.min_lifetime,
-        volume_Path=labels.volume_path,
+        min_lifetime=mapped_labels.min_lifetime,
+        volume_Path=mapped_labels.volume_path,
         # TODO: add max_volume_size, max_replicas
     )
 
@@ -546,18 +551,18 @@ def map_deployment(deployment: Union[V1Deployment, V1Job]) -> Dict[str, Any]:
         "command": container.command[0]
         if container.command is not None and len(container.command) > 0
         else "",
-        "metadata": labels.metadata,
+        "metadata": mapped_labels.metadata,
         "compute": compute_resources,
-        "deployment_type": labels.deployment_type,
-        "description": labels.description,
+        "deployment_type": mapped_labels.deployment_type,
+        "description": mapped_labels.description,
         # TODO: replicase __ logic => use annotations instead of labels for all metadata that we don't use for filtering
-        "display_name": labels.display_name.replace("__", " ")
-        if labels.display_name
+        "display_name": mapped_labels.display_name.replace("__", " ")
+        if mapped_labels.display_name
         else "",
-        "endpoints": labels.endpoints,
+        "endpoints": mapped_labels.endpoints,
         # TODO: exit_code can only be queried on pod-level, but what if there are multiple replicas?
         # "exit_code": container.attrs.get("State", {}).get("ExitCode", -1),
-        "icon": labels.icon,
+        "icon": mapped_labels.icon,
         "id": deployment.metadata.name,
         "internal_id": deployment.metadata.name,
         "parameters": parameters,
