@@ -5,8 +5,8 @@ from typing import Generator, List
 from uuid import uuid4
 
 import pytest
+import requests
 from fastapi.testclient import TestClient
-from starlette.datastructures import State
 
 from contaxy import config
 from contaxy.clients import AuthClient, JsonDocumentClient
@@ -27,19 +27,7 @@ from contaxy.schema.exceptions import (
 from contaxy.schema.json_db import JsonDocument
 from contaxy.utils import auth_utils
 from contaxy.utils.state_utils import GlobalState, RequestState
-from tests.unit_tests.conftest import BaseUrlSession, test_settings
-
-
-@pytest.fixture(scope="session")
-def global_state() -> GlobalState:
-    state = GlobalState(State())
-    state.settings = settings
-    return state
-
-
-@pytest.fixture()
-def request_state() -> RequestState:
-    return RequestState(State())
+from tests.unit_tests.conftest import test_settings
 
 
 def get_defaults() -> dict:
@@ -459,13 +447,11 @@ class TestJsonDocumentManagerViaLocalEndpoints(JsonDocumentOperationsTests):
 @pytest.mark.integration
 class TestJsonDocumentManagerViaRemoteEndpoints(JsonDocumentOperationsTests):
     @pytest.fixture(autouse=True)
-    def _init_managers(self) -> Generator:
-        self._test_client = BaseUrlSession(
-            base_url=test_settings.REMOTE_BACKEND_ENDPOINT
-        )
-        system_manager = SystemClient(self._test_client)
-        self._json_db = JsonDocumentClient(self._test_client)
-        self._auth_manager = AuthClient(self._test_client)
+    def _init_managers(self, remote_client: requests.Session) -> Generator:
+        self._endpoint_client = remote_client
+        system_manager = SystemClient(self._endpoint_client)
+        self._json_db = JsonDocumentClient(self._endpoint_client)
+        self._auth_manager = AuthClient(self._endpoint_client)
         self._project_id = f"{randint(1, 100000)}-file-manager-test"
         system_manager.initialize_system()
 

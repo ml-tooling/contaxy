@@ -6,7 +6,6 @@ from typing import Dict, Generator, List, Set
 import pytest
 from faker import Faker
 from jose import jwt
-from starlette.datastructures import State
 
 from contaxy import config
 from contaxy.config import settings
@@ -28,25 +27,6 @@ from contaxy.utils.state_utils import GlobalState, RequestState
 from tests.unit_tests.conftest import test_settings
 
 DEFAULT_USERS_TO_GENERATE = 10
-
-# @pytest.fixture
-# def markers(request) -> List[str]:  # type: ignore
-#    marks = [m.name for m in request.node.iter_markers()]
-#    if request.node.parent:
-#        marks += [m.name for m in request.node.parent.iter_markers()]
-#    yield marks
-
-
-@pytest.fixture()
-def global_state() -> GlobalState:
-    state = GlobalState(State())
-    state.settings = settings
-    return state
-
-
-@pytest.fixture()
-def request_state() -> RequestState:
-    return RequestState(State())
 
 
 def _generate_user_data(users_to_generate: int) -> List[UserRegistration]:

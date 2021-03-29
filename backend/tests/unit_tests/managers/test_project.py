@@ -3,9 +3,9 @@ from datetime import datetime
 from typing import Generator, List
 
 import pytest
+import requests
 from faker import Faker
 from fastapi.testclient import TestClient
-from starlette.datastructures import State
 
 from contaxy import config
 from contaxy.clients import AuthClient, JsonDocumentClient
@@ -36,21 +36,9 @@ from contaxy.schema.project import (
 )
 from contaxy.utils import auth_utils
 from contaxy.utils.state_utils import GlobalState, RequestState
-from tests.unit_tests.conftest import BaseUrlSession, test_settings
+from tests.unit_tests.conftest import test_settings
 
 DEFAULT_PASSWORD = "pwd"
-
-
-@pytest.fixture()
-def global_state() -> GlobalState:
-    state = GlobalState(State())
-    state.settings = settings
-    return state
-
-
-@pytest.fixture()
-def request_state() -> RequestState:
-    return RequestState(State())
 
 
 class ProjectOperationsTests(ABC):
@@ -362,11 +350,11 @@ class TestProjectOperationsViaLocalEndpoints(ProjectOperationsTests):
         from contaxy.api import app
 
         with TestClient(app=app, root_path="/") as test_client:
-            self._test_client = test_client
-            system_manager = SystemClient(self._test_client)
-            json_db = JsonDocumentClient(self._test_client)
-            self._auth_manager = AuthClient(self._test_client)
-            self._project_manager = ProjectClient(self._test_client)
+            self._endpoint_client = test_client
+            system_manager = SystemClient(self._endpoint_client)
+            json_db = JsonDocumentClient(self._endpoint_client)
+            self._auth_manager = AuthClient(self._endpoint_client)
+            self._project_manager = ProjectClient(self._endpoint_client)
 
             # system_manager.cleanup_system()
             system_manager.initialize_system()
@@ -414,14 +402,12 @@ class TestProjectOperationsViaLocalEndpoints(ProjectOperationsTests):
 @pytest.mark.integration
 class TestProjectOperationsViaRemoteEndpoints(ProjectOperationsTests):
     @pytest.fixture(autouse=True)
-    def _init_managers(self) -> Generator:
-        self._test_client = BaseUrlSession(
-            base_url=test_settings.REMOTE_BACKEND_ENDPOINT
-        )
-        system_manager = SystemClient(self._test_client)
-        json_db = JsonDocumentClient(self._test_client)
-        self._auth_manager = AuthClient(self._test_client)
-        self._project_manager = ProjectClient(self._test_client)
+    def _init_managers(self, remote_client: requests.Session) -> Generator:
+        self._endpoint_client = remote_client
+        system_manager = SystemClient(self._endpoint_client)
+        json_db = JsonDocumentClient(self._endpoint_client)
+        self._auth_manager = AuthClient(self._endpoint_client)
+        self._project_manager = ProjectClient(self._endpoint_client)
 
         # system_manager.cleanup_system()
         system_manager.initialize_system()

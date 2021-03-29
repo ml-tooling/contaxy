@@ -5,6 +5,10 @@ import pytest
 import requests
 from pydantic import BaseSettings
 from pyinstrument import Profiler
+from starlette.datastructures import State
+
+from contaxy.config import settings
+from contaxy.utils.state_utils import GlobalState, RequestState
 
 
 class BaseUrlSession(requests.Session):
@@ -30,8 +34,29 @@ class TestSettings(BaseSettings):
 test_settings = TestSettings()
 
 
+@pytest.fixture()
+def remote_client() -> requests.Session:
+    """Initializes a remote client using the configured remote backend endpoint."""
+    return BaseUrlSession(base_url=test_settings.REMOTE_BACKEND_ENDPOINT)
+
+
+@pytest.fixture()
+def global_state() -> GlobalState:
+    """Initializes global state."""
+    state = GlobalState(State())
+    state.settings = settings
+    return state
+
+
+@pytest.fixture()
+def request_state() -> RequestState:
+    """Initializes request state."""
+    return RequestState(State())
+
+
 @pytest.fixture(autouse=True)
 def auto_profile_tests(request) -> None:  # type: ignore
+    """Activates automatic profiling."""
     if not test_settings.ACTIVATE_TEST_PROFILING:
         # Only execute if debug is activated
         yield None
