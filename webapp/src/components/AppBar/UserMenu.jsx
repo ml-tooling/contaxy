@@ -10,7 +10,7 @@ import Menu from '@material-ui/core/Menu';
 import MenuItem from '@material-ui/core/MenuItem';
 
 import { API_EXPLORER_URL, DOCUMENTATION_URL } from '../../utils/config';
-import { fetchAPIToken } from '../../services/contaxy-api';
+import { authApi, fetchAPIToken } from '../../services/contaxy-api';
 import { useShowAppDialog } from '../../app/AppDialogServiceProvider';
 import ApiTokenDialog from '../Dialogs/ApiTokenDialog';
 
@@ -23,17 +23,29 @@ function UserMenu(props) {
   const showAppDialog = useShowAppDialog();
   const { className, isAuthenticated, user } = props;
 
-  const handleClose = () => setAnchorEl(null);
-  const handleMenuClick = (event) => setAnchorEl(event.currentTarget);
+  const onClose = () => setAnchorEl(null);
+  const onMenuClick = (event) => setAnchorEl(event.currentTarget);
 
-  const handleApiTokenClick = async () => {
+  const onApiTokenClick = async () => {
     // TODO: pass correct resource for which the API Token should be generated
     const fetchedToken = await fetchAPIToken(user);
     showAppDialog(ApiTokenDialog, { token: JSON.stringify(fetchedToken) });
   };
 
+  const onLogoutClick = async () => {
+    try {
+      await authApi.logoutUserSession();
+    } catch (err) {
+      // ignore
+    }
+    window.location.reload();
+  };
+
   const privateElements = (
-    <MenuItem onClick={handleApiTokenClick}>{t('Get API token')}</MenuItem>
+    <>
+      <MenuItem onClick={onApiTokenClick}>{t('Get API token')}</MenuItem>
+      <MenuItem onClick={onLogoutClick}>{t('Logout')}</MenuItem>
+    </>
   );
 
   return (
@@ -42,7 +54,7 @@ function UserMenu(props) {
         aria-label="usermenu"
         aria-owns={ID_MENU_APPBAR}
         className={`${className} iconButton`}
-        onClick={handleMenuClick}
+        onClick={onMenuClick}
       >
         <AccountCircle />
       </IconButton>
@@ -58,7 +70,7 @@ function UserMenu(props) {
         }}
         id={ID_MENU_APPBAR}
         open={Boolean(anchorEl)}
-        onClose={handleClose}
+        onClose={onClose}
       >
         <MenuItem
           className={`${className} menuItem`}
