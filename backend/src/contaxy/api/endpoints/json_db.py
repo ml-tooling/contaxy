@@ -34,6 +34,10 @@ def create_json_document(
     project_id: str = PROJECT_ID_PARAM,
     collection_id: str = Path(..., description="ID of the collection."),
     key: str = Path(..., description="Key of the JSON document."),
+    upsert: Optional[bool] = Query(
+        True,
+        description="If `True`, the document will be updated/overwritten if it already exists.",
+    ),
     component_manager: ComponentManager = Depends(get_component_manager),
     token: str = Depends(get_api_token),
 ) -> Any:
@@ -44,8 +48,13 @@ def create_json_document(
     component_manager.verify_access(
         token, f"projects/{project_id}/json/{collection_id}/{key}", AccessLevel.WRITE
     )
+
+    if upsert is None:
+        # True is the default
+        upsert = True
+
     return component_manager.get_json_db_manager().create_json_document(
-        project_id, collection_id, key, json.dumps(json_document)
+        project_id, collection_id, key, json.dumps(json_document), upsert=upsert
     )
 
 
@@ -162,3 +171,22 @@ def delete_json_document(
     return component_manager.get_json_db_manager().delete_json_document(
         project_id, collection_id, key
     )
+
+
+@router.delete(
+    "/projects/{project_id}/json",
+    operation_id=CoreOperations.DELETE_JSON_COLLECTIONS.value,
+    summary="Delete all JSON collections.",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def delete_json_collections(
+    project_id: str = PROJECT_ID_PARAM,
+    component_manager: ComponentManager = Depends(get_component_manager),
+    token: str = Depends(get_api_token),
+) -> Any:
+    """Deletes all JSON collections for the given project."""
+    component_manager.verify_access(
+        token, f"projects/{project_id}/json", AccessLevel.ADMIN
+    )
+
+    return component_manager.get_json_db_manager().delete_json_collections(project_id)

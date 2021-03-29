@@ -1,6 +1,34 @@
 """Collection of utilities for FastAPI apps."""
 
-from fastapi import FastAPI
+import inspect
+from typing import Any, Type
+
+from fastapi import FastAPI, Form
+from pydantic import BaseModel
+
+
+def as_form(cls: Type[BaseModel]) -> Any:
+    """Adds an as_form class method to decorated models.
+
+    The as_form class method can be used with FastAPI endpoints
+    """
+    new_params = [
+        inspect.Parameter(
+            field.alias,
+            inspect.Parameter.POSITIONAL_ONLY,
+            default=(Form(field.default) if not field.required else Form(...)),
+        )
+        for field in cls.__fields__.values()
+    ]
+
+    async def _as_form(**data):  # type: ignore
+        return cls(**data)
+
+    sig = inspect.signature(_as_form)
+    sig = sig.replace(parameters=new_params)
+    _as_form.__signature__ = sig  # type: ignore
+    setattr(cls, "as_form", _as_form)
+    return cls
 
 
 def patch_fastapi(app: FastAPI) -> None:

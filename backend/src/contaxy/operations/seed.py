@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import List
 
-from pydantic import EmailStr, SecretStr
+from pydantic import EmailStr
 
 from contaxy.schema import File, Project, ProjectCreation, User, UserRegistration
 from contaxy.utils.file_utils import FileStreamWrapper
@@ -12,7 +12,7 @@ class SeedOperations(ABC):
     def create_user(
         self,
         user_input: UserRegistration = UserRegistration(
-            username="Foo", email=EmailStr("foo@bar.com"), password=SecretStr("Foobar")
+            username="Foo", email=EmailStr("foo@bar.com"), password="Foobar"
         ),
     ) -> User:
         pass

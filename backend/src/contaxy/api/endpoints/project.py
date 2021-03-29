@@ -99,7 +99,7 @@ def update_project(
     The patching is based on the JSON Merge Patch Standard [RFC7396](https://tools.ietf.org/html/rfc7396).
     """
     component_manager.verify_access(token, f"projects/{project_id}", AccessLevel.WRITE)
-    component_manager.get_project_manager().update_project(project_id, project)
+    return component_manager.get_project_manager().update_project(project_id, project)
 
 
 @router.get(

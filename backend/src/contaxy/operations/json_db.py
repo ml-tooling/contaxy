@@ -23,7 +23,7 @@ class JsonDocumentOperations(ABC):
             collection_id: ID of the collection (database) to use to store this JSON document.
             key: Key of the JSON document.
             json_document: The actual JSON document value.
-            upsert (bool): Indicates, wheter upsert strategy is used.
+            upsert: If `True`, the document will be updated/overwritten if it already exists.
 
         Raises:
             ClientValueError: If the given json_document does not contain valid json.

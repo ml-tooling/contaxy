@@ -1,6 +1,6 @@
 """Utilities for managing global and request state for an FastAPI app."""
 
-from typing import Any, Callable
+from typing import Any, Callable, Optional
 
 import addict
 from starlette import datastructures
@@ -126,7 +126,7 @@ class RequestState(State):
         super(RequestState, self).__init__(state)
 
     @property
-    def authorized_access(self) -> AuthorizedAccess:
+    def authorized_access(self) -> Optional[AuthorizedAccess]:
         """Returns the authorized access info for the request."""
         return self.shared_namespace.authorized_access
 

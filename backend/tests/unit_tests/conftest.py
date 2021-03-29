@@ -1,8 +1,20 @@
 import os
+from typing import Optional
 
 import pytest
+import requests
 from pydantic import BaseSettings
 from pyinstrument import Profiler
+
+
+class BaseUrlSession(requests.Session):
+    def __init__(self, base_url=None, *args, **kwargs):  # type: ignore
+        super(BaseUrlSession, self).__init__(*args, **kwargs)
+        self.base_url = base_url
+
+    def request(self, method, url, *args, **kwargs):  # type: ignore
+        url = self.base_url + url
+        return super(BaseUrlSession, self).request(method, url, *args, **kwargs)
 
 
 class TestSettings(BaseSettings):
@@ -11,6 +23,8 @@ class TestSettings(BaseSettings):
     ACTIVATE_TEST_PROFILING: bool = True
     POSTGRES_INTEGRATION_TESTS: bool = False
     MINIO_INTEGRATION_TESTS: bool = False
+    REMOTE_BACKEND_TESTS: bool = False
+    REMOTE_BACKEND_ENDPOINT: Optional[str] = None
 
 
 test_settings = TestSettings()

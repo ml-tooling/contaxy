@@ -3,7 +3,7 @@ from random import randint
 from typing import List, Optional
 
 from faker import Faker
-from pydantic import EmailStr, SecretStr
+from pydantic import EmailStr
 
 from contaxy.operations import AuthOperations, FileOperations, ProjectOperations
 from contaxy.operations.seed import SeedOperations
@@ -34,7 +34,7 @@ class SeedManager(SeedOperations):
     def create_user(
         self,
         user_input: UserRegistration = UserRegistration(
-            username="Foo", email=EmailStr("foo@bar.com"), password=SecretStr("Foobar")
+            username="Foo", email=EmailStr("foo@bar.com"), password="Foobar"
         ),
     ) -> User:
         if not self.auth_manager:

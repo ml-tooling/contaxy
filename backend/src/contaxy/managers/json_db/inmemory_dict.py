@@ -221,5 +221,9 @@ class InMemoryDictJsonDocumentManager(JsonDocumentOperations):
         del collection[key]
 
     def delete_json_collections(self, project_id: str) -> None:
+        state_namespace = self._global_state[InMemoryDictJsonDocumentManager]
+        if state_namespace.dict_db:
+            state_namespace.dict_db[project_id] = {}
+
         if self._dict_db:
             self._dict_db[project_id] = {}  # type: ignore

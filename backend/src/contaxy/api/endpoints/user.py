@@ -150,7 +150,7 @@ def update_user(
     tags=["users"],
     status_code=status.HTTP_204_NO_CONTENT,
 )
-def change_user_password(
+def change_password(
     user_id: str = USER_ID_PARAM,
     password: str = Body(...),
     bearer_token: str = Security(

@@ -42,7 +42,7 @@ class Settings(BaseSettings):
     # If `None`, a dedicated postgres instance will be started as a service (container).
     POSTGRES_CONNECTION_URI: Optional[PostgresDsn] = None
 
-    USER_INMEMORY_DB: bool = False
+    USE_INMEMORY_DB: bool = False
 
     # S3 Storage Connection Configuration for File Manager
     # If `S3_ENDPOINT` is `None`, a dedicated minio instance will be started as a service (container).

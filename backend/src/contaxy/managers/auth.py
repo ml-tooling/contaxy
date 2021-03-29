@@ -21,7 +21,7 @@ from contaxy.schema.auth import (
     ApiToken,
     OAuth2Error,
     OAuth2TokenGrantTypes,
-    OAuth2TokenRequestForm,
+    OAuth2TokenRequestFormNew,
     OAuthToken,
     OAuthTokenIntrospection,
     OpenIDUserInfo,
@@ -599,7 +599,9 @@ class AuthManager(AuthOperations):
         return list(resource_names)
 
     # OAuth Opertions
-    def request_token(self, token_request_form: OAuth2TokenRequestForm) -> OAuthToken:
+    def request_token(
+        self, token_request_form: OAuth2TokenRequestFormNew
+    ) -> OAuthToken:
         if token_request_form.grant_type != OAuth2TokenGrantTypes.PASSWORD:
             # Only the password grant type is currently implemented.
             raise OAuth2Error(error="invalid_grant")
@@ -610,20 +612,21 @@ class AuthManager(AuthOperations):
             user_id = self._get_user_id_by_login_id(token_request_form.username)
             if not self.verify_password(user_id, token_request_form.password):
                 raise OAuth2Error("unauthorized_client")
-            if not token_request_form.scopes:
+            scopes: List[str] = []
+            if not token_request_form.scope:
                 # Default user token is allowed to do everything
-                token_request_form.scopes = [
-                    auth_utils.construct_permission("*", AccessLevel.ADMIN)
-                ]
+                scopes = [auth_utils.construct_permission("*", AccessLevel.ADMIN)]
+            else:
+                scopes = token_request_form.scope.split()
             token = self.create_token(
                 "users/" + user_id,
-                scopes=token_request_form.scopes,
+                scopes=scopes,
                 token_type=TokenType.API_TOKEN,
                 description="Login Token.",
             )
 
             # TODO: change this here if we validated token scopes
-            granted_scopes = " ".join(token_request_form.scopes)
+            granted_scopes = " ".join(scopes)
 
             return OAuthToken(
                 token_type="bearer", access_token=token, scope=granted_scopes
@@ -765,7 +768,7 @@ class AuthManager(AuthOperations):
         user_id = id_utils.generate_short_uuid()
 
         if user_input.password:
-            self.change_password(user_id, user_input.password.get_secret_value())
+            self.change_password(user_id, user_input.password)  # .get_secret_value()
             del user_input.password
 
         if user_input.username and id_utils.is_email(user_input.username):

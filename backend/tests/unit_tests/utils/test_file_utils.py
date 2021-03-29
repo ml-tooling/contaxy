@@ -11,7 +11,8 @@ from contaxy.utils.file_utils import (
     SyncFromAsyncGenerator,
 )
 
-from ..managers.file.data.metadata import file_data
+# TODO: not found from tests.unit_tests.managers.file.data.metadata import file_data
+file_data = []
 
 
 @pytest.mark.unit
