@@ -66,13 +66,7 @@ def auto_profile_tests(request) -> None:  # type: ignore
         yield None
         profiler.stop()
         try:
-            output_file = (
-                "./prof/"
-                + request.node.nodeid.split("::")[0].lstrip("tests/")
-                + "/"
-                + request.node.name
-                + ".html"
-            )
+            output_file = "./prof/" + request.node.nodeid.replace("::", "/") + ".html"
             os.makedirs(os.path.dirname(output_file), exist_ok=True)
             with open(output_file, "w") as f:
                 f.write(profiler.output_html())

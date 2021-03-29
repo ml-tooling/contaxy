@@ -7,7 +7,6 @@ from contaxy.schema.exceptions import ClientValueError
 from contaxy.utils import auth_utils
 
 
-@pytest.mark.unit
 @pytest.mark.parametrize(
     "permission,expected_result",
     [
@@ -34,13 +33,13 @@ from contaxy.utils import auth_utils
         ),
     ],
 )
+@pytest.mark.unit
 def test_parse_permission(
     permission: str, expected_result: Tuple[str, AccessLevel]
 ) -> None:
     assert auth_utils.parse_permission(permission) == expected_result
 
 
-@pytest.mark.unit
 @pytest.mark.parametrize(
     "permission",
     [
@@ -49,12 +48,12 @@ def test_parse_permission(
         ("apsdfjaponasd90j2f09"),
     ],
 )
+@pytest.mark.unit
 def test_parse_permission_exception(permission: str) -> None:
     with pytest.raises(ClientValueError):
         auth_utils.parse_permission(permission)
 
 
-@pytest.mark.unit
 @pytest.mark.parametrize(
     "granted_access_level, requested_access_level, granted",
     [
@@ -66,6 +65,7 @@ def test_parse_permission_exception(permission: str) -> None:
         (AccessLevel.ADMIN, AccessLevel.ADMIN, True),
     ],
 )
+@pytest.mark.unit
 def test_is_access_level_granted(
     granted_access_level: AccessLevel,
     requested_access_level: AccessLevel,
@@ -77,7 +77,6 @@ def test_is_access_level_granted(
     )
 
 
-@pytest.mark.unit
 @pytest.mark.parametrize(
     "granted_permission, requested_permission, granted",
     [
@@ -133,6 +132,7 @@ def test_is_access_level_granted(
         ),
     ],
 )
+@pytest.mark.unit
 def test_is_permission_granted(
     granted_permission: str,
     requested_permission: str,

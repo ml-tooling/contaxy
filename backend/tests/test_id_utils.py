@@ -3,11 +3,11 @@ import pytest
 from contaxy.utils import id_utils
 
 
-@pytest.mark.unit
 @pytest.mark.parametrize(
     "input_str,max_length,min_length,expected_id",
     [("test", 8, 4, "test")],
 )
+@pytest.mark.unit
 def test_generate_readable_id(
     input_str: str, max_length: int, min_length: int, expected_id: str
 ) -> None:

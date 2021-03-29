@@ -1,4 +1,4 @@
-"""Used for Locust stress tests."""
+"""Used for endpoint stress tests via locust."""
 import random
 from logging import error
 
@@ -172,8 +172,8 @@ class CommonUser(HttpUser):
 
     # TODO: add/remove project members
 
-    @tag("json-db")
     @task(25)
+    @tag("json-db")
     def create_json_document(self) -> None:
         json_db_client = JsonDocumentClient(self.client)
         selected_project = self._get_user_project()
@@ -193,8 +193,8 @@ class CommonUser(HttpUser):
             request_kwargs={"name": CoreOperations.CREATE_JSON_DOCUMENT.value},
         )
 
-    @tag("json-db")
     @task(5)
+    @tag("json-db")
     def update_json_document(self) -> None:
         json_db_client = JsonDocumentClient(self.client)
         selected_project = self._get_user_project()
@@ -221,8 +221,8 @@ class CommonUser(HttpUser):
                 request_kwargs={"name": CoreOperations.UPDATE_JSON_DOCUMENT.value},
             )
 
-    @tag("json-db")
     @task(10)
+    @tag("json-db")
     def get_json_document(self) -> None:
         json_db_client = JsonDocumentClient(self.client)
         selected_project = self._get_user_project()
@@ -242,8 +242,8 @@ class CommonUser(HttpUser):
                 request_kwargs={"name": CoreOperations.GET_JSON_DOCUMENT.value},
             )
 
-    @tag("json-db")
     @task(5)
+    @tag("json-db")
     def delete_json_document(self) -> None:
         json_db_client = JsonDocumentClient(self.client)
         selected_project = self._get_user_project()

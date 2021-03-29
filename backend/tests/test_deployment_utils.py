@@ -22,6 +22,7 @@ from contaxy.schema.deployment import DeploymentType
         ),
     ],
 )
+@pytest.mark.unit
 def test_get_deployment_id(
     project_id: str,
     deployment_name: str,
