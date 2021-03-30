@@ -171,20 +171,8 @@ class ComponentManager:
             self._extension_manager = ExtensionManager(self.global_state, self.request_state)  # type: ignore  # TODO: remove type ignore
         return self._extension_manager
 
-    def get_json_db_manager(
-        self, extension_id: Optional[str] = CORE_EXTENSION_ID
-    ) -> JsonDocumentOperations:
-        """Returns a JSON DB Manager instance.
-
-        Depending on the provided `extenion_id`, this is either the configured core component
-        or an initialized extension client.
-
-        Args:
-            extension_id: ID of the requested extension. Use `core` for the platform components.
-        """
-        if extension_id is not None and extension_id != CORE_EXTENSION_ID:
-            return self.get_extension_manager().get_extension_client(extension_id)
-
+    def get_json_db_manager(self) -> JsonDocumentOperations:
+        """Returns a JSON DB Manager instance."""
         if not self._json_db_manager:
             from contaxy.managers.json_db.postgres import PostgresJsonDocumentManager
 

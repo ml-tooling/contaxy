@@ -8,7 +8,6 @@ from .auth import (
     OAuth2TokenRequestFormNew,
     OAuthToken,
     OAuthTokenIntrospection,
-    OpenIDUserInfo,
     TokenType,
     User,
     UserInput,

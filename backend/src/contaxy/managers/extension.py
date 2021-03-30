@@ -1,12 +1,7 @@
 from typing import Tuple, Union
 
-from contaxy.operations import (
-    ExtensionOperations,
-    FileOperations,
-    JobOperations,
-    JsonDocumentOperations,
-    ServiceOperations,
-)
+from contaxy.clients import DeploymentManagerClient, FileClient
+from contaxy.operations import ExtensionOperations
 from contaxy.schema import ExtensibleOperations
 from contaxy.schema.extension import CORE_EXTENSION_ID
 from contaxy.utils.state_utils import GlobalState, RequestState
@@ -36,9 +31,7 @@ def parse_composite_id(composite_id: str) -> Tuple[str, Union[str, None]]:
     return resource_id, extension_id
 
 
-class ExtensionClient(
-    FileOperations, JobOperations, ServiceOperations, JsonDocumentOperations
-):
+class ExtensionClient(FileClient, DeploymentManagerClient):
     """Handels the request forwarding to the installed extensions.
 
     The extension client implements all extensible manager interfaces
@@ -58,8 +51,9 @@ class ExtensionClient(
             global_state: The global state of the app instance.
             request_state: The state for the current request.
         """
-        self.global_state = global_state
-        self.request_state = request_state
+        self._global_state = global_state
+        self._request_state = request_state
+        # TODO: Initialize Extension Client correctly
 
 
 class ExtensionManager(ExtensionOperations):

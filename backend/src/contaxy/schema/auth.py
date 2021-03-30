@@ -239,30 +239,6 @@ class OAuthToken(BaseModel):
     )
 
 
-class OpenIDUserInfo(BaseModel):
-    # Based on: https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims
-    sub: str = Field(
-        ..., description="Subject - Identifier for the End-User at the Issuer."
-    )
-    name: Optional[str] = Field(
-        None,
-        description="End-User's full name in displayable form including all name parts, possibly including titles and suffixes, ordered according to the End-User's locale and preferences.",
-    )
-    # TODO: this is actually
-    preferred_username: Optional[str] = Field(
-        None,
-        description="Shorthand name by which the End-User wishes to be referred to.",
-    )
-    email: Optional[str] = Field(
-        None,
-        description="End-User's preferred e-mail address",
-    )
-    updated_at: Optional[int] = Field(
-        None,
-        description="Time the End-User's information was last updated. Number of seconds from 1970-01-01T0:0:0Z as measured in UTC until the date/time.",
-    )
-
-
 class OAuthTokenIntrospection(BaseModel):
     active: bool = Field(
         ...,
