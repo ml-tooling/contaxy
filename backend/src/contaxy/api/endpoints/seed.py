@@ -4,9 +4,9 @@ from fastapi import APIRouter, Depends
 
 from contaxy.api.dependencies import ComponentManager, get_component_manager
 from contaxy.schema import AccessLevel
-from contaxy.schema.exceptions import ClientBaseError
+from contaxy.schema.exceptions import VALIDATION_ERROR_RESPONSE, ClientBaseError
 
-router = APIRouter(tags=["seed"])
+router = APIRouter(tags=["seed"], responses={**VALIDATION_ERROR_RESPONSE})
 
 
 @router.get("/seed/default")

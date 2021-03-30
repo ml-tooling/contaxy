@@ -10,15 +10,18 @@ from contaxy.api.dependencies import (
 )
 from contaxy.schema import AccessLevel, CoreOperations, Project, ProjectInput, User
 from contaxy.schema.auth import USER_ID_PARAM
+from contaxy.schema.exceptions import (
+    AUTH_ERROR_RESPONSES,
+    CREATE_RESOURCE_RESPONSES,
+    GET_RESOURCE_RESPONSES,
+    VALIDATION_ERROR_RESPONSE,
+)
 from contaxy.schema.project import PROJECT_ID_PARAM, ProjectCreation
 from contaxy.schema.shared import MAX_DISPLAY_NAME_LENGTH, MIN_DISPLAY_NAME_LENGTH
 
 router = APIRouter(
     tags=["projects"],
-    responses={
-        401: {"detail": "No API token was provided"},
-        403: {"detail": "Forbidden - the user is not authorized to use this resource"},
-    },
+    responses={**AUTH_ERROR_RESPONSES, **VALIDATION_ERROR_RESPONSE},
 )
 
 
@@ -29,6 +32,7 @@ router = APIRouter(
     response_model_exclude_unset=True,
     summary="Create a new project.",
     status_code=status.HTTP_200_OK,
+    responses={**CREATE_RESOURCE_RESPONSES},
 )
 def create_project(
     project: ProjectCreation,
@@ -109,6 +113,7 @@ def update_project(
     response_model_exclude_unset=True,
     summary="Get details for a project.",
     status_code=status.HTTP_200_OK,
+    responses={**GET_RESOURCE_RESPONSES},
 )
 def get_project(
     project_id: str = PROJECT_ID_PARAM,

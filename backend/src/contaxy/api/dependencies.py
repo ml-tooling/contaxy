@@ -1,12 +1,12 @@
 from typing import Generator
 
-from fastapi import HTTPException, Request, Security
+from fastapi import Request, Security
 from fastapi.security import OAuth2PasswordBearer
 from fastapi.security.api_key import APIKeyCookie, APIKeyHeader, APIKeyQuery
-from starlette import status
 
 from contaxy import config
 from contaxy.managers.components import ComponentManager
+from contaxy.schema.exceptions import UnauthenticatedError
 
 
 def get_api_token(
@@ -34,10 +34,7 @@ def get_api_token(
     elif api_token_cookie:
         return api_token_cookie
     else:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="No API token was provided.",
-        )
+        raise UnauthenticatedError("No API token was provided.")
 
 
 def get_component_manager(request: Request) -> Generator[ComponentManager, None, None]:

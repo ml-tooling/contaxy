@@ -10,14 +10,17 @@ from contaxy.api.dependencies import (
 )
 from contaxy.schema import CoreOperations, JsonDocument
 from contaxy.schema.auth import AccessLevel
+from contaxy.schema.exceptions import (
+    AUTH_ERROR_RESPONSES,
+    CREATE_RESOURCE_RESPONSES,
+    GET_RESOURCE_RESPONSES,
+    UPDATE_RESOURCE_RESPONSES,
+    VALIDATION_ERROR_RESPONSE,
+)
 from contaxy.schema.project import PROJECT_ID_PARAM
 
 router = APIRouter(
-    tags=["json"],
-    responses={
-        401: {"detail": "No API token was provided."},
-        403: {"detail": "Forbidden - the user is not authorized to use this resource."},
-    },
+    tags=["json"], responses={**AUTH_ERROR_RESPONSES, **VALIDATION_ERROR_RESPONSE}
 )
 
 
@@ -28,6 +31,7 @@ router = APIRouter(
     response_model=JsonDocument,
     response_model_exclude_unset=True,
     status_code=status.HTTP_200_OK,
+    responses={**CREATE_RESOURCE_RESPONSES},
 )
 def create_json_document(
     json_document: Dict,
@@ -65,6 +69,7 @@ def create_json_document(
     response_model=JsonDocument,
     response_model_exclude_unset=True,
     status_code=status.HTTP_200_OK,
+    responses={**UPDATE_RESOURCE_RESPONSES},
 )
 def update_json_document(
     json_document: Dict,
@@ -128,6 +133,7 @@ def list_json_documents(
     response_model_exclude_unset=True,
     summary="Get JSON document.",
     status_code=status.HTTP_200_OK,
+    responses={**GET_RESOURCE_RESPONSES},
 )
 def get_json_document(
     project_id: str = PROJECT_ID_PARAM,

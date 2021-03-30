@@ -9,8 +9,12 @@ from contaxy.api.dependencies import (
 )
 from contaxy.schema import CoreOperations, SystemInfo, SystemStatistics
 from contaxy.schema.auth import AccessLevel
+from contaxy.schema.exceptions import AUTH_ERROR_RESPONSES, VALIDATION_ERROR_RESPONSE
 
-router = APIRouter(tags=["system"])
+router = APIRouter(
+    tags=["system"],
+    responses={**VALIDATION_ERROR_RESPONSE},
+)
 
 
 @router.get(
@@ -48,6 +52,7 @@ def check_health(
     response_model=SystemStatistics,
     summary="Get system statistics.",
     status_code=status.HTTP_200_OK,
+    responses={**AUTH_ERROR_RESPONSES},
 )
 def get_system_statistics(
     component_manager: ComponentManager = Depends(get_component_manager),

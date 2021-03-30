@@ -11,6 +11,13 @@ from contaxy.api.dependencies import (
 from contaxy.managers.extension import parse_composite_id
 from contaxy.schema import ExtensibleOperations, File, FileInput, ResourceAction
 from contaxy.schema.auth import AccessLevel
+from contaxy.schema.exceptions import (
+    AUTH_ERROR_RESPONSES,
+    CREATE_RESOURCE_RESPONSES,
+    GET_RESOURCE_RESPONSES,
+    UPDATE_RESOURCE_RESPONSES,
+    VALIDATION_ERROR_RESPONSE,
+)
 from contaxy.schema.extension import EXTENSION_ID_PARAM
 from contaxy.schema.file import FILE_KEY_PARAM
 from contaxy.schema.project import PROJECT_ID_PARAM
@@ -19,10 +26,7 @@ from contaxy.utils.file_utils import FormMultipartStream, SyncFromAsyncGenerator
 
 router = APIRouter(
     tags=["files"],
-    responses={
-        401: {"detail": "No API token was provided"},
-        403: {"detail": "Forbidden - the user is not authorized to use this resource"},
-    },
+    responses={**AUTH_ERROR_RESPONSES, **VALIDATION_ERROR_RESPONSE},
 )
 
 
@@ -72,6 +76,7 @@ def list_files(
     response_model=File,
     summary="Upload a file.",
     status_code=status.HTTP_200_OK,
+    responses={**CREATE_RESOURCE_RESPONSES},
 )
 def upload_file(
     request: Request,
@@ -124,6 +129,7 @@ def upload_file(
     response_model=File,
     summary="Get file metadata.",
     status_code=status.HTTP_200_OK,
+    responses={**GET_RESOURCE_RESPONSES},
 )
 def get_file_metadata(
     project_id: str = PROJECT_ID_PARAM,
@@ -154,6 +160,7 @@ def get_file_metadata(
     response_model=File,
     summary="Update file metadata.",
     status_code=status.HTTP_200_OK,
+    responses={**UPDATE_RESOURCE_RESPONSES},
 )
 def update_file_metadata(
     file: FileInput,
@@ -191,6 +198,7 @@ def update_file_metadata(
     # TODO: response_model?
     summary="Download a file.",
     status_code=status.HTTP_200_OK,
+    responses={**GET_RESOURCE_RESPONSES},
 )
 def download_file(
     project_id: str = PROJECT_ID_PARAM,
@@ -228,6 +236,7 @@ def download_file(
     response_model=List[ResourceAction],
     summary="List file actions.",
     status_code=status.HTTP_200_OK,
+    responses={**GET_RESOURCE_RESPONSES},
 )
 def list_file_actions(
     project_id: str = PROJECT_ID_PARAM,
@@ -273,7 +282,7 @@ def list_file_actions(
     # TODO: what is the response model? add additional status codes?
     summary="Execute a file action.",
     status_code=status.HTTP_200_OK,
-    responses={**OPEN_URL_REDIRECT},
+    responses={**OPEN_URL_REDIRECT, **GET_RESOURCE_RESPONSES},
 )
 def execute_file_action(
     project_id: str = PROJECT_ID_PARAM,

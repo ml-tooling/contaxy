@@ -19,23 +19,23 @@ from contaxy.schema import (
 )
 from contaxy.schema.auth import AccessLevel
 from contaxy.schema.deployment import JOB_ID_PARAM, SERVICE_ID_PARAM
+from contaxy.schema.exceptions import (
+    AUTH_ERROR_RESPONSES,
+    CREATE_RESOURCE_RESPONSES,
+    GET_RESOURCE_RESPONSES,
+    VALIDATION_ERROR_RESPONSE,
+)
 from contaxy.schema.extension import EXTENSION_ID_PARAM
 from contaxy.schema.project import PROJECT_ID_PARAM
 from contaxy.schema.shared import OPEN_URL_REDIRECT, RESOURCE_ID_REGEX
 
 service_router = APIRouter(
     tags=["services"],
-    responses={
-        401: {"detail": "No API token was provided"},
-        403: {"detail": "Forbidden - the user is not authorized to use this resource"},
-    },
+    responses={**AUTH_ERROR_RESPONSES, **VALIDATION_ERROR_RESPONSE},
 )
 job_router = APIRouter(
     tags=["jobs"],
-    responses={
-        401: {"detail": "No API token was provided"},
-        403: {"detail": "Forbidden - the user is not authorized to use this resource"},
-    },
+    responses={**AUTH_ERROR_RESPONSES, **VALIDATION_ERROR_RESPONSE},
 )
 
 
@@ -97,6 +97,7 @@ def suggest_service_config(
     response_model=Service,
     summary="Get service metadata.",
     status_code=status.HTTP_200_OK,
+    responses={**GET_RESOURCE_RESPONSES},
 )
 def get_service_metadata(
     project_id: str = PROJECT_ID_PARAM,
@@ -163,6 +164,7 @@ def list_deploy_service_actions(
     response_model=Service,
     summary="Deploy a service.",
     status_code=status.HTTP_200_OK,
+    responses={**CREATE_RESOURCE_RESPONSES},
 )
 def deploy_service(
     service: ServiceInput,
@@ -235,6 +237,7 @@ def delete_service(
     response_model=str,
     summary="Get service logs.",
     status_code=status.HTTP_200_OK,
+    responses={**GET_RESOURCE_RESPONSES},
 )
 def get_service_logs(
     project_id: str = PROJECT_ID_PARAM,
@@ -263,6 +266,7 @@ def get_service_logs(
     response_model=List[ResourceAction],
     summary="List service actions.",
     status_code=status.HTTP_200_OK,
+    responses={**GET_RESOURCE_RESPONSES},
 )
 def list_service_actions(
     project_id: str = PROJECT_ID_PARAM,
@@ -303,7 +307,7 @@ def list_service_actions(
     # TODO: what is the response model? add additional status codes?
     summary="Execute a service action.",
     status_code=status.HTTP_200_OK,
-    responses={**OPEN_URL_REDIRECT},
+    responses={**OPEN_URL_REDIRECT, **GET_RESOURCE_RESPONSES},
 )
 def execute_service_action(
     project_id: str = PROJECT_ID_PARAM,
@@ -368,6 +372,7 @@ def list_jobs(
     response_model=Job,
     summary="Get job metadata.",
     status_code=status.HTTP_200_OK,
+    responses={**GET_RESOURCE_RESPONSES},
 )
 def get_job_metadata(
     project_id: str = PROJECT_ID_PARAM,
@@ -469,7 +474,7 @@ def list_deploy_job_actions(
     response_model=Job,
     summary="Deploy a job.",
     status_code=status.HTTP_200_OK,
-    responses={**OPEN_URL_REDIRECT},
+    responses={**OPEN_URL_REDIRECT, **CREATE_RESOURCE_RESPONSES},
 )
 def deploy_job(
     job: JobInput,
@@ -539,6 +544,7 @@ def delete_job(
     response_model=str,
     summary="Get job logs.",
     status_code=status.HTTP_200_OK,
+    responses={**GET_RESOURCE_RESPONSES},
 )
 def get_job_logs(
     project_id: str = PROJECT_ID_PARAM,
@@ -569,6 +575,7 @@ def get_job_logs(
     response_model=List[ResourceAction],
     summary="List job actions.",
     status_code=status.HTTP_200_OK,
+    responses={**GET_RESOURCE_RESPONSES},
 )
 def list_job_actions(
     project_id: str = PROJECT_ID_PARAM,
@@ -612,7 +619,7 @@ def list_job_actions(
     # TODO: what is the response model? add additional status codes?
     summary="Execute a job action.",
     status_code=status.HTTP_200_OK,
-    responses={**OPEN_URL_REDIRECT},
+    responses={**OPEN_URL_REDIRECT, **GET_RESOURCE_RESPONSES},
 )
 def execute_job_action(
     project_id: str = PROJECT_ID_PARAM,

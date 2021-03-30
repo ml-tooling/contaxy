@@ -145,16 +145,16 @@ class DeploymentManagerClient(DeploymentOperations):
         # TODO: Return response?
 
     def access_service(
-                   self,
-                   project_id: str,
-                   service_id: str,
-                   endpoint: str,
-                   request_kwargs: Dict = {},
-                   ) -> None:
+        self,
+        project_id: str,
+        service_id: str,
+        endpoint: str,
+        request_kwargs: Dict = {},
+    ) -> None:
         response = self.client.get(
-                               f"/projects/{project_id}/services/{service_id}/access/{endpoint}",
-                               **request_kwargs,
-                               )
+            f"/projects/{project_id}/services/{service_id}/access/{endpoint}",
+            **request_kwargs,
+        )
         handle_errors(response)
         # TODO: Return response?
 

@@ -7,6 +7,7 @@ from contaxy.schema import AccessLevel, Project, ProjectCreation, ProjectInput, 
 class ProjectOperations(ABC):
     @abstractmethod
     def list_projects(self) -> List[Project]:
+        """Returns all projects visible to the authenticated user."""
         pass
 
     @abstractmethod

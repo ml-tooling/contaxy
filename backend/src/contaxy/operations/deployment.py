@@ -4,6 +4,8 @@ from typing import Any, List, Optional
 
 from contaxy.schema import Job, JobInput, ResourceAction, Service, ServiceInput
 
+# TODO: update_service functionality
+
 
 class ServiceOperations(ABC):
     @abstractmethod

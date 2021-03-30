@@ -1,11 +1,11 @@
 from fastapi import HTTPException, status
 from requests.models import Response
 
-from contaxy.api.error_handling import UnifiedErrorFormat
 from contaxy.schema import UnauthenticatedError
 from contaxy.schema.exceptions import (
     ClientValueError,
     PermissionDeniedError,
+    ProblemDetails,
     ResourceAlreadyExistsError,
     ResourceNotFoundError,
 )
@@ -17,7 +17,7 @@ def handle_errors(response: Response) -> None:
 
     message = None
     try:
-        error = UnifiedErrorFormat.parse_raw(response.text)
+        error = ProblemDetails.parse_raw(response.text)
         message = error.message
     except Exception:
         try:

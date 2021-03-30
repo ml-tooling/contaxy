@@ -8,14 +8,17 @@ from contaxy.api.dependencies import (
     get_component_manager,
 )
 from contaxy.schema import CoreOperations, Extension, ExtensionInput
+from contaxy.schema.exceptions import (
+    AUTH_ERROR_RESPONSES,
+    CREATE_RESOURCE_RESPONSES,
+    GET_RESOURCE_RESPONSES,
+    VALIDATION_ERROR_RESPONSE,
+)
 from contaxy.schema.project import PROJECT_ID_PARAM
 
 router = APIRouter(
     tags=["extensions"],
-    responses={
-        401: {"detail": "No API token was provided"},
-        403: {"detail": "Forbidden - the user is not authorized to use this resource"},
-    },
+    responses={**AUTH_ERROR_RESPONSES, **VALIDATION_ERROR_RESPONSE},
 )
 
 
@@ -68,6 +71,7 @@ def delete_extension(
     response_model=Extension,
     summary="Get extension metadata.",
     status_code=status.HTTP_200_OK,
+    responses={**GET_RESOURCE_RESPONSES},
 )
 def get_extension_metadata(
     project_id: str = PROJECT_ID_PARAM,
@@ -89,6 +93,7 @@ def get_extension_metadata(
     response_model=Extension,
     summary="Install extension.",
     status_code=status.HTTP_200_OK,
+    responses={**CREATE_RESOURCE_RESPONSES},
 )
 def install_extension(
     extension: ExtensionInput,

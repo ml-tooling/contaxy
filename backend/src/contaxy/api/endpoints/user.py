@@ -11,15 +11,19 @@ from contaxy.api.dependencies import (
 )
 from contaxy.schema import CoreOperations, User, UserInput, UserRegistration
 from contaxy.schema.auth import USER_ID_PARAM, AccessLevel
-from contaxy.schema.exceptions import PermissionDeniedError
+from contaxy.schema.exceptions import (
+    AUTH_ERROR_RESPONSES,
+    CREATE_RESOURCE_RESPONSES,
+    GET_RESOURCE_RESPONSES,
+    UPDATE_RESOURCE_RESPONSES,
+    VALIDATION_ERROR_RESPONSE,
+    PermissionDeniedError,
+)
 from contaxy.utils import id_utils
 
 router = APIRouter(
     tags=["users"],
-    responses={
-        401: {"detail": "No API token was provided"},
-        403: {"detail": "Forbidden - the user is not authorized to use this resource"},
-    },
+    responses={**AUTH_ERROR_RESPONSES, **VALIDATION_ERROR_RESPONSE},
 )
 
 
@@ -51,6 +55,7 @@ def list_users(
     summary="Create a user.",
     tags=["users"],
     status_code=status.HTTP_200_OK,
+    responses={**CREATE_RESOURCE_RESPONSES},
 )
 def create_user(
     user_input: UserRegistration,
@@ -79,6 +84,7 @@ def create_user(
     summary="Get my user metadata.",
     tags=["users"],
     status_code=status.HTTP_200_OK,
+    responses={**GET_RESOURCE_RESPONSES},
 )
 def get_my_user(
     component_manager: ComponentManager = Depends(get_component_manager),
@@ -107,6 +113,7 @@ def get_my_user(
     summary="Get user metadata.",
     tags=["users"],
     status_code=status.HTTP_200_OK,
+    responses={**GET_RESOURCE_RESPONSES},
 )
 def get_user(
     user_id: str = USER_ID_PARAM,
@@ -126,6 +133,7 @@ def get_user(
     summary="Update user metadata.",
     tags=["users"],
     status_code=status.HTTP_200_OK,
+    responses={**UPDATE_RESOURCE_RESPONSES},
 )
 def update_user(
     user_id: str = USER_ID_PARAM,
@@ -149,6 +157,7 @@ def update_user(
     summary="Change the user password",
     tags=["users"],
     status_code=status.HTTP_204_NO_CONTENT,
+    responses={**GET_RESOURCE_RESPONSES},
 )
 def change_password(
     user_id: str = USER_ID_PARAM,
@@ -166,6 +175,7 @@ def change_password(
     The password is stored as a hash.
     """
     # TODO: check bearer token
+
     component_manager.get_auth_manager().change_password(user_id, password)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 

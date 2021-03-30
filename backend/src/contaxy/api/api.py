@@ -2,6 +2,7 @@ import asyncio
 from typing import Any, Dict
 
 from fastapi import FastAPI
+from fastapi.exceptions import RequestValidationError
 from fastapi.openapi.utils import get_openapi
 from loguru import logger
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -38,6 +39,11 @@ if config.settings.DEBUG:
 @app.exception_handler(StarletteHTTPException)
 async def http_exception_handler(request, exc):  # type: ignore
     return await error_handling.handel_http_exeptions(request, exc)
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request, exc):  # type: ignore
+    return await error_handling.handle_validation_exception(request, exc)
 
 
 # Startup and shutdown events
@@ -86,6 +92,7 @@ app.include_router(deployment.service_router)
 app.include_router(extension.router)
 app.include_router(file.router)
 app.include_router(json_db.router)
+
 if config.settings.DEBUG:
     app.include_router(seed.router)
 

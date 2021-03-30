@@ -299,6 +299,10 @@ class AuthorizeResponseType(str, Enum):
     CODE = "code"
 
 
+class OAuth2ErrorDetails(BaseModel):
+    error: str
+
+
 class OAuth2Error(HTTPException):
     """Basic exception for OAuth errors.
 
@@ -312,7 +316,6 @@ class OAuth2Error(HTTPException):
         """Initializes the exception.
 
         Args:
-            status_code: The HTTP status code associated with the error.
             error: A single ASCII error code from the ones defined in RFC6749.
         """
 

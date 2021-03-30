@@ -22,6 +22,7 @@ from .deployment import (
     ServiceInput,
 )
 from .exceptions import (
+    AUTH_ERROR_RESPONSES,
     ClientBaseError,
     ClientValueError,
     PermissionDeniedError,

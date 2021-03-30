@@ -18,12 +18,11 @@ from contaxy.schema import (
     OAuthTokenIntrospection,
     TokenType,
 )
-from contaxy.schema.auth import AccessLevel, OAuth2TokenGrantTypes
+from contaxy.schema.auth import AccessLevel, OAuth2ErrorDetails, OAuth2TokenGrantTypes
+from contaxy.schema.exceptions import AUTH_ERROR_RESPONSES, VALIDATION_ERROR_RESPONSE
 from contaxy.utils import auth_utils, id_utils
 
-router = APIRouter(
-    tags=["auth"], responses={401: {"detail": "No API token was provided"}}
-)
+router = APIRouter(tags=["auth"], responses={**VALIDATION_ERROR_RESPONSE})
 
 
 @router.get(
@@ -116,6 +115,7 @@ def logout_user_session(
     response_model_exclude_unset=True,
     summary="List API tokens.",
     status_code=status.HTTP_200_OK,
+    responses={**AUTH_ERROR_RESPONSES},
 )
 def list_api_tokens(
     component_manager: ComponentManager = Depends(get_component_manager),
@@ -141,6 +141,7 @@ def list_api_tokens(
     response_model=str,
     summary="Create API or session token.",
     status_code=status.HTTP_200_OK,
+    responses={**AUTH_ERROR_RESPONSES},
 )
 def create_token(
     scopes: Optional[List[str]] = Query(
@@ -201,6 +202,7 @@ def create_token(
     operation_id=CoreOperations.VERIFY_ACCESS.value,
     summary="Verify a Session or API Token.",
     status_code=status.HTTP_204_NO_CONTENT,
+    responses={**AUTH_ERROR_RESPONSES},
 )
 def verify_access(
     token_in_body: Optional[str] = Body(
@@ -237,6 +239,9 @@ def verify_access(
     summary="Request a token (OAuth2 Endpoint).",
     response_model_exclude_unset=True,
     status_code=status.HTTP_200_OK,
+    responses={
+        status.HTTP_400_BAD_REQUEST: {"model": OAuth2ErrorDetails},
+    },
 )
 def request_token(
     token_request_form: OAuth2TokenRequestFormNew = Depends(
@@ -301,6 +306,9 @@ def request_token(
     operation_id=CoreOperations.REVOKE_TOKEN.value,
     summary="Revoke a token (OAuth2 Endpoint).",
     status_code=status.HTTP_200_OK,
+    responses={
+        status.HTTP_400_BAD_REQUEST: {"model": OAuth2ErrorDetails},
+    },
 )
 def revoke_token(
     token: str = Form(..., description="The token that should be revoked."),
@@ -328,6 +336,7 @@ def revoke_token(
     summary="Introspect a token (OAuth2 Endpoint).",
     response_model_exclude_unset=True,
     status_code=status.HTTP_200_OK,
+    responses={**AUTH_ERROR_RESPONSES},
 )
 def introspect_token(
     token: str = Form(..., description="The token that should be instrospected."),
