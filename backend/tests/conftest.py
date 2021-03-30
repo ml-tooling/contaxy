@@ -29,6 +29,8 @@ class TestSettings(BaseSettings):
     MINIO_INTEGRATION_TESTS: bool = False
     REMOTE_BACKEND_TESTS: bool = False
     REMOTE_BACKEND_ENDPOINT: Optional[str] = None
+    DOCKER_INTEGRATION_TESTS: bool = True
+    KUBERNETES_INTEGRATION_TESTS: bool = False
 
 
 test_settings = TestSettings()
