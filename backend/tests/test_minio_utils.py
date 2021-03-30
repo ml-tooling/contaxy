@@ -26,6 +26,12 @@ def minio_client() -> Minio:
     not test_settings.MINIO_INTEGRATION_TESTS,
     reason="Minio Integration Tests are deactivated, use MINIO_INTEGRATION_TESTS to activate.",
 )
+@pytest.mark.skipif(
+    not settings.S3_ENDPOINT
+    or not settings.S3_ACCESS_KEY
+    or not settings.S3_SECRET_KEY,
+    reason="Minio Integration Tests are deactivated, configure Minio connection via S3_ENDPOINT, S3_ACCESS_KEY, S3_SECRET_KEY.",
+)
 @pytest.mark.integration
 class TestMinioUtils:
     def test_create_client(self) -> None:
