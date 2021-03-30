@@ -324,9 +324,7 @@ class TestMinioFileManagerWithPostgres(FileOperationsTests):
 @pytest.mark.integration
 class TestMinioFileManagerViaLocalEndpoints(FileOperationsTests):
     @pytest.fixture(autouse=True)
-    def _init_managers(
-        self, global_state: GlobalState, request_state: RequestState
-    ) -> Generator:
+    def _init_managers(self) -> Generator:
 
         from contaxy.api import app
 
@@ -336,9 +334,7 @@ class TestMinioFileManagerViaLocalEndpoints(FileOperationsTests):
             self._json_db = JsonDocumentClient(self._test_client)
             self._auth_manager = AuthClient(self._test_client)
             self._file_manager = FileClient(self._test_client)
-            self._seeder = SeedManager(
-                global_state, request_state, file_manager=self._file_manager
-            )
+            self._seeder = SeedManager(file_manager=self._file_manager)
 
             self._project_id = f"{randint(1, 100000)}-file-manager-test"
             system_manager.initialize_system()
