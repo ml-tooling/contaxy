@@ -649,9 +649,13 @@ class DeploymentOperationsEndpointTests(DeploymentOperationsTests):
         self.login_user(
             config.SYSTEM_ADMIN_USERNAME, config.SYSTEM_ADMIN_INITIAL_PASSWORD
         )
-        self._deployment_manager.delete_service(
-            project_id=self._project_id, service_id=self._service_id
-        )
+
+        try:
+            self._deployment_manager.delete_service(
+                project_id=self._project_id, service_id=self._service_id
+            )
+        except Exception:
+            pass
 
         if type(_client) == TestClient:
             _client.__exit__()

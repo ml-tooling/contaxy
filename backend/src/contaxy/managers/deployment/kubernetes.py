@@ -324,6 +324,8 @@ class KubernetesDeploymentManager(DeploymentManager):
             raise ResourceNotFoundError(
                 f"Could not find service {service_id} to read logs from."
             )
+
+        # TODO: remove as this should not be a concern of the get_logs function
         try:
             # Give some time to let the container within the pod start
             start = time.time()
@@ -348,15 +350,17 @@ class KubernetesDeploymentManager(DeploymentManager):
                         f"Could not read logs from service {service_id} due to status error."
                     )
 
+            since_seconds = None
+            if since:
+                since_seconds = int((datetime.now() - since).total_seconds()) + 1
+
             try:
                 return self.core_api.read_namespaced_pod_log(
                     name=pod.metadata.name,
                     namespace=self.kube_namespace,
                     pretty="true",
                     tail_lines=lines if lines else None,
-                    since_seconds=(int((datetime.now() - since).total_seconds()) + 1)
-                    if since is not None
-                    else None,
+                    since_seconds=since_seconds,
                 )
             except ApiException:
                 raise ServerBaseError(f"Could not read logs of service {service_id}.")

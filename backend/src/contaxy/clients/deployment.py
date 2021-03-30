@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Dict, List, Optional
 
 import requests
-from pydantic import parse_obj_as
+from pydantic.tools import parse_raw_as
 from starlette.responses import Response
 
 from contaxy.clients.shared import handle_errors
@@ -21,9 +21,9 @@ class DeploymentManagerClient(DeploymentOperations):
     def list_services(
         self, project_id: str, request_kwargs: Dict = {}
     ) -> List[Service]:
-        response = self.client.get(f"/projects{project_id}/services", **request_kwargs)
+        response = self.client.get(f"/projects/{project_id}/services", **request_kwargs)
         handle_errors(response)
-        return parse_obj_as(List[Service], response.json())
+        return parse_raw_as(List[Service], response.text)
 
     def deploy_service(
         self,
@@ -42,7 +42,7 @@ class DeploymentManagerClient(DeploymentOperations):
             **request_kwargs,
         )
         handle_errors(resource)
-        return parse_obj_as(Service, resource.json())
+        return parse_raw_as(Service, resource.text)
 
     def list_deploy_service_actions(
         self,
@@ -50,13 +50,13 @@ class DeploymentManagerClient(DeploymentOperations):
         service: ServiceInput,
         request_kwargs: Dict = {},
     ) -> List[ResourceAction]:
-        resources = self.client.get(
+        resources = self.client.post(
             f"/projects/{project_id}/services:deploy-actions",
             json=service.dict(exclude_unset=True),
             **request_kwargs,
         )
         handle_errors(resources)
-        return parse_obj_as(List[ResourceAction], resources.json())
+        return parse_raw_as(List[ResourceAction], resources.text)
 
     def get_service_metadata(
         self,
@@ -68,7 +68,7 @@ class DeploymentManagerClient(DeploymentOperations):
             f"/projects/{project_id}/services/{service_id}", **request_kwargs
         )
         handle_errors(resource)
-        return parse_obj_as(Service, resource.json())
+        return parse_raw_as(Service, resource.text)
 
     def delete_service(
         self,
@@ -103,7 +103,7 @@ class DeploymentManagerClient(DeploymentOperations):
             **request_kwargs,
         )
         handle_errors(response)
-        return response.text
+        return response.json()
 
     def suggest_service_config(
         self,
@@ -117,7 +117,7 @@ class DeploymentManagerClient(DeploymentOperations):
             **request_kwargs,
         )
         handle_errors(resource)
-        return parse_obj_as(ServiceInput, resource.json())
+        return parse_raw_as(ServiceInput, resource.text)
 
     def list_service_actions(
         self,
@@ -129,7 +129,7 @@ class DeploymentManagerClient(DeploymentOperations):
             f"/projects/{project_id}/services/{service_id}/actions", **request_kwargs
         )
         handle_errors(resources)
-        return parse_obj_as(List[ResourceAction], resources.json())
+        return parse_raw_as(List[ResourceAction], resources.text)
 
     def execute_service_action(
         self,
@@ -144,7 +144,7 @@ class DeploymentManagerClient(DeploymentOperations):
         )
         handle_errors(response)
         # TODO: fix returning response
-        return parse_obj_as(Response, response)
+        return parse_raw_as(Response, response.text)
 
     def access_service(
         self,
@@ -159,7 +159,7 @@ class DeploymentManagerClient(DeploymentOperations):
         )
         handle_errors(response)
         # TODO: fix returning response
-        return parse_obj_as(Response, response)
+        return parse_raw_as(Response, response.text)
 
     def list_jobs(
         self,
@@ -168,7 +168,7 @@ class DeploymentManagerClient(DeploymentOperations):
     ) -> List[Job]:
         resources = self.client.get(f"/projects/{project_id}/jobs", **request_kwargs)
         handle_errors(resources)
-        return parse_obj_as(List[Job], resources.json())
+        return parse_raw_as(List[Job], resources.text)
 
     def deploy_job(
         self,
@@ -187,7 +187,7 @@ class DeploymentManagerClient(DeploymentOperations):
             **request_kwargs,
         )
         handle_errors(resource)
-        return parse_obj_as(Job, resource.json())
+        return parse_raw_as(Job, resource.text)
 
     def list_deploy_job_actions(
         self,
@@ -195,13 +195,13 @@ class DeploymentManagerClient(DeploymentOperations):
         job: JobInput,
         request_kwargs: Dict = {},
     ) -> List[ResourceAction]:
-        resources = self.client.get(
+        resources = self.client.post(
             f"/projects/{project_id}/jobs:deploy-actions",
             json=job.dict(exclude_unset=True),
             **request_kwargs,
         )
         handle_errors(resources)
-        return parse_obj_as(List[ResourceAction], resources.json())
+        return parse_raw_as(List[ResourceAction], resources.text)
 
     def suggest_job_config(
         self,
@@ -215,7 +215,7 @@ class DeploymentManagerClient(DeploymentOperations):
             **request_kwargs,
         )
         handle_errors(resource)
-        return parse_obj_as(JobInput, resource.json())
+        return parse_raw_as(JobInput, resource.text)
 
     def get_job_metadata(
         self,
@@ -227,7 +227,7 @@ class DeploymentManagerClient(DeploymentOperations):
             f"/projects/{project_id}/jobs/{job_id}", **request_kwargs
         )
         handle_errors(resource)
-        return parse_obj_as(Job, resource.json())
+        return parse_raw_as(Job, resource.text)
 
     def delete_job(
         self,
@@ -260,7 +260,7 @@ class DeploymentManagerClient(DeploymentOperations):
             **request_kwargs,
         )
         handle_errors(response)
-        return response.text
+        return response.json()
 
     def list_job_actions(
         self,
@@ -272,7 +272,7 @@ class DeploymentManagerClient(DeploymentOperations):
             f"/projects/{project_id}/jobs/{job_id}/actions", **request_kwargs
         )
         handle_errors(resources)
-        return parse_obj_as(List[ResourceAction], resources.json())
+        return parse_raw_as(List[ResourceAction], resources.text)
 
     def execute_job_action(
         self,
@@ -287,4 +287,4 @@ class DeploymentManagerClient(DeploymentOperations):
         )
         handle_errors(response)
         # TODO: fix returning response
-        return parse_obj_as(Response, response)
+        return parse_raw_as(Response, response.text)
