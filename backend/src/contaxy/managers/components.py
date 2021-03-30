@@ -232,7 +232,9 @@ class ComponentManager:
                 )
 
                 self._deployment_manager = KubernetesDeploymentManager(
-                    self.global_state, self.request_state
+                    self.global_state,
+                    self.request_state,
+                    self.global_state.settings.KUBERNETES_NAMESPACE,
                 )
 
         assert self._deployment_manager is not None

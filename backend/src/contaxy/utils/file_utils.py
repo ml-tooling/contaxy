@@ -43,10 +43,6 @@ class MultipartStreamTarget(BaseTarget):
             raise ValueError("No hash algorithm was set during object intialization")
         return self._hash.hexdigest()
 
-    @property
-    def guessed_mime_type(self) -> Optional[str]:
-        return self._guessed_mime
-
 
 class FormMultipartStream(FileStream):
     def __init__(
@@ -75,7 +71,7 @@ class FormMultipartStream(FileStream):
         # This will try to parse the metadata from the beginning of the stream
         self._unprocessed_bytes = self.read(pre_read_size) + self._unprocessed_bytes
         # Try guess mime type based on magic numbers
-        self._guessed_mime = filetype.guess_mime(self._unprocessed_bytes)
+        self._guessed_content_type = filetype.guess_mime(self._unprocessed_bytes)
 
     @property
     def filename(self) -> Optional[str]:
@@ -89,8 +85,8 @@ class FormMultipartStream(FileStream):
             and self._stream_target.multipart_content_type != default_mime
         ):
             return self._stream_target.multipart_content_type
-        elif self._stream_target.guessed_mime_type:
-            return self._stream_target.guessed_mime_type
+        elif self._guessed_content_type:
+            return self._guessed_content_type
         else:
             return default_mime
 

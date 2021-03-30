@@ -4,10 +4,14 @@ from random import randint
 from typing import Generator, Tuple
 
 import pytest
+import requests
+from fastapi.testclient import TestClient
 from kubernetes import stream
 from kubernetes.client.models import V1Namespace
 from kubernetes.client.rest import ApiException
 
+from contaxy import config
+from contaxy.clients import AuthClient, DeploymentManagerClient, SystemClient
 from contaxy.managers.deployment.docker import DockerDeploymentManager
 from contaxy.managers.deployment.docker_utils import (
     get_network_name,
@@ -16,6 +20,11 @@ from contaxy.managers.deployment.docker_utils import (
 from contaxy.managers.deployment.kubernetes import KubernetesDeploymentManager
 from contaxy.managers.deployment.utils import Labels, get_deployment_id
 from contaxy.operations.deployment import DeploymentOperations
+from contaxy.schema.auth import (
+    AccessLevel,
+    OAuth2TokenGrantTypes,
+    OAuth2TokenRequestFormNew,
+)
 from contaxy.schema.deployment import (
     DeploymentType,
     Job,
@@ -24,6 +33,7 @@ from contaxy.schema.deployment import (
     ServiceInput,
 )
 from contaxy.schema.exceptions import ClientBaseError, ResourceNotFoundError
+from contaxy.utils import auth_utils
 
 from .conftest import test_settings
 
@@ -94,11 +104,6 @@ class DeploymentOperationsTests(ABC):
     @property
     @abstractmethod
     def service_id(self) -> str:
-        pass
-
-    @property
-    @abstractmethod
-    def type(self) -> str:
         pass
 
     @abstractmethod
@@ -279,145 +284,9 @@ class DeploymentOperationsTests(ABC):
         assert len(resource_actions) == 1
         assert resource_actions[0].action_id == "default"
 
-    def test_project_isolation(self) -> None:
-        """Test that services of the same project can reach each others' endpoints and services of different projects cannot."""
-
-        def create_wget_command(target_ip: str) -> str:
-            return f"wget -T 10 -qO/dev/stdout {target_ip}:80"
-
-        project_1 = f"{self.project_id}-1"
-        project_2 = f"{self.project_id}-2"
-        test_service_input_1 = create_test_service_input(
-            service_id=f"{self.service_id}-1",
-            display_name=f"{self.service_display_name}-1",
-        )
-        test_service_input_2 = create_test_service_input(
-            service_id=f"{self.service_id}-2",
-            display_name=f"{self.service_display_name}-2",
-        )
-        test_service_input_3 = create_test_service_input(
-            service_id=f"{self.service_id}-3",
-            display_name=f"{self.service_display_name}-3",
-        )
-
-        service_1 = self.deploy_service(
-            project_id=project_1,
-            service=test_service_input_1,
-        )
-        service_2 = self.deploy_service(
-            project_id=project_1,
-            service=test_service_input_2,
-        )
-        service_3 = self.deploy_service(
-            project_id=project_2,
-            service=test_service_input_3,
-        )
-
-        if self.type == TYPE_DOCKER:
-            container_1 = self.deployment_manager.client.containers.get(service_1.id)
-            container_2 = self.deployment_manager.client.containers.get(service_2.id)
-            container_3 = self.deployment_manager.client.containers.get(service_3.id)
-            assert container_1
-            assert container_2
-            assert container_3
-
-            exit_code, output = container_1.exec_run(
-                create_wget_command(container_2.attrs["Config"]["Hostname"])
-            )
-            assert exit_code == 0
-            assert b"Hello world!" in output
-
-            exit_code, output = container_1.exec_run(
-                create_wget_command(container_3.attrs["Config"]["Hostname"])
-            )
-            assert exit_code == 1
-            assert b"wget: bad address" in output
-
-            exit_code, output = container_3.exec_run(
-                create_wget_command(container_2.attrs["Config"]["Hostname"])
-            )
-            assert exit_code == 1
-            assert b"wget: bad address" in output
-        elif self.type == TYPE_KUBERNETES:
-            namespace = self.deployment_manager.kube_namespace
-            pod_1 = self.deployment_manager.core_api.list_namespaced_pod(
-                namespace=namespace,
-                label_selector=f"ctxy.deploymentName={service_1.id},ctxy.projectName={project_1}",
-            ).items[0]
-
-            pod_2 = self.deployment_manager.core_api.list_namespaced_pod(
-                namespace=namespace,
-                label_selector=f"ctxy.deploymentName={service_2.id},ctxy.projectName={project_1}",
-            ).items[0]
-
-            pod_3 = self.deployment_manager.core_api.list_namespaced_pod(
-                namespace=namespace,
-                label_selector=f"ctxy.deploymentName={service_3.id},ctxy.projectName={project_2}",
-            ).items[0]
-
-            _command_prefix = ["/bin/sh", "-c"]
-            output = stream.stream(
-                self.deployment_manager.core_api.connect_get_namespaced_pod_exec,
-                pod_1.metadata.name,
-                namespace,
-                command=[
-                    *_command_prefix,
-                    create_wget_command(pod_2.status.pod_ip),
-                ],
-                stderr=True,
-                stdin=False,
-                stdout=True,
-                tty=False,
-            )
-            assert output
-            assert "Hello world!" in output
-
-            output = stream.stream(
-                self.deployment_manager.core_api.connect_get_namespaced_pod_exec,
-                pod_1.metadata.name,
-                namespace,
-                command=[
-                    *_command_prefix,
-                    create_wget_command(pod_3.status.pod_ip),
-                ],
-                stderr=True,
-                stdin=False,
-                stdout=True,
-                tty=False,
-            )
-            assert output
-            assert "wget: download timed out" in output
-
-            output = stream.stream(
-                self.deployment_manager.core_api.connect_get_namespaced_pod_exec,
-                pod_3.metadata.name,
-                namespace,
-                command=[
-                    *_command_prefix,
-                    create_wget_command(pod_2.status.pod_ip),
-                ],
-                stderr=True,
-                stdin=False,
-                stdout=True,
-                tty=False,
-            )
-            assert output
-            assert "wget: download timed out" in output
-
-        self.deployment_manager.delete_service(
-            project_id=project_1, service_id=service_1.id, delete_volumes=True
-        )
-        self.deployment_manager.delete_service(
-            project_id=project_1, service_id=service_2.id, delete_volumes=True
-        )
-        self.deployment_manager.delete_service(
-            project_id=project_2, service_id=service_3.id, delete_volumes=True
-        )
-
 
 @pytest.mark.skipif(
     not test_settings.DOCKER_INTEGRATION_TESTS,
-    reason="A Kubernetes cluster must be accessible to run the KubeSpawner tests",
 )
 @pytest.mark.integration
 class TestDockerDeploymentManager(DeploymentOperationsTests):
@@ -485,10 +354,6 @@ class TestDockerDeploymentManager(DeploymentOperationsTests):
     def service_id(self) -> str:
         return self._service_id
 
-    @property
-    def type(self) -> str:
-        return TYPE_DOCKER
-
     def deploy_service(self, project_id: str, service: ServiceInput) -> Service:
         deployed_service = self._deployment_manager.deploy_service(
             project_id=project_id, service=service
@@ -502,6 +367,75 @@ class TestDockerDeploymentManager(DeploymentOperationsTests):
         )
         time.sleep(3)
         return deployed_job
+
+    def test_project_isolation(self) -> None:
+        """Test that services of the same project can reach each others' endpoints and services of different projects cannot."""
+
+        def create_wget_command(target_ip: str) -> str:
+            return f"wget -T 10 -qO/dev/stdout {target_ip}:80"
+
+        project_1 = f"{self.project_id}-1"
+        project_2 = f"{self.project_id}-2"
+        test_service_input_1 = create_test_service_input(
+            service_id=f"{self.service_id}-1",
+            display_name=f"{self.service_display_name}-1",
+        )
+        test_service_input_2 = create_test_service_input(
+            service_id=f"{self.service_id}-2",
+            display_name=f"{self.service_display_name}-2",
+        )
+        test_service_input_3 = create_test_service_input(
+            service_id=f"{self.service_id}-3",
+            display_name=f"{self.service_display_name}-3",
+        )
+
+        service_1 = self.deploy_service(
+            project_id=project_1,
+            service=test_service_input_1,
+        )
+        service_2 = self.deploy_service(
+            project_id=project_1,
+            service=test_service_input_2,
+        )
+        service_3 = self.deploy_service(
+            project_id=project_2,
+            service=test_service_input_3,
+        )
+
+        container_1 = self.deployment_manager.client.containers.get(service_1.id)
+        container_2 = self.deployment_manager.client.containers.get(service_2.id)
+        container_3 = self.deployment_manager.client.containers.get(service_3.id)
+        assert container_1
+        assert container_2
+        assert container_3
+
+        exit_code, output = container_1.exec_run(
+            create_wget_command(container_2.attrs["Config"]["Hostname"])
+        )
+        assert exit_code == 0
+        assert b"Hello world!" in output
+
+        exit_code, output = container_1.exec_run(
+            create_wget_command(container_3.attrs["Config"]["Hostname"])
+        )
+        assert exit_code == 1
+        assert b"wget: bad address" in output
+
+        exit_code, output = container_3.exec_run(
+            create_wget_command(container_2.attrs["Config"]["Hostname"])
+        )
+        assert exit_code == 1
+        assert b"wget: bad address" in output
+
+        self.deployment_manager.delete_service(
+            project_id=project_1, service_id=service_1.id, delete_volumes=True
+        )
+        self.deployment_manager.delete_service(
+            project_id=project_1, service_id=service_2.id, delete_volumes=True
+        )
+        self.deployment_manager.delete_service(
+            project_id=project_2, service_id=service_3.id, delete_volumes=True
+        )
 
 
 @pytest.mark.skipif(
@@ -559,10 +493,6 @@ class TestKubernetesDeploymentManager(DeploymentOperationsTests):
     def service_id(self) -> str:
         return self._service_id
 
-    @property
-    def type(self) -> str:
-        return TYPE_KUBERNETES
-
     def deploy_service(self, project_id: str, service: ServiceInput) -> Service:
         return self._deployment_manager.deploy_service(
             project_id=project_id, service=service, wait=True
@@ -572,3 +502,236 @@ class TestKubernetesDeploymentManager(DeploymentOperationsTests):
         return self._deployment_manager.deploy_job(
             project_id=project_id, job=job, wait=True
         )
+
+    def test_project_isolation(self) -> None:
+        """Test that services of the same project can reach each others' endpoints and services of different projects cannot."""
+
+        def create_wget_command(target_ip: str) -> str:
+            return f"wget -T 10 -qO/dev/stdout {target_ip}:80"
+
+        project_1 = f"{self.project_id}-1"
+        project_2 = f"{self.project_id}-2"
+        test_service_input_1 = create_test_service_input(
+            service_id=f"{self.service_id}-1",
+            display_name=f"{self.service_display_name}-1",
+        )
+        test_service_input_2 = create_test_service_input(
+            service_id=f"{self.service_id}-2",
+            display_name=f"{self.service_display_name}-2",
+        )
+        test_service_input_3 = create_test_service_input(
+            service_id=f"{self.service_id}-3",
+            display_name=f"{self.service_display_name}-3",
+        )
+
+        service_1 = self.deploy_service(
+            project_id=project_1,
+            service=test_service_input_1,
+        )
+        service_2 = self.deploy_service(
+            project_id=project_1,
+            service=test_service_input_2,
+        )
+        service_3 = self.deploy_service(
+            project_id=project_2,
+            service=test_service_input_3,
+        )
+
+        namespace = self.deployment_manager.kube_namespace
+        pod_1 = self.deployment_manager.core_api.list_namespaced_pod(
+            namespace=namespace,
+            label_selector=f"ctxy.deploymentName={service_1.id},ctxy.projectName={project_1}",
+        ).items[0]
+
+        pod_2 = self.deployment_manager.core_api.list_namespaced_pod(
+            namespace=namespace,
+            label_selector=f"ctxy.deploymentName={service_2.id},ctxy.projectName={project_1}",
+        ).items[0]
+
+        pod_3 = self.deployment_manager.core_api.list_namespaced_pod(
+            namespace=namespace,
+            label_selector=f"ctxy.deploymentName={service_3.id},ctxy.projectName={project_2}",
+        ).items[0]
+
+        _command_prefix = ["/bin/sh", "-c"]
+        output = stream.stream(
+            self.deployment_manager.core_api.connect_get_namespaced_pod_exec,
+            pod_1.metadata.name,
+            namespace,
+            command=[
+                *_command_prefix,
+                create_wget_command(pod_2.status.pod_ip),
+            ],
+            stderr=True,
+            stdin=False,
+            stdout=True,
+            tty=False,
+        )
+        assert output
+        assert "Hello world!" in output
+
+        output = stream.stream(
+            self.deployment_manager.core_api.connect_get_namespaced_pod_exec,
+            pod_1.metadata.name,
+            namespace,
+            command=[
+                *_command_prefix,
+                create_wget_command(pod_3.status.pod_ip),
+            ],
+            stderr=True,
+            stdin=False,
+            stdout=True,
+            tty=False,
+        )
+        assert output
+        assert "wget: download timed out" in output
+
+        output = stream.stream(
+            self.deployment_manager.core_api.connect_get_namespaced_pod_exec,
+            pod_3.metadata.name,
+            namespace,
+            command=[
+                *_command_prefix,
+                create_wget_command(pod_2.status.pod_ip),
+            ],
+            stderr=True,
+            stdin=False,
+            stdout=True,
+            tty=False,
+        )
+        assert output
+        assert "wget: download timed out" in output
+
+        self.deployment_manager.delete_service(
+            project_id=project_1, service_id=service_1.id, delete_volumes=True
+        )
+        self.deployment_manager.delete_service(
+            project_id=project_1, service_id=service_2.id, delete_volumes=True
+        )
+        self.deployment_manager.delete_service(
+            project_id=project_2, service_id=service_3.id, delete_volumes=True
+        )
+
+
+class DeploymentOperationsEndpointTests(DeploymentOperationsTests):
+    @pytest.fixture(autouse=True)
+    def _client(self, remote_client: requests.Session) -> requests.Session:
+        if test_settings.REMOTE_BACKEND_ENDPOINT:
+            return remote_client
+        else:
+            from contaxy.api import app
+
+            client = TestClient(app=app, root_path="/")
+            client.__enter__()
+            return client
+
+    @pytest.fixture(autouse=True)
+    def _init_managers(self, _client: requests.Session) -> Generator:
+        self._endpoint_client = _client
+        system_manager = SystemClient(self._endpoint_client)
+        self._deployment_manager = DeploymentManagerClient(client=self._endpoint_client)
+        self._auth_manager = AuthClient(self._endpoint_client)
+        system_manager.initialize_system()
+
+        self.login_user(
+            config.SYSTEM_ADMIN_USERNAME, config.SYSTEM_ADMIN_INITIAL_PASSWORD
+        )
+
+        (
+            uid,
+            self._project_id,
+            self._service_display_name,
+            self._service_id,
+        ) = get_random_resources()
+
+        yield
+
+        self.login_user(
+            config.SYSTEM_ADMIN_USERNAME, config.SYSTEM_ADMIN_INITIAL_PASSWORD
+        )
+        self._deployment_manager.delete_service(
+            project_id=self._project_id, service_id=self._service_id
+        )
+
+        if type(_client) == TestClient:
+            _client.__exit__()
+
+    @property
+    def deployment_manager(self) -> DeploymentOperations:
+        return self._deployment_manager
+
+    @property
+    def project_id(self) -> str:
+        return self._project_id
+
+    @property
+    def service_display_name(self) -> str:
+        return self._service_display_name
+
+    @property
+    def service_id(self) -> str:
+        return self._service_id
+
+    def login_user(self, username: str, password: str) -> None:
+        self._auth_manager.request_token(
+            OAuth2TokenRequestFormNew(
+                grant_type=OAuth2TokenGrantTypes.PASSWORD,
+                username=username,
+                password=password,
+                scope=auth_utils.construct_permission(
+                    "*", AccessLevel.ADMIN
+                ),  # Get full scope
+                set_as_cookie=True,
+            )
+        )
+
+    def deploy_service(self, project_id: str, service: ServiceInput) -> Service:
+        deployed_service = self._deployment_manager.deploy_service(
+            project_id=project_id, service=service
+        )
+        time.sleep(2)
+        return deployed_service
+
+    def deploy_job(self, project_id: str, job: JobInput) -> Job:
+        deployed_job = self._deployment_manager.deploy_job(
+            project_id=project_id, job=job
+        )
+        time.sleep(3)
+        return deployed_job
+
+
+@pytest.mark.skipif(
+    not test_settings.DOCKER_INTEGRATION_TESTS, reason="Docker tests are disabled."
+)
+@pytest.mark.integration
+class TestDockerDeploymentManagerViaLocalEndpoint(DeploymentOperationsEndpointTests):
+    pass
+
+
+@pytest.mark.skipif(
+    not test_settings.KUBERNETES_INTEGRATION_TESTS,
+    reason="Kubernetes tests are not enabled",
+)
+@pytest.mark.integration
+class TestKubernetesDeploymentManagerViaLocalEndpoint(
+    DeploymentOperationsEndpointTests
+):
+    pass
+
+
+@pytest.mark.skipif(
+    not test_settings.REMOTE_BACKEND_TESTS,
+    reason="Remote Backend Tests are deactivated, use REMOTE_BACKEND_TESTS to activate.",
+)
+@pytest.mark.skipif(
+    not test_settings.REMOTE_BACKEND_ENDPOINT,
+    reason="No remote backend is configured (via REMOTE_BACKEND_ENDPOINT).",
+)
+@pytest.mark.integration
+class TestDeploymentManagerViaRemoteEndpoint(DeploymentOperationsEndpointTests):
+    """Test with a remote backend connection.
+
+    There is no need to differentiate between Docker and Kubernetes, because the client executes against a remote backend which uses either of them.
+    """
+
+    pass

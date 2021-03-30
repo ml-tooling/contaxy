@@ -92,7 +92,7 @@ class DeploymentCompute(BaseModel):
         ge=0,
         description="Maximum number of GPUs. Even so the system will try to provide the specified amount, it's only guaranteed that the deployment cannot use more.",
     )
-    volume_path: Optional[pathlib.Path] = Field(
+    volume_path: Optional[str] = Field(
         None,
         example="/path/to/data",
         description="Container internal directory that should mount a volume for data persistence.",
