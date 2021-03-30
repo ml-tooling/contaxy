@@ -11,7 +11,6 @@ from fastapi.testclient import TestClient
 from contaxy import config
 from contaxy.clients import AuthClient, JsonDocumentClient
 from contaxy.clients.system import SystemClient
-from contaxy.config import settings
 from contaxy.managers.json_db.postgres import PostgresJsonDocumentManager
 from contaxy.operations.json_db import JsonDocumentOperations
 from contaxy.schema.auth import (
@@ -388,7 +387,7 @@ class TestJsonDocumentManagerWithPostgres(JsonDocumentOperationsTests):
 
 
 @pytest.mark.skipif(
-    not settings.USE_INMEMORY_DB and not test_settings.POSTGRES_INTEGRATION_TESTS,
+    not test_settings.POSTGRES_INTEGRATION_TESTS,
     reason="Postgres Integration Tests are deactivated, use POSTGRES_INTEGRATION_TESTS to activate.",
 )
 @pytest.mark.integration

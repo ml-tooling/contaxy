@@ -11,7 +11,6 @@ from contaxy import config
 from contaxy.clients import AuthClient, JsonDocumentClient
 from contaxy.clients.project import ProjectClient
 from contaxy.clients.system import SystemClient
-from contaxy.config import settings
 from contaxy.managers.auth import AuthManager
 from contaxy.managers.json_db.inmemory_dict import InMemoryDictJsonDocumentManager
 from contaxy.managers.json_db.postgres import PostgresJsonDocumentManager
@@ -341,7 +340,7 @@ class TestProjectManagerWithPostgresDB(ProjectOperationsTests):
 
 
 @pytest.mark.skipif(
-    not settings.USE_INMEMORY_DB and not test_settings.POSTGRES_INTEGRATION_TESTS,
+    not test_settings.POSTGRES_INTEGRATION_TESTS,
     reason="Postgres Integration Tests are deactivated, use POSTGRES_INTEGRATION_TESTS to activate.",
 )
 @pytest.mark.integration

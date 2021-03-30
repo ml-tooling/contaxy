@@ -7,7 +7,6 @@ from contaxy import config
 from contaxy.managers.auth import AuthManager
 from contaxy.managers.extension import ExtensionManager
 from contaxy.managers.file.minio import MinioFileManager
-from contaxy.managers.json_db.inmemory_dict import InMemoryDictJsonDocumentManager
 from contaxy.managers.project import ProjectManager
 from contaxy.managers.seed import SeedManager
 from contaxy.managers.system import SystemManager
@@ -187,16 +186,9 @@ class ComponentManager:
             return self.get_extension_manager().get_extension_client(extension_id)
 
         if not self._json_db_manager:
-            if config.settings.USE_INMEMORY_DB:
-                self._json_db_manager = InMemoryDictJsonDocumentManager(
-                    self.global_state, self.request_state
-                )
-            else:
-                from contaxy.managers.json_db.postgres import (
-                    PostgresJsonDocumentManager,
-                )
+            from contaxy.managers.json_db.postgres import PostgresJsonDocumentManager
 
-                self._json_db_manager = PostgresJsonDocumentManager(self.global_state, self.request_state)  # type: ignore  # TODO: remove type ignore
+            self._json_db_manager = PostgresJsonDocumentManager(self.global_state, self.request_state)  # type: ignore  # TODO: remove type ignore
         return self._json_db_manager
 
     def get_file_manager(
