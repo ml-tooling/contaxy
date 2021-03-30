@@ -34,6 +34,7 @@ class Settings(BaseSettings):
 
     # Selected deployment manager
     DEPLOYMENT_MANAGER: DeploymentManager = DeploymentManager.DOCKER
+    KUBERNETES_NAMESPACE: Optional[str] = None
     HOST_DATA_ROOT_PATH: Optional[str] = None
     if HOST_DATA_ROOT_PATH is not None and not HOST_DATA_ROOT_PATH.endswith("/"):
         HOST_DATA_ROOT_PATH = f"{HOST_DATA_ROOT_PATH}/"
