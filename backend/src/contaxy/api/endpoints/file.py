@@ -138,7 +138,7 @@ def get_file_metadata(
     """Returns metadata about the specified file."""
     component_manager.verify_access(
         token,
-        f"/projects/{project_id}/files/{file_key:path}:metadata",
+        f"/projects/{project_id}/files/{file_key}:metadata",
         AccessLevel.READ,
     )
 
