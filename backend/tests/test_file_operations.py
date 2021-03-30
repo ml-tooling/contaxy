@@ -267,7 +267,7 @@ class FileOperationsTests(ABC):
 
 
 @pytest.mark.skipif(
-    test_settings.MINIO_INTEGRATION_TESTS is None,
+    not test_settings.MINIO_INTEGRATION_TESTS,
     reason="Minio Integration Tests are deactivated, use MINIO_INTEGRATION_TESTS to activate.",
 )
 @pytest.mark.skipif(
@@ -314,7 +314,7 @@ class TestMinioFileManagerWithPostgres(FileOperationsTests):
 
 
 @pytest.mark.skipif(
-    test_settings.MINIO_INTEGRATION_TESTS is None,
+    not test_settings.MINIO_INTEGRATION_TESTS,
     reason="Minio Integration Tests are deactivated, use MINIO_INTEGRATION_TESTS to activate.",
 )
 @pytest.mark.skipif(
