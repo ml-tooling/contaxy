@@ -3,7 +3,6 @@ from typing import Dict, List, Optional
 import requests
 from pydantic import parse_raw_as
 from requests.models import Response
-from starlette.responses import RedirectResponse
 
 from contaxy.clients.shared import handle_errors
 from contaxy.operations.auth import AuthOperations
@@ -12,7 +11,6 @@ from contaxy.schema import (
     OAuth2TokenRequestFormNew,
     OAuthToken,
     OAuthTokenIntrospection,
-    OpenIDUserInfo,
     TokenType,
     User,
     UserInput,
@@ -39,30 +37,36 @@ class AuthClient(AuthOperations):
         scopes: List[str],
         token_type: TokenType,
         description: Optional[str] = None,
+        request_kwargs: Dict = {},
     ) -> str:
-        params = {"token_type": token_type.value}
+        params = {"token_type": token_type.value, "scopes": scopes}
         if description:
             params["description"] = description
-        response = self._client.post("/auth/tokens", params=params)
+        response = self._client.post("/auth/tokens", params=params, **request_kwargs)
         handle_errors(response)
         return response.json()
 
-    def list_api_tokens(self) -> List[ApiToken]:
+    def list_api_tokens(self, request_kwargs: Dict = {}) -> List[ApiToken]:
         response = self._client.get("/auth/tokens")
         handle_errors(response)
-        return parse_raw_as(List[ApiToken], response.text)
+        return parse_raw_as(List[ApiToken], response.text, **request_kwargs)
 
     def verify_access(
-        self, token: str, permission: Optional[str] = None, disable_cache: bool = False
+        self,
+        token: str,
+        permission: Optional[str] = None,
+        disable_cache: bool = False,
+        request_kwargs: Dict = {},
     ) -> AuthorizedAccess:
+        # TODO: Implement
         pass
 
     def change_password(
-        self,
-        user_id: str,
-        password: str,
+        self, user_id: str, password: str, request_kwargs: Dict = {}
     ) -> None:
-        response = self._client.put(f"/users/{user_id}:change-password", data=password)
+        response = self._client.put(
+            f"/users/{user_id}:change-password", data=password, **request_kwargs
+        )
         handle_errors(response)
 
     # OAuth Operations
@@ -87,8 +91,11 @@ class AuthClient(AuthOperations):
         self,
         token: str,
         # token_type_hint: Optional[str] = None,
+        request_kwargs: Dict = {},
     ) -> None:
-        response = self._client.post("/auth/oauth/revoke", data={"token": token})
+        response = self._client.post(
+            "/auth/oauth/revoke", data={"token": token}, **request_kwargs
+        )
         handle_oauth_error(response)
         handle_errors(response)
 
@@ -96,26 +103,13 @@ class AuthClient(AuthOperations):
         self,
         token: str,
         # token_type_hint: Optional[str] = None,
+        request_kwargs: Dict = {},
     ) -> OAuthTokenIntrospection:
-        response = self._client.post("/auth/oauth/introspect", data={"token": token})
+        response = self._client.post(
+            "/auth/oauth/introspect", data={"token": token}, **request_kwargs
+        )
         handle_errors(response)
         return parse_raw_as(OAuthTokenIntrospection, response.text)
-
-    def get_userinfo(
-        self,
-        token: str,
-        # token_type_hint: Optional[str] = None,
-    ) -> OpenIDUserInfo:
-        # TODO: How to implement?
-        pass
-
-    def login_callback(
-        self,
-        code: str,
-        state: Optional[str] = None,
-    ) -> RedirectResponse:
-        # TODO: how to implement?
-        pass
 
     # User Operations
 

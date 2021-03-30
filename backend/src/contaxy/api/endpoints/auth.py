@@ -16,7 +16,6 @@ from contaxy.schema import (
     OAuth2TokenRequestFormNew,
     OAuthToken,
     OAuthTokenIntrospection,
-    OpenIDUserInfo,
     TokenType,
 )
 from contaxy.schema.auth import AccessLevel, OAuth2TokenGrantTypes
@@ -347,26 +346,6 @@ def introspect_token(
     This endpoint implements the [OAuth2 Introspection Flow](https://www.oauth.com/oauth2-servers/token-introspection-endpoint/) ([RFC7662](https://tools.ietf.org/html/rfc7662)).
     """
     return component_manager.get_auth_manager().introspect_token(token)
-
-
-@router.get(
-    "/auth/oauth/userinfo",
-    operation_id=CoreOperations.GET_USERINFO.value,
-    response_model=OpenIDUserInfo,
-    summary="Get userinfo (OpenID Endpoint).",
-    status_code=status.HTTP_200_OK,
-)
-def get_userinfo(
-    component_manager: ComponentManager = Depends(get_component_manager),
-    token: str = Depends(get_api_token),
-) -> Any:
-    """Returns information about the authenticated user.
-
-    The access token obtained must be sent as a bearer token in the `Authorization` header.
-
-    This endpoint implements the [OpenID UserInfo Endpoint](https://openid.net/specs/openid-connect-core-1_0.html#UserInfo).
-    """
-    return component_manager.get_auth_manager().get_userinfo(token)
 
 
 @router.get(
