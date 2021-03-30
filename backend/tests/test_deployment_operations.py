@@ -287,6 +287,7 @@ class DeploymentOperationsTests(ABC):
 
 @pytest.mark.skipif(
     not test_settings.DOCKER_INTEGRATION_TESTS,
+    reason="Docker integration tests are disabled",
 )
 @pytest.mark.integration
 class TestDockerDeploymentManager(DeploymentOperationsTests):
