@@ -10,7 +10,7 @@ def create_schema(engine: Engine, schema_name: str) -> None:
         try:
             conn.execute(stmt)
             conn.commit()
-            logger.info(f"Postgres DB Schema {schema_name} created")
+            # logger.debug(f"Postgres DB Schema {schema_name} created")
         except ProgrammingError:
             logger.debug(
                 f"Postgres DB Schema {schema_name} not created. This because it already exists."

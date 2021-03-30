@@ -1,10 +1,10 @@
 """Used for endpoint stress tests via locust."""
 import random
 from logging import error
+from typing import Dict
 
 from faker import Faker
 from locust import HttpUser, between, tag, task
-from loguru import logger
 
 from contaxy.clients import AuthClient, JsonDocumentClient, ProjectClient
 from contaxy.schema.auth import (
@@ -24,7 +24,7 @@ fake = Faker()
 
 
 class CommonUser(HttpUser):
-    wait_time = between(1, 2.5)
+    wait_time = between(0.5, 5)
     # For Locust, the base_url is set via the `--host` flag when running `locust`
     host: str
 
@@ -71,18 +71,16 @@ class CommonUser(HttpUser):
             request_kwargs={"name": CoreOperations.REQUEST_TOKEN.value},
         )
         self.authorized_user = created_user.id
+        self.user_projects: Dict[str, Project] = {}
 
     def _get_user_project(self) -> Project:
         """Returns a random user project."""
-        project_client = ProjectClient(self.client)
-        user_projects = project_client.list_projects(
-            request_kwargs={"name": CoreOperations.LIST_PROJECTS.value},
-        )
-        if user_projects:
-            return random.choice(user_projects)
+        if len(self.user_projects.keys()) > 0:
+            selected_project_id = random.choice(list(self.user_projects.keys()))
+            return self.user_projects[selected_project_id]
 
-        logger.debug("User does not have any projects.")
         # Creating a new user project
+        project_client = ProjectClient(self.client)
         project_name = (
             id_utils.generate_short_uuid()
         )  # TEST_RESOURCE_PREFIX +  fake.bs()
@@ -90,7 +88,7 @@ class CommonUser(HttpUser):
             project_name,
             request_kwargs={"name": CoreOperations.SUGGEST_PROJECT_ID.value},
         )
-        return project_client.create_project(
+        created_project = project_client.create_project(
             ProjectCreation(
                 id=project_id,
                 display_name=project_name,
@@ -99,6 +97,8 @@ class CommonUser(HttpUser):
             technical_project=False,
             request_kwargs={"name": CoreOperations.CREATE_PROJECT.value},
         )
+        self.user_projects[created_project.id] = created_project
+        return created_project
 
     @task(2)
     @tag("projects")
@@ -111,7 +111,7 @@ class CommonUser(HttpUser):
             project_name,
             request_kwargs={"name": CoreOperations.SUGGEST_PROJECT_ID.value},
         )
-        project_client.create_project(
+        created_project = project_client.create_project(
             ProjectCreation(
                 id=project_id,
                 display_name=project_name,
@@ -120,6 +120,7 @@ class CommonUser(HttpUser):
             technical_project=False,
             request_kwargs={"name": CoreOperations.CREATE_PROJECT.value},
         )
+        self.user_projects[created_project.id] = created_project
 
     @task(1)
     @tag("projects")
@@ -130,6 +131,7 @@ class CommonUser(HttpUser):
             selected_project.id,
             request_kwargs={"name": CoreOperations.DELETE_PROJECT.value},
         )
+        del self.user_projects[selected_project.id]
 
     @task(10)
     @tag("projects")
@@ -159,7 +161,7 @@ class CommonUser(HttpUser):
             request_kwargs={"name": CoreOperations.LIST_PROJECT_MEMBERS.value},
         )
 
-    @task(20)
+    @task(2)
     @tag("projects")
     def update_project(self) -> None:
         project_client = ProjectClient(self.client)

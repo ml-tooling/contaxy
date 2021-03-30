@@ -30,7 +30,8 @@ app = FastAPI(
     version=__version__,
 )
 
-fastapi_utils.add_timing_info(app)
+if config.settings.DEBUG:
+    fastapi_utils.add_timing_info(app)
 
 
 # Custom Exception Handling

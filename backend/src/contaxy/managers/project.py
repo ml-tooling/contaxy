@@ -177,6 +177,10 @@ class ProjectManager(ProjectOperations):
 
     def delete_project(self, project_id: str) -> None:
         # TODO: what to do on project deletion
+        project_members = self.list_project_members(project_id)
+        for project_member in project_members:
+            # Remove all project permissions from all users
+            self.remove_project_member(project_id, project_member.id)
         self._json_db_manager.delete_json_document(
             config.SYSTEM_INTERNAL_PROJECT, self._PROJECT_COLLECTION, project_id
         )
