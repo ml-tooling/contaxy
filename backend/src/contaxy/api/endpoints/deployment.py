@@ -335,43 +335,6 @@ def execute_service_action(
     )
 
 
-@service_router.get(
-    "/projects/{project_id}/services/{service_id}/access/{endpoint:path}",
-    operation_id=ExtensibleOperations.ACCESS_SERVICE.value,
-    # TODO: what is the response model? add additional status codes?
-    summary="Access a service endpoint.",
-    status_code=status.HTTP_200_OK,
-    responses={**OPEN_URL_REDIRECT},
-)
-def access_service(
-    project_id: str = PROJECT_ID_PARAM,
-    service_id: str = SERVICE_ID_PARAM,
-    endpoint: str = Path(
-        ..., description="The port and base path of the service endpoint."
-    ),
-    component_manager: ComponentManager = Depends(get_component_manager),
-    token: str = Depends(get_api_token),
-) -> Any:
-    """Accesses the specified HTTP endpoint of the given service.
-
-    The endpoint should be based on the endpoint information from the service metadata.
-    This is usually a combination of port and URL path information.
-
-    The user is expected to be redirected to the specified endpoint.
-    If required, cookies can be attached to the response with session tokens to authorize access.
-    """
-    component_manager.verify_access(
-        token,
-        f"projects/{project_id}/services/{service_id}/access/{endpoint}",
-        AccessLevel.READ,
-    )
-
-    service_id, extension_id = parse_composite_id(service_id)
-    return component_manager.get_service_manager(extension_id).access_service(
-        project_id, service_id, endpoint
-    )
-
-
 # Job Endpoints
 
 

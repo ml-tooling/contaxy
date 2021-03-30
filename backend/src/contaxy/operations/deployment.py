@@ -1,8 +1,6 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import List, Optional
-
-from starlette.responses import Response
+from typing import Any, List, Optional
 
 from contaxy.schema import Job, JobInput, ResourceAction, Service, ServiceInput
 
@@ -172,7 +170,7 @@ class ServiceOperations(ABC):
         project_id: str,
         service_id: str,
         action_id: str,
-    ) -> Response:
+    ) -> Any:
         """Executes the selected service action.
 
         The actions need to be first requested from the list_service_actions operation.
@@ -184,17 +182,8 @@ class ServiceOperations(ABC):
             action_id (str): The ID of the selected action.
 
         Returns:
-            Response: TODO: document
+            `None` or a redirect response to another URL.
         """
-        pass
-
-    @abstractmethod
-    def access_service(
-        self,
-        project_id: str,
-        service_id: str,
-        endpoint: str,
-    ) -> Response:
         pass
 
 
@@ -251,9 +240,7 @@ class JobOperations(ABC):
         pass
 
     @abstractmethod
-    def execute_job_action(
-        self, project_id: str, job_id: str, action_id: str
-    ) -> Response:
+    def execute_job_action(self, project_id: str, job_id: str, action_id: str) -> Any:
         pass
 
 

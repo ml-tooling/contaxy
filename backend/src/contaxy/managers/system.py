@@ -1,6 +1,7 @@
 from contaxy import __version__, config
 from contaxy.config import settings
-from contaxy.operations import AuthOperations, SystemOperations
+from contaxy.managers.auth import AuthManager
+from contaxy.operations import SystemOperations
 from contaxy.operations.json_db import JsonDocumentOperations
 from contaxy.operations.project import ProjectOperations
 from contaxy.schema.auth import ADMIN_ROLE, USERS_KIND, AccessLevel, UserRegistration
@@ -18,7 +19,7 @@ class SystemManager(SystemOperations):
         global_state: GlobalState,
         request_state: RequestState,
         json_db_manager: JsonDocumentOperations,
-        auth_manager: AuthOperations,
+        auth_manager: AuthManager,
         project_manager: ProjectOperations,
     ):
         """Initializes the system manager.

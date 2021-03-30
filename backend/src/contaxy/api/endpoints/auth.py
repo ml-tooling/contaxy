@@ -190,7 +190,10 @@ def create_token(
             scopes = token_introspection.scope.split()
 
     return component_manager.get_auth_manager().create_token(
-        authorized_access.authorized_subject, scopes, token_type, description
+        token_subject=authorized_access.authorized_subject,
+        scopes=scopes,
+        token_type=token_type,
+        description=description,
     )
 
 

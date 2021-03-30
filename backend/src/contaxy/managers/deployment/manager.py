@@ -7,15 +7,6 @@ from contaxy.schema import JobInput, ResourceAction, ServiceInput
 
 
 class DeploymentManager(DeploymentOperations):
-    def access_service(
-        self,
-        project_id: str,
-        service_id: str,
-        endpoint: str,
-    ) -> Response:
-        # 501: not implemented
-        return Response(status_code=501)
-
     def execute_service_action(
         self,
         project_id: str,

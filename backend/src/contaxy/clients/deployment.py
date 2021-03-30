@@ -3,7 +3,6 @@ from typing import Dict, List, Optional
 
 import requests
 from pydantic.tools import parse_raw_as
-from starlette.responses import Response
 
 from contaxy.clients.shared import handle_errors
 from contaxy.operations.deployment import DeploymentOperations
@@ -137,29 +136,27 @@ class DeploymentManagerClient(DeploymentOperations):
         service_id: str,
         action_id: str,
         request_kwargs: Dict = {},
-    ) -> Response:
+    ) -> None:
         response = self.client.get(
             f"/projects/{project_id}/services/{service_id}/actions/{action_id}",
             **request_kwargs,
         )
         handle_errors(response)
-        # TODO: fix returning response
-        return parse_raw_as(Response, response.text)
+        # TODO: Return response?
 
     def access_service(
-        self,
-        project_id: str,
-        service_id: str,
-        endpoint: str,
-        request_kwargs: Dict = {},
-    ) -> Response:
+                   self,
+                   project_id: str,
+                   service_id: str,
+                   endpoint: str,
+                   request_kwargs: Dict = {},
+                   ) -> None:
         response = self.client.get(
-            f"/projects/{project_id}/services/{service_id}/access/{endpoint}",
-            **request_kwargs,
-        )
+                               f"/projects/{project_id}/services/{service_id}/access/{endpoint}",
+                               **request_kwargs,
+                               )
         handle_errors(response)
-        # TODO: fix returning response
-        return parse_raw_as(Response, response.text)
+        # TODO: Return response?
 
     def list_jobs(
         self,
@@ -280,11 +277,10 @@ class DeploymentManagerClient(DeploymentOperations):
         job_id: str,
         action_id: str,
         request_kwargs: Dict = {},
-    ) -> Response:
+    ) -> None:
         response = self.client.get(
             f"/projects/{project_id}/jobs/{job_id}/actions/{action_id}",
             **request_kwargs,
         )
         handle_errors(response)
-        # TODO: fix returning response
-        return parse_raw_as(Response, response.text)
+        # TODO: Return response?

@@ -34,23 +34,23 @@ class AuthClient(AuthOperations):
     def __init__(self, client: requests.Session):
         self._client = client
 
-    def login_page(self) -> RedirectResponse:
-        pass
-
-    def logout_session(self) -> RedirectResponse:
-        pass
-
     def create_token(
         self,
-        token_subject: str,
         scopes: List[str],
         token_type: TokenType,
         description: Optional[str] = None,
     ) -> str:
-        pass
+        params = {"token_type": token_type.value}
+        if description:
+            params["description"] = description
+        response = self._client.post("/auth/tokens", params=params)
+        handle_errors(response)
+        return response.json()
 
-    def list_api_tokens(self, token_subject: str) -> List[ApiToken]:
-        pass
+    def list_api_tokens(self) -> List[ApiToken]:
+        response = self._client.get("/auth/tokens")
+        handle_errors(response)
+        return parse_raw_as(List[ApiToken], response.text)
 
     def verify_access(
         self, token: str, permission: Optional[str] = None, disable_cache: bool = False
@@ -65,36 +65,7 @@ class AuthClient(AuthOperations):
         response = self._client.put(f"/users/{user_id}:change-password", data=password)
         handle_errors(response)
 
-    def verify_password(
-        self,
-        user_id: str,
-        password: str,
-    ) -> bool:
-        pass
-
-    # Permission Operations
-
-    def add_permission(
-        self,
-        resource_name: str,
-        permission: str,
-    ) -> None:
-        pass
-
-    def remove_permission(
-        self, resource_name: str, permission: str, remove_sub_permissions: bool = False
-    ) -> None:
-        pass
-
-    def list_permissions(
-        self, resource_name: str, resolve_roles: bool = True
-    ) -> List[str]:
-        pass
-
-    def list_resources_with_permission(
-        self, permission: str, resource_name_prefix: Optional[str] = None
-    ) -> List[str]:
-        pass
+    # OAuth Operations
 
     def request_token(
         self, token_request_form: OAuth2TokenRequestFormNew, request_kwargs: Dict = {}
