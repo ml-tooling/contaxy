@@ -117,7 +117,7 @@ class FileClient(FileOperations):
             **request_kwargs,
         )
         handle_errors(response)
-        return response.iter_content(chunk_size=None)
+        return response.iter_content(chunk_size=10 * 1024 * 1024)
 
     def delete_file(
         self,
