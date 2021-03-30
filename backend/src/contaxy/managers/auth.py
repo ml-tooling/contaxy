@@ -163,12 +163,22 @@ class AuthManager(AuthOperations):
 
     def create_token(
         self,
-        token_subject: str,
         scopes: List[str],
         token_type: TokenType,
         description: Optional[str] = None,
         token_purpose: Optional[TokenPurpose] = None,
+        token_subject: Optional[str] = None,
     ) -> str:
+        if not token_subject:
+            if (
+                self._request_state.authorized_access
+                and self._request_state.authorized_access.authorized_subject
+            ):
+                # Get token subject from authorized subject info
+                token_subject = self._request_state.authorized_access.authorized_subject
+            else:
+                raise UnauthenticatedError("No token subject found for token creation.")
+
         if token_type is token_type.SESSION_TOKEN:
             # Create session token if selected
             return self._create_session_token(token_subject, scopes)
@@ -194,7 +204,7 @@ class AuthManager(AuthOperations):
         )
         return token
 
-    def list_api_tokens(self, token_subject: str) -> List[ApiToken]:
+    def list_api_tokens(self, token_subject: Optional[str] = None) -> List[ApiToken]:
         # Filter all resources for the provided permission
         filtered_token_docs = self._json_db_manager.list_json_documents(
             config.SYSTEM_INTERNAL_PROJECT,
@@ -384,7 +394,17 @@ class AuthManager(AuthOperations):
         user_id: str,
         password: str,
     ) -> bool:
+        """Verifies a password of a specified user.
 
+        The password is stored as a hash
+
+        Args:
+            user_id: The ID of the user.
+            password: The password to check. This can also be specified as a hash.
+
+        Returns:
+            bool: `True` if the password matches the stored password.
+        """
         password_document = self._json_db_manager.get_json_document(
             config.SYSTEM_INTERNAL_PROJECT, self._USER_PASSWORD_COLLECTION, user_id
         )
@@ -409,6 +429,15 @@ class AuthManager(AuthOperations):
         resource_name: str,
         permission: str,
     ) -> None:
+        """Grants a permission to the specified resource.
+
+        Args:
+            resource_name: The resource name that the permission is granted to.
+            permission: The permission to grant to the specified resource.
+
+        Raises:
+            ResourceUpdateFailedError: If the resource update could not be applied successfully.
+        """
         resource_permission = ResourcePermissions()
         try:
             # Try to get the permission document
@@ -451,6 +480,13 @@ class AuthManager(AuthOperations):
     def remove_permission(
         self, resource_name: str, permission: str, remove_sub_permissions: bool = False
     ) -> None:
+        """Revokes a permission from the specified resource.
+
+        Args:
+            resource_name: The resource name that the permission should be revoked from.
+            permission: The permission to revoke from the specified resource.
+            remove_sub_permissions: If `True`, the permission is used as prefix, and all permissions that start with this prefix will be revoked. Defaults to `False`.
+        """
         try:
             # Try to get the permission document
             resource_permission = self._get_resource_permissions_from_db(resource_name)
@@ -558,6 +594,15 @@ class AuthManager(AuthOperations):
     def list_permissions(
         self, resource_name: str, resolve_roles: bool = True, use_cache: bool = False
     ) -> List[str]:
+        """Returns all permissions granted to the specified resource.
+
+        Args:
+            resource_name: The name of the resource (relative URI).
+            resolve_roles: If `True`, all roles of the resource will be resolved to the associated permissions. Defaults to `True`.
+
+        Returns:
+            List[str]: List of permissions granted to the given resource.
+        """
         if not use_cache or not config.settings.RESOURCE_PERMISSIONS_CACHE_ENABLED:
             return self._list_permissions_from_db(resource_name, resolve_roles)
 
@@ -579,7 +624,15 @@ class AuthManager(AuthOperations):
     def list_resources_with_permission(
         self, permission: str, resource_name_prefix: Optional[str] = None
     ) -> List[str]:
+        """Returns all resources that are granted for the specified permission.
 
+        Args:
+            permission: The permission to use. If the permission is specified without the access level, it will filter for all access levels.
+            resource_name_prefix: Only return resources that match with this prefix.
+
+        Returns:
+            List[str]: List of resources names (relative URIs).
+        """
         # Filter all resources for the provided permission
         filtered_resource_docs = self._json_db_manager.list_json_documents(
             config.SYSTEM_INTERNAL_PROJECT,
@@ -625,7 +678,7 @@ class AuthManager(AuthOperations):
             else:
                 scopes = token_request_form.scope.split()
             token = self.create_token(
-                "users/" + user_id,
+                token_subject="users/" + user_id,
                 scopes=scopes,
                 token_type=TokenType.API_TOKEN,
                 description="Login Token.",

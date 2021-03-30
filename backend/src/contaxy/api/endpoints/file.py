@@ -306,6 +306,7 @@ def execute_file_action(
 
     # TODO: only extract extension ID from action?
     action_id, extension_id = parse_composite_id(action_id)
+
     return component_manager.get_file_manager(extension_id).execute_file_action(
         project_id, file_key, action_id, version
     )

@@ -2,7 +2,6 @@ from typing import Dict, Iterator, List, Optional
 
 import requests
 from pydantic import parse_obj_as
-from starlette.responses import Response
 
 from contaxy.clients.shared import handle_errors
 from contaxy.operations.file import FileOperations
@@ -144,7 +143,7 @@ class FileClient(FileOperations):
         file_key: str,
         version: Optional[str] = None,
         request_kwargs: Dict = {},
-    ) -> ResourceAction:
+    ) -> List[ResourceAction]:
         # TODO
         pass
 
@@ -155,6 +154,6 @@ class FileClient(FileOperations):
         action_id: str,
         version: Optional[str] = None,
         request_kwargs: Dict = {},
-    ) -> Response:
+    ) -> None:
         # TODO
         pass

@@ -1,7 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Iterator, List, Optional
-
-from starlette.responses import Response
+from typing import Any, Iterator, List, Optional
 
 from contaxy.schema import File, FileInput, FileStream, ResourceAction
 
@@ -149,7 +147,7 @@ class FileOperations(ABC):
     @abstractmethod
     def list_file_actions(
         self, project_id: str, file_key: str, version: Optional[str] = None
-    ) -> ResourceAction:
+    ) -> List[ResourceAction]:
         pass
 
     @abstractmethod
@@ -159,5 +157,5 @@ class FileOperations(ABC):
         file_key: str,
         action_id: str,
         version: Optional[str] = None,
-    ) -> Response:
+    ) -> Any:
         pass

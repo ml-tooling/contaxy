@@ -29,7 +29,7 @@ class ProjectClient(ProjectOperations):
         resource = self._client.post(
             "/projects",
             params={"technical_project": technical_project},
-            json=project_input.dict(exclude_unset=True),
+            data=project_input.json(exclude_unset=True),
             **request_kwargs,
         )
         handle_errors(resource)
@@ -45,7 +45,7 @@ class ProjectClient(ProjectOperations):
     ) -> Project:
         response = self._client.patch(
             f"/projects/{project_id}",
-            json=project_input.dict(exclude_unset=True),
+            data=project_input.json(exclude_unset=True),
             **request_kwargs,
         )
         handle_errors(response)

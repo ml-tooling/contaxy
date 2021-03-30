@@ -19,25 +19,17 @@ from contaxy.schema.auth import ApiToken
 
 class AuthOperations(ABC):
     @abstractmethod
-    def login_page(self) -> RedirectResponse:
-        pass
-
-    @abstractmethod
-    def logout_session(self) -> RedirectResponse:
-        pass
-
-    @abstractmethod
     def create_token(
         self,
-        token_subject: str,
         scopes: List[str],
         token_type: TokenType,
         description: Optional[str] = None,
     ) -> str:
         """Returns a session or API token with access to the speicfied scopes.
 
+        The token is created on behalfe of the authorized user.
+
         Args:
-            token_subject: The subject/user to which the token is issued to.
             scopes: Scopes requested for this token. If none specified, the token will be generated with same set of scopes as the authorized token.
             token_type: The type of the token.
             description (optional): A short description about the generated token.
@@ -48,11 +40,8 @@ class AuthOperations(ABC):
         pass
 
     @abstractmethod
-    def list_api_tokens(self, token_subject: str) -> List[ApiToken]:
-        """Lists all API tokens associated with the given `token_subject`.
-
-        Args:
-            token_subject: The subject/user to which the token is issued to.
+    def list_api_tokens(self) -> List[ApiToken]:
+        """Lists all API tokens associated from the authorized user.
 
         Returns:
             List[ApiToken]: A list of API tokens.
@@ -94,87 +83,6 @@ class AuthOperations(ABC):
         Args:
             user_id: The ID of the user.
             password: The new password to apply for the user.
-        """
-        pass
-
-    @abstractmethod
-    def verify_password(
-        self,
-        user_id: str,
-        password: str,
-    ) -> bool:
-        """Verifies a password of a specified user.
-
-        The password is stored as a hash
-
-        Args:
-            user_id: The ID of the user.
-            password: The password to check. This can also be specified as a hash.
-
-        Returns:
-            bool: `True` if the password matches the stored password.
-        """
-        pass
-
-    # Permission Operations
-
-    @abstractmethod
-    def add_permission(
-        self,
-        resource_name: str,
-        permission: str,
-    ) -> None:
-        """Grants a permission to the specified resource.
-
-        Args:
-            resource_name: The resource name that the permission is granted to.
-            permission: The permission to grant to the specified resource.
-
-        Raises:
-            ResourceUpdateFailedError: If the resource update could not be applied successfully.
-        """
-        pass
-
-    @abstractmethod
-    def remove_permission(
-        self, resource_name: str, permission: str, remove_sub_permissions: bool = False
-    ) -> None:
-        """Revokes a permission from the specified resource.
-
-        Args:
-            resource_name: The resource name that the permission should be revoked from.
-            permission: The permission to revoke from the specified resource.
-            remove_sub_permissions: If `True`, the permission is used as prefix, and all permissions that start with this prefix will be revoked. Defaults to `False`.
-        """
-        pass
-
-    @abstractmethod
-    def list_permissions(
-        self, resource_name: str, resolve_roles: bool = True
-    ) -> List[str]:
-        """Returns all permissions granted to the specified resource.
-
-        Args:
-            resource_name: The name of the resource (relative URI).
-            resolve_roles: If `True`, all roles of the resource will be resolved to the associated permissions. Defaults to `True`.
-
-        Returns:
-            List[str]: List of permissions granted to the given resource.
-        """
-        pass
-
-    @abstractmethod
-    def list_resources_with_permission(
-        self, permission: str, resource_name_prefix: Optional[str] = None
-    ) -> List[str]:
-        """Returns all resources that are granted for the specified permission.
-
-        Args:
-            permission: The permission to use. If the permission is specified without the access level, it will filter for all access levels.
-            resource_name_prefix: Only return resources that match with this prefix.
-
-        Returns:
-            List[str]: List of resources names (relative URIs).
         """
         pass
 

@@ -378,9 +378,8 @@ class MinioFileManager(FileOperations):
 
     def list_file_actions(
         self, project_id: str, file_key: str, version: Optional[str] = None
-    ) -> ResourceAction:
-        # TODO
-        pass
+    ) -> List[ResourceAction]:
+        return []
 
     def execute_file_action(
         self,
