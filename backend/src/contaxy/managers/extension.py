@@ -1,7 +1,8 @@
 from typing import Tuple, Union
 
-from contaxy.clients import DeploymentManagerClient, FileClient
 from contaxy.operations import ExtensionOperations
+from contaxy.operations.deployment import DeploymentOperations
+from contaxy.operations.file import FileOperations
 from contaxy.schema import ExtensibleOperations
 from contaxy.schema.extension import CORE_EXTENSION_ID
 from contaxy.utils.state_utils import GlobalState, RequestState
@@ -31,7 +32,7 @@ def parse_composite_id(composite_id: str) -> Tuple[str, Union[str, None]]:
     return resource_id, extension_id
 
 
-class ExtensionClient(FileClient, DeploymentManagerClient):
+class ExtensionClient(FileOperations, DeploymentOperations):
     """Handels the request forwarding to the installed extensions.
 
     The extension client implements all extensible manager interfaces
