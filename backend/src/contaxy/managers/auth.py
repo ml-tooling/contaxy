@@ -462,8 +462,13 @@ class AuthManager(AuthOperations):
                     # Permission matched granted permission -> Ignore/remove this permission
                     removed_permissions.append(permission)
                     continue
-                if remove_sub_permissions and auth_utils.is_permission_granted(
-                    permission, granted_permission
+
+                if (
+                    remove_sub_permissions
+                    and auth_utils.is_valid_permission(
+                        granted_permission
+                    )  # Only if it is a valid permission and not a role
+                    and auth_utils.is_permission_granted(permission, granted_permission)
                 ):
                     # Ignore/remove this permission since it is a subpermission
                     removed_permissions.append(permission)

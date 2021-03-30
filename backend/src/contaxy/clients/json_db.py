@@ -3,7 +3,7 @@ from json.decoder import JSONDecodeError
 from typing import Dict, List, Optional
 
 import requests
-from pydantic import parse_obj_as
+from pydantic import parse_raw_as
 
 from contaxy.clients.shared import handle_errors
 from contaxy.operations import JsonDocumentOperations
@@ -32,7 +32,7 @@ class JsonDocumentClient(JsonDocumentOperations):
                 **request_kwargs,
             )
             handle_errors(response)
-            return parse_obj_as(JsonDocument, response.json())
+            return parse_raw_as(JsonDocument, response.text)
         except JSONDecodeError as ex:
             raise ClientValueError("The loaded JSON is invalid.") from ex
 
@@ -51,7 +51,7 @@ class JsonDocumentClient(JsonDocumentOperations):
                 **request_kwargs,
             )
             handle_errors(response)
-            return parse_obj_as(JsonDocument, response.json())
+            return parse_raw_as(JsonDocument, response.text)
         except JSONDecodeError as ex:
             raise ClientValueError("The loaded JSON is invalid.") from ex
 
@@ -70,7 +70,7 @@ class JsonDocumentClient(JsonDocumentOperations):
             **request_kwargs,
         )
         handle_errors(response)
-        return parse_obj_as(List[JsonDocument], response.json())
+        return parse_raw_as(List[JsonDocument], response.text)
 
     def get_json_document(
         self,
@@ -83,7 +83,7 @@ class JsonDocumentClient(JsonDocumentOperations):
             f"/projects/{project_id}/json/{collection_id}/{key}", **request_kwargs
         )
         handle_errors(response)
-        return parse_obj_as(JsonDocument, response.json())
+        return parse_raw_as(JsonDocument, response.text)
 
     def delete_json_document(
         self,

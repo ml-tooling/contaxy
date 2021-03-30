@@ -1,7 +1,7 @@
 from typing import Dict, List, Optional
 
 import requests
-from pydantic import parse_obj_as
+from pydantic import parse_raw_as
 from requests.models import Response
 from starlette.responses import RedirectResponse
 
@@ -99,21 +99,6 @@ class AuthClient(AuthOperations):
     def request_token(
         self, token_request_form: OAuth2TokenRequestFormNew, request_kwargs: Dict = {}
     ) -> OAuthToken:
-        # scope = None
-        # if token_request_form.scopes:
-        #   scope = " ".join(token_request_form.scopes)
-
-        # if not token_request_form.set_as_cookie:
-        #    token_request_form.set_as_cookie = False
-        # {
-        #        "grant_type": token_request_form.grant_type.value,
-        #        "username": token_request_form.username,
-        #        "password": token_request_form.password,
-        #        "scope": token_request_form.scope,
-        #        "set_as_cookie": token_request_form.set_as_cookie,
-        #   }
-
-        # TODO: support other grant types
         response = self._client.post(
             "/auth/oauth/token",
             data=token_request_form.dict(exclude_unset=True),
@@ -125,7 +110,7 @@ class AuthClient(AuthOperations):
         if token_request_form.set_as_cookie is True:
             # No return value since it is set as cookie
             return None  # type: ignore
-        return parse_obj_as(OAuthToken, response.json())
+        return parse_raw_as(OAuthToken, response.text)
 
     def revoke_token(
         self,
@@ -143,7 +128,7 @@ class AuthClient(AuthOperations):
     ) -> OAuthTokenIntrospection:
         response = self._client.post("/auth/oauth/introspect", data={"token": token})
         handle_errors(response)
-        return parse_obj_as(OAuthTokenIntrospection, response.json())
+        return parse_raw_as(OAuthTokenIntrospection, response.text)
 
     def get_userinfo(
         self,
@@ -166,7 +151,7 @@ class AuthClient(AuthOperations):
     def list_users(self, request_kwargs: Dict = {}) -> List[User]:
         response = self._client.get("/users", **request_kwargs)
         handle_errors(response)
-        return parse_obj_as(List[User], response.json())
+        return parse_raw_as(List[User], response.text)
 
     def create_user(
         self,
@@ -181,12 +166,12 @@ class AuthClient(AuthOperations):
             **request_kwargs,
         )
         handle_errors(response)
-        return parse_obj_as(User, response.json())
+        return parse_raw_as(User, response.text)
 
     def get_user(self, user_id: str, request_kwargs: Dict = {}) -> User:
         response = self._client.get(f"/users/{user_id}", **request_kwargs)
         handle_errors(response)
-        return parse_obj_as(User, response.json())
+        return parse_raw_as(User, response.text)
 
     def update_user(
         self, user_id: str, user_input: UserInput, request_kwargs: Dict = {}
@@ -197,7 +182,7 @@ class AuthClient(AuthOperations):
             **request_kwargs,
         )
         handle_errors(response)
-        return parse_obj_as(User, response.json())
+        return parse_raw_as(User, response.text)
 
     def delete_user(self, user_id: str, request_kwargs: Dict = {}) -> None:
         response = self._client.delete(f"/users/{user_id}", **request_kwargs)

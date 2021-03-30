@@ -407,6 +407,7 @@ class TestJsonDocumentManagerViaLocalEndpoints(JsonDocumentOperationsTests):
             self.login_user(
                 config.SYSTEM_ADMIN_USERNAME, config.SYSTEM_ADMIN_INITIAL_PASSWORD
             )
+            # TODO: create project
             yield
             # Login as admin again -> logged in user might have been changed
             self.login_user(
@@ -458,6 +459,7 @@ class TestJsonDocumentManagerViaRemoteEndpoints(JsonDocumentOperationsTests):
         self.login_user(
             config.SYSTEM_ADMIN_USERNAME, config.SYSTEM_ADMIN_INITIAL_PASSWORD
         )
+        # TODO: create project
         yield
         self.login_user(
             config.SYSTEM_ADMIN_USERNAME, config.SYSTEM_ADMIN_INITIAL_PASSWORD

@@ -247,8 +247,7 @@ class ProjectManager(ProjectOperations):
         )
         return self.list_project_members(project_id)
 
-    def remove_project_member(self, project_id: str, user_id: str) -> List[User]:
-        # Remove all permissions from the user that grant access to any part of the project
+    def _remove_project_member(self, project_id: str, user_id: str) -> None:
         self._auth_manager.remove_permission(
             f"{USERS_KIND}/{user_id}",
             auth_utils.construct_permission(
@@ -256,4 +255,9 @@ class ProjectManager(ProjectOperations):
             ),
             remove_sub_permissions=True,
         )
+        print("test")
+
+    def remove_project_member(self, project_id: str, user_id: str) -> List[User]:
+        # Remove all permissions from the user that grant access to any part of the project
+        self._remove_project_member(project_id, user_id)
         return self.list_project_members(project_id)

@@ -1,7 +1,7 @@
 from typing import Dict, List
 
 import requests
-from pydantic import parse_obj_as
+from pydantic import parse_raw_as
 
 from contaxy.clients.shared import handle_errors
 from contaxy.operations import ProjectOperations
@@ -18,7 +18,7 @@ class ProjectClient(ProjectOperations):
     ) -> List[Project]:
         response = self._client.get("/projects", **request_kwargs)
         handle_errors(response)
-        return parse_obj_as(List[Project], response.json())
+        return parse_raw_as(List[Project], response.text)
 
     def create_project(
         self,
@@ -33,12 +33,12 @@ class ProjectClient(ProjectOperations):
             **request_kwargs,
         )
         handle_errors(resource)
-        return parse_obj_as(Project, resource.json())
+        return parse_raw_as(Project, resource.text)
 
     def get_project(self, project_id: str, request_kwargs: Dict = {}) -> Project:
         resource = self._client.get(f"/projects/{project_id}", **request_kwargs)
         handle_errors(resource)
-        return parse_obj_as(Project, resource.json())
+        return parse_raw_as(Project, resource.text)
 
     def update_project(
         self, project_id: str, project_input: ProjectInput, request_kwargs: Dict = {}
@@ -49,7 +49,7 @@ class ProjectClient(ProjectOperations):
             **request_kwargs,
         )
         handle_errors(response)
-        return parse_obj_as(Project, response.json())
+        return parse_raw_as(Project, response.text)
 
     def suggest_project_id(self, display_name: str, request_kwargs: Dict = {}) -> str:
         response = self._client.get(
@@ -69,7 +69,7 @@ class ProjectClient(ProjectOperations):
     ) -> List[User]:
         response = self._client.get(f"/projects/{project_id}/users", **request_kwargs)
         handle_errors(response)
-        return parse_obj_as(List[User], response.json())
+        return parse_raw_as(List[User], response.text)
 
     def add_project_member(
         self,
@@ -84,7 +84,7 @@ class ProjectClient(ProjectOperations):
             **request_kwargs,
         )
         handle_errors(resource)
-        return parse_obj_as(List[User], resource.json())
+        return parse_raw_as(List[User], resource.text)
 
     def remove_project_member(
         self, project_id: str, user_id: str, request_kwargs: Dict = {}
@@ -93,4 +93,4 @@ class ProjectClient(ProjectOperations):
             f"/projects/{project_id}/users/{user_id}", **request_kwargs
         )
         handle_errors(resource)
-        return parse_obj_as(List[User], resource.json())
+        return parse_raw_as(List[User], resource.text)
