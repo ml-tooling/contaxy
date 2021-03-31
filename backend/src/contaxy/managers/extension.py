@@ -1,8 +1,9 @@
-from typing import Tuple, Union
+from typing import Optional, Tuple, Union
 
+from contaxy import config
+from contaxy.clients import DeploymentManagerClient, FileClient
+from contaxy.clients.shared import BaseUrlSession
 from contaxy.operations import ExtensionOperations
-from contaxy.operations.deployment import DeploymentOperations
-from contaxy.operations.file import FileOperations
 from contaxy.schema import ExtensibleOperations
 from contaxy.schema.extension import CORE_EXTENSION_ID
 from contaxy.utils.state_utils import GlobalState, RequestState
@@ -32,7 +33,7 @@ def parse_composite_id(composite_id: str) -> Tuple[str, Union[str, None]]:
     return resource_id, extension_id
 
 
-class ExtensionClient(FileOperations, DeploymentOperations):
+class ExtensionClient(FileClient, DeploymentManagerClient):
     """Handels the request forwarding to the installed extensions.
 
     The extension client implements all extensible manager interfaces
@@ -41,20 +42,18 @@ class ExtensionClient(FileOperations, DeploymentOperations):
     Extension clients are initialized and managed by the `ExtensionManager`.
     """
 
-    def __init__(
-        self,
-        global_state: GlobalState,
-        request_state: RequestState,
-    ):
+    def __init__(self, endpoint_url: str, access_token: Optional[str] = None):
         """Initializes the extension client.
 
         Args:
-            global_state: The global state of the app instance.
-            request_state: The state for the current request.
+            endpoint_url: The endpoint base URL of the extension.
+            access_token: An access token that is attached to all requests.
         """
-        self._global_state = global_state
-        self._request_state = request_state
-        # TODO: Initialize Extension Client correctly
+        client_session = BaseUrlSession(base_url=endpoint_url)
+        if access_token:
+            client_session.headers.update({config.API_TOKEN_NAME: access_token})
+            # client_session.cookies.set(config.API_TOKEN_NAME, access_token)
+        super(ExtensionClient, self).__init__(client=client_session)
 
 
 class ExtensionManager(ExtensionOperations):

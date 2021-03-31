@@ -1,3 +1,4 @@
+import requests
 from fastapi import HTTPException, status
 from requests.models import Response
 
@@ -9,6 +10,16 @@ from contaxy.schema.exceptions import (
     ResourceAlreadyExistsError,
     ResourceNotFoundError,
 )
+
+
+class BaseUrlSession(requests.Session):
+    def __init__(self, base_url=None, *args, **kwargs):  # type: ignore
+        super(BaseUrlSession, self).__init__(*args, **kwargs)
+        self.base_url = base_url
+
+    def request(self, method, url, *args, **kwargs):  # type: ignore
+        url = self.base_url + url
+        return super(BaseUrlSession, self).request(method, url, *args, **kwargs)
 
 
 def handle_errors(response: Response) -> None:
