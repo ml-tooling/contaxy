@@ -246,6 +246,7 @@ class DeploymentOperationsTests(ABC):
         logs = self.deployment_manager.get_job_logs(
             project_id=self.project_id, job_id=job.id
         )
+        self.deployment_manager.delete_job(project_id=self.project_id, job_id=job.id)
         assert logs
         assert logs.startswith(log_input)
 
