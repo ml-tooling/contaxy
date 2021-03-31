@@ -117,7 +117,7 @@ class ExtensibleOperations(str, Enum):
     LIST_FILE_ACTIONS = "list_file_actions"
     EXECUTE_FILE_ACTION = "execute_file_action"
     DELETE_FILE = "delete_file"
-    DELETE_ALL_FILES = "delete_all_files"
+    DELETE_FILES = "delete_files"
     GET_FILE_ACCESS_TOKEN = "get_file_access_token"
     UPDATE_FILE_METADATA = "update_file_metadata"
     # Auth Endpoints

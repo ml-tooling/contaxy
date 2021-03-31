@@ -145,7 +145,7 @@ class FileOperations(ABC):
         pass
 
     @abstractmethod
-    def delete_all_files(
+    def delete_files(
         self,
         project_id: str,
     ) -> None:
