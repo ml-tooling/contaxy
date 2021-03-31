@@ -10,7 +10,6 @@ GITHUB_URL = "https://github.com/ml-tooling/contaxy"
 
 HERE = os.path.abspath(os.path.dirname(__file__))
 
-STRESS_TEST_MARKER = "stress"
 INTEGRATION_TEST_MARKER = "integration"
 
 
@@ -45,15 +44,6 @@ def main(args: dict) -> None:
         build_utils.run("pipenv run coverage erase", exit_on_error=False)
 
         test_markers = args.get(build_utils.FLAG_TEST_MARKER)
-        print(test_markers)
-        if isinstance(test_markers, list) and STRESS_TEST_MARKER in test_markers:
-            locust_cmd_args = os.getenv("LOCUST_CMD_ARGS", None)
-            if not locust_cmd_args:
-                test_results_dir = "./tests/results"
-                Path(test_results_dir).mkdir(parents=False, exist_ok=True)
-                locust_cmd_args = f"-f tests/stress_tests/locustfile.py --host=http://localhost:8000 --headless -t1m --csv {test_results_dir}/locust"
-
-            build_utils.run(f"locust {locust_cmd_args}")
 
         # if the test_markers list exists, join those markers via "or". pytest will ignore markers it does not know
         pytest_marker = (
@@ -64,7 +54,7 @@ def main(args: dict) -> None:
         if isinstance(test_markers, list) and INTEGRATION_TEST_MARKER in test_markers:
             pytest_marker = "integration"
         # Activated Python Environment (3.8)
-        build_python.install_build_env()
+        # TODO: this is not needed since it is the env installed via make: build_python.install_build_env()
         # Run pytest in pipenv environment
         build_utils.run(
             f"pipenv run pytest tests -m {pytest_marker} --cov=src --cov-append --cov-config=setup.cfg --cov-report=xml --cov-report term --cov-report=html",
