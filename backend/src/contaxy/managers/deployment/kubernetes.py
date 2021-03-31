@@ -10,9 +10,11 @@ from kubernetes.client.models import (
     V1Job,
     V1JobList,
     V1JobSpec,
+    V1ServiceList,
     V1Status,
 )
 from kubernetes.client.rest import ApiException
+from loguru import logger
 
 from contaxy.config import settings
 from contaxy.managers.deployment.kube_utils import (
@@ -307,8 +309,47 @@ class KubernetesDeploymentManager(DeploymentManager):
         self,
         project_id: str,
     ) -> None:
-        # TODO: Implement
-        pass
+        label_selector = get_deployment_selection_labels(
+            project_id=project_id, deployment_type=DeploymentType.SERVICE
+        )
+
+        try:
+            services: V1ServiceList = self.core_api.list_namespaced_service(
+                namespace=self.kube_namespace, label_selector=label_selector
+            )
+
+            for service in services.items:
+                self.core_api.delete_namespaced_service(
+                    name=service.metadata.name, namespace=self.kube_namespace
+                )
+
+            status = self.apps_api.delete_collection_namespaced_deployment(
+                namespace=self.kube_namespace,
+                label_selector=label_selector,
+                propagation_policy="Foreground",
+            )
+
+            if status.status == "Failure":
+                raise ServerBaseError(
+                    f"Could not delete Kubernetes deployments for project '{project_id}'"
+                )
+
+            status = self.core_api.delete_collection_namespaced_persistent_volume_claim(
+                namespace=self.kube_namespace,
+                label_selector=label_selector,
+                propagation_policy="Foreground",
+            )
+
+            if status.status == "Failure":
+                raise ServerBaseError(
+                    f"Could not delete Kubernetes volumes for project '{project_id}'"
+                )
+
+        except Exception as e:
+            logger.error(f"Error in Kubernetes->delete_services. Reason: {e}")
+            raise ClientBaseError(
+                500, f"Could not delete services for project '{project_id}'"
+            )
 
     def get_service_logs(
         self,
@@ -488,8 +529,25 @@ class KubernetesDeploymentManager(DeploymentManager):
         self,
         project_id: str,
     ) -> None:
-        # TODO: Implement
-        pass
+        label_selector = get_deployment_selection_labels(
+            project_id=project_id, deployment_type=DeploymentType.JOB
+        )
+
+        try:
+            status: V1Status = self.batch_api.delete_collection_namespaced_job(
+                namespace=self.kube_namespace,
+                label_selector=label_selector,
+                propagation_policy="Foreground",
+            )
+
+            if status.status == "Failure":
+                raise ServerBaseError(
+                    f"Could not delete Kubernetes jobs for project '{project_id}'"
+                )
+        except ApiException as e:
+            log = f"Could not delete Kubernetes jobs for project '{project_id}'"
+            logger.error(f"{log}. Reason: {e}")
+            raise ServerBaseError(log)
 
     def get_job_logs(
         self,

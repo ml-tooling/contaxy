@@ -97,8 +97,9 @@ class DockerDeploymentManager(DeploymentManager):
         self,
         project_id: str,
     ) -> None:
-        # TODO: Implement
-        pass
+        containers = get_project_containers(client=self.client, project_id=project_id)
+        for container in containers:
+            container.remove(v=True, force=True)
 
     def get_service_logs(
         self,
@@ -171,8 +172,11 @@ class DockerDeploymentManager(DeploymentManager):
         self,
         project_id: str,
     ) -> None:
-        # TODO: Implement
-        pass
+        containers = get_project_containers(
+            self.client, project_id=project_id, deployment_type=DeploymentType.JOB
+        )
+        for container in containers:
+            container.remove(v=True, force=True)
 
     def get_job_logs(
         self,

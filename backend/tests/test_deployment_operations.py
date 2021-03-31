@@ -129,6 +129,78 @@ class DeploymentOperationsTests(ABC):
 
         assert "some-metadata" in service.metadata
 
+    def test_delete_services(self) -> None:
+        project_1 = f"{self.project_id}-1"
+        test_service_input_1 = create_test_service_input(
+            service_id=f"{self.service_id}-1",
+            display_name=f"{self.service_display_name}-1",
+        )
+        test_service_input_2 = create_test_service_input(
+            service_id=f"{self.service_id}-2",
+            display_name=f"{self.service_display_name}-2",
+        )
+        test_service_input_3 = create_test_service_input(
+            service_id=f"{self.service_id}-3",
+            display_name=f"{self.service_display_name}-3",
+        )
+
+        self.deploy_service(
+            project_id=project_1,
+            service=test_service_input_1,
+        )
+        self.deploy_service(
+            project_id=project_1,
+            service=test_service_input_2,
+        )
+        self.deploy_service(
+            project_id=project_1,
+            service=test_service_input_3,
+        )
+
+        services = self.deployment_manager.list_services(project_id=project_1)
+        assert len(services) == 3
+
+        self.deployment_manager.delete_services(project_id=project_1)
+        time.sleep(15)
+        services = self.deployment_manager.list_services(project_id=project_1)
+        assert len(services) == 0
+
+    def test_delete_jobs(self) -> None:
+        project_1 = f"{self.project_id}-1"
+        test_job_input_1 = create_test_echo_job_input(
+            job_id=f"{self.service_id}-1",
+            display_name=f"{self.service_display_name}-1",
+        )
+        test_job_input_2 = create_test_echo_job_input(
+            job_id=f"{self.service_id}-2",
+            display_name=f"{self.service_display_name}-2",
+        )
+        test_job_input_3 = create_test_echo_job_input(
+            job_id=f"{self.service_id}-3",
+            display_name=f"{self.service_display_name}-3",
+        )
+
+        self.deploy_job(
+            project_id=project_1,
+            job=test_job_input_1,
+        )
+        self.deploy_job(
+            project_id=project_1,
+            job=test_job_input_2,
+        )
+        self.deploy_job(
+            project_id=project_1,
+            job=test_job_input_3,
+        )
+
+        jobs = self.deployment_manager.list_jobs(project_id=project_1)
+        assert len(jobs) == 3
+
+        self.deployment_manager.delete_jobs(project_id=project_1)
+        time.sleep(10)
+        jobs = self.deployment_manager.list_jobs(project_id=project_1)
+        assert len(jobs) == 0
+
     def test_removal_of_system_params(self) -> None:
         user_set_project = "this-should-be-forbidden"
         min_lifetime_via_metadata = 10
@@ -618,7 +690,7 @@ class TestKubernetesDeploymentManager(DeploymentOperationsTests):
 class DeploymentOperationsEndpointTests(DeploymentOperationsTests):
     @pytest.fixture(autouse=True)
     def _client(self, remote_client: requests.Session) -> requests.Session:
-        if test_settings.REMOTE_BACKEND_ENDPOINT:
+        if test_settings.REMOTE_BACKEND_TESTS:
             return remote_client
         else:
             from contaxy.api import app
@@ -707,7 +779,15 @@ class DeploymentOperationsEndpointTests(DeploymentOperationsTests):
 
 
 @pytest.mark.skipif(
+    config.settings.DEPLOYMENT_MANAGER != "docker",
+    reason="Docker must be set as the deployment manager for DockerLocalEndpoint tests",
+)
+@pytest.mark.skipif(
     not test_settings.DOCKER_INTEGRATION_TESTS, reason="Docker tests are disabled."
+)
+@pytest.mark.skipif(
+    test_settings.REMOTE_BACKEND_TESTS,
+    reason="If remote backend tests are enabled, don't run the local endpoint tests",
 )
 @pytest.mark.integration
 class TestDockerDeploymentManagerViaLocalEndpoint(DeploymentOperationsEndpointTests):
@@ -716,11 +796,15 @@ class TestDockerDeploymentManagerViaLocalEndpoint(DeploymentOperationsEndpointTe
 
 @pytest.mark.skipif(
     config.settings.DEPLOYMENT_MANAGER != "kubernetes",
-    reason="Kubernetes must be set as the deployment manager for LocalEndpoint tests",
+    reason="Kubernetes must be set as the deployment manager for KubernetesLocalEndpoint tests",
 )
 @pytest.mark.skipif(
     not test_settings.KUBERNETES_INTEGRATION_TESTS,
     reason="Kubernetes tests are not enabled",
+)
+@pytest.mark.skipif(
+    test_settings.REMOTE_BACKEND_TESTS,
+    reason="If remote backend tests are enabled, don't run the local endpoint tests",
 )
 @pytest.mark.integration
 class TestKubernetesDeploymentManagerViaLocalEndpoint(
