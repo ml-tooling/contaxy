@@ -23,6 +23,7 @@ from contaxy.utils.file_utils import generate_file_id
 from contaxy.utils.minio_utils import (
     create_bucket,
     create_minio_client,
+    delete_bucket,
     get_bucket_name,
 )
 from contaxy.utils.state_utils import GlobalState, RequestState
@@ -380,8 +381,16 @@ class MinioFileManager(FileOperations):
         self,
         project_id: str,
     ) -> None:
-        # TODO: implement
-        pass
+        """Delete all files and storage resources related to a project.
+
+        Args:
+            project_id (str): Project ID associated with the files.
+        """
+        delete_bucket(
+            self.client,
+            get_bucket_name(project_id, self.global_state.settings.SYSTEM_NAMESPACE),
+            force=True,
+        )
 
     def list_file_actions(
         self, project_id: str, file_key: str, version: Optional[str] = None
