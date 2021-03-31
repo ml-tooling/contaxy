@@ -172,6 +172,7 @@ def build_kube_service_config(
             )
             service_ports[port_number] = service_port
 
+
     return V1Service(
         metadata=V1ObjectMeta(
             namespace=kube_namespace,
@@ -181,6 +182,7 @@ def build_kube_service_config(
                 Labels.NAMESPACE.value: settings.SYSTEM_NAMESPACE,
                 Labels.PROJECT_NAME.value: project_id,
                 Labels.DEPLOYMENT_NAME.value: service_id,
+                Labels.DEPLOYMENT_TYPE.value: DeploymentType.SERVICE.value,
             },  # service.labels
         ),
         spec=V1ServiceSpec(
