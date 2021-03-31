@@ -37,12 +37,15 @@ def create_minio_client(settings: Settings) -> Minio:
 
 def purge_bucket(client: Minio, bucket_name: str) -> None:
     # TODO: Validate the effect of `bypass_governance_mode`
+    logger.debug(f"Purging bucket {bucket_name}.")
     delete_objects = []
     for file in client.list_objects(bucket_name, include_version=True, recursive=True):
         delete_objects.append(DeleteObject(file.object_name, file.version_id))
 
+    delete_count = len(delete_objects)
     if delete_objects:
         # TODO: Validate bypass_governance_mode behavior
+        logger.debug(f"{delete_count} files from {bucket_name} to be removed.")
         errors = client.remove_objects(
             bucket_name, delete_objects, bypass_governance_mode=True
         )
@@ -53,17 +56,25 @@ def purge_bucket(client: Minio, bucket_name: str) -> None:
                 f"Error purging bucket {bucket_name} (Errors: {error}).",
             )
 
+        actual_deleted = delete_count - len(list(errors))
+        logger.debug(
+            f"{actual_deleted} files from {delete_count} from {bucket_name} deleted."
+        )
+
 
 def delete_bucket(client: Minio, bucket_name: str, force: bool = False) -> None:
     try:
         client.remove_bucket(bucket_name)
+        logger.info(f"Bucket {bucket_name} deleted")
     except S3Error as err:
         if err.code == "NoSuchBucket":
             logger.info(f"Bucket {bucket_name} not deleted, since it does not exist.")
+            return
         elif err.code == "BucketNotEmpty":
             if force:
                 purge_bucket(client, bucket_name)
                 client.remove_bucket(bucket_name)
+                logger.info(f"Bucket {bucket_name} deleted")
             else:
                 msg = (
                     f"Bucket {bucket_name} can not be deleted because it is not empty."
