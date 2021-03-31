@@ -71,7 +71,7 @@ class Settings(BaseSettings):
     # Usabel to deactivate setting or changing user passwords
     # The `system-admin` account can still set and change passwords for users,
     # or use the basic auth authentication login page
-    BASIC_AUTH_ENABLED: bool = True
+    PASSWORD_AUTH_ENABLED: bool = True
     USER_REGISTRATION_ENABLED: bool = True
 
     # JWT Session Tokens

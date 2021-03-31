@@ -2,7 +2,6 @@ from typing import Any, List
 
 from fastapi import APIRouter, Depends, Response, status
 from fastapi.param_functions import Body
-from fastapi.security import HTTPBasic, HTTPBasicCredentials
 
 from contaxy.api.dependencies import (
     ComponentManager,
@@ -162,17 +161,22 @@ def update_user(
 def change_password(
     user_id: str = USER_ID_PARAM,
     password: str = Body(...),
-    credentials: HTTPBasicCredentials = Depends(HTTPBasic()),
     component_manager: ComponentManager = Depends(get_component_manager),
+    token: str = Depends(get_api_token),
 ) -> Any:
     """Changes the password of a given user.
 
-    The endpoint MUST be called with basic auth credentials (user-id and password).
     The password can be changed by the given user or a system admin.
 
     The password is stored as a hash.
     """
-    # TODO: check bearer token
+    # TODO: check existing password as well for normal users
+    if not component_manager.global_state.settings.PASSWORD_AUTH_ENABLED:
+        # Admins still can set and change password
+        component_manager.verify_access(token, "users", AccessLevel.ADMIN)
+    else:
+        # Only check if token allows admin access on user object
+        component_manager.verify_access(token, f"users/{user_id}", AccessLevel.ADMIN)
 
     component_manager.get_auth_manager().change_password(user_id, password)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
