@@ -70,10 +70,6 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
         Returns:
             JsonDocument: The created Json document.
         """
-        # logger.debug(
-        #    f"Create Json document (`project_id`: {project_id}, `collection_id`: {collection_id} `key`: {key} )"
-        # )
-
         try:
             json_dict = json.loads(json_document)
         except json.decoder.JSONDecodeError:
@@ -102,9 +98,6 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
                     f"A Json document for key {key} already exists."
                 )
 
-        # logger.info(
-        #    f"Json document created (`project_id`: {project_id}, `collection_id`: {collection_id} `key`: {key} )"
-        # )
         return self.get_json_document(project_id, collection_id, key)
 
     def get_json_document(
@@ -126,9 +119,6 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
         Returns:
             JsonDocument: The requested Json document.
         """
-        # logger.debug(
-        #    f"Get Json document (`project_id`: {project_id}, `collection_id`: {collection_id} `key`: {key} )"
-        # )
         table = self._get_collection_table(project_id, collection_id)
         select_statement = table.select().where(table.c.key == key)
         with self._engine.begin() as conn:
@@ -163,9 +153,6 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
         Returns:
             JsonDocument: The updated document.
         """
-        # logger.debug(
-        #    f"Update Json document (`project_id`: {project_id}, `collection_id`: {collection_id} `key`: {key} )"
-        # )
         table = self._get_collection_table(project_id, collection_id)
 
         update_data = self._add_metadata_for_update({})
@@ -195,10 +182,6 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
 
             conn.commit()
 
-        # logger.info(
-        #    f"Json document updated (`project_id`: {project_id}, `collection_id`: {collection_id} `key`: {key} )"
-        # )
-
         return self.get_json_document(project_id, collection_id, key)
 
     def delete_json_document(
@@ -218,9 +201,7 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
             ResourceNotFoundError: If no JSON document is found with the given `key`.
             ServerBaseError: Document not deleted for an unknown reason.
         """
-        # logger.debug(
-        #    f"Delete Json document (`project_id`: {project_id}, `collection_id`: {collection_id} `key`: {key} )"
-        # )
+
         table = self._get_collection_table(project_id, collection_id)
         delete_statement = table.delete().where(table.c.key == key)
         with self._engine.begin() as conn:
@@ -232,9 +213,6 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
                     f"Document {key} could not be deleted (project_id: {project_id}, collection_id {collection_id})"
                 )
             conn.commit()
-        # logger.debug(
-        #    f"Json document deleted (`project_id`: {project_id}, `collection_id`: {collection_id} `key`: {key} )"
-        # )
 
     def delete_documents(
         self, project_id: str, collection_id: str, keys: List[str]
@@ -250,17 +228,12 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
             json_document (Dict): The actual Json document.
 
         """
-        # logger.debug(
-        #    f"Delete Json documents (`project_id`: {project_id}, `collection_id`: {collection_id} `keys`: {keys} )"
-        # )
         table = self._get_collection_table(project_id, collection_id)
         delete_statement = table.delete().where(table.c.key.in_(keys))
         with self._engine.begin() as conn:
             result = conn.execute(delete_statement)
             conn.commit()
-        # logger.info(
-        #    f"{result.rowcount} of {len(keys)} Json documents deleted (`project_id`: {project_id}, `collection_id`: {collection_id} `keys`: {keys} )"
-        # )
+
         return result.rowcount
 
     def list_json_documents(
@@ -286,9 +259,7 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
         Returns:
             List[JsonDocument]: List of Json documents.
         """
-        # logger.debug(
-        #    f"List Json documents (`project_id`: {project_id}, `collection_id`: {collection_id} `filter`: {filter} )"
-        # )
+
         table = self._get_collection_table(project_id, collection_id)
         sql_statement = table.select()
         if filter:
@@ -298,8 +269,6 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
 
         if keys:
             sql_statement = sql_statement.where(table.c.key.in_(keys))
-
-        # logger.debug(f"Sql Statement: {str(sql_statement)}")
 
         with self._engine.begin() as conn:
             try:
@@ -332,8 +301,19 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
         project_id: str,
         collection_id: str,
     ) -> None:
-        # TODO: implement
-        pass
+        """Delete a JSON collection.
+
+        Args:
+            project_id (str): Project ID associated with the collection.
+            collection_id (str): The collection to be deleted.
+        """
+
+        stmt = text(
+            f'DROP TABLE IF EXISTS "{self._get_schema_name(project_id)}"."{collection_id}" cascade'
+        )
+        with self._engine.begin() as conn:
+            conn.execute(stmt)
+            conn.commit()
 
     def _add_metadata_for_insert(self, data: dict) -> dict:
         insert_data = data.copy()
