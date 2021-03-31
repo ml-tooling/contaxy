@@ -387,7 +387,7 @@ def list_jobs(
     return component_manager.get_job_manager(extension_id).list_jobs(project_id)
 
 
-@service_router.delete(
+@job_router.delete(
     "/projects/{project_id}/jobs",
     operation_id=ExtensibleOperations.DELETE_JOBS.value,
     summary="Delete all jobs.",
