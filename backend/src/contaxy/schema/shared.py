@@ -79,6 +79,7 @@ class CoreOperations(str, Enum):
     CREATE_JSON_DOCUMENT = "create_json_document"
     UPDATE_JSON_DOCUMENT = "update_json_document"
     DELETE_JSON_DOCUMENT = "delete_json_document"
+    DELETE_JSON_COLLECTION = "delete_json_collection"
     DELETE_JSON_COLLECTIONS = "delete_json_collections"
     GET_JSON_DOCUMENT = "get_json_document"
 

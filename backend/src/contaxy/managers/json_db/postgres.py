@@ -327,6 +327,14 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
             conn.execute(stmt)
             conn.commit()
 
+    def delete_json_collection(
+        self,
+        project_id: str,
+        collection_id: str,
+    ) -> None:
+        # TODO: implement
+        pass
+
     def _add_metadata_for_insert(self, data: dict) -> dict:
         insert_data = data.copy()
         # TODO: Finalize

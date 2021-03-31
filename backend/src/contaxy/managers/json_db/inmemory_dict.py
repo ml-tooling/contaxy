@@ -220,6 +220,17 @@ class InMemoryDictJsonDocumentManager(JsonDocumentOperations):
             )
         del collection[key]
 
+    def delete_json_collection(
+        self,
+        project_id: str,
+        collection_id: str,
+    ) -> None:
+        # Lazy load if not already happend
+        self._get_collection(project_id, collection_id)
+        # Empty out collection
+        if self._dict_db and self._dict_db[project_id]:
+            self._dict_db[project_id][collection_id] = {}
+
     def delete_json_collections(self, project_id: str) -> None:
         state_namespace = self._global_state[InMemoryDictJsonDocumentManager]
         if state_namespace.dict_db:

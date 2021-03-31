@@ -138,3 +138,17 @@ class JsonDocumentOperations(ABC):
             project_id: Project ID associated with the collections.
         """
         pass
+
+    @abstractmethod
+    def delete_json_collection(
+        self,
+        project_id: str,
+        collection_id: str,
+    ) -> None:
+        """Deletes all documents of a single JSON collection.
+
+        Args:
+            project_id: Project ID associated with the collection.
+            collection_id: ID of the JSON collection (database).
+        """
+        pass

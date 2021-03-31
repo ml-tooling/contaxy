@@ -181,6 +181,29 @@ def delete_json_document(
 
 
 @router.delete(
+    "/projects/{project_id}/json/{collection_id}",
+    operation_id=CoreOperations.DELETE_JSON_COLLECTION.value,
+    summary="Delete a JSON collection.",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def delete_json_collection(
+    project_id: str = PROJECT_ID_PARAM,
+    collection_id: str = Path(..., description="ID of the collection."),
+    component_manager: ComponentManager = Depends(get_component_manager),
+    token: str = Depends(get_api_token),
+) -> Any:
+    """Deletes all documents of a single JSON collection."""
+    component_manager.verify_access(
+        token, f"projects/{project_id}/json/{collection_id}", AccessLevel.WRITE
+    )
+
+    component_manager.get_json_db_manager().delete_json_collection(
+        project_id, collection_id
+    )
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.delete(
     "/projects/{project_id}/json",
     operation_id=CoreOperations.DELETE_JSON_COLLECTIONS.value,
     summary="Delete all JSON collections.",

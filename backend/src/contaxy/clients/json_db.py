@@ -97,6 +97,17 @@ class JsonDocumentClient(JsonDocumentOperations):
         )
         handle_errors(response)
 
+    def delete_json_collection(
+        self,
+        project_id: str,
+        collection_id: str,
+        request_kwargs: Dict = {},
+    ) -> None:
+        response = self._client.delete(
+            f"/projects/{project_id}/json/{collection_id}", **request_kwargs
+        )
+        handle_errors(response)
+
     def delete_json_collections(
         self,
         project_id: str,
