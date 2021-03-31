@@ -1,16 +1,16 @@
-import React from 'react';
-import PropTypes from 'prop-types';
-import { render } from '@testing-library/react';
 import { HashRouter } from 'react-router-dom';
+import { render } from '@testing-library/react';
+import PropTypes from 'prop-types';
+import React from 'react';
 
-import i18n from 'i18next';
 import { I18nextProvider } from 'react-i18next';
+import i18n from 'i18next';
 
 import { ThemeProvider as MuiThemeProvider } from '@material-ui/core/styles';
 import { ThemeProvider } from 'styled-components';
 
-import GlobalStateContainer from '../app/store';
 import AppDialogServiceProvider from '../app/AppDialogServiceProvider';
+import GlobalStateContainer from '../app/store';
 
 import theme from './theme';
 
