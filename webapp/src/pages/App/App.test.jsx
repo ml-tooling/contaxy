@@ -1,8 +1,9 @@
 import React, { useEffect } from 'react';
 
-import App from './App';
+import { APP_NAME } from '../../utils/config';
 import { fireEvent, render, screen } from '../../utils/test-custom-render';
-import { APP_DRAWER_ITEM_TYPES, APP_NAME, PAGES } from '../../utils/config';
+import APP_PAGES, { APP_DRAWER_ITEM_TYPES } from '../../utils/app-pages';
+import App from './App';
 
 import GlobalStateContainer from '../../app/store';
 
@@ -23,7 +24,7 @@ test('tests the usermenu and its entries', () => {
 
 test('test that all link app drawer link items exist', () => {
   render(<App />);
-  PAGES.filter((page) => page.type === APP_DRAWER_ITEM_TYPES.link).forEach(
+  APP_PAGES.filter((page) => page.type === APP_DRAWER_ITEM_TYPES.link).forEach(
     (page) => {
       expect(screen.queryAllByText(page.NAME).length > 0);
     }

@@ -172,7 +172,6 @@ def build_kube_service_config(
             )
             service_ports[port_number] = service_port
 
-
     return V1Service(
         metadata=V1ObjectMeta(
             namespace=kube_namespace,
