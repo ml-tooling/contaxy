@@ -83,7 +83,7 @@ class ProjectOperationsTests(ABC):
             assert created_project.display_name == project_name
             assert created_project.technical_project is False
             assert (
-                datetime.today() - created_project.created_at
+                datetime.utcnow() - created_project.created_at
             ).seconds < 300, "Creation timestamp MUST be from a few seconds ago."
 
         for created_project in created_projects:

@@ -403,7 +403,6 @@ def delete_jobs(
     component_manager.verify_access(
         token, f"projects/{project_id}/jobs", AccessLevel.ADMIN
     )
-
     component_manager.get_job_manager(extension_id).delete_jobs(project_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 

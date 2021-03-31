@@ -187,7 +187,7 @@ class AuthManager(AuthOperations):
             token_type=token_type,
             subject=token_subject,
             scopes=scopes,
-            created_at=datetime.today(),
+            created_at=datetime.utcnow(),
             description=description,
             token_purpose=token_purpose,
             # TODO: created_by
@@ -854,7 +854,7 @@ class AuthManager(AuthOperations):
         user = User(
             id=user_id,
             technical_user=technical_user,
-            created_at=datetime.now(),
+            created_at=datetime.utcnow(),
             **user_input.dict(exclude_unset=True),
         )
 

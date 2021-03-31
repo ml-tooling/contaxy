@@ -331,7 +331,7 @@ class AuthOperationsTests(ABC):
         assert token_introspection.sub == USER
         assert (PROJECT + "#write") in token_introspection.scope
         assert (
-            datetime.today() - datetime.utcfromtimestamp(token_introspection.iat)
+            datetime.utcnow() - datetime.utcfromtimestamp(token_introspection.iat)
         ).seconds < 300, "Creation timestamp MUST be from a few seconds ago."
 
         self.auth_manager.revoke_token(token)
@@ -394,7 +394,7 @@ class AuthOperationsTests(ABC):
             assert created_user.username == user_input.username
             assert created_user.email == user_input.email
             assert (
-                datetime.today() - created_user.created_at
+                datetime.utcnow() - created_user.created_at
             ).seconds < 300, "Creation timestamp MUST be from a few seconds ago."
 
     def test_list_users(self, user_data: List[UserRegistration]) -> None:
