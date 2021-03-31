@@ -391,6 +391,9 @@ class MinioFileManager(FileOperations):
             get_bucket_name(project_id, self.global_state.settings.SYSTEM_NAMESPACE),
             force=True,
         )
+        self.json_db_manager.delete_json_collection(
+            project_id, self.DOC_COLLECTION_NAME
+        )
 
     def list_file_actions(
         self, project_id: str, file_key: str, version: Optional[str] = None
@@ -507,7 +510,7 @@ class MinioFileManager(FileOperations):
 
         except S3Error as err:
             if err.code == "NoSuchBucket":
-                create_bucket(self.client, bucket_name)
+                logger.debug(f"No files to list - Bucket {bucket_name} does not exist.")
                 return [], []
 
         for file in file_data:

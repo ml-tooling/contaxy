@@ -120,13 +120,10 @@ class FileOperationsTests(ABC):
         version_2 = self.seeder.create_file(self.project_id)
 
         # Test - File does not exsists
-        try:
+        with pytest.raises(ResourceNotFoundError):
             self.file_manager.update_file_metadata(
                 FileInput(key="invalid-file"), self.project_id, "invalid-file"
             )
-            assert False
-        except ResourceNotFoundError:
-            pass
 
         # Test - File exists
         #    -- Update latest version
@@ -180,11 +177,8 @@ class FileOperationsTests(ABC):
         version_2 = self.seeder.create_file(self.project_id, file_key)
 
         # Test - File does not exist
-        try:
+        with pytest.raises(ResourceNotFoundError):
             self.file_manager.download_file(self.project_id, "invalid-key")
-            assert False
-        except ResourceNotFoundError:
-            pass
 
         # Test - File exists
         #     -- Latest version
@@ -251,7 +245,35 @@ class FileOperationsTests(ABC):
         file = self.file_manager.get_file_metadata(self.project_id, file_key)
         assert file.version == version_3.version
 
-    # !-----------------------------------------------------------------
+    def test_delete_files(self) -> None:
+        file_key = "delete-1.bin"
+        self.seeder.create_file(self.project_id, file_key)
+        self.seeder.create_file(self.project_id, file_key)
+        file_key = "delete-2.bin"
+        self.seeder.create_file(self.project_id, file_key)
+        self.seeder.create_file(self.project_id, file_key)
+        self.seeder.create_file(self.project_id, file_key)
+
+        # Test - Delete all files including versions
+        self.file_manager.delete_files(self.project_id)
+        files = self.file_manager.list_files(self.project_id, include_versions=True)
+        assert not files
+        files = self.file_manager.list_files(
+            self.project_id, include_versions=True, prefix="delete-1.bin"
+        )
+        assert not files
+        files = self.file_manager.list_files(
+            self.project_id, include_versions=True, prefix="delete-2.bin"
+        )
+        assert not files
+
+        with pytest.raises(ResourceNotFoundError):
+            self.file_manager.get_file_metadata(self.project_id, file_key)
+
+        # Test - Try deleting an already deleted bucket
+        self.file_manager.delete_files(self.project_id)
+        files = self.file_manager.list_files(self.project_id, include_versions=True)
+        assert not files
 
     def _validate_file_not_found(
         self,
@@ -259,11 +281,8 @@ class FileOperationsTests(ABC):
         file_key: str,
         version: Optional[str] = None,
     ) -> None:
-        try:
+        with pytest.raises(ResourceNotFoundError):
             self.file_manager.get_file_metadata(project_id, file_key, version)
-            assert False
-        except ResourceNotFoundError:
-            pass
 
 
 @pytest.mark.skipif(
