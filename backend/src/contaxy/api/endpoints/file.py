@@ -361,11 +361,11 @@ def delete_file(
 
 @router.delete(
     "/projects/{project_id}/files",
-    operation_id=ExtensibleOperations.DELETE_FILES.value,
+    operation_id=ExtensibleOperations.DELETE_ALL_FILES.value,
     summary="Delete all files.",
     status_code=status.HTTP_204_NO_CONTENT,
 )
-def delete_files(
+def delete_all_files(
     project_id: str = PROJECT_ID_PARAM,
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
     component_manager: ComponentManager = Depends(get_component_manager),
@@ -376,7 +376,7 @@ def delete_files(
         token, f"projects/{project_id}/files", AccessLevel.ADMIN
     )
 
-    component_manager.get_file_manager(extension_id).delete_files(project_id)
+    component_manager.get_file_manager(extension_id).delete_all_files(project_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 

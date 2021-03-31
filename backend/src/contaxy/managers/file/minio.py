@@ -376,7 +376,7 @@ class MinioFileManager(FileOperations):
                 f"No file metadata Json doc found for file_key: {file_key}, version: {version}"
             )
 
-    def delete_files(
+    def delete_all_files(
         self,
         project_id: str,
     ) -> None:

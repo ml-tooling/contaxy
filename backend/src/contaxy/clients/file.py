@@ -137,7 +137,7 @@ class FileClient(FileOperations):
         )
         handle_errors(response)
 
-    def delete_files(
+    def delete_all_files(
         self,
         project_id: str,
         request_kwargs: Dict = {},

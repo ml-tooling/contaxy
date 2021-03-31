@@ -90,6 +90,7 @@ class ExtensibleOperations(str, Enum):
     LIST_DEPLOY_SERVICE_ACTIONS = "list_deploy_service_actions"
     DEPLOY_SERVICE = "deploy_service"
     DELETE_SERVICE = "delete_service"
+    DELETE_ALL_SERVICES = "delete_all_services"
     UPDATE_SERVICE = "update_service"
     GET_SERVICE_LOGS = "get_service_logs"
     GET_SERVICE_ACCESS_TOKEN = "get_service_access_token"
@@ -106,6 +107,7 @@ class ExtensibleOperations(str, Enum):
     SUGGEST_JOB_CONFIG = "suggest_job_config"
     DEPLOY_JOB = "deploy_job"
     DELETE_JOB = "delete_job"
+    DELETE_ALL_JOBS = "delete_all_jobs"
     GET_JOB_LOGS = "get_job_logs"
     # File Endpoints
     LIST_FILES = "list_files"
@@ -115,7 +117,7 @@ class ExtensibleOperations(str, Enum):
     LIST_FILE_ACTIONS = "list_file_actions"
     EXECUTE_FILE_ACTION = "execute_file_action"
     DELETE_FILE = "delete_file"
-    DELETE_FILES = "delete_files"
+    DELETE_ALL_FILES = "delete_all_files"
     GET_FILE_ACCESS_TOKEN = "get_file_access_token"
     UPDATE_FILE_METADATA = "update_file_metadata"
     # Auth Endpoints
