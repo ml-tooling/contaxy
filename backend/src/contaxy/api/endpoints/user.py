@@ -1,6 +1,6 @@
-from typing import Any, List
+from typing import Any, List, Optional
 
-from fastapi import APIRouter, Depends, Response, status
+from fastapi import APIRouter, Depends, Query, Response, status
 from fastapi.param_functions import Body
 
 from contaxy.api.dependencies import (
@@ -9,7 +9,7 @@ from contaxy.api.dependencies import (
     get_component_manager,
 )
 from contaxy.schema import CoreOperations, User, UserInput, UserRegistration
-from contaxy.schema.auth import USER_ID_PARAM, AccessLevel
+from contaxy.schema.auth import USER_ID_PARAM, AccessLevel, TokenPurpose, TokenType
 from contaxy.schema.exceptions import (
     AUTH_ERROR_RESPONSES,
     CREATE_RESOURCE_RESPONSES,
@@ -18,7 +18,7 @@ from contaxy.schema.exceptions import (
     VALIDATION_ERROR_RESPONSE,
     PermissionDeniedError,
 )
-from contaxy.utils import id_utils
+from contaxy.utils import auth_utils, id_utils
 
 router = APIRouter(
     tags=["users"],
@@ -201,3 +201,47 @@ def delete_user(
     component_manager.verify_access(token, "users/{user_id}", AccessLevel.ADMIN)
     component_manager.get_auth_manager().delete_user(user_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.get(
+    "/users/{user_id}/token",
+    operation_id=CoreOperations.GET_USER_TOKEN.value,
+    response_model=str,
+    summary="Get a user token.",
+    tags=["users"],
+    status_code=status.HTTP_200_OK,
+)
+def get_user_token(
+    user_id: str = USER_ID_PARAM,
+    access_level: AccessLevel = Query(
+        AccessLevel.WRITE,
+        description="Access level of the token.",
+        type="string",
+    ),
+    description: Optional[str] = Query(
+        None, description="Attach a short description to the generated token."
+    ),
+    component_manager: ComponentManager = Depends(get_component_manager),
+    token: str = Depends(get_api_token),
+) -> Any:
+    """Returns an API token with permission to access all resources accesible by the given user.
+
+    The `read` access level allows read-only access on all resources.
+    The `write` access level allows to create and delete user resources.
+    The `admin` access level allows additional user actions such as deletion of the user itself.
+    """
+    # Only allow creating tokens if user has admin access to the user object
+    authorized_access = component_manager.verify_access(
+        token, f"users/{user_id}", AccessLevel.ADMIN
+    )
+
+    # Provide access to all resources from the user
+    user_token_scope = auth_utils.construct_permission("*", access_level)
+
+    return component_manager.get_auth_manager().create_token(
+        scopes=[user_token_scope],
+        token_type=TokenType.API_TOKEN,
+        token_subject=authorized_access.authorized_subject,
+        token_purpose=TokenPurpose.USER_API_TOKEN,
+        description=description,
+    )

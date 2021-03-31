@@ -103,7 +103,7 @@ class ProjectManager(ProjectOperations):
         if self._request_state.authorized_access:
             authorized_user = self._request_state.authorized_access.authorized_subject
 
-        creation_timestamp = datetime.now()
+        creation_timestamp = datetime.utcnow()
         project = Project(
             **project_input.dict(exclude_unset=True),
             created_at=creation_timestamp,
@@ -133,16 +133,22 @@ class ProjectManager(ProjectOperations):
         return created_project
 
     def get_project(self, project_id: str) -> Project:
-        json_document = self._json_db_manager.get_json_document(
-            project_id=config.SYSTEM_INTERNAL_PROJECT,
-            collection_id=self._PROJECT_COLLECTION,
-            key=project_id,
-        )
+        try:
+            json_document = self._json_db_manager.get_json_document(
+                project_id=config.SYSTEM_INTERNAL_PROJECT,
+                collection_id=self._PROJECT_COLLECTION,
+                key=project_id,
+            )
+        except ResourceNotFoundError as ex:
+            raise ResourceNotFoundError(
+                f"Project not found for ID: {project_id}"
+            ) from ex
+
         return Project.parse_raw(json_document.json_value)
 
     def update_project(self, project_id: str, project_input: ProjectInput) -> Project:
         updated_project = Project.parse_raw(project_input.json(exclude_unset=True))
-        updated_project.updated_at = datetime.now()
+        updated_project.updated_at = datetime.utcnow()
         if self._request_state.authorized_access:
             updated_project.updated_by = (
                 self._request_state.authorized_access.authorized_subject

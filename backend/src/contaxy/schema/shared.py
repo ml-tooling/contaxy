@@ -82,6 +82,8 @@ class CoreOperations(str, Enum):
     DELETE_JSON_COLLECTION = "delete_json_collection"
     DELETE_JSON_COLLECTIONS = "delete_json_collections"
     GET_JSON_DOCUMENT = "get_json_document"
+    # Service Endpoints
+    GET_SERVICE_ACCESS_TOKEN = "get_service_access_token"
 
 
 class ExtensibleOperations(str, Enum):
@@ -94,7 +96,6 @@ class ExtensibleOperations(str, Enum):
     DELETE_SERVICES = "delete_services"
     UPDATE_SERVICE = "update_service"
     GET_SERVICE_LOGS = "get_service_logs"
-    GET_SERVICE_ACCESS_TOKEN = "get_service_access_token"
     LIST_SERVICE_ACTIONS = "list_service_actions"
     EXECUTE_SERVICE_ACTION = "execute_service_action"
     SUGGEST_SERVICE_CONFIG = "suggest_service_config"

@@ -17,7 +17,7 @@ from contaxy.schema import (
     Service,
     ServiceInput,
 )
-from contaxy.schema.auth import AccessLevel
+from contaxy.schema.auth import AccessLevel, TokenPurpose, TokenType
 from contaxy.schema.deployment import JOB_ID_PARAM, SERVICE_ID_PARAM
 from contaxy.schema.exceptions import (
     AUTH_ERROR_RESPONSES,
@@ -27,7 +27,8 @@ from contaxy.schema.exceptions import (
 )
 from contaxy.schema.extension import EXTENSION_ID_PARAM
 from contaxy.schema.project import PROJECT_ID_PARAM
-from contaxy.schema.shared import OPEN_URL_REDIRECT, RESOURCE_ID_REGEX
+from contaxy.schema.shared import OPEN_URL_REDIRECT, RESOURCE_ID_REGEX, CoreOperations
+from contaxy.utils import auth_utils
 
 service_router = APIRouter(
     tags=["services"],
@@ -403,7 +404,6 @@ def delete_jobs(
     component_manager.verify_access(
         token, f"projects/{project_id}/jobs", AccessLevel.ADMIN
     )
-
     component_manager.get_job_manager(extension_id).delete_jobs(project_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
@@ -690,4 +690,52 @@ def execute_job_action(
     action_id, extension_id = parse_composite_id(action_id)
     return component_manager.get_job_manager(extension_id).execute_job_action(
         project_id, job_id, action_id
+    )
+
+
+@service_router.get(
+    "/projects/{project_id}/services/{service_id}/token",
+    operation_id=CoreOperations.GET_SERVICE_ACCESS_TOKEN.value,
+    response_model=str,
+    summary="Get service access token.",
+    tags=["services"],
+    status_code=status.HTTP_200_OK,
+)
+def get_service_access_token(
+    project_id: str = PROJECT_ID_PARAM,
+    service_id: str = SERVICE_ID_PARAM,
+    endpoint: Optional[str] = Query(
+        None, description="If specified, the token only allows access to this endpoint."
+    ),
+    description: Optional[str] = Query(
+        None, description="Attach a short description to the generated token."
+    ),
+    component_manager: ComponentManager = Depends(get_component_manager),
+    token: str = Depends(get_api_token),
+) -> Any:
+    """Returns an API token with permission to access the service endpoints.
+
+    This token is read-only (permission level read) and does not allow any other permission such as deleting or updating the service.
+    The token can be deleted (revoked) at any time.
+    """
+    authorized_access = component_manager.verify_access(
+        token,
+        f"projects/{project_id}/services/{service_id}/token",
+        AccessLevel.WRITE,
+    )
+
+    if not endpoint:
+        endpoint = ""
+
+    access_service_scope = auth_utils.construct_permission(
+        f"projects/{project_id}/services/{service_id}/access/{endpoint}",
+        AccessLevel.READ,
+    )
+
+    component_manager.get_auth_manager().create_token(
+        token_subject=authorized_access.authorized_subject,
+        scopes=[access_service_scope],
+        token_type=TokenType.API_TOKEN,
+        description=description,
+        token_purpose=TokenPurpose.SERVICE_ACCESS_TOKEN,
     )

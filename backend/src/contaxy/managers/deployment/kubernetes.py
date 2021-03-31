@@ -400,7 +400,7 @@ class KubernetesDeploymentManager(DeploymentManager):
 
             since_seconds = None
             if since:
-                since_seconds = int((datetime.now() - since).total_seconds()) + 1
+                since_seconds = int((datetime.utcnow() - since).total_seconds()) + 1
 
             try:
                 return self.core_api.read_namespaced_pod_log(

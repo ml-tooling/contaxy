@@ -1,4 +1,4 @@
-from typing import Any, List
+from typing import Any, List, Optional
 
 from fastapi import APIRouter, Depends, Query, Response, status
 from fastapi.param_functions import Body
@@ -9,7 +9,7 @@ from contaxy.api.dependencies import (
     get_component_manager,
 )
 from contaxy.schema import AccessLevel, CoreOperations, Project, ProjectInput, User
-from contaxy.schema.auth import USER_ID_PARAM
+from contaxy.schema.auth import USER_ID_PARAM, TokenPurpose, TokenType
 from contaxy.schema.exceptions import (
     AUTH_ERROR_RESPONSES,
     CREATE_RESOURCE_RESPONSES,
@@ -18,6 +18,7 @@ from contaxy.schema.exceptions import (
 )
 from contaxy.schema.project import PROJECT_ID_PARAM, ProjectCreation
 from contaxy.schema.shared import MAX_DISPLAY_NAME_LENGTH, MIN_DISPLAY_NAME_LENGTH
+from contaxy.utils import auth_utils
 
 router = APIRouter(
     tags=["projects"],
@@ -247,4 +248,52 @@ def remove_project_member(
     component_manager.verify_access(token, f"projects/{project_id}", AccessLevel.ADMIN)
     return component_manager.get_project_manager().remove_project_member(
         project_id, user_id
+    )
+
+
+@router.get(
+    "/projects/{project_id}/token",
+    operation_id=CoreOperations.GET_PROJECT_TOKEN.value,
+    response_model=str,
+    summary="Get project token.",
+    tags=["projects"],
+    status_code=status.HTTP_200_OK,
+)
+def get_project_token(
+    project_id: str = PROJECT_ID_PARAM,
+    access_level: AccessLevel = Query(
+        AccessLevel.WRITE,
+        description="Access level of the token.",
+        type="string",
+    ),
+    description: Optional[str] = Query(
+        None, description="Attach a short description to the generated token."
+    ),
+    component_manager: ComponentManager = Depends(get_component_manager),
+    token: str = Depends(get_api_token),
+) -> Any:
+    """Returns an API token with permission (`read`, `write`, or `admin`) to access all project resources.
+
+    The `read` access level allows read-only access on all resources.
+    The `write` access level allows to create and delete project resources.
+    The `admin` access level allows to delete the project or add/remove other users.
+    """
+    access_level_to_check = access_level
+    if access_level_to_check not in [AccessLevel.ADMIN, AccessLevel.WRITE]:
+        # WRITE Access minimum should be the minimum to create tokens
+        access_level_to_check = AccessLevel.WRITE
+
+    authorized_access = component_manager.verify_access(
+        token, f"projects/{project_id}", access_level_to_check
+    )
+
+    project_permission = auth_utils.construct_permission(
+        f"projects/{project_id}", access_level
+    )
+    return component_manager.get_auth_manager().create_token(
+        scopes=[project_permission],
+        token_type=TokenType.API_TOKEN,
+        token_subject=authorized_access.authorized_subject,
+        token_purpose=TokenPurpose.PROJECT_API_TOKEN,
+        description=description,
     )

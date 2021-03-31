@@ -24,10 +24,6 @@ from contaxy.utils import auth_utils
             ("projects", AccessLevel.WRITE),
         ),
         (
-            "projects#foo",
-            ("projects", AccessLevel.UNKNOWN),
-        ),
-        (
             "*#read",
             ("*", AccessLevel.READ),
         ),
@@ -46,6 +42,7 @@ def test_parse_permission(
         ("projects/foo"),
         ("/projects/foo:read"),
         ("apsdfjaponasd90j2f09"),
+        ("projects#foo"),
     ],
 )
 @pytest.mark.unit

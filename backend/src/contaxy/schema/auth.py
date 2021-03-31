@@ -5,6 +5,7 @@ from typing import List, Optional
 from fastapi import HTTPException, Path, status
 from pydantic import BaseModel, EmailStr, Field
 
+from contaxy.schema.exceptions import ClientValueError
 from contaxy.schema.shared import MAX_DESCRIPTION_LENGTH
 from contaxy.utils.fastapi_utils import as_form
 
@@ -19,20 +20,24 @@ class AccessLevel(str, Enum):
     READ = "read"  # Viewer, view: Allows admin access , Can only view existing resources. Permissions for read-only actions that do not affect state, such as viewing (but not modifying) existing resources or data.
     WRITE = "write"  # Editor, edit, Contributor : Allows read/write access , Can create and manage all types of resources but can’t grant access to others.  All viewer permissions, plus permissions for actions that modify state, such as changing existing resources.
     ADMIN = "admin"  # Owner : Allows read-only access. Has full access to all resources including the right to edit IAM, invite users, edit roles. All editor permissions and permissions for the following actions
-    UNKNOWN = "unknown"  # Deny?
+    # UNKNOWN = "unknown"  # Deny?
 
     @classmethod
     def load(cls, access_level: str) -> "AccessLevel":
         try:
             return cls(access_level.strip().lower())
         except ValueError:
-            return cls.UNKNOWN
+            raise ClientValueError(f"Access level is unknown {access_level}")
+            # return cls.UNKNOWN
 
 
 class TokenPurpose(str, Enum):
-    USER_GENERATED = "user-generated"
+    USER_API_TOKEN = "user-api-token"
+    PROJECT_API_TOKEN = "project-api-token"
+    SERVICE_ACCESS_TOKEN = "service-access-token"
+    LOGIN_TOKEN = "login-token"
     REFRESH_TOKEN = "refresh-token"  # For user sessions
-    DEPLOYMENT_TOKEN = "deployment-token"
+    # DEPLOYMENT_TOKEN = "deployment-token"
 
 
 class TokenType(str, Enum):
