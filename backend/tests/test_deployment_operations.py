@@ -38,7 +38,7 @@ from contaxy.utils import auth_utils
 from .conftest import test_settings
 
 TYPE_DOCKER = "docker"
-TYPE_KUBERNETES = "kube"
+TYPE_KUBERNETES = "kubernetes"
 
 
 def get_random_resources() -> Tuple[int, str, str, str]:
@@ -246,6 +246,7 @@ class DeploymentOperationsTests(ABC):
         logs = self.deployment_manager.get_job_logs(
             project_id=self.project_id, job_id=job.id
         )
+        self.deployment_manager.delete_job(project_id=self.project_id, job_id=job.id)
         assert logs
         assert logs.startswith(log_input)
 
@@ -713,6 +714,10 @@ class TestDockerDeploymentManagerViaLocalEndpoint(DeploymentOperationsEndpointTe
     pass
 
 
+@pytest.mark.skipif(
+    config.settings.DEPLOYMENT_MANAGER != "kubernetes",
+    reason="Kubernetes must be set as the deployment manager for LocalEndpoint tests",
+)
 @pytest.mark.skipif(
     not test_settings.KUBERNETES_INTEGRATION_TESTS,
     reason="Kubernetes tests are not enabled",
