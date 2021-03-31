@@ -304,11 +304,27 @@ class JsonDocumentOperationsTests(ABC):
             db_keys.index(doc.key)
 
     def test_delete_json_collections(self) -> None:
+        # Currently, there is no operation function to check whether the collections themselves are actually deleted
         key = "test"
         self.json_document_manager.create_json_document(
             self.project_id, self.COLLECTTION, key, json_document="{}"
         )
         self.json_document_manager.delete_json_collections(self.project_id)
+
+        with pytest.raises(ResourceNotFoundError):
+            self.json_document_manager.get_json_document(
+                self.project_id, self.COLLECTTION, key
+            )
+
+    def test_delete_json_collection(self) -> None:
+        # Currently, there is no operation function to check whether the collection itself is actually deleted
+        key = "test"
+        self.json_document_manager.create_json_document(
+            self.project_id, self.COLLECTTION, key, json_document="{}"
+        )
+        self.json_document_manager.delete_json_collection(
+            self.project_id, self.COLLECTTION
+        )
 
         with pytest.raises(ResourceNotFoundError):
             self.json_document_manager.get_json_document(
