@@ -1,7 +1,7 @@
 import threading
 import time
 from collections import deque
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Deque, List, Optional, Set
 
 from cachetools import TTLCache
@@ -141,9 +141,9 @@ class AuthManager(AuthOperations):
     ) -> str:
 
         if expiry_minutes:
-            expire = datetime.utcnow() + expiry_minutes
+            expire = datetime.now(timezone.utc) + expiry_minutes
         else:
-            expire = datetime.utcnow() + timedelta(
+            expire = datetime.now(timezone.utc) + timedelta(
                 minutes=config.settings.JWT_TOKEN_EXPIRY_MINUTES
             )
 
@@ -152,7 +152,7 @@ class AuthManager(AuthOperations):
                 "sub": token_subject,
                 # TODO: "iss"
                 "exp": expire,
-                "iat": datetime.utcnow(),
+                "iat": datetime.now(timezone.utc),
                 "scope": scopes,
             },
             key=config.settings.JWT_TOKEN_SECRET,
@@ -187,7 +187,7 @@ class AuthManager(AuthOperations):
             token_type=token_type,
             subject=token_subject,
             scopes=scopes,
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
             description=description,
             token_purpose=token_purpose,
             # TODO: created_by
@@ -257,12 +257,12 @@ class AuthManager(AuthOperations):
                     token_type=TokenType.SESSION_TOKEN,
                     subject=payload.get("sub"),
                     scopes=payload.get("scope"),
-                    expires_at=datetime.utcfromtimestamp(
-                        payload.get("exp")
-                    ),  # TODO: check
-                    created_at=datetime.utcfromtimestamp(
-                        payload.get("iat")
-                    ),  # TODO: check
+                    expires_at=datetime.fromtimestamp(
+                        payload.get("exp"), tz=timezone.utc
+                    ),
+                    created_at=datetime.fromtimestamp(
+                        payload.get("iat"), tz=timezone.utc
+                    ),
                 )
 
             except JWTError as ex:
@@ -854,7 +854,7 @@ class AuthManager(AuthOperations):
         user = User(
             id=user_id,
             technical_user=technical_user,
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
             **user_input.dict(exclude_unset=True),
         )
 

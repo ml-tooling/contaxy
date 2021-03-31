@@ -1,5 +1,5 @@
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List
 
 from loguru import logger
@@ -103,7 +103,7 @@ class ProjectManager(ProjectOperations):
         if self._request_state.authorized_access:
             authorized_user = self._request_state.authorized_access.authorized_subject
 
-        creation_timestamp = datetime.utcnow()
+        creation_timestamp = datetime.now(timezone.utc)
         project = Project(
             **project_input.dict(exclude_unset=True),
             created_at=creation_timestamp,
@@ -148,7 +148,7 @@ class ProjectManager(ProjectOperations):
 
     def update_project(self, project_id: str, project_input: ProjectInput) -> Project:
         updated_project = Project.parse_raw(project_input.json(exclude_unset=True))
-        updated_project.updated_at = datetime.utcnow()
+        updated_project.updated_at = datetime.now(timezone.utc)
         if self._request_state.authorized_access:
             updated_project.updated_by = (
                 self._request_state.authorized_access.authorized_subject

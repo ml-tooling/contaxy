@@ -1,5 +1,5 @@
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 
 from kubernetes import client as kube_client
@@ -400,7 +400,9 @@ class KubernetesDeploymentManager(DeploymentManager):
 
             since_seconds = None
             if since:
-                since_seconds = int((datetime.utcnow() - since).total_seconds()) + 1
+                since_seconds = (
+                    int((datetime.now(timezone.utc) - since).total_seconds()) + 1
+                )
 
             try:
                 return self.core_api.read_namespaced_pod_log(

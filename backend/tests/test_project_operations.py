@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Generator, List
 
 import pytest
@@ -83,7 +83,7 @@ class ProjectOperationsTests(ABC):
             assert created_project.display_name == project_name
             assert created_project.technical_project is False
             assert (
-                datetime.utcnow() - created_project.created_at
+                datetime.now(timezone.utc) - created_project.created_at
             ).seconds < 300, "Creation timestamp MUST be from a few seconds ago."
 
         for created_project in created_projects:

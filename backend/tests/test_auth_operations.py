@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from datetime import datetime
+from datetime import datetime, timezone
 from random import randrange
 from typing import Dict, Generator, List, Set
 
@@ -331,7 +331,8 @@ class AuthOperationsTests(ABC):
         assert token_introspection.sub == USER
         assert (PROJECT + "#write") in token_introspection.scope
         assert (
-            datetime.utcnow() - datetime.utcfromtimestamp(token_introspection.iat)
+            datetime.now(timezone.utc)
+            - datetime.fromtimestamp(token_introspection.iat, tz=timezone.utc)
         ).seconds < 300, "Creation timestamp MUST be from a few seconds ago."
 
         self.auth_manager.revoke_token(token)
@@ -394,7 +395,7 @@ class AuthOperationsTests(ABC):
             assert created_user.username == user_input.username
             assert created_user.email == user_input.email
             assert (
-                datetime.utcnow() - created_user.created_at
+                datetime.now(timezone.utc) - created_user.created_at
             ).seconds < 300, "Creation timestamp MUST be from a few seconds ago."
 
     def test_list_users(self, user_data: List[UserRegistration]) -> None:

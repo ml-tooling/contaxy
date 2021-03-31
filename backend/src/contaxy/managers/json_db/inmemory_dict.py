@@ -1,5 +1,5 @@
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
 import json_merge_patch
@@ -84,8 +84,8 @@ class InMemoryDictJsonDocumentManager(JsonDocumentOperations):
         created_document = JsonDocument(
             key=key,
             json_value=json_document,
-            created_at=datetime.utcnow(),
-            update_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
+            update_at=datetime.now(timezone.utc),
         )
         collection[key] = created_document.dict()
         return created_document
@@ -122,7 +122,7 @@ class InMemoryDictJsonDocumentManager(JsonDocumentOperations):
         )
 
         current_document.json_value = json.dumps(updated_json)
-        current_document.updated_at = datetime.utcnow()
+        current_document.updated_at = datetime.now(timezone.utc)
         collection[key] = current_document.dict()
 
         return self.get_json_document(project_id, collection_id, key)
