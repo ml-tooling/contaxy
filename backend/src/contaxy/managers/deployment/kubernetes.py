@@ -303,6 +303,13 @@ class KubernetesDeploymentManager(DeploymentManager):
                 message=f"Could not delete service '{service_id}'.",
             )
 
+    def delete_services(
+        self,
+        project_id: str,
+    ) -> None:
+        # TODO: Implement
+        pass
+
     def get_service_logs(
         self,
         project_id: str,
@@ -476,6 +483,13 @@ class KubernetesDeploymentManager(DeploymentManager):
                 status_code=500,
                 message=f"Could not delete job '{job_id}' with reason: {e}",
             )
+
+    def delete_jobs(
+        self,
+        project_id: str,
+    ) -> None:
+        # TODO: Implement
+        pass
 
     def get_job_logs(
         self,

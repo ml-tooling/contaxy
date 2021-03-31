@@ -231,6 +231,27 @@ def delete_service(
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
+@service_router.delete(
+    "/projects/{project_id}/services",
+    operation_id=ExtensibleOperations.DELETE_SERVICES.value,
+    summary="Delete all services.",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def delete_services(
+    project_id: str = PROJECT_ID_PARAM,
+    extension_id: Optional[str] = EXTENSION_ID_PARAM,
+    component_manager: ComponentManager = Depends(get_component_manager),
+    token: str = Depends(get_api_token),
+) -> Any:
+    """Deletes all services associated with a project."""
+    component_manager.verify_access(
+        token, f"projects/{project_id}/services", AccessLevel.ADMIN
+    )
+
+    component_manager.get_service_manager(extension_id).delete_services(project_id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
 @service_router.get(
     "/projects/{project_id}/services/{service_id}/logs",
     operation_id=ExtensibleOperations.GET_SERVICE_LOGS.value,
@@ -364,6 +385,27 @@ def list_jobs(
 
     # TODO: List all jobs from all extensions
     return component_manager.get_job_manager(extension_id).list_jobs(project_id)
+
+
+@service_router.delete(
+    "/projects/{project_id}/jobs",
+    operation_id=ExtensibleOperations.DELETE_JOBS.value,
+    summary="Delete all jobs.",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def delete_jobs(
+    project_id: str = PROJECT_ID_PARAM,
+    extension_id: Optional[str] = EXTENSION_ID_PARAM,
+    component_manager: ComponentManager = Depends(get_component_manager),
+    token: str = Depends(get_api_token),
+) -> Any:
+    """Deletes all jobs associated with a project."""
+    component_manager.verify_access(
+        token, f"projects/{project_id}/jobs", AccessLevel.ADMIN
+    )
+
+    component_manager.get_job_manager(extension_id).delete_jobs(project_id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @job_router.get(

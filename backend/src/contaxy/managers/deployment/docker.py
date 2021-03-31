@@ -93,6 +93,13 @@ class DockerDeploymentManager(DeploymentManager):
         )
         delete_container(container=container, delete_volumes=delete_volumes)
 
+    def delete_services(
+        self,
+        project_id: str,
+    ) -> None:
+        # TODO: Implement
+        pass
+
     def get_service_logs(
         self,
         project_id: str,
@@ -159,6 +166,13 @@ class DockerDeploymentManager(DeploymentManager):
             deployment_type=DeploymentType.JOB,
         )
         delete_container(container=container)
+
+    def delete_jobs(
+        self,
+        project_id: str,
+    ) -> None:
+        # TODO: Implement
+        pass
 
     def get_job_logs(
         self,

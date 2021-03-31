@@ -103,6 +103,18 @@ class ServiceOperations(ABC):
         pass
 
     @abstractmethod
+    def delete_services(
+        self,
+        project_id: str,
+    ) -> None:
+        """Deletes all services associated with a project.
+
+        Args:
+            project_id (str): The project ID.
+        """
+        pass
+
+    @abstractmethod
     def get_service_logs(
         self,
         project_id: str,
@@ -221,6 +233,18 @@ class JobOperations(ABC):
 
     @abstractmethod
     def delete_job(self, project_id: str, job_id: str) -> None:
+        pass
+
+    @abstractmethod
+    def delete_jobs(
+        self,
+        project_id: str,
+    ) -> None:
+        """Deletes all jobs associated with a project.
+
+        Args:
+            project_id (str): The project ID.
+        """
         pass
 
     @abstractmethod

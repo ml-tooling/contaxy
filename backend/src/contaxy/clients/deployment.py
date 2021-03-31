@@ -83,6 +83,17 @@ class DeploymentManagerClient(DeploymentOperations):
         )
         handle_errors(response)
 
+    def delete_services(
+        self,
+        project_id: str,
+        request_kwargs: Dict = {},
+    ) -> None:
+        response = self.client.delete(
+            f"/projects/{project_id}/services",
+            **request_kwargs,
+        )
+        handle_errors(response)
+
     def get_service_logs(
         self,
         project_id: str,
@@ -234,6 +245,17 @@ class DeploymentManagerClient(DeploymentOperations):
     ) -> None:
         response = self.client.delete(
             f"/projects/{project_id}/jobs/{job_id}",
+            **request_kwargs,
+        )
+        handle_errors(response)
+
+    def delete_jobs(
+        self,
+        project_id: str,
+        request_kwargs: Dict = {},
+    ) -> None:
+        response = self.client.delete(
+            f"/projects/{project_id}/jobs",
             **request_kwargs,
         )
         handle_errors(response)
