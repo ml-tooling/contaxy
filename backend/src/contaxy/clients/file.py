@@ -137,6 +137,17 @@ class FileClient(FileOperations):
         )
         handle_errors(response)
 
+    def delete_files(
+        self,
+        project_id: str,
+        request_kwargs: Dict = {},
+    ) -> None:
+        response = self._client.delete(
+            f"/projects/{project_id}/files",
+            **request_kwargs,
+        )
+        handle_errors(response)
+
     def list_file_actions(
         self,
         project_id: str,

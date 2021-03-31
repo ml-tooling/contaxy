@@ -132,7 +132,7 @@ class FileOperations(ABC):
         version: Optional[str] = None,
         keep_latest_version: bool = False,
     ) -> None:
-        """Delete a file.
+        """Deletes a file.
 
         If a specific file `version` is provided, only this one will be deleted. If no `version` is provided and `keep_latest_version` is True, all but the latest version will be deleted. Otherwise, all existing versions will be removed.
 
@@ -141,6 +141,18 @@ class FileOperations(ABC):
             file_key (str): Key of the file.
             version (Optional[str], optional): File version. Defaults to None.
             keep_latest_version (bool, optional): [description]. Defaults to False.
+        """
+        pass
+
+    @abstractmethod
+    def delete_files(
+        self,
+        project_id: str,
+    ) -> None:
+        """Deletes all files associated with a project.
+
+        Args:
+            project_id (str): Project ID associated with the file.
         """
         pass
 

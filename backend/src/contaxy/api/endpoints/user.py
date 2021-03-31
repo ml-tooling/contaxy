@@ -1,8 +1,8 @@
 from typing import Any, List
 
-from fastapi import APIRouter, Depends, Response, Security, status
+from fastapi import APIRouter, Depends, Response, status
 from fastapi.param_functions import Body
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 
 from contaxy.api.dependencies import (
     ComponentManager,
@@ -162,9 +162,7 @@ def update_user(
 def change_password(
     user_id: str = USER_ID_PARAM,
     password: str = Body(...),
-    bearer_token: str = Security(
-        OAuth2PasswordBearer(tokenUrl="auth/oauth/token", auto_error=False)
-    ),
+    credentials: HTTPBasicCredentials = Depends(HTTPBasic()),
     component_manager: ComponentManager = Depends(get_component_manager),
 ) -> Any:
     """Changes the password of a given user.

@@ -376,6 +376,13 @@ class MinioFileManager(FileOperations):
                 f"No file metadata Json doc found for file_key: {file_key}, version: {version}"
             )
 
+    def delete_files(
+        self,
+        project_id: str,
+    ) -> None:
+        # TODO: implement
+        pass
+
     def list_file_actions(
         self, project_id: str, file_key: str, version: Optional[str] = None
     ) -> List[ResourceAction]:
