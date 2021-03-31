@@ -133,11 +133,17 @@ class ProjectManager(ProjectOperations):
         return created_project
 
     def get_project(self, project_id: str) -> Project:
-        json_document = self._json_db_manager.get_json_document(
-            project_id=config.SYSTEM_INTERNAL_PROJECT,
-            collection_id=self._PROJECT_COLLECTION,
-            key=project_id,
-        )
+        try:
+            json_document = self._json_db_manager.get_json_document(
+                project_id=config.SYSTEM_INTERNAL_PROJECT,
+                collection_id=self._PROJECT_COLLECTION,
+                key=project_id,
+            )
+        except ResourceNotFoundError as ex:
+            raise ResourceNotFoundError(
+                f"Project not found for ID: {project_id}"
+            ) from ex
+
         return Project.parse_raw(json_document.json_value)
 
     def update_project(self, project_id: str, project_input: ProjectInput) -> Project:
