@@ -1,18 +1,20 @@
 """Used for endpoint stress tests via locust."""
 import random
 from logging import error
-from typing import Dict
+from typing import Dict, List, Tuple
 
 from faker import Faker
 from locust import HttpUser, between, tag, task
 
-from contaxy.clients import AuthClient, JsonDocumentClient, ProjectClient
+from contaxy.clients import AuthClient, FileClient, JsonDocumentClient, ProjectClient
+from contaxy.managers.seed import SeedManager
 from contaxy.schema.auth import (
     AccessLevel,
     OAuth2TokenGrantTypes,
     OAuth2TokenRequestFormNew,
     UserRegistration,
 )
+from contaxy.schema.file import File
 from contaxy.schema.project import Project, ProjectCreation, ProjectInput
 from contaxy.schema.shared import CoreOperations
 from contaxy.utils import auth_utils, id_utils
@@ -29,6 +31,7 @@ class CommonUser(HttpUser):
     host: str
 
     authorized_user: str
+    file_prefix: str
 
     def on_start(self) -> None:
         if not self.host:
@@ -72,6 +75,7 @@ class CommonUser(HttpUser):
         )
         self.authorized_user = created_user.id
         self.user_projects: Dict[str, Project] = {}
+        self.file_prefix = "my-test"
 
     def _get_user_project(self) -> Project:
         """Returns a random user project."""
@@ -264,3 +268,90 @@ class CommonUser(HttpUser):
                 selected_document.key,
                 request_kwargs={"name": CoreOperations.DELETE_JSON_DOCUMENT.value},
             )
+
+    @task(5)  # TODO: Check weight
+    @tag("file")
+    def upload_file(self) -> None:
+        file_client = FileClient(self.client)
+        project = self._get_user_project()
+
+        file_stream = SeedManager.create_file_stream(
+            max_number_chars=random.randint(2000000, 8000000)
+        )
+
+        # This might create some file versions as well
+        file_key = (
+            f"{self.file_prefix}.bin"
+            if random.randint(1, 10) % 3 == 0
+            else f"{self.file_prefix}-{random.randint(1,100000)}.bin"
+        )
+
+        file_client.upload_file(project.id, file_key, file_stream)
+
+    @task(5)  # TODO: Check weight
+    @tag("file")
+    def download_file(self) -> None:
+        file_client, project, files = self._get_file_test_setup()
+        if not files:
+            return
+
+        file = random.choice(files)
+        version = file.version if bool(random.getrandbits(1)) else None
+        file_stream = file_client.download_file(project.id, file.key, version)
+        for chunk in file_stream:
+            pass
+
+    @task(5)  # TODO: Check weight
+    @tag("file")
+    def get_file_metadata(self) -> None:
+        file_client, project, files = self._get_file_test_setup()
+        if not files:
+            return
+
+        file = random.choice(files)
+        version = file.version if bool(random.getrandbits(1)) else None
+        file_client.get_file_metadata(project.id, file.key, version)
+
+    @task(5)  # TODO: Check weight
+    @tag("file")
+    def update_file_metadata(self) -> None:
+        file_client, project, files = self._get_file_test_setup()
+        if not files:
+            return
+
+        file = random.choice(files)
+        version = file.version if bool(random.getrandbits(1)) else None
+        file = file_client.get_file_metadata(project.id, file.key, version)
+        file.description = "Viva Colonia!"
+        file_client.update_file_metadata(file, project.id, file.key, version)
+
+    @task(2)  # TODO: Check weight
+    @tag("file")
+    def delete_file(self) -> None:
+        file_client, project, files = self._get_file_test_setup()
+        if not files:
+            return
+
+        file = random.choice(files)
+        version = file.version if bool(random.getrandbits(1)) else None
+        keep_latest_version = random.randint(1, 10) % 3 == 0 if not version else False
+        file_client.delete_file(project.id, file.key, version, keep_latest_version)
+
+    @task(1)  # TODO: Check weight
+    @tag("file")
+    def delete_files(self) -> None:
+        file_client = FileClient(self.client)
+        project = self._get_user_project()
+        file_client.delete_files(project.id)
+
+    def _get_file_test_setup(self) -> Tuple[FileClient, Project, List[File]]:
+        file_client = FileClient(self.client)
+
+        project = self._get_user_project()
+
+        include_versions = bool(random.getrandbits(1))
+        recursive = bool(random.getrandbits(1))
+        prefix = self.file_prefix if bool(random.getrandbits(1)) else None
+
+        files = file_client.list_files(project.id, recursive, include_versions, prefix)
+        return file_client, project, files
