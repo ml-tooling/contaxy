@@ -4,8 +4,11 @@ import { APP_NAME } from '../../utils/config';
 import { fireEvent, render, screen } from '../../utils/test-custom-render';
 import APP_PAGES, { APP_DRAWER_ITEM_TYPES } from '../../utils/app-pages';
 import App from './App';
+import GlobalStateContainer, { initialState } from '../../app/store';
 
-import GlobalStateContainer from '../../app/store';
+// When GlobalStateContainer.useContainer is used below, it will access the
+// initial state which is modified here.
+initialState.isAuthenticated = true;
 
 test('tests app name', () => {
   render(<App />);
