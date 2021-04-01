@@ -153,7 +153,7 @@ class FileOperationsTests(ABC):
         assert updated_file.metadata == exp_metadata
 
     def test_upload_file(self) -> None:
-        file_stream = self.seeder.create_file_stream()
+        file_stream = self.seeder.create_file_stream(max_number_chars=10000)
         file_key = "my-test.bin"
 
         # Test - File does not exist
@@ -174,7 +174,9 @@ class FileOperationsTests(ABC):
     def test_download_file(self) -> None:
         file_key = "test-download-file.bin"
         version_1 = self.seeder.create_file(self.project_id, file_key)
-        version_2 = self.seeder.create_file(self.project_id, file_key)
+        version_2 = self.seeder.create_file(
+            self.project_id, file_key, max_number_chars=10000
+        )
 
         # Test - File does not exist
         with pytest.raises(ResourceNotFoundError):
