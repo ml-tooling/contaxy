@@ -9,13 +9,13 @@ import i18n from 'i18next';
 import { ThemeProvider as MuiThemeProvider } from '@material-ui/core/styles';
 import { ThemeProvider } from 'styled-components';
 
+import { authApi, projectsApi } from '../services/contaxy-api';
 import AppDialogServiceProvider from '../app/AppDialogServiceProvider';
 import GlobalStateContainer from '../app/store';
-
 import theme from './theme';
 
 i18n.init({
-  fallbackLng: 'cimode',
+  lng: 'en',
   debug: false,
   saveMissing: false,
 
@@ -30,6 +30,13 @@ i18n.init({
     nsMode: 'fallback', // set it to fallback to let passed namespaces to translated hoc act as fallbacks
   },
 });
+
+// Mock api calls
+jest.mock('../services/contaxy-api.js');
+projectsApi.listProjects = async () => [
+  { id: 'myFooProject', display_name: 'My Foo Project' },
+];
+authApi.verifyAccess = async () => true;
 
 const Wrapper = ({ children }) => {
   return (

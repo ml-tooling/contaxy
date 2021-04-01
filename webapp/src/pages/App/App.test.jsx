@@ -1,23 +1,26 @@
 import React, { useEffect } from 'react';
 
+import { getByRole, waitFor } from '@testing-library/react';
+
 import { APP_NAME } from '../../utils/config';
 import { fireEvent, render, screen } from '../../utils/test-custom-render';
 import APP_PAGES, { APP_DRAWER_ITEM_TYPES } from '../../utils/app-pages';
 import App from './App';
-import GlobalStateContainer, { initialState } from '../../app/store';
+import GlobalStateContainer from '../../app/store';
 
-// When GlobalStateContainer.useContainer is used below, it will access the
-// initial state which is modified here.
-initialState.isAuthenticated = true;
-
-test('tests app name', () => {
-  render(<App />);
+test('tests app name', async () => {
+  // waitFor is needed here so that the state changes are renderd in the App component
+  await waitFor(() => {
+    render(<App />);
+  });
   const linkElement = screen.getByText(new RegExp(APP_NAME, 'i'));
   expect(linkElement).toBeInTheDocument();
 });
 
-test('tests the usermenu and its entries', () => {
-  render(<App />);
+test('tests the usermenu and its entries', async () => {
+  await waitFor(() => {
+    render(<App />);
+  });
   expect(screen.queryByText(/documentation/i)).toBeNull();
   fireEvent.click(screen.getByLabelText('usermenu'));
   expect(screen.getByText(/documentation/i)).toBeInTheDocument();
@@ -25,8 +28,10 @@ test('tests the usermenu and its entries', () => {
   expect(screen.getByText(/get api token/i)).toBeInTheDocument();
 });
 
-test('test that all link app drawer link items exist', () => {
-  render(<App />);
+test('test that all link app drawer link items exist', async () => {
+  await waitFor(() => {
+    render(<App />);
+  });
   APP_PAGES.filter((page) => page.type === APP_DRAWER_ITEM_TYPES.link).forEach(
     (page) => {
       expect(screen.queryAllByText(page.NAME).length > 0);
@@ -34,8 +39,10 @@ test('test that all link app drawer link items exist', () => {
   );
 });
 
-test('add plugin dialog', () => {
-  render(<App />);
+test('add plugin dialog', async () => {
+  await waitFor(() => {
+    render(<App />);
+  });
   const addPluginDialogButton = screen.getByText(/add plugin/i);
   fireEvent.click(addPluginDialogButton);
   const addPluginDialog = screen.getByRole('dialog');
@@ -68,20 +75,16 @@ test('tests global state', () => {
   expect(screen.getByText('myFooProject')).toBeInTheDocument();
 });
 
-test('tests the project selector and its entries', () => {
-  const AppWrapper = () => {
-    const { setProjects } = GlobalStateContainer.useContainer();
-    useEffect(
-      () => setProjects([{ id: 'myFooProject', name: 'My Foo Project' }]),
-      [setProjects]
-    );
+test('tests the project selector and its entries', async () => {
+  await waitFor(() => {
+    render(<App />);
+  });
 
-    return <App />;
-  };
-
-  render(<AppWrapper />);
   const projectSelector = screen.getByLabelText('projectselector');
   expect(projectSelector).toBeInTheDocument();
-  fireEvent.click(projectSelector);
-  expect(screen.getByText('My Foo Project')).toBeInTheDocument();
+  expect(screen.getByLabelText('appdrawer')).toBeInTheDocument();
+
+  // See how Material-UI tests it's Select component (https://github.com/mui-org/material-ui/blob/master/packages/material-ui/src/Select/Select.test.js)
+  fireEvent.mouseDown(getByRole(projectSelector, 'button'));
+  expect(screen.getByText('myFooProject')).toBeInTheDocument();
 });

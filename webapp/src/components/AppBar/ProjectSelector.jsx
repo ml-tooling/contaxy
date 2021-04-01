@@ -10,12 +10,13 @@ import Select from '@material-ui/core/Select';
 
 function ProjectSelector(props) {
   const { activeProject, className, projects, onProjectChange } = props;
-
-  const projectElements = projects.map((project) => (
-    <MenuItem value={JSON.stringify(project)} key={project.id}>
-      {project.id}
-    </MenuItem>
-  ));
+  const projectElements = projects.map((project) => {
+    return (
+      <MenuItem value={JSON.stringify(project)} key={project.id}>
+        {project.id}
+      </MenuItem>
+    );
+  });
 
   // Material-UI throws a warning if the value is an empty object {}. So, it must either be one of the available options, e.g. {id: 'foo', name: 'foo'}, or ''.
   const selectId =

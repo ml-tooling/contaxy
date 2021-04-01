@@ -21,6 +21,7 @@ function AppDrawer(props) {
 
   return (
     <Drawer
+      aria-label="appdrawer"
       variant="permanent"
       open={open}
       classes={{ paper: `${className} drawer ${!open ? 'drawerClose' : ''}` }}
