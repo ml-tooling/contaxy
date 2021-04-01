@@ -42,10 +42,10 @@ function UserMenu(props) {
   };
 
   const privateElements = (
-    <>
+    <div>
       <MenuItem onClick={onApiTokenClick}>{t('Get API token')}</MenuItem>
       <MenuItem onClick={onLogoutClick}>{t('Logout')}</MenuItem>
-    </>
+    </div>
   );
 
   return (
