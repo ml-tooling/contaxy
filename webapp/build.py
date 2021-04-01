@@ -1,3 +1,5 @@
+import os
+
 from universal_build import build_utils
 
 args = build_utils.parse_arguments()
@@ -14,8 +16,13 @@ if args.get(build_utils.FLAG_CHECK):
     build_utils.run("yarn run lint:css", exit_on_error=True)
 
 if args.get(build_utils.FLAG_MAKE):
+    # when running the workflow locally via act, don't set CI=true to prevent that linter warnings result in errors etc. (see here: https://github.com/facebook/create-react-app/issues/2453)
+    env_prefix = ""
+    if os.getenv("ACT", False):
+        env_prefix = "CI=false"
+
     build_utils.log("Build the webapp:")
-    build_utils.run("yarn build", exit_on_error=True)
+    build_utils.run(f"{env_prefix} yarn build", exit_on_error=True)
 
 if args.get(build_utils.FLAG_TEST):
     build_utils.log("Test the webapp:")
