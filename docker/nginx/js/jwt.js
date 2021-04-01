@@ -132,6 +132,20 @@ jwt.verify = function (token, key, noVerify, algorithm) {
   return payload;
 };
 
+/*
+ * Copyright(c) 2021 ml-tooling
+ * MIT licensed
+ */
+/**
+ *
+ */
+jwt.generate = function (key, algorithm, claims, validInSeconds) {
+  var _claims = Object.assign(claims, {
+    exp: Math.floor(Date.now() / 1000) + validInSeconds,
+  });
+  return this.sign(_claims, key, algorithm);
+};
+
 /**
  * private util functions
  */
