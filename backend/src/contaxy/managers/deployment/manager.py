@@ -13,7 +13,7 @@ class DeploymentManager(DeploymentOperations):
         service_id: str,
         action_id: str,
     ) -> Response:
-        return Response(501)
+        return Response(status_code=501)
 
     def execute_job_action(
         self, project_id: str, job_id: str, action_id: str
