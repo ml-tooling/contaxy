@@ -3,7 +3,7 @@ import auth from "js/auth.js";
 
 function checkWorkspace(r) {
   var token = auth.getToken(r);
-  var jwtPayload = jwt.verify(token, process.env.JWT_SECRET);
+  var jwtPayload = jwt.verify(token, process.env.JWT_TOKEN_SECRET);
 
   // TODO: reject API tokens
 

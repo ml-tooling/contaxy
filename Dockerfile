@@ -30,7 +30,8 @@ ENV PYTHONPATH=/resources/app \
     IS_CONTAXY_CONTAINER=true \
     LAB_BASE_URL= \
     LAB_NAMESPACE=lab \
-    _SSL_RESOURCES_PATH=/resources/ssl
+    _SSL_RESOURCES_PATH=/resources/ssl \
+    JWT_TOKEN_SECRET=please-change-this-secret
 
 RUN \
     mkdir /resources \
