@@ -36,7 +36,7 @@ class DeploymentManager(DeploymentOperations):
                 resource_actions.append(
                     ResourceAction(
                         action_id=f"access-{endpoint}",
-                        display_name=endpoint,
+                        display_name=f"Endpoint: {endpoint}",
                     )
                 )
 
