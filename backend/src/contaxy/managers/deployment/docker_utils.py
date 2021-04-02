@@ -198,20 +198,20 @@ def handle_network(
             },
         )
 
-        backend_container = get_this_container(client)
-        if backend_container:
-            is_backend_connected_to_network = backend_container.attrs[
-                "NetworkSettings"
-            ]["Networks"].get(network_name, False)
-            if not is_backend_connected_to_network:
-                try:
-                    network.connect(backend_container)
-                except docker.errors.APIError:
-                    # Remove the network again as it is not connected to any service.
-                    network.remove()
-                    raise RuntimeError(
-                        f"Could not connect the backend container to the network {network_name}"
-                    )
+    backend_container = get_this_container(client)
+    if backend_container:
+        is_backend_connected_to_network = backend_container.attrs["NetworkSettings"][
+            "Networks"
+        ].get(network_name, False)
+        if not is_backend_connected_to_network:
+            try:
+                network.connect(backend_container)
+            except docker.errors.APIError:
+                # Remove the network again as it is not connected to any service.
+                network.remove()
+                raise RuntimeError(
+                    f"Could not connect the backend container to the network {network_name}"
+                )
 
     return network
 
