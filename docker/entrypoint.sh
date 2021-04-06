@@ -23,7 +23,7 @@ fi
 
 # Substitute variables in all nginx config files including subdirectories
 find /etc/nginx/ -name "*.conf" -exec sed -s -i "s/\${LAB_NAMESPACE}/${lab_namespace}/g" {} +
-find /etc/nginx/ -name "*.conf" -exec sed -s -i "s/\${LAB_BASE_URL}/${lab_base_url}/g" {} +
+find /etc/nginx/ -name "*.conf" -exec sed -s -i "s@\${LAB_BASE_URL}@${lab_base_url}@g" {} +
 find /etc/nginx/ -name "*.conf" -exec  sed -s -i "s@\${SERVICE_SUFFIX}@${service_suffix}@g" {} +
 find /etc/nginx/ -name "*.conf" -exec  sed -s -i "s/\${RESOLVER}/${resolver}/g" {} +
 
