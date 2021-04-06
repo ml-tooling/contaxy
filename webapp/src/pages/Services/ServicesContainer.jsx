@@ -36,14 +36,15 @@ const COLUMNS = [
 const PAGE_SIZES = [5, 10, 15, 30, 50, 75, 100];
 
 function ServicesContainer(props) {
-  const { t } = useTranslation();
   const {
     data,
     onReload,
     onServiceDelete,
+    onShowServiceActions,
     onShowServiceLogs,
     onShowServiceMetadata,
   } = props;
+  const { t } = useTranslation();
 
   return (
     <MaterialTable
@@ -81,8 +82,7 @@ function ServicesContainer(props) {
           icon: 'login',
           iconProps: { className: `` },
           onClick: (event, rowData) => {
-            // window.open(getServiceUrl(rowData), '_blank');
-            console.log(event, rowData);
+            onShowServiceActions(rowData);
           },
           tooltip: 'Access service',
         },
@@ -119,6 +119,7 @@ ServicesContainer.propTypes = {
   data: PropTypes.arrayOf(Object),
   onReload: PropTypes.func,
   onServiceDelete: PropTypes.func,
+  onShowServiceActions: PropTypes.func,
   onShowServiceLogs: PropTypes.func,
   onShowServiceMetadata: PropTypes.func,
 };
@@ -127,6 +128,7 @@ ServicesContainer.defaultProps = {
   data: [],
   onReload: () => {},
   onServiceDelete: () => {},
+  onShowServiceActions: () => {},
   onShowServiceLogs: () => {},
   onShowServiceMetadata: () => {},
 };

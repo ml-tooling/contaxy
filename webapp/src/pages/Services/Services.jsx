@@ -12,13 +12,9 @@ import { useShowAppDialog } from '../../app/AppDialogServiceProvider';
 import ContentDialog from '../../components/Dialogs/ContentDialog';
 import DeployServiceDialog from '../../components/Dialogs/DeployContainerDialog';
 import GlobalStateContainer from '../../app/store';
+import ResourceActionsDialog from '../../components/Dialogs/ResourceActionsDialog';
 import ServicesContainer from './ServicesContainer';
 import showStandardSnackbar from '../../app/showStandardSnackbar';
-
-// const getServiceUrl = (service) => {
-//   // TODO: return url under which the service is reachable
-//   return service;
-// };
 
 function Services(props) {
   const { t } = useTranslation();
@@ -90,6 +86,40 @@ function Services(props) {
     }
   };
 
+  const onExecuteAction = async (resource, resourceAction) => {
+    try {
+      await servicesApi.executeServiceAction(
+        activeProject.id,
+        resource.id,
+        resourceAction.action_id
+      );
+    } catch (e) {
+      showStandardSnackbar(
+        `Could not execute action '${resourceAction.action_id}' for service '${resource.id}'`
+      );
+    }
+  };
+
+  const onShowServiceActions = async (projectId, service) => {
+    try {
+      const resourceActions = await servicesApi.listServiceActions(
+        projectId,
+        service.id
+      );
+      const title = `Service Actions`;
+      showAppDialog(ResourceActionsDialog, {
+        resource: service,
+        resourceActions,
+        onExecuteAction,
+        title,
+      });
+    } catch (err) {
+      showStandardSnackbar(
+        `Could not show actions for service '${service.id}'`
+      );
+    }
+  };
+
   return (
     <div className="pages-native-component">
       <Button
@@ -105,6 +135,9 @@ function Services(props) {
         onReload={reloadServices}
         onServiceDelete={(rowData) =>
           onServiceDelete(activeProject.id, rowData.id)
+        }
+        onShowServiceActions={(rowData) =>
+          onShowServiceActions(activeProject.id, rowData)
         }
         onShowServiceLogs={(rowData) =>
           onShowServiceLogs(activeProject.id, rowData.id)

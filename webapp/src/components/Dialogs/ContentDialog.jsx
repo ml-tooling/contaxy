@@ -26,7 +26,7 @@ function ContentDialog(props) {
       <DialogContent>{contentElement}</DialogContent>
       <DialogActions>
         <Button onClick={onClose} color="primary">
-          OK
+          CLOSE
         </Button>
       </DialogActions>
     </Dialog>
