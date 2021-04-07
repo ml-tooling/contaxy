@@ -86,6 +86,9 @@ setup(
         "fastapi-utils",
         # TODO: Added because of an missing import error
         "pydantic[dotenv]",
+        # Needed for admin registration HTML Form w/o the webapp
+        # TODO: Improve
+        "jinja2",
     ],
     # deprecated: dependency_links=dependency_links,
     extras_require={

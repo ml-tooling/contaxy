@@ -1,6 +1,10 @@
+import os
 from typing import Any
 
-from fastapi import APIRouter, Depends, Response, status
+from fastapi import APIRouter, Depends, Form, Response, status
+from fastapi.templating import Jinja2Templates
+from starlette.requests import Request
+from starlette.responses import HTMLResponse
 
 from contaxy.api.dependencies import (
     ComponentManager,
@@ -9,7 +13,15 @@ from contaxy.api.dependencies import (
 )
 from contaxy.schema import CoreOperations, SystemInfo, SystemStatistics
 from contaxy.schema.auth import AccessLevel
-from contaxy.schema.exceptions import AUTH_ERROR_RESPONSES, VALIDATION_ERROR_RESPONSE
+from contaxy.schema.exceptions import (
+    AUTH_ERROR_RESPONSES,
+    VALIDATION_ERROR_RESPONSE,
+    ClientValueError,
+    ResourceAlreadyExistsError,
+)
+
+HERE = os.path.abspath(os.path.dirname(__file__))
+templates = Jinja2Templates(directory=os.path.join(HERE, "templates"))
 
 router = APIRouter(
     tags=["system"],
@@ -76,3 +88,43 @@ def initialize_system(
     # TODO: only allow this to be called once
     component_manager.get_system_manager().initialize_system()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.get(
+    "/system/admin-form",
+    response_class=HTMLResponse,
+    # TODO: Fix error response
+    # responses={**CREATE_RESOURCE_RESPONSES},
+)
+def display_register_admin_form(
+    request: Request,
+    component_manager: ComponentManager = Depends(get_component_manager),
+) -> Any:
+    if component_manager.get_auth_manager().list_users():
+        return ResourceAlreadyExistsError(
+            message="Admin user already created. Please log in."
+        )
+    return templates.TemplateResponse("register-admin.html.j2", {"request": request})
+
+
+@router.post("/system/admin")
+def register_admin_user(
+    request: Request,
+    username: str = Form(...),
+    password: str = Form(...),
+    password_confirm: str = Form(...),
+    component_manager: ComponentManager = Depends(get_component_manager),
+) -> Any:
+    if component_manager.get_auth_manager().list_users():
+        return ResourceAlreadyExistsError(
+            message="Admin user already created. Please log in."
+        )
+    if password != password_confirm:
+        return ClientValueError("The passwords do not match.")
+
+    component_manager.get_system_manager().initialize_system(
+        username, password=password
+    )
+    return templates.TemplateResponse(
+        "register-admin-success.html.j2", {"request": request, "username": username}
+    )

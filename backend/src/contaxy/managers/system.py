@@ -1,3 +1,5 @@
+from typing import Optional
+
 from contaxy import __version__, config
 from contaxy.config import settings
 from contaxy.managers.auth import AuthManager
@@ -53,7 +55,12 @@ class SystemManager(SystemOperations):
             project_count=0, user_count=0, job_count=0, service_count=0, file_count=0
         )
 
-    def initialize_system(self) -> None:
+    def initialize_system(
+        self,
+        username: Optional[str] = None,
+        email: Optional[str] = None,
+        password: Optional[str] = None,
+    ) -> None:
         # Remove authorized access info
         self._request_state.authorized_access = None
 
@@ -73,8 +80,9 @@ class SystemManager(SystemOperations):
         # Set initial user password -> SHOULD be changed after the first login
         admin_user = self._auth_manager.create_user(
             UserRegistration(
-                username=config.SYSTEM_ADMIN_USERNAME,
-                password=config.SYSTEM_ADMIN_INITIAL_PASSWORD,  # type: ignore
+                username=username or config.SYSTEM_ADMIN_USERNAME,
+                email=email,
+                password=password or config.SYSTEM_ADMIN_INITIAL_PASSWORD,  # type: ignore
             ),
             technical_user=True,
         )
