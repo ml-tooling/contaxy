@@ -2,6 +2,16 @@
 import GlobalStateContainer from '../app/store';
 import showStandardSnackbar from '../app/showStandardSnackbar';
 
+export const getProjectPermissionId = (project, permissionLevel) => {
+  const level = permissionLevel ? `#${permissionLevel}` : '';
+  return `projects/${project.id}${level}`;
+};
+
+export const getUserPemissionId = (user, permissionLevel) => {
+  const level = permissionLevel ? `#${permissionLevel}` : '';
+  return `users/${user.id}${level}`;
+};
+
 export const useProjectSelector = () => {
   const { setActiveProject } = GlobalStateContainer.useContainer();
 

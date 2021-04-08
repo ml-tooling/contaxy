@@ -10,7 +10,7 @@ import Toolbar from '@material-ui/core/Toolbar';
 import Typography from '@material-ui/core/Typography';
 
 import { APP_NAME } from '../../utils/config';
-import { useProjectSelector } from '../../utils/project-utils';
+import { useProjectSelector } from '../../utils/app-utils';
 import GlobalStateContainer from '../../app/store';
 import ProjectSelector from './ProjectSelector';
 import UserMenu from './UserMenu';
@@ -39,8 +39,10 @@ function AppBar(props) {
     />
   );
 
-  const userNameElement = (
+  const userNameElement = user ? (
     <Typography className={`${className} user`}>{user.name}</Typography>
+  ) : (
+    false
   );
 
   return (

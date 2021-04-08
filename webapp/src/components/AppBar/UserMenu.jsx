@@ -10,7 +10,8 @@ import Menu from '@material-ui/core/Menu';
 import MenuItem from '@material-ui/core/MenuItem';
 
 import { API_EXPLORER_URL, DOCUMENTATION_URL } from '../../utils/config';
-import { authApi, fetchAPIToken } from '../../services/contaxy-api';
+import { authApi } from '../../services/contaxy-api';
+import { getUserPemissionId } from '../../utils/app-utils';
 import { useShowAppDialog } from '../../app/AppDialogServiceProvider';
 import ApiTokenDialog from '../Dialogs/ApiTokenDialog';
 
@@ -27,9 +28,13 @@ function UserMenu(props) {
   const onMenuClick = (event) => setAnchorEl(event.currentTarget);
 
   const onApiTokenClick = async () => {
-    // TODO: pass correct resource for which the API Token should be generated
-    const fetchedToken = await fetchAPIToken(user);
-    showAppDialog(ApiTokenDialog, { token: JSON.stringify(fetchedToken) });
+    const apiTokens = await authApi.listApiTokens();
+    const userScope = getUserPemissionId(user);
+    console.log(user);
+    showAppDialog(ApiTokenDialog, {
+      creationScope: userScope,
+      tokens: apiTokens,
+    });
   };
 
   const onLogoutClick = async () => {
@@ -43,8 +48,8 @@ function UserMenu(props) {
 
   const privateElements = (
     <div>
-      <MenuItem onClick={onApiTokenClick}>{t('Get API token')}</MenuItem>
-      <MenuItem onClick={onLogoutClick}>{t('Logout')}</MenuItem>
+      <MenuItem onClick={onApiTokenClick}>{t('api_tokens')}</MenuItem>
+      <MenuItem onClick={onLogoutClick}>{t('logout')}</MenuItem>
     </div>
   );
 

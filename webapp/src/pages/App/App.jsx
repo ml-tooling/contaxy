@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 // import { useTranslation } from 'react-i18next';
 
 import './App.css';
-import { authApi } from '../../services/contaxy-api';
+import { usersApi } from '../../services/contaxy-api';
 import AppBar from '../../components/AppBar/AppBar';
 import AppDrawer from '../../components/AppDrawer/AppDrawer';
 import ContentContainer from '../../app/routing/ContentContainer';
@@ -12,27 +12,23 @@ import GlobalStateContainer from '../../app/store';
 function App() {
   // const { t } = useTranslation();
   const [isDrawerOpen, setDrawerOpen] = useState(false);
-  const {
-    isAuthenticated,
-    loadProjects,
-    setIsAuthenticated,
-  } = GlobalStateContainer.useContainer();
+  const { loadProjects, setUser, user } = GlobalStateContainer.useContainer();
   const onDrawerClick = () => setDrawerOpen(!isDrawerOpen);
 
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!user) return;
     loadProjects();
-  }, [isAuthenticated, loadProjects]);
+  }, [user, loadProjects]);
 
-  // Check whether the user is logged in currently (the auth cookie - if existing - is sent to the endpoint which returns a 20x code when a valid token exists and an error otherwise)
+  // Check whether the user is logged in currently (the auth cookie - if existing - is sent to the endpoint which returns a user object when a valid token exists and an error otherwise)
   useEffect(() => {
-    authApi
-      .verifyAccess()
-      .then(() => {
-        setIsAuthenticated(true);
+    usersApi
+      .getMyUser()
+      .then((res) => {
+        setUser(res);
       })
-      .catch(() => setIsAuthenticated(false));
-  }, [setIsAuthenticated]);
+      .catch(() => setUser(null));
+  }, [setUser]);
 
   const appDrawerElement = (
     <AppDrawer isAdmin open={isDrawerOpen} handleDrawerClose={onDrawerClick} />
@@ -40,10 +36,10 @@ function App() {
 
   return (
     <div className="App">
-      <AppBar isAuthenticated={isAuthenticated} onDrawerOpen={onDrawerClick} />
-      {isAuthenticated ? appDrawerElement : false}
+      <AppBar isAuthenticated={Boolean(user)} onDrawerOpen={onDrawerClick} />
+      {user ? appDrawerElement : false}
       <main className="main">
-        <ContentContainer isAuthenticated={isAuthenticated} />
+        <ContentContainer isAuthenticated={Boolean(user)} />
       </main>
       <div id="snackbar-container" />
     </div>

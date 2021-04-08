@@ -36,7 +36,7 @@ import { projectsApi, usersApi } from '../services/contaxy-api';
 // export { store, StateProvider };
 
 export const initialState = {
-  user: {},
+  user: null,
   activeProject: {},
   projects: [
     // {

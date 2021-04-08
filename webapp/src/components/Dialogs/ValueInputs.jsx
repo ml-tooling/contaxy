@@ -9,7 +9,7 @@ import DelIcon from '@material-ui/icons/Delete';
 import TextField from '@material-ui/core/TextField';
 
 function ValueInput(props) {
-  const { className, index, onChange, value } = props;
+  const { className, index, onChange, placeholder, value } = props;
 
   const handleKeyChange = (e) => {
     onChange(index, e.target.value);
@@ -18,10 +18,11 @@ function ValueInput(props) {
   return (
     <TextField
       className={`${className} inputField`}
-      placeholder="Value"
+      placeholder={placeholder}
       type="text"
       value={value}
       onChange={handleKeyChange}
+      fullWidth
     />
   );
 }
@@ -30,11 +31,13 @@ ValueInput.propTypes = {
   className: PropTypes.string,
   index: PropTypes.number.isRequired,
   onChange: PropTypes.func.isRequired,
+  placeholder: PropTypes.string,
   value: PropTypes.string,
 };
 
 ValueInput.defaultProps = {
   className: '',
+  placeholder: '',
   value: '',
 };
 
@@ -45,8 +48,19 @@ const StyledValueInput = styled(ValueInput)`
 `;
 
 function ValueInputs(props) {
-  const { onValueInputsChange } = props;
-  const [valueInputs, setValueInputs] = useState([]);
+  const {
+    className,
+    inputComponent: InputComponent,
+    inputComponentProps,
+    initialValues,
+    onValueInputsChange,
+    placeholder,
+  } = props;
+  const [valueInputs, setValueInputs] = useState(
+    initialValues.map((initialValue) => {
+      return { index: Date.now(), value: initialValue };
+    })
+  );
 
   const onValueChange = (index, value) => {
     const internalValueInputs = [];
@@ -87,13 +101,15 @@ function ValueInputs(props) {
   };
 
   return (
-    <>
+    <div>
       {valueInputs.map(({ index, value }) => (
-        <div key={index}>
-          <StyledValueInput
+        <div key={index} className={`${className} valueinput`}>
+          <InputComponent
             index={index}
             value={value}
             onChange={onValueChange}
+            placeholder={placeholder}
+            {...inputComponentProps} // eslint-disable-line react/jsx-props-no-spreading
           />
           <Button
             color="default"
@@ -108,12 +124,32 @@ function ValueInputs(props) {
         Add
         <AddIcon />
       </Button>
-    </>
+    </div>
   );
 }
 
 ValueInputs.propTypes = {
+  className: PropTypes.string,
+  initialValues: PropTypes.instanceOf(Array),
+  inputComponent: PropTypes.elementType,
+  inputComponentProps: PropTypes.instanceOf(Object),
   onValueInputsChange: PropTypes.func.isRequired,
+  placeholder: PropTypes.string,
 };
 
-export default ValueInputs;
+ValueInputs.defaultProps = {
+  className: '',
+  initialValues: [],
+  inputComponent: StyledValueInput,
+  inputComponentProps: {},
+  placeholder: 'Value',
+};
+
+const StyledValueInputs = styled(ValueInputs)`
+  &.valueinput {
+    /* Aligns the inputfield and the deletion icon */
+    display: flex;
+  }
+`;
+
+export default StyledValueInputs;

@@ -4,13 +4,6 @@ import { ENDPOINT } from '../utils/config';
 
 export const ENDPOINT_PROJECTS = `${ENDPOINT}/projects/{project_id}`;
 
-export function fetchAPIToken(resource) {
-  // TODO: fetch API token of resource
-  return new Promise((resolve) => {
-    resolve(resource);
-  });
-}
-
 export function getFileDownloadUrl(projectId, fileKey) {
   return `${ENDPOINT_PROJECTS}/files/{file_key:path}:download`
     .replace('{project_id}', projectId)

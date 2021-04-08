@@ -7,8 +7,8 @@ import styled from 'styled-components';
 import Button from '@material-ui/core/Button';
 import Grid from '@material-ui/core/Grid';
 
-import { fetchAPIToken, projectsApi } from '../services/contaxy-api';
-import { useProjectSelector } from '../utils/project-utils';
+import { authApi, projectsApi } from '../services/contaxy-api';
+import { getProjectPermissionId, useProjectSelector } from '../utils/app-utils';
 import { useShowAppDialog } from '../app/AppDialogServiceProvider';
 import AddProjectDialog from '../components/Dialogs/AddProjectDialog';
 import ApiTokenDialog from '../components/Dialogs/ApiTokenDialog';
@@ -35,9 +35,20 @@ function Projects(props) {
   };
 
   const onApiTokenClick = async (project) => {
-    // TODO: pass correct resource for which the API Token should be generated
-    const fetchedToken = await fetchAPIToken(project.id);
-    showAppDialog(ApiTokenDialog, { token: fetchedToken });
+    // TODO: open dialog instead and allow user to select the scope-action (read, write, admin)
+    // const fetchedToken = await authApi.createToken({
+    //   scopes: [`projects/${project.id}#read`],
+    //   tokenType: 'api-token',
+    // });
+    const projectScope = getProjectPermissionId(project);
+    const apiTokens = await authApi.listApiTokens();
+    const projectApiTokens = apiTokens.filter(
+      (apiToken) => apiToken.scopes.indexOf(projectScope) > -1
+    );
+    showAppDialog(ApiTokenDialog, {
+      creationScope: projectScope,
+      tokens: projectApiTokens,
+    });
   };
 
   const onAddProject = () => {
