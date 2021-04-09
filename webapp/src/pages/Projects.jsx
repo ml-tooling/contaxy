@@ -35,19 +35,11 @@ function Projects(props) {
   };
 
   const onApiTokenClick = async (project) => {
-    // TODO: open dialog instead and allow user to select the scope-action (read, write, admin)
-    // const fetchedToken = await authApi.createToken({
-    //   scopes: [`projects/${project.id}#read`],
-    //   tokenType: 'api-token',
-    // });
     const projectScope = getProjectPermissionId(project);
     const apiTokens = await authApi.listApiTokens();
-    const projectApiTokens = apiTokens.filter(
-      (apiToken) => apiToken.scopes.indexOf(projectScope) > -1
-    );
     showAppDialog(ApiTokenDialog, {
       creationScope: projectScope,
-      tokens: projectApiTokens,
+      tokens: apiTokens,
     });
   };
 
