@@ -9,19 +9,23 @@ from loguru import logger
 
 from contaxy.config import settings
 from contaxy.managers.deployment.utils import (
+    _ENV_VARIABLE_CONTAXY_BASE_URL,
     _MIN_MEMORY_DEFAULT_MB,
     DEFAULT_DEPLOYMENT_ACTION_ID,
     NO_LOGS_MESSAGE,
     Labels,
     clean_labels,
+    get_default_environment_variables,
     get_deployment_id,
     get_gpu_info,
     get_label_string,
     get_network_name,
     get_project_selection_labels,
+    get_template_mapping,
     get_volume_name,
     map_endpoints_to_endpoints_label,
     map_labels,
+    replace_templates,
 )
 from contaxy.schema import ResourceAction
 from contaxy.schema.deployment import (
@@ -439,14 +443,20 @@ def create_container_config(
     # The user MUST not be able to manually set (which) GPUs to use
     if "NVIDIA_VISIBLE_DEVICES" in environment:
         del environment["NVIDIA_VISIBLE_DEVICES"]
-    if compute_resources.max_gpus is not None and compute_resources.max_gpus > 0:
-        # TODO: add logic to prevent overcommitting of GPUs!
-        environment["NVIDIA_VISIBLE_DEVICES"] = str(compute_resources.max_gpus)
+    environment = {
+        **environment,
+        **get_default_environment_variables(
+            project_id=project_id,
+            deployment_id=container_name,
+            endpoints=service.endpoints,
+            compute_resources=compute_resources,
+        ),
+    }
+    environment = replace_templates(
+        environment,
+        get_template_mapping(base_url=environment[_ENV_VARIABLE_CONTAXY_BASE_URL]),
+    )
 
-    if compute_resources.max_volume_size is not None:
-        environment[f"{settings.SYSTEM_NAMESPACE.upper()}_MAX_VOLUME_SIZE_MB"] = str(
-            compute_resources.max_volume_size
-        )
     min_lifetime = (
         compute_resources.min_lifetime
         if compute_resources.min_lifetime is not None

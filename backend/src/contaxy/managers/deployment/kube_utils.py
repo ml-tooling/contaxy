@@ -33,13 +33,17 @@ from kubernetes.client.rest import ApiException
 
 from contaxy.config import settings
 from contaxy.managers.deployment.utils import (
+    _ENV_VARIABLE_CONTAXY_BASE_URL,
     _MIN_MEMORY_DEFAULT_MB,
     Labels,
     clean_labels,
+    get_default_environment_variables,
     get_label_string,
     get_project_selection_labels,
+    get_template_mapping,
     map_endpoints_to_endpoints_label,
     map_labels,
+    replace_templates,
 )
 from contaxy.schema import Job, JobInput, Service, ServiceInput
 from contaxy.schema.deployment import (
@@ -202,6 +206,7 @@ def build_kube_service_config(
 
 
 def build_pod_template_spec(
+    project_id: str,
     service_id: str,
     service: Union[ServiceInput, JobInput],
     metadata: V1ObjectMeta,
@@ -231,8 +236,19 @@ def build_pod_template_spec(
     # The user MUST not be able to manually set (which) GPUs to use
     if "NVIDIA_VISIBLE_DEVICES" in environment:
         del environment["NVIDIA_VISIBLE_DEVICES"]
-    if compute_resources.max_gpus is not None and compute_resources.max_gpus > 0:
-        environment["NVIDIA_VISIBLE_DEVICES"] = str(compute_resources.max_gpus)
+    environment = {
+        **environment,
+        **get_default_environment_variables(
+            project_id=project_id,
+            deployment_id=service_id,
+            endpoints=service.endpoints,
+            compute_resources=compute_resources,
+        ),
+    }
+    environment = replace_templates(
+        environment,
+        get_template_mapping(base_url=environment[_ENV_VARIABLE_CONTAXY_BASE_URL]),
+    )
 
     # the name is used by Kubernetes to match the container-volume and the pod-volume section
     mount_name = f"mount-{service_id}"
@@ -363,7 +379,10 @@ def build_kube_deployment_config(
                 }
             ),
             template=build_pod_template_spec(
-                service_id=service_id, service=service, metadata=metadata
+                project_id=project_id,
+                service_id=service_id,
+                service=service,
+                metadata=metadata,
             ),
         ),
     )

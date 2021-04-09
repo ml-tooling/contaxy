@@ -168,7 +168,7 @@ class ComponentManager:
     def get_extension_manager(self) -> ExtensionManager:
         """Returns an Extension Manager instance."""
         if not self._extension_manager:
-            self._extension_manager = ExtensionManager(self.global_state, self.request_state)  # type: ignore  # TODO: remove type ignore
+            self._extension_manager = ExtensionManager(self.global_state, self.request_state, self._get_deployment_manager())  # type: ignore  # TODO: remove type ignore
         return self._extension_manager
 
     def get_json_db_manager(self) -> JsonDocumentOperations:

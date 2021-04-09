@@ -91,7 +91,6 @@ def suggest_service_config(
         project_id, container_image
     )
 
-
 @service_router.get(
     "/projects/{project_id}/services/{service_id}",
     operation_id=ExtensibleOperations.GET_SERVICE_METADATA.value,

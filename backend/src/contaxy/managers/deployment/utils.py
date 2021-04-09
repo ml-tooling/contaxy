@@ -4,7 +4,7 @@ from enum import Enum
 from typing import Any, Dict, List, Optional
 
 from contaxy.config import settings
-from contaxy.schema.deployment import DeploymentType
+from contaxy.schema.deployment import DeploymentCompute, DeploymentType
 from contaxy.utils import id_utils
 
 DEFAULT_DEPLOYMENT_ACTION_ID = "default"
@@ -16,6 +16,9 @@ _SERVICE_ID_SEPERATOR = "-s-"
 _JOB_ID_SEPERATOR = "-j-"
 
 _MIN_MEMORY_DEFAULT_MB = 100
+
+_ENV_VARIABLE_CONTAXY_BASE_URL = "CONTAXY_BASE_URL"
+
 
 class Labels(Enum):
     DEPLOYMENT_NAME = f"{settings.SYSTEM_NAMESPACE}.deploymentName"
@@ -214,3 +217,98 @@ def map_endpoints_label_to_endpoints(
     endpoints_label: Optional[str],
 ) -> Optional[List[str]]:
     return endpoints_label.split(",") if endpoints_label else None
+
+
+def get_default_environment_variables(
+    project_id: str,
+    deployment_id: str,
+    endpoints: Optional[List[str]] = None,
+    compute_resources: Optional[DeploymentCompute] = None,
+) -> Dict[str, str]:
+    """Sets default environment variables that should be set for each container.
+
+    Args:
+        project_id (str): The project id included in the label list
+        deployment_id (str)
+        endpoints (List[str]): List of endpoints
+        compute_resources: (Optional[DeploymentCompute]): DeploymentCompute information
+
+    Returns:
+        Dict[str, str]: Dict with default environment variables or empty dict.
+    """
+
+    default_environment_variables = {}
+
+    if endpoints and len(endpoints) > 0:
+        endpoint = endpoints[0]
+        if len(endpoints) > 1:
+            endpoint = "{endpoint}"
+        default_environment_variables[
+            _ENV_VARIABLE_CONTAXY_BASE_URL
+        ] = f"{settings.LAB_BASE_URL}/projects/{project_id}/services/{deployment_id}/access/{endpoint}"
+
+    if compute_resources:
+        if compute_resources.max_gpus is not None and compute_resources.max_gpus > 0:
+            # TODO: add logic to prevent overcommitting of GPUs!
+            default_environment_variables["NVIDIA_VISIBLE_DEVICES"] = str(
+                compute_resources.max_gpus
+            )
+
+        if compute_resources.max_volume_size is not None:
+            default_environment_variables["CONTAXY_MAX_VOLUME_SIZE_MB"] = str(
+                compute_resources.max_volume_size
+            )
+
+    return default_environment_variables
+
+
+def replace_template_string(
+    input: str = "", templates_mapping: Dict[str, str] = {}
+) -> str:
+    """Return the input with replaced value according to the templates mapping.
+
+    For example, if `template = "{env.CONTAXY_BASE_URL}"` and `values = { "{env.CONTAXY_BASE_URL}": "some-value" } }`, the result will be
+    `"some-value"`
+
+    Args:
+        input (str): The string that should be checked against the values dict and probably replaced by a match.
+        templates_mapping (Dict[str, str]): The dict that contains template-strings with corresponding values.
+
+    Returns:
+        str: The string with the replaced value or the unmodified string in case of no match.
+    """
+
+    if input in templates_mapping:
+        return templates_mapping[input]
+    return input
+
+
+def replace_templates(
+    input: Dict[str, str] = {}, template_mapping: Dict[str, str] = {}
+) -> Dict[str, str]:
+    """Returns the input dict where those values that are matching template strings are replaced.
+
+    Args:
+        input (Dict[str, str]): The input dict for which the values should be checked for matching template replacements.
+        templates_mapping (Dict[str, str]): The dict that contains template-strings with corresponding values.
+
+    Returns:
+        Dict[str, str]: A copy of the modified input dict.
+    """
+
+    modified_input = {}
+    for key, value in input.items():
+        modified_input[key] = replace_template_string(
+            input=value, templates_mapping=template_mapping
+        )
+
+    return modified_input
+
+
+def get_template_mapping(base_url: Optional[str] = None) -> Dict[str, str]:
+    template_mapping = {}
+
+    if base_url:
+        template_mapping[f"{{env.{_ENV_VARIABLE_CONTAXY_BASE_URL}}}"] = base_url
+
+    return template_mapping

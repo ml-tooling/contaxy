@@ -1,10 +1,12 @@
-from typing import Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 from contaxy import config
 from contaxy.clients import DeploymentManagerClient, FileClient
 from contaxy.clients.shared import BaseUrlSession
+from contaxy.managers.deployment.manager import DeploymentManager
 from contaxy.operations import ExtensionOperations
-from contaxy.schema import ExtensibleOperations
+from contaxy.schema import ExtensibleOperations, Extension
+from contaxy.schema.deployment import DeploymentType
 from contaxy.schema.extension import CORE_EXTENSION_ID
 from contaxy.utils.state_utils import GlobalState, RequestState
 
@@ -67,6 +69,7 @@ class ExtensionManager(ExtensionOperations):
         self,
         global_state: GlobalState,
         request_state: RequestState,
+        deployment_manager: DeploymentManager,
     ):
         """Initializes the extension manager.
 
@@ -76,9 +79,44 @@ class ExtensionManager(ExtensionOperations):
         """
         self.global_state = global_state
         self.request_state = request_state
+        self.deployment_manager = deployment_manager
 
     def get_extension_client(self, extension_id: str) -> ExtensionClient:
-        pass
+        endpoint_url = f"http://{config.settings.SYSTEM_NAMESPACE}-{extension_id}:8080"
+        access_token = (
+            self.request_state.authorized_access.access_token.token
+            if self.request_state.authorized_access
+            and self.request_state.authorized_access.access_token
+            else ""
+        )
+        return ExtensionClient(
+            endpoint_url=endpoint_url,
+            access_token=access_token,
+        )
+
+    def list_extensions(self, project_id: str) -> List[Extension]:
+        project_services = self.deployment_manager.list_services(project_id=project_id)
+        global_services = self.deployment_manager.list_services(
+            project_id=f"{config.settings.SYSTEM_NAMESPACE}-global"
+        )
+
+        extension_services = []
+        for service in [*project_services, *global_services]:
+            # TODO: Add a function to deployment-manager that allows direct filtering
+            if service.deployment_type != DeploymentType.EXTENSION.value:
+                continue
+
+            extension = Extension(**service.dict())
+            if service.metadata:
+                extension.ui_extension_endpoint = service.metadata[
+                    "ui_extension_endpoint"
+                ]
+                extension.api_extension_endpoint = service.metadata[
+                    "api_extension_endpoints"
+                ]
+            extension_services.append(extension)
+
+        return extension_services
 
     def get_default_extension(self, operation: ExtensibleOperations) -> str:
         return CORE_EXTENSION_ID

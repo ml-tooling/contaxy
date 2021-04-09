@@ -31,7 +31,6 @@ class DeploymentManager(DeploymentOperations):
         resource_actions: List[ResourceAction] = []
         if service_metadata.endpoints:
             for endpoint in service_metadata.endpoints:
-                print(endpoint)
                 endpoint = endpoint.replace("/", "")
                 resource_actions.append(
                     ResourceAction(
