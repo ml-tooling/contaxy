@@ -9,7 +9,7 @@ import i18n from 'i18next';
 import { ThemeProvider as MuiThemeProvider } from '@material-ui/core/styles';
 import { ThemeProvider } from 'styled-components';
 
-import { authApi, projectsApi } from '../services/contaxy-api';
+import { authApi, projectsApi, usersApi } from '../services/contaxy-api';
 import AppDialogServiceProvider from '../app/AppDialogServiceProvider';
 import GlobalStateContainer from '../app/store';
 import theme from './theme';
@@ -37,6 +37,16 @@ projectsApi.listProjects = async () => [
   { id: 'myFooProject', display_name: 'My Foo Project' },
 ];
 authApi.verifyAccess = async () => true;
+usersApi.getMyUser = async () => {
+  return {
+    username: 'Foo',
+    email: 'foo@bar.com',
+    disabled: false,
+    id: '7uwv4ilewxiju1n0xzpt03n66',
+    technical_user: false,
+    created_at: '2021-04-02T09:21:33.799915+00:00',
+  };
+};
 
 const Wrapper = ({ children }) => {
   return (
