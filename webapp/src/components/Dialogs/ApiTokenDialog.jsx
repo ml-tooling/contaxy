@@ -12,9 +12,11 @@ import DialogActions from '@material-ui/core/DialogActions';
 import DialogContent from '@material-ui/core/DialogContent';
 import DialogTitle from '@material-ui/core/DialogTitle';
 import Divider from '@material-ui/core/Divider';
+import MenuItem from '@material-ui/core/MenuItem';
 import Popover from '@material-ui/core/Popover';
 // import Tab from '@material-ui/core/Tab';
 // import Tabs from '@material-ui/core/Tabs';
+import Select from '@material-ui/core/Select';
 import TextField from '@material-ui/core/TextField';
 import Tooltip from '@material-ui/core/Tooltip';
 import Typography from '@material-ui/core/Typography';
@@ -27,6 +29,78 @@ import ValueInputs from './ValueInputs';
 import setClipboardText from '../../utils/clipboard';
 import showStandardSnackbar from '../../app/showStandardSnackbar';
 
+function PermissionInput({ className, index, onChange, value }) {
+  const handleInputChange = (e) => {
+    onChange(index, {
+      input: e.target.value,
+      level: value.level,
+    });
+  };
+
+  const handleLevelChange = (e) => {
+    onChange(index, {
+      input: value.input,
+      level: e.target.value,
+    });
+  };
+
+  const level = value.level || 'read';
+
+  return (
+    <div className={`${className} permissionInput`}>
+      <TextField
+        className={`${className} inputField`}
+        placeholder="Scope"
+        type="text"
+        value={value.input}
+        onChange={handleInputChange}
+        fullWidth
+      />
+      <Select
+        labelId="demo-simple-select-placeholder-label-label"
+        id="demo-simple-select-placeholder-label"
+        value={level}
+        onChange={handleLevelChange}
+      >
+        <MenuItem value="read">read</MenuItem>
+        <MenuItem value="write">write</MenuItem>
+        <MenuItem value="admin">admin</MenuItem>
+      </Select>
+    </div>
+  );
+}
+
+PermissionInput.propTypes = {
+  className: PropTypes.string,
+  index: PropTypes.number,
+  onChange: PropTypes.func.isRequired,
+  value: PropTypes.shape({
+    input: PropTypes.string,
+    level: PropTypes.oneOf(['read', 'write', 'admin']),
+  }),
+};
+
+PermissionInput.defaultProps = {
+  className: '',
+  index: 0,
+  value: {
+    input: '',
+    level: 'read',
+  },
+};
+
+const StyledPermissionInput = styled(PermissionInput)`
+  &.inputField {
+    margin-right: 12px;
+  }
+
+  &.permissionInput {
+    display: flex;
+    align-items: center;
+    width: 100%;
+  }
+`;
+
 function ApiTokenDialog({ className, creationScope, tokens, onClose }) {
   const textFieldRef = useRef();
   const [selectedPanel] = useState(0);
@@ -37,11 +111,13 @@ function ApiTokenDialog({ className, creationScope, tokens, onClose }) {
   const handleCopyClick = () => {
     setClipboardText(null, textFieldRef.current);
   };
-
   const onGenerateToken = async () => {
     try {
+      const scopeStrings = scopes
+        .filter((scope) => scope.input && scope.level)
+        .map((scope) => `${scope.input}#${scope.level}`);
       const token = await authApi.createToken({
-        scopes,
+        scopes: scopeStrings,
         tokenType: 'api-token',
       });
       // TODO: the returned 'token' is a string and not an AccessToken yet
@@ -137,45 +213,10 @@ function ApiTokenDialog({ className, creationScope, tokens, onClose }) {
       <Typography variant="subtitle1">Token Creation</Typography>
       <Typography variant="subtitle2">Scopes</Typography>
       <ValueInputs
-        initialValues={[creationScope]}
-        inputComponent={(props) => {
-          /* eslint-disable react/prop-types */
-
-          const handleInputChange = (e) => {
-            props.onChange(props.index, {
-              input: e.target.value,
-              level: props.value.level,
-            });
-          };
-
-          const handleLevelChange = (e) => {
-            props.onChange(props.index, {
-              input: props.value.input,
-              level: e.target.value,
-            });
-          };
-
-          return (
-            <div>
-              <TextField
-                className={`${className} inputField`}
-                placeholder={props.placeholder}
-                type="text"
-                value={props.value.input}
-                onChange={handleInputChange}
-                fullWidth
-              />
-              <TextField
-                type="text"
-                value={props.value.level}
-                onChange={handleLevelChange}
-              />
-            </div>
-          );
-          /* eslint-enable react/prop-types */
-        }}
+        initialValues={[{ input: creationScope, level: 'read' }]}
+        inputComponent={StyledPermissionInput}
+        inputComponentProps={{ defaultValue: { input: '', level: 'read' } }}
         onValueInputsChange={setScopes}
-        placeholder="Scope"
       />
       <div className={`${className} createtoken`}>
         <Button

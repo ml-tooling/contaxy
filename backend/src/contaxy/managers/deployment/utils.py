@@ -15,6 +15,7 @@ _MAX_DEPLOYMENT_NAME_LENGTH = 15
 _SERVICE_ID_SEPERATOR = "-s-"
 _JOB_ID_SEPERATOR = "-j-"
 
+_MIN_MEMORY_DEFAULT_MB = 100
 
 class Labels(Enum):
     DEPLOYMENT_NAME = f"{settings.SYSTEM_NAMESPACE}.deploymentName"

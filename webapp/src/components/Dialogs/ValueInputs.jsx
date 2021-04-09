@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import PropTypes from 'prop-types';
 import styled from 'styled-components';
@@ -62,6 +62,9 @@ function ValueInputs(props) {
     })
   );
 
+  // make sure that the parent's state is equal to the initial-values state (so run once during initialization)
+  useEffect(() => onValueInputsChange(initialValues), []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const onValueChange = (index, value) => {
     const internalValueInputs = [];
     const externalValueInputs = [];
@@ -83,7 +86,7 @@ function ValueInputs(props) {
   const onAddClick = () => {
     setValueInputs((previousValueInputs) => [
       ...previousValueInputs,
-      { index: Date.now(), value: '' },
+      { index: Date.now(), value: inputComponentProps.defaultValue },
     ]);
   };
 
@@ -132,7 +135,14 @@ ValueInputs.propTypes = {
   className: PropTypes.string,
   initialValues: PropTypes.instanceOf(Array),
   inputComponent: PropTypes.elementType,
-  inputComponentProps: PropTypes.instanceOf(Object),
+  inputComponentProps: PropTypes.shape({
+    defaultValue: PropTypes.oneOfType([
+      PropTypes.string,
+      PropTypes.number,
+      PropTypes.instanceOf(Object),
+    ]),
+    ...{},
+  }),
   onValueInputsChange: PropTypes.func.isRequired,
   placeholder: PropTypes.string,
 };
@@ -141,7 +151,9 @@ ValueInputs.defaultProps = {
   className: '',
   initialValues: [],
   inputComponent: StyledValueInput,
-  inputComponentProps: {},
+  inputComponentProps: {
+    defaultValue: '',
+  },
   placeholder: 'Value',
 };
 

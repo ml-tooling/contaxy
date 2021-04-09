@@ -33,6 +33,7 @@ from kubernetes.client.rest import ApiException
 
 from contaxy.config import settings
 from contaxy.managers.deployment.utils import (
+    _MIN_MEMORY_DEFAULT_MB,
     Labels,
     clean_labels,
     get_label_string,
@@ -209,7 +210,7 @@ def build_pod_template_spec(
     # TODO: check default values and store them globally probably!
     min_cpus = compute_resources.min_cpus or 0
     max_cpus = compute_resources.max_cpus or 1
-    min_memory = compute_resources.min_memory or 5
+    min_memory = compute_resources.min_memory or _MIN_MEMORY_DEFAULT_MB
     max_memory = compute_resources.max_memory or 100
     max_container_size = compute_resources.max_container_size or 100
     resource_requirements = V1ResourceRequirements(

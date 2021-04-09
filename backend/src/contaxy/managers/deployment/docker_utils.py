@@ -9,6 +9,7 @@ from loguru import logger
 
 from contaxy.config import settings
 from contaxy.managers.deployment.utils import (
+    _MIN_MEMORY_DEFAULT_MB,
     DEFAULT_DEPLOYMENT_ACTION_ID,
     NO_LOGS_MESSAGE,
     Labels,
@@ -425,7 +426,7 @@ def create_container_config(
     # Make sure that the user-entered compute requirements are not bigger than the system's maximum available
     nano_cpus = min(max_cpus, system_cpu_count) * 1e9
     # With regards to memory, Docker requires at least 6MB for a container
-    mem_limit = f"{max(6, min(max_memory, system_memory_in_mb))}MB"
+    mem_limit = f"{max(_MIN_MEMORY_DEFAULT_MB, min(max_memory, system_memory_in_mb))}MB"
 
     mounts = define_mounts(
         project_id=project_id,

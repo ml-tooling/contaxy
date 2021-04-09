@@ -25,7 +25,7 @@ test('tests the usermenu and its entries', async () => {
   fireEvent.click(screen.getByLabelText('usermenu'));
   expect(screen.getByText(/documentation/i)).toBeInTheDocument();
   expect(screen.getByText(/api_explorer/i)).toBeInTheDocument();
-  expect(screen.getByText(/get api token/i)).toBeInTheDocument();
+  expect(screen.getByText(/api_tokens/i)).toBeInTheDocument();
 });
 
 test('test that all link app drawer link items exist', async () => {
