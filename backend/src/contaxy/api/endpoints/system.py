@@ -6,6 +6,7 @@ from fastapi.templating import Jinja2Templates
 from starlette.requests import Request
 from starlette.responses import HTMLResponse
 
+from contaxy import config
 from contaxy.api.dependencies import (
     ComponentManager,
     get_api_token,
@@ -110,7 +111,6 @@ def display_register_admin_form(
 @router.post("/system/admin")
 def register_admin_user(
     request: Request,
-    username: str = Form(...),
     password: str = Form(...),
     password_confirm: str = Form(...),
     component_manager: ComponentManager = Depends(get_component_manager),
@@ -122,9 +122,8 @@ def register_admin_user(
     if password != password_confirm:
         return ClientValueError("The passwords do not match.")
 
-    component_manager.get_system_manager().initialize_system(
-        username, password=password
-    )
+    component_manager.get_system_manager().initialize_system(password)
     return templates.TemplateResponse(
-        "register-admin-success.html.j2", {"request": request, "username": username}
+        "register-admin-success.html.j2",
+        {"request": request, "username": config.SYSTEM_ADMIN_USERNAME},
     )

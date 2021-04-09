@@ -127,6 +127,7 @@ setup(
     package_data={
         # If there are data files included in your packages that need to be
         # 'sample': ['package_data.dat'],
+        "contaxy.api.endpoints": ["templates/*"]
     },
     classifiers=[
         # TODO: Update based on https://pypi.org/classifiers/

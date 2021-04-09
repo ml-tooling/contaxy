@@ -57,8 +57,6 @@ class SystemManager(SystemOperations):
 
     def initialize_system(
         self,
-        username: Optional[str] = None,
-        email: Optional[str] = None,
         password: Optional[str] = None,
     ) -> None:
         # Remove authorized access info
@@ -80,8 +78,7 @@ class SystemManager(SystemOperations):
         # Set initial user password -> SHOULD be changed after the first login
         admin_user = self._auth_manager.create_user(
             UserRegistration(
-                username=username or config.SYSTEM_ADMIN_USERNAME,
-                email=email,
+                username=config.SYSTEM_ADMIN_USERNAME,
                 password=password or config.SYSTEM_ADMIN_INITIAL_PASSWORD,  # type: ignore
             ),
             technical_user=True,
