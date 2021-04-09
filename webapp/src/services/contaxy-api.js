@@ -11,9 +11,16 @@ export function getFileDownloadUrl(projectId, fileKey) {
 }
 
 export function getFileUploadUrl(projectId, fileKey) {
-  return `${ENDPOINT_PROJECTS}/files/{file_key}`
-    .replace('{project_id}', projectId)
-    .replace('{file_key}', fileKey);
+  if (fileKey) {
+    return `${ENDPOINT_PROJECTS}/files/{file_key}`
+      .replace('{project_id}', projectId)
+      .replace('{file_key}', fileKey);
+  }
+
+  return `${ENDPOINT_PROJECTS}/multipart-upload`.replace(
+    '{project_id}',
+    projectId
+  );
 }
 
 const apiClient = new Api.ApiClient();

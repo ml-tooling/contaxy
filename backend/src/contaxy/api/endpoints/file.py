@@ -17,6 +17,7 @@ from contaxy.schema.exceptions import (
     GET_RESOURCE_RESPONSES,
     UPDATE_RESOURCE_RESPONSES,
     VALIDATION_ERROR_RESPONSE,
+    ClientValueError,
 )
 from contaxy.schema.extension import EXTENSION_ID_PARAM
 from contaxy.schema.file import FILE_KEY_PARAM
@@ -87,6 +88,8 @@ def upload_file(
 ) -> Any:
     """Uploads a file to a file storage.
 
+    TODO: Adjust documentation
+
     The file will be streamed to the selected file storage (core platform or extension).
 
     This upload operation only supports to attach a limited set of file metadata.
@@ -120,6 +123,56 @@ def upload_file(
     )
     return component_manager.get_file_manager().upload_file(
         project_id, file_key, multipart_stream, content_type
+    )
+
+
+@router.post(
+    "/projects/{project_id}/multipart-upload",
+    operation_id=ExtensibleOperations.UPLOAD_FILE_NO_KEY.value,
+    response_model=File,
+    summary="Upload a file via multipart stream with filename as file key.",
+    status_code=status.HTTP_200_OK,
+    # TODO: Decide if to include
+    include_in_schema=False,
+    responses={**CREATE_RESOURCE_RESPONSES},
+)
+def upload_file_without_key(
+    request: Request,
+    project_id: str = PROJECT_ID_PARAM,
+    component_manager: ComponentManager = Depends(get_component_manager),
+    token: str = Depends(get_api_token),
+) -> Any:
+    """Uploads a file to a file storage.
+
+    The file key will be derived based on the filename in the multipart stream.
+
+    The file will be streamed to the selected file storage (core platform or extension).
+    """
+    component_manager.verify_access(
+        token, f"projects/{project_id}/files", AccessLevel.WRITE
+    )
+
+    file_stream = SyncFromAsyncGenerator(
+        request.stream(), component_manager.global_state.shared_namespace.async_loop
+    )
+
+    multipart_stream = FormMultipartStream(
+        file_stream, request.headers, form_field="file", hash_algo="md5"
+    )
+
+    content_type = (
+        multipart_stream.content_type
+        if multipart_stream.content_type
+        else "application/octet-stream"
+    )
+
+    if not multipart_stream.filename:
+        raise ClientValueError(
+            "The multipart stream does not contain a file name. Use the endpoint `/projects/{project_id}/files/{file_key:path/}` to explicitly provide a file key."
+        )
+
+    return component_manager.get_file_manager().upload_file(
+        project_id, multipart_stream.filename, multipart_stream, content_type
     )
 
 
