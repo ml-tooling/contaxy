@@ -247,7 +247,9 @@ def build_pod_template_spec(
     }
     environment = replace_templates(
         environment,
-        get_template_mapping(base_url=environment[_ENV_VARIABLE_CONTAXY_BASE_URL]),
+        get_template_mapping(
+            base_url=environment.get(_ENV_VARIABLE_CONTAXY_BASE_URL, "")
+        ),
     )
 
     # the name is used by Kubernetes to match the container-volume and the pod-volume section

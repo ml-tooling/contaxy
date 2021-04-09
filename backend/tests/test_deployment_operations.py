@@ -64,7 +64,12 @@ def create_test_service_input(service_id: str, display_name: str) -> ServiceInpu
         # TODO: to pass id here does not make sense but is required by Pydantic
         id=service_id,
         endpoints=["8080", "8090/webapp"],
-        parameters={"FOO": "bar", "FOO2": "bar2", "NVIDIA_VISIBLE_DEVICES": "2"},
+        parameters={
+            "FOO": "bar",
+            "FOO2": "bar2",
+            "NVIDIA_VISIBLE_DEVICES": "2",
+            "BASE_URL": "{env.CONTAXY_BASE_URL}",
+        },
         metadata={"some-metadata": "some-metadata-value"},
     )
 
@@ -228,6 +233,21 @@ class DeploymentOperationsTests(ABC):
         assert (
             service.parameters.get("NVIDIA_VISIBLE_DEVICES", "Not allowed to set")
             == "Not allowed to set"
+        )
+
+    def test_replacement_of_template_variables(self) -> None:
+        test_service_input = create_test_service_input(
+            service_id=self.service_id, display_name=self.service_display_name
+        )
+
+        service = self.deploy_service(
+            project_id=self.project_id, service=test_service_input
+        )
+
+        assert "BASE_URL" in service.parameters
+        assert (
+            service.parameters["BASE_URL"]
+            == f"/projects/{self.project_id}/services/{service.id}/access/{{endpoint}}"
         )
 
     def test_get_service_metadata(self) -> None:

@@ -466,7 +466,10 @@ class KubernetesDeploymentManager(DeploymentManager):
 
         # For debugging purposes, set restart_policy=Never to have access to job logs (see https://kubernetes.io/docs/concepts/workloads/controllers/job/#pod-backoff-failure-policy)
         pod_spec = build_pod_template_spec(
-            service_id=deployment_id, service=job, metadata=metadata
+            project_id=project_id,
+            service_id=deployment_id,
+            service=job,
+            metadata=metadata,
         )
         pod_spec.spec.restart_policy = "OnFailure"
 

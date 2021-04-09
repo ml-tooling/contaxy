@@ -454,7 +454,9 @@ def create_container_config(
     }
     environment = replace_templates(
         environment,
-        get_template_mapping(base_url=environment[_ENV_VARIABLE_CONTAXY_BASE_URL]),
+        get_template_mapping(
+            base_url=environment.get(_ENV_VARIABLE_CONTAXY_BASE_URL, "")
+        ),
     )
 
     min_lifetime = (
