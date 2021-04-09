@@ -33,7 +33,7 @@ class Settings(BaseSettings):
     SYSTEM_NAMESPACE: str = "ctxy"
     # Set the base url prefix
     # TODO: rename the variable
-    LAB_BASE_URL: str = "/"
+    LAB_BASE_URL: str = ""
 
     # Selected deployment manager
     DEPLOYMENT_MANAGER: DeploymentManager = DeploymentManager.DOCKER
