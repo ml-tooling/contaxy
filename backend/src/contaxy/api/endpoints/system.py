@@ -3,6 +3,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, Form, Response, status
 from fastapi.templating import Jinja2Templates
+from loguru import logger
 from starlette.requests import Request
 from starlette.responses import HTMLResponse
 
@@ -18,7 +19,6 @@ from contaxy.schema.exceptions import (
     AUTH_ERROR_RESPONSES,
     VALIDATION_ERROR_RESPONSE,
     ClientValueError,
-    ResourceAlreadyExistsError,
 )
 
 HERE = os.path.abspath(os.path.dirname(__file__))
@@ -93,22 +93,24 @@ def initialize_system(
 
 @router.get(
     "/system/admin-form",
+    include_in_schema=False,
     response_class=HTMLResponse,
-    # TODO: Fix error response
-    # responses={**CREATE_RESOURCE_RESPONSES},
+    status_code=status.HTTP_200_OK,
 )
 def display_register_admin_form(
     request: Request,
     component_manager: ComponentManager = Depends(get_component_manager),
 ) -> Any:
     if component_manager.get_auth_manager().list_users():
-        return ResourceAlreadyExistsError(
-            message="Admin user already created. Please log in."
-        )
-    return templates.TemplateResponse("register-admin.html.j2", {"request": request})
+        logger.error("Admin user already exsists")
+        return Response(status_code=status.HTTP_409_CONFLICT)
+    return templates.TemplateResponse(
+        "register-admin.html.j2",
+        {"request": request, "username": config.SYSTEM_ADMIN_USERNAME},
+    )
 
 
-@router.post("/system/admin")
+@router.post("/system/admin", status_code=status.HTTP_200_OK)
 def register_admin_user(
     request: Request,
     password: str = Form(...),
@@ -116,14 +118,10 @@ def register_admin_user(
     component_manager: ComponentManager = Depends(get_component_manager),
 ) -> Any:
     if component_manager.get_auth_manager().list_users():
-        return ResourceAlreadyExistsError(
-            message="Admin user already created. Please log in."
-        )
+        logger.error("Admin user already exsists")
+        return Response(status_code=status.HTTP_409_CONFLICT)
     if password != password_confirm:
         return ClientValueError("The passwords do not match.")
 
     component_manager.get_system_manager().initialize_system(password)
-    return templates.TemplateResponse(
-        "register-admin-success.html.j2",
-        {"request": request, "username": config.SYSTEM_ADMIN_USERNAME},
-    )
+    return Response(status_code=status.HTTP_200_OK)
