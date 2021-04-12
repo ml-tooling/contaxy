@@ -1,3 +1,4 @@
+import os
 from enum import Enum
 from typing import List, Optional, Union
 
@@ -28,6 +29,20 @@ class DeploymentManager(str, Enum):
 
 class Settings(BaseSettings):
     """Platform Settings."""
+
+    # TODO: Decide on default values
+    SERVER_URL: str = "127.0.0.1:8082"
+    CONTAXY_BASE_URL: Optional[str] = None
+
+    def get_redirect_uri(self) -> str:
+        """Get the redirect URI composed of the SERVER_URL and CONTAXY_BASE_URL."""
+        # TODO: Finalize schema hanlding
+        schema = "http://" if os.getenv("OAUTHLIB_INSECURE_TRANSPORT") else "https://"
+        return (
+            schema + self.SERVER_URL
+            if not self.CONTAXY_BASE_URL
+            else os.path.join(schema, self.SERVER_URL, self.CONTAXY_BASE_URL)
+        )
 
     # The system namespace used to managed different versions
     SYSTEM_NAMESPACE: str = "ctxy"
@@ -71,8 +86,16 @@ class Settings(BaseSettings):
     # Usabel to deactivate setting or changing user passwords
     # The `system-admin` account can still set and change passwords for users,
     # or use the basic auth authentication login page
+    # TODO: Maybe only introduce (rename?) a flag indicating whether an external identity provider based on OIDC is used for authentication or whether the default "contaxy password flow" will be used
     PASSWORD_AUTH_ENABLED: bool = True
     USER_REGISTRATION_ENABLED: bool = True
+
+    # External Identity provider configuration
+    # ! To test this locally OAUTHLIB_INSECURE_TRANSPORT=1 needs to be set as env variable
+    OIDC_AUTH_URL: Optional[str] = None
+    OIDC_TOKEN_URL: Optional[str] = None
+    OIDC_CLIENT_ID: Optional[str] = None
+    OIDC_CLIENT_SECRET: Optional[str] = None
 
     # JWT Session Tokens
     JWT_TOKEN_SECRET: str = "please-change-this-secret"

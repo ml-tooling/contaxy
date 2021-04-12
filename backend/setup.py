@@ -89,6 +89,8 @@ setup(
         # Needed for admin registration HTML Form w/o the webapp
         # TODO: Improve
         "jinja2",
+        # Used for OIDC handling
+        "requests_oauthlib",
     ],
     # deprecated: dependency_links=dependency_links,
     extras_require={
