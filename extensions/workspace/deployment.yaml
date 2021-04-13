@@ -1,15 +1,19 @@
 version: "3.9"
 
-services:
-  workspace-extension:
-    image: workspace-extension
-    restart: always
-    ports:
-      - "30014:8080"
-    depends_on:
-      - contaxy
-    labels:
-      ctxy.deploymentType: "extension"
-      ctxy.projectName: "ctxy-global"
-      ctxy.ui_extension_endpoint: "8080/projects/{project_id}/workspace"
-      ctxy.api_extension_endpoint: "8080/projects/{project_id}/workspace"
+contaxy-extension-workspace:
+  image: contaxy-extension-workspace
+  restart: always
+  ports:
+    - "127.0.0.1:30014:8080"
+  environment:
+    - CONTAXY_ENDPOINT=http://contaxy:8080/api
+    - CONTAXY_DEPLOYMENT_NAME=contaxy-extension-workspace
+  labels:
+    ctxy.namespace: "ctxy"
+    ctxy.deploymentType: "extension"
+    ctxy.deploymentName: "contaxy-extension-workspace"
+    ctxy.projectName: "ctxy-global"
+    ctxy.ui_extension_endpoint: "8080/projects/{label.projectName}/workspace"
+    ctxy.api_extension_endpoint: "8080/projects/{label.projectName}/workspace"
+  depends_on:
+    - contaxy

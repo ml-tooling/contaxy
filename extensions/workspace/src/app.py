@@ -21,12 +21,14 @@ if not CONTAXY_ENDPOINT:
 
 SELF_ACCESS_URL = os.getenv("CONTAXY_BASE_URL", "")
 
+SELF_DEPLOYMENT_NAME = os.getenv("CONTAXY_DEPLOYMENT_NAME", "")
+
 LABEL_EXTENSION_DEPLOYMENT_TYPE = "ctxy.workspaceExtension.deploymentType"
 
-app = FastAPI()
+api = FastAPI()
 
 
-@app.post(
+@api.post(
     "/projects/{project_id}/workspace",
     summary="Deploy a workspace.",
     status_code=status.HTTP_200_OK,
@@ -42,19 +44,26 @@ def deploy_workspace(
     if not token:
         raise UnauthenticatedError("No token provided.")
 
+    if service.parameters is None:
+        service.parameters = {}
+
+    if service.metadata is None:
+        service.metadata = {}
+
     # {env.CONTAXY_BASE_URL} will be replaced by Contaxy
     service.parameters["WORKSPACE_BASE_URL"] = "{env.CONTAXY_BASE_URL}"
     # TODO: In Contaxy, the labels are prefixed with the System Namespace (e.g. 'ctxy') -> should extension / user labels be prefixed as well? Problem of prefixing might be that the extension cannot find it's own labels
     service.metadata[LABEL_EXTENSION_DEPLOYMENT_TYPE] = "workspace"
     service.endpoints = ["8080b"]
-    return DeploymentManagerClient(
-        BaseUrlSession(
-            base_url=CONTAXY_ENDPOINT, headers={"Authorization": f"Bearer {token}"}
-        )
-    ).deploy_service(project_id=project_id, service=service)
+    session = BaseUrlSession(base_url=CONTAXY_ENDPOINT)
+    session.headers = {"Authorization": f"Bearer {token}"}
+    return DeploymentManagerClient(session).deploy_service(
+        project_id=project_id, service=service
+    )
 
 
-@app.get(
+# TODO: how to handle the project_id placeholder?
+@api.get(
     "/projects/{project_id}/workspace",
     summary="Get the launcher UI",
     status_code=status.HTTP_200_OK,
@@ -69,13 +78,10 @@ def get_ui(
     """Redirects to the existing user workspaces or """
 
     # Check the token and get the authorized user
-    component_manager.verify_access(token)
-
-    services = DeploymentManagerClient(
-        BaseUrlSession(
-            base_url=CONTAXY_ENDPOINT, headers={"Authorization": f"Bearer {token}"}
-        )
-    ).list_services(project_id=project_id)
+    # component_manager.verify_access(token)
+    session = BaseUrlSession(base_url=CONTAXY_ENDPOINT)
+    session.headers = {"Authorization": f"Bearer {token}"}
+    services = DeploymentManagerClient(session).list_services(project_id=project_id)
 
     html_body = ""
     for service in services:
@@ -93,13 +99,15 @@ def get_ui(
         )
     # if the service does not exist, send a launch screen to the use
     # TODO: rather use a nice web app here that can also be extended with resource settings etc. like JupyterHub
+    # TODO: replace the url in fetch('...') with the BASE_URL env variable value
     html_content = f"""
     <html>
         <head>
             <title>Workspace Launcher</title>
             <script>
-                function launchWorkspace() {{
-                    fetch('{SELF_ACCESS_URL}/projects/{project_id}/workspace', {{ method: 'POST' }});
+                function checkAndLaunchWorkspace() {{
+                    const serviceInput = JSON.stringify({{ "container_image":"mltooling/ml-workspace-minimal","display_name":"test-workspace-" + new Date().getTime(),"endpoints":["8080"],"parameters":{{}} }});
+                    fetch('{SELF_ACCESS_URL}/projects/{project_id}/services/{SELF_DEPLOYMENT_NAME}/access/8080/projects/{project_id}/workspace', {{ method: 'POST', body: serviceInput }});
                 }}
             </script>
         </head>
