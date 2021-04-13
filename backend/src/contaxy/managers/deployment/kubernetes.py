@@ -1,6 +1,6 @@
 import time
 from datetime import datetime, timezone
-from typing import List, Optional
+from typing import List, Literal, Optional
 
 from kubernetes import client as kube_client
 from kubernetes import config as kube_config
@@ -95,9 +95,15 @@ class KubernetesDeploymentManager(DeploymentManager):
             self.kube_namespace = kube_namespace
         # TODO: when we have performance problems in the future, replicate the watch logic from JupyterHub KubeSpawner to keep Pod & other resource information in memory? (see https://github.com/jupyterhub/kubespawner/blob/941585f0f7acb0f366c9979b6274b7f47356a630/kubespawner/reflector.py#L238)
 
-    def list_services(self, project_id: str) -> List[Service]:
+    def list_services(
+        self,
+        project_id: str,
+        deployment_type: Literal[
+            DeploymentType.SERVICE, DeploymentType.EXTENSION
+        ] = DeploymentType.SERVICE,
+    ) -> List[Service]:
         label_selector = get_deployment_selection_labels(
-            project_id=project_id, deployment_type=DeploymentType.SERVICE
+            project_id=project_id, deployment_type=deployment_type
         )
 
         try:

@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Literal, Optional
 
 import docker
 from loguru import logger
@@ -40,10 +40,18 @@ class DockerDeploymentManager(DeploymentManager):
 
         self.client = docker.from_env()
 
-    def list_services(self, project_id: str) -> List[Service]:
+    def list_services(
+        self,
+        project_id: str,
+        deployment_type: Literal[
+            DeploymentType.SERVICE, DeploymentType.EXTENSION
+        ] = DeploymentType.SERVICE,
+    ) -> List[Service]:
         try:
             containers = get_project_containers(
-                client=self.client, project_id=project_id
+                client=self.client,
+                project_id=project_id,
+                deployment_type=deployment_type,
             )
 
             return [map_service(container) for container in containers]

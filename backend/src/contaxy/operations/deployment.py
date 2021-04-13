@@ -1,8 +1,9 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import Any, List, Optional
+from typing import Any, List, Literal, Optional
 
 from contaxy.schema import Job, JobInput, ResourceAction, Service, ServiceInput
+from contaxy.schema.deployment import DeploymentType
 
 # TODO: update_service functionality
 
@@ -12,11 +13,15 @@ class ServiceOperations(ABC):
     def list_services(
         self,
         project_id: str,
+        deployment_type: Literal[
+            DeploymentType.SERVICE, DeploymentType.EXTENSION
+        ] = DeploymentType.SERVICE,
     ) -> List[Service]:
         """Lists all services associated with the given project.
 
         Args:
             project_id (str): The project ID to filter the services.
+            deployment_type (Optional one of [DeploymentType.SERVICE, DeploymentType.JOB]): The deployment type of either Service or Extension (which is a subtype of Service).
 
         Returns:
             List[Service]: The list of services associated with the project.

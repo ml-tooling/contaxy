@@ -5,7 +5,7 @@ from contaxy.clients import DeploymentManagerClient, FileClient
 from contaxy.clients.shared import BaseUrlSession
 from contaxy.managers.deployment.manager import DeploymentManager
 from contaxy.operations import ExtensionOperations
-from contaxy.schema import ExtensibleOperations, Extension
+from contaxy.schema import ExtensibleOperations, Extension, ExtensionInput
 from contaxy.schema.deployment import DeploymentType
 from contaxy.schema.extension import CORE_EXTENSION_ID
 from contaxy.utils.state_utils import GlobalState, RequestState
@@ -76,6 +76,7 @@ class ExtensionManager(ExtensionOperations):
         Args:
             global_state: The global state of the app instance.
             request_state: The state for the current request.
+            deployment_manager: The current deployment manager instance.
         """
         self.global_state = global_state
         self.request_state = request_state
@@ -95,13 +96,17 @@ class ExtensionManager(ExtensionOperations):
         )
 
     def list_extensions(self, project_id: str) -> List[Extension]:
-        project_services = self.deployment_manager.list_services(project_id=project_id)
+        project_services = self.deployment_manager.list_services(
+            project_id=project_id, deployment_type=DeploymentType.EXTENSION
+        )
         global_services = self.deployment_manager.list_services(
-            project_id=f"{config.settings.SYSTEM_NAMESPACE}-global"
+            project_id=f"{config.settings.SYSTEM_NAMESPACE}-global",
+            deployment_type=DeploymentType.EXTENSION,
         )
 
         extension_services = []
         for service in [*project_services, *global_services]:
+            print(service.id)
             # TODO: Add a function to deployment-manager that allows direct filtering
             if service.deployment_type != DeploymentType.EXTENSION.value:
                 continue
@@ -120,3 +125,21 @@ class ExtensionManager(ExtensionOperations):
 
     def get_default_extension(self, operation: ExtensibleOperations) -> str:
         return CORE_EXTENSION_ID
+
+    def delete_extension(
+        self, project_id: str, extension_id: Optional[str] = None
+    ) -> None:
+        raise NotImplementedError
+
+    def get_extension_metadata(self, project_id: str, extension_id: str) -> Extension:
+        raise NotImplementedError
+
+    def install_extension(
+        self, extension: ExtensionInput, project_id: str
+    ) -> Extension:
+        raise NotImplementedError
+
+    def suggest_extension_config(
+        self, container_image: str, project_id: str
+    ) -> ExtensionInput:
+        raise NotImplementedError
