@@ -64,8 +64,8 @@ class DeploymentCompute(BaseModel):
     max_cpus: Optional[int] = Field(
         None,
         example=4,
-        ge=1,
-        description="Maximum number of CPU cores. Even so the system will try to provide the specified amount, it's only guaranteed that the deployment cannot use more.",
+        ge=0,
+        description="Maximum number of CPU cores. Even so the system will try to provide the specified amount, it's only guaranteed that the deployment cannot use more. 0 means unlimited.",
     )
     min_memory: Optional[int] = Field(
         None,
@@ -76,8 +76,8 @@ class DeploymentCompute(BaseModel):
     max_memory: Optional[int] = Field(
         None,
         example=8000,
-        ge=1,
-        description="Maximum amount of memory in Megabyte. Even so the system will try to provide the specified amount, it's only guaranteed that the deployment cannot use more.",
+        ge=0,
+        description="Maximum amount of memory in Megabyte. Even so the system will try to provide the specified amount, it's only guaranteed that the deployment cannot use more. 0 means unlimited.",
     )  # in MB
     min_gpus: Optional[int] = Field(
         None,
