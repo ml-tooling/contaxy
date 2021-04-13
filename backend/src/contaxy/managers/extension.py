@@ -113,12 +113,22 @@ class ExtensionManager(ExtensionOperations):
 
             extension = Extension(**service.dict())
             if service.metadata:
-                extension.ui_extension_endpoint = service.metadata[
-                    "ui_extension_endpoint"
-                ]
-                extension.api_extension_endpoint = service.metadata[
-                    "api_extension_endpoints"
-                ]
+                extension.ui_extension_endpoint = (
+                    service.metadata[
+                        f"{config.settings.SYSTEM_NAMESPACE}.ui_extension_endpoint"
+                    ]
+                    if f"{config.settings.SYSTEM_NAMESPACE}.ui_extension_endpoint"
+                    in service.metadata
+                    else ""
+                )
+                extension.api_extension_endpoint = (
+                    service.metadata[
+                        f"{config.settings.SYSTEM_NAMESPACE}.api_extension_endpoints"
+                    ]
+                    if f"{config.settings.SYSTEM_NAMESPACE}.api_extension_endpoints"
+                    in service.metadata
+                    else ""
+                )
             extension_services.append(extension)
 
         return extension_services

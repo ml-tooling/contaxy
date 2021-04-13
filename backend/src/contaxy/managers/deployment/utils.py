@@ -237,7 +237,7 @@ def get_default_environment_variables(
         Dict[str, str]: Dict with default environment variables or empty dict.
     """
 
-    default_environment_variables = {}
+    default_environment_variables = {"CONTAXY_DEPLOYMENT_NAME": deployment_id}
 
     if endpoints and len(endpoints) > 0:
         endpoint = endpoints[0]
@@ -305,10 +305,15 @@ def replace_templates(
     return modified_input
 
 
-def get_template_mapping(base_url: Optional[str] = None) -> Dict[str, str]:
+def get_template_mapping(
+    base_url: Optional[str] = None, project_id: Optional[str] = None
+) -> Dict[str, str]:
     template_mapping = {}
 
     if base_url:
         template_mapping[f"{{env.{_ENV_VARIABLE_CONTAXY_BASE_URL}}}"] = base_url
+
+    if project_id:
+        template_mapping[f"{{label.{Labels.PROJECT_NAME}}}"] = project_id
 
     return template_mapping
