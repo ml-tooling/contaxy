@@ -8,6 +8,7 @@ from contaxy.api.dependencies import (
     get_component_manager,
 )
 from contaxy.schema import CoreOperations, Extension, ExtensionInput
+from contaxy.schema.auth import AccessLevel
 from contaxy.schema.exceptions import (
     AUTH_ERROR_RESPONSES,
     CREATE_RESOURCE_RESPONSES,
@@ -39,7 +40,16 @@ def list_extensions(
     This also includes all extensions which are installed globally as well as
     extensions installed by the authorized user.
     """
-    raise NotImplementedError
+
+    component_manager.verify_access(
+        token,
+        f"/projects/{project_id}/extensions",
+        AccessLevel.READ,
+    )
+
+    return component_manager.get_extension_manager().list_extensions(
+        project_id=project_id
+    )
 
 
 @router.delete(
