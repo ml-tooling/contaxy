@@ -115,6 +115,7 @@ class ExtensibleOperations(str, Enum):
     LIST_FILES = "list_files"
     GET_FILE_METADATA = "get_file_metadata"
     UPLOAD_FILE = "upload_file"
+    UPLOAD_FILE_NO_KEY = "upload_file_no_key"
     DOWNLOAD_FILE = "download_file"
     LIST_FILE_ACTIONS = "list_file_actions"
     EXECUTE_FILE_ACTION = "execute_file_action"

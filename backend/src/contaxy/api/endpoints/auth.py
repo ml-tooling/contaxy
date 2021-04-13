@@ -1,6 +1,8 @@
+import os
 from typing import Any, List, Optional
 
 from fastapi import APIRouter, Body, Depends, Form, Query, status
+from requests_oauthlib import OAuth2Session
 from starlette.responses import RedirectResponse, Response
 
 from contaxy import config
@@ -9,6 +11,7 @@ from contaxy.api.dependencies import (
     get_api_token,
     get_component_manager,
 )
+from contaxy.managers.auth import AuthManager
 from contaxy.schema import (
     ApiToken,
     CoreOperations,
@@ -19,8 +22,14 @@ from contaxy.schema import (
     TokenType,
 )
 from contaxy.schema.auth import AccessLevel, OAuth2ErrorDetails, OAuth2TokenGrantTypes
-from contaxy.schema.exceptions import AUTH_ERROR_RESPONSES, VALIDATION_ERROR_RESPONSE
+from contaxy.schema.exceptions import (
+    AUTH_ERROR_RESPONSES,
+    VALIDATION_ERROR_RESPONSE,
+    ServerBaseError,
+)
 from contaxy.utils import auth_utils, id_utils
+
+OAUTH_CALLBACK_ROUTE = "auth/oauth/callback"
 
 router = APIRouter(tags=["auth"], responses={**VALIDATION_ERROR_RESPONSE})
 
@@ -39,7 +48,31 @@ def open_login_page(
     # rr.set_cookie(key="session_token", value="test-token", path="/welcome")
     # rr.set_cookie(key="user_token", value="test-user-token", path="/users/me")
     # return rr
-    return component_manager.get_auth_manager().login_page()
+    # TODO: Discuss the actual flow. In order to redirect the app login route needs to be available. Otherwise, the frontend needs to provide the basic auth form in case of missing IDP.
+    # return component_manager.get_auth_manager().login_page()
+    if not config.settings.OIDC_AUTH_URL or not config.settings.OIDC_CLIENT_ID:
+        raise ServerBaseError(
+            "External OIDC Provider is not configured. Please set OIDC_AUTH_URL and further relevant OIDC config params."
+        )
+
+    callback_uri = os.path.join(
+        config.settings.get_redirect_uri(), OAUTH_CALLBACK_ROUTE
+    )
+    session = OAuth2Session(
+        config.settings.OIDC_CLIENT_ID,
+        # TODO: Clarify needed scopes
+        scope=["openid", "email"],
+        redirect_uri=callback_uri,
+    )
+    url, state = session.authorization_url(config.settings.OIDC_AUTH_URL)
+    # TODO: Check if ? is always included in the url
+    # TODO: Check if connector id is required here
+    # url += f"{url}&state={state}"
+    redirect_response = RedirectResponse(
+        url, status_code=status.HTTP_307_TEMPORARY_REDIRECT
+    )
+    redirect_response.set_cookie(key="oauth_state", value=state, httponly=True)
+    return redirect_response
 
 
 @router.get(
@@ -230,6 +263,23 @@ def verify_access(
 
 
 # OAuth Endpoints
+def _create_token_response_with_cookies(
+    auth_manager: AuthManager, token: OAuthToken
+) -> Response:
+    response = Response(status_code=status.HTTP_200_OK)
+    # TODO: Set cookie and path or other configurations
+    token_info = auth_manager.introspect_token(token.access_token)
+    response.set_cookie(
+        key=config.API_TOKEN_NAME, value=token.access_token, httponly=True
+    )
+    if token_info.sub:
+        # Set user ID as cookie as well
+        response.set_cookie(
+            key=config.AUTHORIZED_USER_COOKIE,
+            value=id_utils.extract_user_id_from_resource_name(token_info.sub),
+        )
+
+    return response
 
 
 @router.post(
@@ -282,22 +332,9 @@ def request_token(
     """
     oauth_token = component_manager.get_auth_manager().request_token(token_request_form)
     if token_request_form.set_as_cookie:
-        response = Response(status_code=status.HTTP_200_OK)
-        # TODO: Set cookie and path or other configurations
-        token_info = component_manager.get_auth_manager().introspect_token(
-            oauth_token.access_token
+        return _create_token_response_with_cookies(
+            component_manager.get_auth_manager(), oauth_token
         )
-        response.set_cookie(
-            key=config.API_TOKEN_NAME, value=oauth_token.access_token, httponly=True
-        )
-        if token_info.sub:
-            # Set user ID as cookie as well
-            response.set_cookie(
-                key=config.AUTHORIZED_USER_COOKIE,
-                value=id_utils.extract_user_id_from_resource_name(token_info.sub),
-            )
-
-        return response
     return component_manager.get_auth_manager().request_token(token_request_form)
 
 
@@ -380,4 +417,10 @@ def login_callback(
 
     This endpoint implements the [Authorization Response](https://tools.ietf.org/html/rfc6749#section-4.1.2) from RFC6749.
     """
-    return component_manager.get_auth_manager().login_callback(code, state)
+    auth_manager = component_manager.get_auth_manager()
+    oauth_token = auth_manager.login_callback(
+        code,
+        os.path.join(config.settings.get_redirect_uri(), OAUTH_CALLBACK_ROUTE),
+        state,
+    )
+    return _create_token_response_with_cookies(auth_manager, oauth_token)
