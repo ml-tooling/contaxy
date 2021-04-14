@@ -13,11 +13,11 @@ import AppDrawerItem from './AppDrawerItem';
 const DRAWER_WIDTH = 230;
 
 function AppDrawer(props) {
-  const { className, isAdmin, open } = props;
+  const { additionalPages, className, isAdmin, open } = props;
 
-  const linkItems = APP_PAGES.filter(
-    (item) => item.APP_DRAWER_ITEM && (isAdmin || !item.REQUIRE_ADMIN)
-  ).map((item) => <AppDrawerItem key={item.NAME} item={item} />);
+  const linkItems = [...APP_PAGES, ...additionalPages]
+    .filter((item) => item.APP_DRAWER_ITEM && (isAdmin || !item.REQUIRE_ADMIN))
+    .map((item) => <AppDrawerItem key={item.NAME} item={item} />);
 
   return (
     <Drawer
@@ -41,12 +41,14 @@ function AppDrawer(props) {
 }
 
 AppDrawer.propTypes = {
+  additionalPages: PropTypes.instanceOf(Array),
   className: PropTypes.string,
   isAdmin: PropTypes.bool,
   open: PropTypes.bool,
 };
 
 AppDrawer.defaultProps = {
+  additionalPages: [],
   className: '',
   isAdmin: false,
   open: false,

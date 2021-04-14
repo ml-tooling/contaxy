@@ -65,30 +65,47 @@ export default [
     COMPONENT: Login,
   },
   // TODO: remove this hard-coded embedding of Expyriments
-  {
+  // {
+  //   ICON: 'data_usage',
+  //   NAME: 'Expyriments',
+  //   PATH: '/iframe',
+  //   REQUIRE_LOGIN: true,
+  //   APP_DRAWER_ITEM: true,
+  //   TYPE: APP_DRAWER_ITEM_TYPES.link,
+  //   COMPONENT: Iframe,
+  //   PROPS: {
+  //     url: 'http://localhost:8081/?appbar=false',
+  //     projectSpecific: true,
+  //   },
+  // },
+  // {
+  //   ICON: 'data_usage',
+  //   NAME: 'Login',
+  //   PATH: '/login-test',
+  //   REQUIRE_LOGIN: true,
+  //   APP_DRAWER_ITEM: true,
+  //   TYPE: APP_DRAWER_ITEM_TYPES.link,
+  //   COMPONENT: Iframe,
+  //   PROPS: {
+  //     url: 'http://localhost:8000/login?connector_id=local',
+  //     projectSpecific: false,
+  //   },
+  // },
+];
+
+export const mapExtensionToAppPage = (extension) => {
+  return {
+    // TODO: make ICON dynamic
     ICON: 'data_usage',
-    NAME: 'Expyriments',
-    PATH: '/iframe',
+    NAME: extension.parameters.CONTAXY_DEPLOYMENT_NAME,
+    PATH: `/${extension.parameters.CONTAXY_DEPLOYMENT_NAME}`,
     REQUIRE_LOGIN: true,
     APP_DRAWER_ITEM: true,
     TYPE: APP_DRAWER_ITEM_TYPES.link,
     COMPONENT: Iframe,
     PROPS: {
-      url: 'http://localhost:8081/?appbar=false',
+      url: extension.ui_extension_endpoint,
       projectSpecific: true,
     },
-  },
-  {
-    ICON: 'data_usage',
-    NAME: 'Login',
-    PATH: '/login-test',
-    REQUIRE_LOGIN: true,
-    APP_DRAWER_ITEM: true,
-    TYPE: APP_DRAWER_ITEM_TYPES.link,
-    COMPONENT: Iframe,
-    PROPS: {
-      url: 'http://localhost:8000/login?connector_id=local',
-      projectSpecific: false,
-    },
-  },
-];
+  };
+};

@@ -43,8 +43,6 @@ function DeployContainerDialog(props) {
     deploymentInput.deploymentName
   );
 
-  console.log(deploymentInput);
-
   return (
     <Dialog open>
       <DialogTitle>{`${t('add')} ${t('deployment')}`}</DialogTitle>

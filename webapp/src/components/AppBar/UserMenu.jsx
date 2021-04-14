@@ -30,7 +30,6 @@ function UserMenu(props) {
   const onApiTokenClick = async () => {
     const apiTokens = await authApi.listApiTokens();
     const userScope = getUserPemissionId(user);
-    console.log(user);
     showAppDialog(ApiTokenDialog, {
       creationScope: userScope,
       tokens: apiTokens,

@@ -64,6 +64,7 @@ export const initialState = {
     //   },
     // },
   ],
+  projectExtensions: [],
   isAuthenticated: false,
   users: null,
 };
@@ -76,6 +77,9 @@ const useGlobalState = (_initialState) => {
   const [projects, setProjects] = useState(state.projects);
   const [isAuthenticated, setIsAuthenticated] = useState(state.isAuthenticated);
   const [users, setUsers] = useState(state.users);
+  const [projectExtensions, setProjectExtensions] = useState(
+    state.projectExtensions
+  );
 
   // cache users call so that it is lazy loaded upon first use
   const getUsers = () => {
@@ -108,6 +112,8 @@ const useGlobalState = (_initialState) => {
     // users,
     // setUsers,
     getUsers,
+    projectExtensions,
+    setProjectExtensions,
   };
 };
 

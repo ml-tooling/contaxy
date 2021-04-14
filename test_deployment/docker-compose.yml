@@ -54,3 +54,21 @@ services:
         command: server /data{1...4}
         ports:
             - "127.0.0.1:30013:9000"
+
+    contaxy-extension-workspace:
+        image: contaxy-extension-workspace
+        restart: always
+        ports:
+            - "127.0.0.1:30014:8080"
+        environment:
+            - CONTAXY_ENDPOINT=http://contaxy:8080/api
+            - CONTAXY_DEPLOYMENT_NAME=contaxy-extension-workspace
+        labels:
+            ctxy.namespace: "ctxy"
+            ctxy.deploymentType: "extension"
+            ctxy.deploymentName: "contaxy-extension-workspace"
+            ctxy.projectName: "ctxy-global"
+            ctxy.ui_extension_endpoint: "8080/projects/{label.projectName}/workspace"
+            ctxy.api_extension_endpoint: "8080/projects/{label.projectName}/workspace"
+        depends_on:
+            - contaxy

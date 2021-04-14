@@ -11,23 +11,23 @@ import LoginRoute from './LoginRoute';
 import PrivateRoute from './PrivateRoute';
 
 function ContentContainer(props) {
-  const { className, isAuthenticated } = props;
-  const routes = APP_PAGES.filter(
-    (item) => item.TYPE === APP_DRAWER_ITEM_TYPES.link
-  ).map((item) => {
-    const RouteElement = item.REQUIRE_LOGIN ? PrivateRoute : LoginRoute;
+  const { additionalPages, className, isAuthenticated } = props;
+  const routes = [...APP_PAGES, ...additionalPages]
+    .filter((item) => item.TYPE === APP_DRAWER_ITEM_TYPES.link)
+    .map((item) => {
+      const RouteElement = item.REQUIRE_LOGIN ? PrivateRoute : LoginRoute;
 
-    return (
-      <RouteElement
-        key={item.NAME}
-        path={item.PATH}
-        exact
-        component={item.COMPONENT}
-        isAuthenticated={isAuthenticated}
-        componentProps={item.PROPS}
-      />
-    );
-  });
+      return (
+        <RouteElement
+          key={item.NAME}
+          path={item.PATH}
+          exact
+          component={item.COMPONENT}
+          isAuthenticated={isAuthenticated}
+          componentProps={item.PROPS}
+        />
+      );
+    });
 
   return (
     <div className={`${className} root`}>
@@ -39,11 +39,13 @@ function ContentContainer(props) {
 }
 
 ContentContainer.propTypes = {
+  additionalPages: PropTypes.instanceOf(Array),
   className: PropTypes.string,
   isAuthenticated: PropTypes.bool.isRequired,
 };
 
 ContentContainer.defaultProps = {
+  additionalPages: [],
   className: '',
 };
 

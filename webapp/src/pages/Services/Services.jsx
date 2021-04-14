@@ -88,14 +88,26 @@ function Services(props) {
 
   const onExecuteAction = async (resource, resourceAction) => {
     try {
-      await servicesApi.executeServiceAction(
-        activeProject.id,
-        resource.id,
-        resourceAction.action_id
-      );
+      // servicesApi.apiClient.agent.redirects(0);
+      // const response = await servicesApi.executeServiceAction(
+      //   activeProject.id,
+      //   resource.id,
+      //   resourceAction.action_id
+      // );
+
+      if (resourceAction.instructions) {
+        resourceAction.instructions.some((instruction) => {
+          if (instruction.type && instruction.type === 'new-tab') {
+            window.open(instruction.url);
+            return true;
+          }
+
+          return false;
+        });
+      }
     } catch (e) {
       showStandardSnackbar(
-        `Could not execute action '${resourceAction.action_id}' for service '${resource.id}'`
+        `Could not execute action '${resourceAction.action_id}' for service '${resource.id}'. Reason: ${e}`
       );
     }
   };
