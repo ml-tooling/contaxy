@@ -50,7 +50,7 @@ def deploy_workspace(
     if service.metadata is None:
         service.metadata = {}
 
-    # {env.CONTAXY_BASE_URL} will be replaced by Contaxy
+    # {env.CONTAXY_SERVICE_URL} will be replaced by Contaxy
     service.parameters["WORKSPACE_BASE_URL"] = "{env.CONTAXY_SERVICE_URL}"
     # TODO: In Contaxy, the labels are prefixed with the System Namespace (e.g. 'ctxy') -> should extension / user labels be prefixed as well? Problem of prefixing might be that the extension cannot find it's own labels
     service.metadata[LABEL_EXTENSION_DEPLOYMENT_TYPE] = "workspace"
@@ -95,7 +95,7 @@ def get_ui(
             LABEL_EXTENSION_DEPLOYMENT_TYPE in service.metadata
             and service.metadata[LABEL_EXTENSION_DEPLOYMENT_TYPE] == "workspace"
         ):
-            # TODO: do a redirect response that redirects to the workspace (service_access url, e.g. /projects/<project_id>/services/<service_id>/...)
+            # TODO: do a redirect response that redirects to the workspace (service_access url, e.g. /projects/<project_id>/services/<service_id>/...)?
             # TODO: instead of a redirect, it can return a list of workspaces (with a button to access the workspace directly, although this would be similar to the services screen then...)
             html_body = "The Workspace is already launched. Go to the services screen to access it."
 
