@@ -43,7 +43,7 @@ services:
         ports:
             - "30012:8081"
         links:
-            - db:postgres
+            - "db:postgres"
         environment:
             - DATABASE_URL=postgres://postgres:postgres@postgres:5432/postgres?sslmode=disable
         depends_on:

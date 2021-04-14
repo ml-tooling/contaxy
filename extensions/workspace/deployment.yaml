@@ -6,7 +6,7 @@ contaxy-extension-workspace:
   ports:
     - "127.0.0.1:30014:8080"
   environment:
-    - CONTAXY_ENDPOINT=http://contaxy:8080/api
+    - CONTAXY_API_ENDPOINT=http://contaxy:8080/api
     - CONTAXY_DEPLOYMENT_NAME=contaxy-extension-workspace
   labels:
     ctxy.namespace: "ctxy"

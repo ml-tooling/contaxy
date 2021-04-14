@@ -15,9 +15,9 @@ from contaxy.schema.exceptions import CREATE_RESOURCE_RESPONSES, Unauthenticated
 
 import os
 
-CONTAXY_ENDPOINT = os.getenv("CONTAXY_ENDPOINT", None)
-if not CONTAXY_ENDPOINT:
-    raise RuntimeError("CONTAXY_ENDPOINT must be set")
+CONTAXY_API_ENDPOINT = os.getenv("CONTAXY_API_ENDPOINT", None)
+if not CONTAXY_API_ENDPOINT:
+    raise RuntimeError("CONTAXY_API_ENDPOINT must be set")
 
 SELF_ACCESS_URL = os.getenv("CONTAXY_BASE_URL", "")
 
@@ -61,7 +61,7 @@ def deploy_workspace(
     if "max_memory" not in service.compute or service.compute["max_memory"] < 500:
         service.compute["max_memory"] = 500
 
-    session = BaseUrlSession(base_url=CONTAXY_ENDPOINT)
+    session = BaseUrlSession(base_url=CONTAXY_API_ENDPOINT)
     session.headers = {"Authorization": f"Bearer {token}"}
     return DeploymentManagerClient(session).deploy_service(
         project_id=project_id, service=service
@@ -85,7 +85,7 @@ def get_ui(
 
     # Check the token and get the authorized user
     # component_manager.verify_access(token)
-    session = BaseUrlSession(base_url=CONTAXY_ENDPOINT)
+    session = BaseUrlSession(base_url=CONTAXY_API_ENDPOINT)
     session.headers = {"Authorization": f"Bearer {token}"}
     services = DeploymentManagerClient(session).list_services(project_id=project_id)
 
