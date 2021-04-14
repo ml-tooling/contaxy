@@ -32,6 +32,8 @@ class Settings(BaseSettings):
 
     # TODO: Decide on default values
     SERVER_URL: str = "127.0.0.1:8082"
+    # TODO: use a different default url? maybe the container name? also handle HTTP/HTTPS
+    CONTAXY_API_ENDPOINT: str = f"http://{SERVER_URL}/api"
     CONTAXY_BASE_URL: Optional[str] = None
 
     def get_redirect_uri(self) -> str:

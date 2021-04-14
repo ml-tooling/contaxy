@@ -18,6 +18,7 @@ _JOB_ID_SEPERATOR = "-j-"
 _MIN_MEMORY_DEFAULT_MB = 100
 
 _ENV_VARIABLE_CONTAXY_BASE_URL = "CONTAXY_BASE_URL"
+_ENV_VARIABLE_CONTAXY_API_ENDPOINT = "CONTAXY_API_ENDPOINT"
 _ENV_VARIABLE_CONTAXY_SERVICE_URL = "CONTAXY_SERVICE_URL"
 
 
@@ -241,6 +242,7 @@ def get_default_environment_variables(
     default_environment_variables = {
         "CONTAXY_DEPLOYMENT_NAME": deployment_id,
         _ENV_VARIABLE_CONTAXY_BASE_URL: settings.LAB_BASE_URL,
+        _ENV_VARIABLE_CONTAXY_API_ENDPOINT: settings.CONTAXY_API_ENDPOINT,
     }
 
     if endpoints and len(endpoints) > 0:
@@ -324,6 +326,11 @@ def get_template_mapping(
         template_mapping[
             f"{{env.{_ENV_VARIABLE_CONTAXY_BASE_URL}}}"
         ] = settings.LAB_BASE_URL
+
+    if settings.CONTAXY_API_ENDPOINT:
+        template_mapping[
+            f"{{env.{_ENV_VARIABLE_CONTAXY_API_ENDPOINT}}}"
+        ] = settings.CONTAXY_API_ENDPOINT
 
     if service_url:
         template_mapping[f"{{env.{_ENV_VARIABLE_CONTAXY_SERVICE_URL}}}"] = service_url
