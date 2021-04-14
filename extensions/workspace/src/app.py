@@ -58,8 +58,8 @@ def deploy_workspace(
     if not service.compute:
         service.compute = {}
 
-    if "min_memory" not in service.compute or service.compute["min_memory"] < 500:
-        service.compute["min_memory"] = 500
+    if "max_memory" not in service.compute or service.compute["max_memory"] < 500:
+        service.compute["max_memory"] = 500
 
     session = BaseUrlSession(base_url=CONTAXY_ENDPOINT)
     session.headers = {"Authorization": f"Bearer {token}"}
