@@ -46,30 +46,39 @@ function guardServiceAccess(r) {
   var sessionToken = modifyToken(r.variables.cookie_ct_session_token);
   var permission = r.variables.permission;
   if (!apiToken && !sessionToken) r.return(403, "No auth cookie set");
+  var message = "";
   if (sessionToken) {
     try {
       var jwtPayload = jwt.verify(sessionToken, process.env.JWT_TOKEN_SECRET);
-    } catch (e) {
-      r.return(403, "JWT token not valid");
-    }
 
-    var containsPermission =
-      jwtPayload["perms"].indexOf(permission) > -1 ||
-      jwtPayload["perms"].indexOf("admin") > -1;
-    if (containsPermission) r.internalRedirect("@service");
-    if (!containsPermission && apiToken) {
-      verifyAccess(r, apiToken, permission)
-        .then((res) => {
-          r.internalRedirect("@service");
-        })
-        .catch((e) => r.return(403, "API Token not valid"));
-    }
-  } else {
-    verifyAccess(r, apiToken, permission)
-      .then((res) => {
+      var containsPermission =
+        jwtPayload["perms"].indexOf(permission) > -1 ||
+        jwtPayload["perms"].indexOf("admin") > -1;
+      if (containsPermission) {
         r.internalRedirect("@service");
-      })
-      .catch((e) => r.return(403, "API Token not valid"));
+        return;
+      }
+
+      message = "JWT token does not contain correct permissions.";
+    } catch (e) {
+      message = "JWT token not valid.";
+    }
+  }
+
+  if (apiToken) {
+    verifyAccess(r, apiToken, permission)
+      .then(
+        (res) => {
+          r.internalRedirect("@service");
+        },
+        () => r.return(403, "API Token not valid")
+      )
+      .catch((e) => {
+        r.return(403, "API Token not valid");
+      });
+  } else {
+    // Return unauthorized as no token could redirect to the service
+    r.return(403, message);
   }
 }
 
