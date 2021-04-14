@@ -51,10 +51,16 @@ def deploy_workspace(
         service.metadata = {}
 
     # {env.CONTAXY_BASE_URL} will be replaced by Contaxy
-    service.parameters["WORKSPACE_BASE_URL"] = "{env.CONTAXY_BASE_URL}"
+    service.parameters["WORKSPACE_BASE_URL"] = "{env.CONTAXY_SERVICE_URL}"
     # TODO: In Contaxy, the labels are prefixed with the System Namespace (e.g. 'ctxy') -> should extension / user labels be prefixed as well? Problem of prefixing might be that the extension cannot find it's own labels
     service.metadata[LABEL_EXTENSION_DEPLOYMENT_TYPE] = "workspace"
     service.endpoints = ["8080b"]
+    if not service.compute:
+        service.compute = {}
+
+    if "min_memory" not in service.compute or service.compute["min_memory"] < 500:
+        service.compute["min_memory"] = 500
+
     session = BaseUrlSession(base_url=CONTAXY_ENDPOINT)
     session.headers = {"Authorization": f"Bearer {token}"}
     return DeploymentManagerClient(session).deploy_service(
