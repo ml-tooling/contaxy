@@ -18,6 +18,7 @@ _JOB_ID_SEPERATOR = "-j-"
 _MIN_MEMORY_DEFAULT_MB = 100
 
 _ENV_VARIABLE_CONTAXY_BASE_URL = "CONTAXY_BASE_URL"
+_ENV_VARIABLE_CONTAXY_SERVICE_URL = "CONTAXY_SERVICE_URL"
 
 
 class Labels(Enum):
@@ -237,14 +238,17 @@ def get_default_environment_variables(
         Dict[str, str]: Dict with default environment variables or empty dict.
     """
 
-    default_environment_variables = {"CONTAXY_DEPLOYMENT_NAME": deployment_id}
+    default_environment_variables = {
+        "CONTAXY_DEPLOYMENT_NAME": deployment_id,
+        _ENV_VARIABLE_CONTAXY_BASE_URL: settings.LAB_BASE_URL,
+    }
 
     if endpoints and len(endpoints) > 0:
         endpoint = endpoints[0]
         if len(endpoints) > 1:
             endpoint = "{endpoint}"
         default_environment_variables[
-            _ENV_VARIABLE_CONTAXY_BASE_URL
+            _ENV_VARIABLE_CONTAXY_SERVICE_URL
         ] = f"{settings.LAB_BASE_URL}projects/{project_id}/services/{deployment_id}/access/{endpoint}"
 
     if compute_resources:
@@ -278,9 +282,14 @@ def replace_template_string(
         str: The string with the replaced value or the unmodified string in case of no match.
     """
 
-    if input in templates_mapping:
-        return templates_mapping[input]
-    return input
+    modified_input = input
+    for key, value in templates_mapping.items():
+        modified_input = modified_input.replace(key, value)
+
+    return modified_input
+    # if input in templates_mapping:
+    #     return templates_mapping[input]
+    # return input
 
 
 def replace_templates(
@@ -293,10 +302,11 @@ def replace_templates(
         templates_mapping (Dict[str, str]): The dict that contains template-strings with corresponding values.
 
     Returns:
-        Dict[str, str]: A copy of the modified input dict.
+        Dict[str, str]: A copy of the modified input dict where the template literals are replaced.
     """
 
     modified_input = {}
+
     for key, value in input.items():
         modified_input[key] = replace_template_string(
             input=value, templates_mapping=template_mapping
@@ -306,14 +316,19 @@ def replace_templates(
 
 
 def get_template_mapping(
-    base_url: Optional[str] = None, project_id: Optional[str] = None
+    project_id: Optional[str] = None, service_url: Optional[str] = None
 ) -> Dict[str, str]:
     template_mapping = {}
 
-    if base_url:
-        template_mapping[f"{{env.{_ENV_VARIABLE_CONTAXY_BASE_URL}}}"] = base_url
+    if settings.LAB_BASE_URL:
+        template_mapping[
+            f"{{env.{_ENV_VARIABLE_CONTAXY_BASE_URL}}}"
+        ] = settings.LAB_BASE_URL
+
+    if service_url:
+        template_mapping[f"{{env.{_ENV_VARIABLE_CONTAXY_SERVICE_URL}}}"] = service_url
 
     if project_id:
-        template_mapping[f"{{label.{Labels.PROJECT_NAME}}}"] = project_id
+        template_mapping["{label.projectName}"] = project_id
 
     return template_mapping

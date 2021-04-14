@@ -4,6 +4,11 @@ from contaxy import config
 from contaxy.clients import DeploymentManagerClient, FileClient
 from contaxy.clients.shared import BaseUrlSession
 from contaxy.managers.deployment.manager import DeploymentManager
+from contaxy.managers.deployment.utils import (
+    Labels,
+    get_template_mapping,
+    replace_template_string,
+)
 from contaxy.operations import ExtensionOperations
 from contaxy.schema import ExtensibleOperations, Extension, ExtensionInput
 from contaxy.schema.deployment import DeploymentType
@@ -113,22 +118,34 @@ class ExtensionManager(ExtensionOperations):
 
             extension = Extension(**service.dict())
             if service.metadata:
-                extension.ui_extension_endpoint = (
-                    service.metadata[
-                        f"{config.settings.SYSTEM_NAMESPACE}.ui_extension_endpoint"
-                    ]
-                    if f"{config.settings.SYSTEM_NAMESPACE}.ui_extension_endpoint"
+                endpoint_prefix = f"{config.settings.LAB_BASE_URL}/projects/{project_id}/services/{service.metadata[Labels.DEPLOYMENT_NAME.value]}/access/"
+                if (
+                    f"{config.settings.SYSTEM_NAMESPACE}.ui_extension_endpoint"
                     in service.metadata
-                    else ""
-                )
-                extension.api_extension_endpoint = (
-                    service.metadata[
-                        f"{config.settings.SYSTEM_NAMESPACE}.api_extension_endpoints"
-                    ]
-                    if f"{config.settings.SYSTEM_NAMESPACE}.api_extension_endpoints"
+                ):
+                    service_ui_extension_endpoint = replace_template_string(
+                        input=service.metadata[
+                            f"{config.settings.SYSTEM_NAMESPACE}.ui_extension_endpoint"
+                        ],
+                        templates_mapping=get_template_mapping(project_id=project_id),
+                    )
+                    extension.ui_extension_endpoint = (
+                        f"{endpoint_prefix}{service_ui_extension_endpoint}"
+                    )
+
+                if (
+                    f"{config.settings.SYSTEM_NAMESPACE}.api_extension_endpoints"
                     in service.metadata
-                    else ""
-                )
+                ):
+                    service_api_extension_endpoint = replace_template_string(
+                        input=service.metadata[
+                            f"{config.settings.SYSTEM_NAMESPACE}.api_extension_endpoints"
+                        ],
+                        templates_mapping=get_template_mapping(project_id=project_id),
+                    )
+                    extension.api_extension_endpoint = (
+                        f"{endpoint_prefix}{service_api_extension_endpoint}"
+                    )
             extension_services.append(extension)
 
         return extension_services

@@ -33,7 +33,7 @@ from kubernetes.client.rest import ApiException
 
 from contaxy.config import settings
 from contaxy.managers.deployment.utils import (
-    _ENV_VARIABLE_CONTAXY_BASE_URL,
+    _ENV_VARIABLE_CONTAXY_SERVICE_URL,
     _MIN_MEMORY_DEFAULT_MB,
     Labels,
     clean_labels,
@@ -248,7 +248,8 @@ def build_pod_template_spec(
     environment = replace_templates(
         environment,
         get_template_mapping(
-            base_url=environment.get(_ENV_VARIABLE_CONTAXY_BASE_URL, "")
+            project_id=project_id,
+            service_url=environment.get(_ENV_VARIABLE_CONTAXY_SERVICE_URL, ""),
         ),
     )
 
