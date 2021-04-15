@@ -2,6 +2,7 @@ import os
 from enum import Enum
 from typing import List, Optional, Union
 
+from loguru import logger
 from pydantic import AnyHttpUrl, BaseSettings, PostgresDsn, validator
 
 API_TOKEN_NAME: str = "ct_token"
@@ -30,19 +31,31 @@ class DeploymentManager(str, Enum):
 class Settings(BaseSettings):
     """Platform Settings."""
 
-    # TODO: Decide on default values
-    SERVER_URL: str = "127.0.0.1:8082"
+    # TODO Decide on default values
+    CONTAXY_HOST: str = "127.0.0.1:8082"
     CONTAXY_BASE_URL: Optional[str] = None
+    CONTAXY_API_PATH: str = "api"
+    CONTAXY_WEBAPP_PATH: str = "app"
 
-    def get_redirect_uri(self) -> str:
-        """Get the redirect URI composed of the SERVER_URL and CONTAXY_BASE_URL."""
-        # TODO: Finalize schema hanlding
-        schema = "http://" if os.getenv("OAUTHLIB_INSECURE_TRANSPORT") else "https://"
-        return (
-            schema + self.SERVER_URL
-            if not self.CONTAXY_BASE_URL
-            else os.path.join(schema, self.SERVER_URL, self.CONTAXY_BASE_URL)
-        )
+    def get_redirect_uri(self, omit_host: bool = False) -> str:
+        """Get the redirect URI composed of the CONTAXY_HOST and CONTAXY_API_BASE_URL."""
+
+        if not omit_host and not self.CONTAXY_HOST:
+            logger.critical(
+                "The CONTAXY_HOST configuration is missing and OIDC_AUTH_ENABLED."
+            )
+            return ""
+
+        if omit_host:
+            host = ""
+            base_url = "" if not self.CONTAXY_BASE_URL else self.CONTAXY_BASE_URL
+        else:
+            host = self.CONTAXY_HOST
+            base_url = (
+                "" if not self.CONTAXY_BASE_URL else self.CONTAXY_BASE_URL.lstrip("/")
+            )
+
+        return os.path.join(host, base_url)
 
     # The system namespace used to managed different versions
     SYSTEM_NAMESPACE: str = "ctxy"
@@ -92,6 +105,7 @@ class Settings(BaseSettings):
 
     # External Identity provider configuration
     # ! To test this locally OAUTHLIB_INSECURE_TRANSPORT=1 needs to be set as env variable
+    OIDC_AUTH_ENABLED: bool = False
     OIDC_AUTH_URL: Optional[str] = None
     OIDC_TOKEN_URL: Optional[str] = None
     OIDC_CLIENT_ID: Optional[str] = None

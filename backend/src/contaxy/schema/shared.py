@@ -48,6 +48,7 @@ class CoreOperations(str, Enum):
     REVOKE_TOKEN = "revoke_token"
     INTROSPECT_TOKEN = "introspect_token"
     LOGIN_CALLBACK = "login_callback"
+    OAUTH_ENABLED = "oauth_enabled"
     GET_USERINFO = "get_userinfo"
     # Extension Endpoints
     INSTALL_EXTENSION = "install_extension"
