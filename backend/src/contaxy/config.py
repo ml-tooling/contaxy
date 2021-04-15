@@ -32,30 +32,11 @@ class Settings(BaseSettings):
     """Platform Settings."""
 
     # TODO Decide on default values
-    CONTAXY_HOST: str = "127.0.0.1:8082"
+    CONTAXY_HOST: Optional[str] = None
     CONTAXY_BASE_URL: Optional[str] = None
+    # ? Maybe mobe up to system constants for now
     CONTAXY_API_PATH: str = "api"
     CONTAXY_WEBAPP_PATH: str = "app"
-
-    def get_redirect_uri(self, omit_host: bool = False) -> str:
-        """Get the redirect URI composed of the CONTAXY_HOST and CONTAXY_API_BASE_URL."""
-
-        if not omit_host and not self.CONTAXY_HOST:
-            logger.critical(
-                "The CONTAXY_HOST configuration is missing and OIDC_AUTH_ENABLED."
-            )
-            return ""
-
-        if omit_host:
-            host = ""
-            base_url = "" if not self.CONTAXY_BASE_URL else self.CONTAXY_BASE_URL
-        else:
-            host = self.CONTAXY_HOST
-            base_url = (
-                "" if not self.CONTAXY_BASE_URL else self.CONTAXY_BASE_URL.lstrip("/")
-            )
-
-        return os.path.join(host, base_url)
 
     # The system namespace used to managed different versions
     SYSTEM_NAMESPACE: str = "ctxy"
@@ -136,6 +117,27 @@ class Settings(BaseSettings):
     # TODO: Finalize
     DEBUG: bool = True
     DEBUG_DEACTIVATE_VERIFICATION: bool = False
+
+    def get_redirect_uri(self, omit_host: bool = False) -> str:
+        """Get the redirect URI composed of the CONTAXY_HOST and CONTAXY_API_BASE_URL."""
+
+        if not omit_host and not self.CONTAXY_HOST:
+            logger.critical(
+                "The CONTAXY_HOST configuration is missing and OIDC_AUTH_ENABLED."
+            )
+            return ""
+
+        if omit_host:
+            host = ""
+            base_url = "" if not self.CONTAXY_BASE_URL else self.CONTAXY_BASE_URL
+        else:
+            assert self.CONTAXY_HOST
+            host = self.CONTAXY_HOST
+            base_url = (
+                "" if not self.CONTAXY_BASE_URL else self.CONTAXY_BASE_URL.lstrip("/")
+            )
+
+        return os.path.join(host, base_url)
 
     class Config:
         # Support local .env files
