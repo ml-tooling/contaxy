@@ -9,11 +9,14 @@ from contaxy.operations import AuthOperations, FileOperations, ProjectOperations
 from contaxy.operations.seed import SeedOperations
 from contaxy.schema import File, Project, User, UserRegistration
 from contaxy.schema.project import ProjectCreation
+from contaxy.utils.auth_utils import create_user_project
 from contaxy.utils.file_utils import FileStreamWrapper
 from contaxy.utils.state_utils import GlobalState, RequestState
 
 FAKER = Faker()
 Faker.seed(0)
+
+ERROR_NO_PROJECT_MANAGER = "Seeder needs to be initialized with a project manager"
 
 
 class SeedManager(SeedOperations):
@@ -39,7 +42,9 @@ class SeedManager(SeedOperations):
     ) -> User:
         if not self.auth_manager:
             raise RuntimeError("Seeder needs to be initialized with an auth manager")
-        return self.auth_manager.create_user(user_input=user_input)
+        user = self.auth_manager.create_user(user_input=user_input)
+        self.create_user_project(user)
+        return user
 
     def create_users(self, amount: int) -> List[User]:
         users = []
@@ -55,6 +60,11 @@ class SeedManager(SeedOperations):
 
         return users
 
+    def create_user_project(self, user: User) -> Project:
+        if not self.project_manager:
+            raise RuntimeError(ERROR_NO_PROJECT_MANAGER)
+        return create_user_project(user, self.project_manager)
+
     def create_project(
         self,
         project_input: ProjectCreation = ProjectCreation(
@@ -62,12 +72,12 @@ class SeedManager(SeedOperations):
         ),
     ) -> Project:
         if not self.project_manager:
-            raise RuntimeError("Seeder needs to be initialized with a project manager")
+            raise RuntimeError(ERROR_NO_PROJECT_MANAGER)
         return self.project_manager.create_project(project_input=project_input)
 
     def create_projects(self, amount: int) -> List[Project]:
         if not self.project_manager:
-            raise RuntimeError("Seeder needs to be initialized with a project manager")
+            raise RuntimeError(ERROR_NO_PROJECT_MANAGER)
         projects = []
         for _ in range(amount):
             project = self.create_project(

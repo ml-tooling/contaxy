@@ -60,7 +60,7 @@ def create_user(
     user_input: UserRegistration,
     component_manager: ComponentManager = Depends(get_component_manager),
 ) -> Any:
-    """Creates a user.
+    """Creates a user. For the user also a technical project is created.
 
     If the `password` is not provided, the user can only login by using other methods (social login).
     """
@@ -70,9 +70,14 @@ def create_user(
         raise PermissionDeniedError("User self-registration is deactivated.")
 
     # Everyone can create users
-    return component_manager.get_auth_manager().create_user(
+    user = component_manager.get_auth_manager().create_user(
         user_input, technical_user=False
     )
+
+    auth_utils.create_user_project(user, component_manager.get_project_manager())
+
+    # TODO: return also user_project?
+    return user
 
 
 @router.get(

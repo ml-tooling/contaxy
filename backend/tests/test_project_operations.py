@@ -274,6 +274,23 @@ class ProjectOperationsTests(ABC):
         ), "The authorized user should see 0 projects"
 
 
+class ProjectOperationsEndpointTests(ProjectOperationsTests):
+    def test_create_technical_user_project(self, faker: Faker) -> None:
+        user = self.auth_manager.create_user(
+            UserRegistration(
+                username=faker.simple_profile()["username"], password=DEFAULT_PASSWORD
+            )
+        )
+
+        project = self.project_manager.get_project(user.id)
+        assert project
+        assert project.technical_project is True
+
+    def test_list_projects_as_admin(self, faker: Faker) -> None:
+        # TODO: add a test that checks that `list_project` also returns the technical user project. This cannot be tested currently as for technical users no user-project is created and for a new user, no endpoint exists yet to add the permission to see also technical projects.
+        pass
+
+
 @pytest.mark.unit
 class TestProjectManagerWithInMemoryDB(ProjectOperationsTests):
     @pytest.fixture(autouse=True)
@@ -344,7 +361,7 @@ class TestProjectManagerWithPostgresDB(ProjectOperationsTests):
     reason="Postgres Integration Tests are deactivated, use POSTGRES_INTEGRATION_TESTS to activate.",
 )
 @pytest.mark.integration
-class TestProjectOperationsViaLocalEndpoints(ProjectOperationsTests):
+class TestProjectOperationsViaLocalEndpoints(ProjectOperationsEndpointTests):
     @pytest.fixture(autouse=True)
     def _init_managers(self) -> Generator:
         from contaxy.api import app
@@ -400,7 +417,7 @@ class TestProjectOperationsViaLocalEndpoints(ProjectOperationsTests):
     reason="Remote Backend Tests are deactivated, use REMOTE_BACKEND_TESTS to activate.",
 )
 @pytest.mark.integration
-class TestProjectOperationsViaRemoteEndpoints(ProjectOperationsTests):
+class TestProjectOperationsViaRemoteEndpoints(ProjectOperationsEndpointTests):
     @pytest.fixture(autouse=True)
     def _init_managers(self, remote_client: requests.Session) -> Generator:
         self._endpoint_client = remote_client

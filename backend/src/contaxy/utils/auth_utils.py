@@ -1,8 +1,11 @@
 from typing import Dict, List, Tuple
 
 from contaxy import config
+from contaxy.operations.project import ProjectOperations
+from contaxy.schema import Project, User
 from contaxy.schema.auth import AccessLevel
 from contaxy.schema.exceptions import ClientValueError
+from contaxy.schema.project import ProjectCreation
 
 PERMISSION_SEPERATOR = "#"
 RESOURCE_WILDCARD = "*"  # Allows access to all resources
@@ -111,3 +114,27 @@ def is_permission_granted(granted_permission: str, requested_permission: str) ->
         return False
 
     return True
+
+
+def create_user_project(user: User, project_manager: ProjectOperations) -> Project:
+    """Create a technical project that belongs to the user, with the same id as the user.
+
+    Args:
+        user (User): The user for whom the project shall be created.
+        project_manager (ProjectOperations): The project manager instance used to create the project.
+
+    Raises:
+        ResourceAlreadyExistsError: if a project with the id of the user already exists.
+
+    Returns:
+        Project: The created technical project of which the user is a member.
+    """
+    user_project = project_manager.create_project(
+        project_input=ProjectCreation(id=user.id, display_name=user.username),
+        technical_project=True,
+    )
+
+    if user_project.id:
+        project_manager.add_project_member(user_project.id, user.id, AccessLevel.ADMIN)
+
+    return user_project

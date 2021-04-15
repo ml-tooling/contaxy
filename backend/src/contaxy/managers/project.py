@@ -65,7 +65,17 @@ class ProjectManager(ProjectOperations):
                     )
                     try:
                         project = self.get_project(project_id)
-                        projects.append(project)
+                        # If the project is a technical project, it is only returned for users with the `projects#admin` permission
+                        if (
+                            not project.technical_project
+                            or auth_utils.construct_permission(
+                                "projects", AccessLevel.ADMIN
+                            )
+                            in resource_permissions
+                            or auth_utils.construct_permission("*", AccessLevel.ADMIN)
+                            in resource_permissions
+                        ):
+                            projects.append(project)
                     except ResourceNotFoundError:
                         # this should not happen
                         logger.info(
