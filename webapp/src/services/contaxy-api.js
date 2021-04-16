@@ -3,6 +3,7 @@ import * as Api from './contaxy-client';
 import { ENDPOINT } from '../utils/config';
 
 export const ENDPOINT_PROJECTS = `${ENDPOINT}/projects/{project_id}`;
+export const ENDPOINT_AUTH = `${ENDPOINT}/auth`;
 
 export function getFileDownloadUrl(projectId, fileKey) {
   return `${ENDPOINT_PROJECTS}/files/{file_key:path}:download`
@@ -23,7 +24,9 @@ export function getFileUploadUrl(projectId, fileKey) {
   );
 }
 
-export function getLoginPageUrl() {}
+export function getLoginPageUrl() {
+  return `${ENDPOINT_AUTH}/login-page`;
+}
 
 const apiClient = new Api.ApiClient();
 apiClient.basePath = ENDPOINT;
