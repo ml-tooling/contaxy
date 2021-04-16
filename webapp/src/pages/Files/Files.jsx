@@ -1,4 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 
 import PropTypes from 'prop-types';
 import styled from 'styled-components';
@@ -31,26 +37,47 @@ function Files(props) {
   const { activeProject } = GlobalStateContainer.useContainer();
   const [isUploadFileDialogOpen, setUploadFileDialogOpen] = useState(false);
 
-  const onReload = async (projectId) => {
-    if (!projectId) {
-      return;
-    }
+  const componentIsMounted = useRef(true);
 
+  useEffect(() => {
+    // each useEffect can return a cleanup function
+    return () => {
+      componentIsMounted.current = false;
+    };
+  }, []);
+
+  const reloadFiles = useCallback(async (projectId) => {
+    if (!projectId) return;
     const files = await filesApi.listFiles(projectId);
-    setData(files);
-  };
+    if (componentIsMounted.current) setData(files);
+  }, []);
 
-  const onFileDelete = async (projectId, rowData) => {
-    try {
-      await filesApi.deleteFile(projectId, rowData.key);
-      showStandardSnackbar(`Deleted file (${rowData.key})`);
-      onReload(activeProject.id);
-    } catch (err) {
-      showStandardSnackbar(`Error in deleting file (${rowData.key})`);
-    }
-  };
+  const onFileDelete = useCallback(
+    async (projectId, rowData) => {
+      try {
+        await filesApi.deleteFile(projectId, rowData.key);
+        showStandardSnackbar(`Deleted file (${rowData.key})`);
+        reloadFiles(activeProject.id);
+      } catch (err) {
+        showStandardSnackbar(`Error in deleting file (${rowData.key})`);
+      }
+    },
+    [reloadFiles, activeProject.id]
+  );
 
-  useEffect(() => onReload(activeProject.id), [activeProject]);
+  useEffect(() => reloadFiles(activeProject.id), [
+    activeProject.id,
+    reloadFiles,
+  ]);
+
+  const fileTable = useMemo(() => {
+    <FilesTable
+      data={data}
+      onFileDownload={(rowData) => onFileDownload(activeProject.id, rowData)}
+      onFileDelete={(rowData) => onFileDelete(activeProject.id, rowData)}
+      onReload={() => reloadFiles(activeProject.id)}
+    />;
+  }, [activeProject.id, data, onFileDelete, reloadFiles]);
 
   // TODO: add correct values to widget
   return (
@@ -73,12 +100,7 @@ function Files(props) {
       >
         Upload
       </Button>
-      <FilesTable
-        data={data}
-        onFileDownload={(rowData) => onFileDownload(activeProject.id, rowData)}
-        onFileDelete={(rowData) => onFileDelete(activeProject.id, rowData)}
-        onReload={() => onReload(activeProject.id)}
-      />
+      {fileTable}
       <UploadFilesDialog
         endpoint={getFileUploadUrl(activeProject.id, '')}
         open={isUploadFileDialogOpen}
