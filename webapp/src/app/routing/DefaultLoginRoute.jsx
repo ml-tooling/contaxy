@@ -5,7 +5,7 @@ import PropTypes from 'prop-types';
 import { Redirect, Route } from 'react-router-dom';
 
 /* eslint-disable react/jsx-props-no-spreading */
-function LoginRoute({ component: Component, isAuthenticated, ...rest }) {
+function DefaultLoginRoute({ component: Component, isAuthenticated, ...rest }) {
   return (
     <Route
       {...rest}
@@ -20,13 +20,13 @@ function LoginRoute({ component: Component, isAuthenticated, ...rest }) {
   );
 }
 
-LoginRoute.propTypes = {
+DefaultLoginRoute.propTypes = {
   component: PropTypes.instanceOf(Object).isRequired,
   isAuthenticated: PropTypes.bool,
 };
 
-LoginRoute.defaultProps = {
+DefaultLoginRoute.defaultProps = {
   isAuthenticated: false,
 };
 
-export default LoginRoute;
+export default DefaultLoginRoute;

@@ -23,6 +23,8 @@ export function getFileUploadUrl(projectId, fileKey) {
   );
 }
 
+export function getLoginPageUrl() {}
+
 const apiClient = new Api.ApiClient();
 apiClient.basePath = ENDPOINT;
 apiClient.enableCookies = true;

@@ -22,6 +22,9 @@ from contaxy.schema.exceptions import (
 )
 
 HERE = os.path.abspath(os.path.dirname(__file__))
+REGISTER_ADMIN_USER_ROUTE = os.path.join(
+    config.settings.CONTAXY_API_PATH, "system/admin"
+)
 templates = Jinja2Templates(directory=os.path.join(HERE, "templates"))
 
 router = APIRouter(
@@ -104,9 +107,15 @@ def display_register_admin_form(
     if component_manager.get_auth_manager().list_users():
         logger.error("Admin user already exsists")
         return Response(status_code=status.HTTP_409_CONFLICT)
+
+    # TODO: use request.url_for in template when settings.CONTAXY_API_PATH is set as root path in fastapi app
     return templates.TemplateResponse(
         "register-admin.html.j2",
-        {"request": request, "username": config.SYSTEM_ADMIN_USERNAME},
+        {
+            "request": request,
+            "route": os.path.join(str(request.base_url), REGISTER_ADMIN_USER_ROUTE),
+            "username": config.SYSTEM_ADMIN_USERNAME,
+        },
     )
 
 
@@ -124,4 +133,11 @@ def register_admin_user(
         return ClientValueError("The passwords do not match.")
 
     component_manager.get_system_manager().initialize_system(password)
-    return Response(status_code=status.HTTP_200_OK)
+
+    return templates.TemplateResponse(
+        "register-admin-success.html.j2",
+        {
+            "request": request,
+            "username": config.SYSTEM_ADMIN_USERNAME,
+        },
+    )

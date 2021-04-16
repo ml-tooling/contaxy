@@ -1,7 +1,7 @@
 import os
 from typing import Any, List, Optional
 
-from fastapi import APIRouter, Body, Depends, Form, Query, status
+from fastapi import APIRouter, Body, Depends, Form, Query, Request, status
 from requests_oauthlib import OAuth2Session
 from starlette.responses import RedirectResponse, Response
 
@@ -38,39 +38,34 @@ router = APIRouter(tags=["auth"], responses={**VALIDATION_ERROR_RESPONSE})
     "/auth/login-page",
     operation_id=ExtensibleOperations.OPEN_LOGIN_PAGE.value,
     summary="Open the login page.",
-    status_code=status.HTTP_307_TEMPORARY_REDIRECT,
+    status_code=status.HTTP_303_SEE_OTHER,
 )
 def open_login_page(
+    request: Request,
     component_manager: ComponentManager = Depends(get_component_manager),
 ) -> Any:
     """Returns or redirect to the login-page."""
-    # rr = RedirectResponse("/welcome", status_code=307)
-    # rr.set_cookie(key="session_token", value="test-token", path="/welcome")
-    # rr.set_cookie(key="user_token", value="test-user-token", path="/users/me")
-    # return rr
-    # TODO: Discuss the actual flow. In order to redirect the app login route needs to be available. Otherwise, the frontend needs to provide the basic auth form in case of missing IDP.
-    # return component_manager.get_auth_manager().login_page()
     if not config.settings.OIDC_AUTH_URL or not config.settings.OIDC_CLIENT_ID:
         raise ServerBaseError(
             "External OIDC Provider is not configured. Please set OIDC_AUTH_URL and further relevant OIDC config params."
         )
 
+    # Needed for test setups
+    schema = "http://" if os.getenv("OAUTHLIB_INSECURE_TRANSPORT") else "https://"
     callback_uri = os.path.join(
-        config.settings.get_redirect_uri(), OAUTH_CALLBACK_ROUTE
+        schema,
+        config.settings.get_redirect_uri(),
+        config.settings.CONTAXY_API_PATH,
+        OAUTH_CALLBACK_ROUTE,
     )
     session = OAuth2Session(
         config.settings.OIDC_CLIENT_ID,
-        # TODO: Clarify needed scopes
         scope=["openid", "email"],
         redirect_uri=callback_uri,
     )
     url, state = session.authorization_url(config.settings.OIDC_AUTH_URL)
-    # TODO: Check if ? is always included in the url
     # TODO: Check if connector id is required here
-    # url += f"{url}&state={state}"
-    redirect_response = RedirectResponse(
-        url, status_code=status.HTTP_307_TEMPORARY_REDIRECT
-    )
+    redirect_response = RedirectResponse(url, status_code=status.HTTP_303_SEE_OTHER)
     redirect_response.set_cookie(key="oauth_state", value=state, httponly=True)
     return redirect_response
 
@@ -263,10 +258,10 @@ def verify_access(
 
 
 # OAuth Endpoints
-def _create_token_response_with_cookies(
-    auth_manager: AuthManager, token: OAuthToken
+def _add_cookies_to_response(
+    auth_manager: AuthManager, response: Response, token: OAuthToken
 ) -> Response:
-    response = Response(status_code=status.HTTP_200_OK)
+
     # TODO: Set cookie and path or other configurations
     token_info = auth_manager.introspect_token(token.access_token)
     response.set_cookie(
@@ -332,8 +327,9 @@ def request_token(
     """
     oauth_token = component_manager.get_auth_manager().request_token(token_request_form)
     if token_request_form.set_as_cookie:
-        return _create_token_response_with_cookies(
-            component_manager.get_auth_manager(), oauth_token
+        response = Response(status_code=status.HTTP_200_OK)
+        return _add_cookies_to_response(
+            component_manager.get_auth_manager(), response, oauth_token
         )
     return component_manager.get_auth_manager().request_token(token_request_form)
 
@@ -418,9 +414,34 @@ def login_callback(
     This endpoint implements the [Authorization Response](https://tools.ietf.org/html/rfc6749#section-4.1.2) from RFC6749.
     """
     auth_manager = component_manager.get_auth_manager()
+    # Needed for test setups
+    schema = "http://" if os.getenv("OAUTHLIB_INSECURE_TRANSPORT") else "https://"
     oauth_token = auth_manager.login_callback(
         code,
-        os.path.join(config.settings.get_redirect_uri(), OAUTH_CALLBACK_ROUTE),
+        os.path.join(schema, config.settings.get_redirect_uri(), OAUTH_CALLBACK_ROUTE),
         state,
     )
-    return _create_token_response_with_cookies(auth_manager, oauth_token)
+
+    # ! Currently, the webapp needs to be accessible via the same host/port
+    response = RedirectResponse(
+        os.path.join(
+            schema,
+            config.settings.get_redirect_uri(),
+            config.settings.CONTAXY_WEBAPP_PATH,
+        ),
+        status_code=status.HTTP_303_SEE_OTHER,
+    )
+
+    return _add_cookies_to_response(auth_manager, response, oauth_token)
+
+
+@router.get(
+    "/auth/oauth/enabled",
+    operation_id=CoreOperations.OAUTH_ENABLED.value,
+    summary="Check if external OAuth2 (OIDC) IDP is enabled.",
+    status_code=status.HTTP_200_OK,
+)
+def is_external_idp_enabled() -> Any:
+    if not config.settings.OIDC_AUTH_ENABLED:
+        return Response(status_code=418)
+    return Response(status_code=status.HTTP_200_OK)
