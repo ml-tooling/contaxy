@@ -16,8 +16,9 @@ lab_namespace=${LAB_NAMESPACE}
 lab_base_url=${LAB_BASE_URL}
 service_suffix="''"
 resolver=127.0.0.11
-if [[ "${SERVICES_RUNTIME,,}" == k8s || "${SERVICES_RUNTIME,,}" == kubernetes ]]; then
-    service_suffix="${cat /var/run/secrets/kubernetes.io/serviceaccount/namespace}.svc.cluster.local";
+
+if [[ "${DEPLOYMENT_MANAGER,,}" == k8s || "${DEPLOYMENT_MANAGER,,}" == kubernetes ]]; then
+    service_suffix="$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace).svc.cluster.local";
     resolver="kube-dns.kube-system.svc.cluster.local valid=10s"
 fi
 
