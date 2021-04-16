@@ -20,6 +20,7 @@ from contaxy.managers.deployment.utils import Labels
 from contaxy.schema import Job, JobInput, ResourceAction, Service, ServiceInput
 from contaxy.schema.deployment import DeploymentType
 from contaxy.schema.exceptions import ClientBaseError, ClientValueError
+from contaxy.utils.auth_utils import parse_userid_from_resource_name
 from contaxy.utils.state_utils import GlobalState, RequestState
 
 
@@ -65,7 +66,11 @@ class DockerDeploymentManager(DeploymentManager):
         action_id: Optional[str] = None,
     ) -> Service:
         container_config = create_container_config(
-            service=service, project_id=project_id
+            service=service,
+            project_id=project_id,
+            user_id=parse_userid_from_resource_name(
+                self.request_state.authorized_subject
+            ),
         )
         container_config["labels"][
             Labels.DEPLOYMENT_TYPE.value
@@ -134,7 +139,13 @@ class DockerDeploymentManager(DeploymentManager):
         job: JobInput,
         action_id: Optional[str] = None,
     ) -> Job:
-        container_config = create_container_config(service=job, project_id=project_id)
+        container_config = create_container_config(
+            service=job,
+            project_id=project_id,
+            user_id=parse_userid_from_resource_name(
+                self.request_state.authorized_subject
+            ),
+        )
         container_config["labels"][
             Labels.DEPLOYMENT_TYPE.value
         ] = DeploymentType.JOB.value

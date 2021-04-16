@@ -138,3 +138,21 @@ def create_user_project(user: User, project_manager: ProjectOperations) -> Proje
         project_manager.add_project_member(user_project.id, user.id, AccessLevel.ADMIN)
 
     return user_project
+
+
+def parse_userid_from_resource_name(user_resource_name: str) -> str:
+    """Returns the user id from a user-resource name.
+
+    For example, 'users/abcd' returns 'abcd' as 'users' is the prefix.
+
+    Args:
+        user_resource_name (str): The resource name, e.g. 'users/abcd'.
+
+    Returns:
+        str: The user id in the user-resource name or an empty string.
+    """
+
+    if not user_resource_name or not user_resource_name.startswith("users/"):
+        return ""
+
+    return user_resource_name.split("/")[1]

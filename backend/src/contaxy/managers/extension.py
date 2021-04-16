@@ -13,6 +13,7 @@ from contaxy.operations import ExtensionOperations
 from contaxy.schema import ExtensibleOperations, Extension, ExtensionInput
 from contaxy.schema.deployment import DeploymentType
 from contaxy.schema.extension import CORE_EXTENSION_ID
+from contaxy.utils.auth_utils import parse_userid_from_resource_name
 from contaxy.utils.state_utils import GlobalState, RequestState
 
 COMPOSITE_ID_SEPERATOR = "~"
@@ -111,7 +112,6 @@ class ExtensionManager(ExtensionOperations):
 
         extension_services = []
         for service in [*project_services, *global_services]:
-            print(service.id)
             # TODO: Add a function to deployment-manager that allows direct filtering
             if service.deployment_type != DeploymentType.EXTENSION.value:
                 continue
@@ -119,6 +119,12 @@ class ExtensionManager(ExtensionOperations):
             extension = Extension(**service.dict())
             if service.metadata:
                 endpoint_prefix = f"{config.settings.LAB_BASE_URL}/projects/{project_id}/services/{service.metadata[Labels.DEPLOYMENT_NAME.value]}/access/"
+                template_mapping = get_template_mapping(
+                    project_id=project_id,
+                    user_id=parse_userid_from_resource_name(
+                        self.request_state.authorized_access.authorized_subject
+                    ),
+                )
                 if (
                     f"{config.settings.SYSTEM_NAMESPACE}.ui_extension_endpoint"
                     in service.metadata
@@ -127,7 +133,7 @@ class ExtensionManager(ExtensionOperations):
                         input=service.metadata[
                             f"{config.settings.SYSTEM_NAMESPACE}.ui_extension_endpoint"
                         ],
-                        templates_mapping=get_template_mapping(project_id=project_id),
+                        templates_mapping=template_mapping,
                     )
                     extension.ui_extension_endpoint = (
                         f"{endpoint_prefix}{service_ui_extension_endpoint}"
@@ -141,7 +147,7 @@ class ExtensionManager(ExtensionOperations):
                         input=service.metadata[
                             f"{config.settings.SYSTEM_NAMESPACE}.api_extension_endpoints"
                         ],
-                        templates_mapping=get_template_mapping(project_id=project_id),
+                        templates_mapping=template_mapping,
                     )
                     extension.api_extension_endpoint = (
                         f"{endpoint_prefix}{service_api_extension_endpoint}"
