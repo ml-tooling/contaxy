@@ -1,4 +1,5 @@
 import shlex
+import string
 import time
 from typing import Any, Dict, List, Optional, Tuple, Union
 
@@ -539,10 +540,14 @@ def map_deployment(deployment: Union[V1Deployment, V1Job]) -> Dict[str, Any]:
 
     resources = container.resources
     compute_resources = DeploymentCompute(
-        min_cpus=resources.requests["cpu"],  # / 1e9,
-        max_cpus=resources.limits["cpu"],  # / 1e9,
-        min_memory=resources.requests["memory"].replace("M", ""),  # / 1000 / 1000,
-        max_memory=resources.limits["memory"].replace("M", ""),  # / 1000 / 1000,
+        min_cpus=int(resources.requests["cpu"].strip(string.ascii_letters)),  # / 1e9,
+        max_cpus=int(resources.limits["cpu"].strip(string.ascii_letters)),  # / 1e9,
+        min_memory=int(
+            resources.requests["memory"].strip(string.ascii_letters)
+        ),  # / 1000 / 1000,
+        max_memory=int(
+            resources.limits["memory"].strip(string.ascii_letters)
+        ),  # / 1000 / 1000,
         max_gpus=None,  # TODO: fill with sensible information - where to get it from?
         min_lifetime=mapped_labels.min_lifetime,
         volume_Path=mapped_labels.volume_path,
@@ -575,11 +580,13 @@ def map_deployment(deployment: Union[V1Deployment, V1Job]) -> Dict[str, Any]:
         else 0
     )
 
-    parameters = {env.name: env.value for env in container.env}
+    parameters = {}
+    for env in container.env:
+        parameters[env.name] = env.value if env.value else ""
 
     return {
         "container_image": container.image,
-        # In kubernetes, command is an array
+        # In kindkubernetes, command is an array
         "command": container.command[0]
         if container.command is not None and len(container.command) > 0
         else "",

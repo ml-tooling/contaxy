@@ -32,6 +32,8 @@ spec:
               value: minioadmin
             - name: BACKEND_CORS_ORIGIN
               value: http://localhost:3000
+            - name: DEPLOYMENT_MANAGER
+              value: kubernetes
           resources:
             limits:
               cpu: 2000m
@@ -147,6 +149,10 @@ metadata:
   name: contaxy-extension-workspace
   labels:
     app: contaxy-extension-workspace
+    ctxy.namespace: "ctxy"
+    ctxy.deploymentType: "extension"
+    ctxy.deploymentName: "contaxy-extension-workspace"
+    ctxy.projectName: "ctxy-global"
 spec:
   replicas: 1
   selector:
@@ -181,4 +187,4 @@ spec:
               memory: 0.2Gi
             requests:
               cpu: 0m
-              memory: 0Gi
+              memory: 10M

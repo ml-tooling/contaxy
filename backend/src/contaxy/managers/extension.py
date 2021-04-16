@@ -117,12 +117,14 @@ class ExtensionManager(ExtensionOperations):
                 continue
 
             extension = Extension(**service.dict())
+            # TODO: set extension type
+            # extension.extension_type = ""
             if service.metadata:
                 endpoint_prefix = f"{config.settings.LAB_BASE_URL}/projects/{project_id}/services/{service.metadata[Labels.DEPLOYMENT_NAME.value]}/access/"
                 template_mapping = get_template_mapping(
                     project_id=project_id,
                     user_id=parse_userid_from_resource_name(
-                        self.request_state.authorized_access.authorized_subject
+                        self.request_state.authorized_subject
                     ),
                 )
                 if (
