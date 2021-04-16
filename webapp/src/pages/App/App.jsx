@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 
 // import { useTranslation } from 'react-i18next';
 
@@ -25,7 +25,9 @@ function App() {
     isAuthenticated,
     setOauthEnabled,
   } = GlobalStateContainer.useContainer();
-  const onDrawerClick = () => setDrawerOpen(!isDrawerOpen);
+  const onDrawerClick = useCallback(() => setDrawerOpen(!isDrawerOpen), [
+    isDrawerOpen,
+  ]);
 
   useEffect(() => {
     if (!user) return;
@@ -74,19 +76,32 @@ function App() {
     );
   }, [projectExtensions]);
 
-  const appDrawerElement = (
-    <AppDrawer
-      isAdmin
-      open={isDrawerOpen}
-      additionalPages={additionalAppDrawerItems}
-      handleDrawerClose={onDrawerClick}
-    />
-  );
+  const [appDrawerElement, setAppDrawerElement] = useState(false);
+
+  useEffect(() => {
+    const newState = !isAuthenticated ? (
+      false
+    ) : (
+      <AppDrawer
+        isAdmin
+        open={isDrawerOpen}
+        additionalPages={additionalAppDrawerItems}
+        handleDrawerClose={onDrawerClick}
+      />
+    );
+    setAppDrawerElement(newState);
+  }, [
+    isAuthenticated,
+    setAppDrawerElement,
+    additionalAppDrawerItems,
+    isDrawerOpen,
+    onDrawerClick,
+  ]);
 
   return (
     <div className="App">
       <AppBar isAuthenticated={isAuthenticated} onDrawerOpen={onDrawerClick} />
-      {user ? appDrawerElement : false}
+      {appDrawerElement}
       <main className="main">
         <ContentContainer
           isAuthenticated={isAuthenticated}

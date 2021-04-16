@@ -15,15 +15,15 @@ import PrivateRoute from './PrivateRoute';
 function ContentContainer(props) {
   const { oauthEnabled } = GlobalStateContainer.useContainer();
   const { additionalPages, className, isAuthenticated } = props;
-  const routes = [...APP_PAGES, ...additionalPages].filter(
-    (item) => item.TYPE === APP_DRAWER_ITEM_TYPES.link
-  ).map((item) => {
-    const ConfiguredLoginRoute = oauthEnabled
-      ? ExternalLoginRoute
-      : DefaultLoginRoute;
-    const RouteElement = item.REQUIRE_LOGIN
-      ? PrivateRoute
-      : ConfiguredLoginRoute;
+  const routes = [...APP_PAGES, ...additionalPages]
+    .filter((item) => item.TYPE === APP_DRAWER_ITEM_TYPES.link)
+    .map((item) => {
+      const ConfiguredLoginRoute = oauthEnabled
+        ? ExternalLoginRoute
+        : DefaultLoginRoute;
+      const RouteElement = item.REQUIRE_LOGIN
+        ? PrivateRoute
+        : ConfiguredLoginRoute;
 
       return (
         <RouteElement
