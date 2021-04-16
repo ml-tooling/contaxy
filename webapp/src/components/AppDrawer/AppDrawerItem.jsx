@@ -29,7 +29,7 @@ function AppDrawerItem(props) {
   const CustomLink = useMemo(
     () =>
       React.forwardRef((linkProps, ref) => (
-        <Link ref={ref} to={path} {...linkProps} /> // eslint-disable-line react/jsx-props-no-spreading
+        <Link ref={ref} to={path} {...linkProps} replace /> // eslint-disable-line react/jsx-props-no-spreading
       )),
     [path]
   );
