@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 // import { useTranslation } from 'react-i18next';
 
 import './App.css';
-import { extensionsApi, authApi, usersApi } from '../../services/contaxy-api';
+import { authApi, extensionsApi, usersApi } from '../../services/contaxy-api';
 import { mapExtensionToAppPage } from '../../utils/app-pages';
 import AppBar from '../../components/AppBar/AppBar';
 import AppDrawer from '../../components/AppDrawer/AppDrawer';
@@ -32,20 +32,24 @@ function App() {
     loadProjects();
   }, [user, loadProjects]);
 
-  if (!isAuthenticated) {
-    // Check whether the user is logged in currently (the auth cookie - if existing - is sent to the endpoint which returns a user object when a valid token exists and an error otherwise)
-    usersApi
-      .getMyUser()
-      .then((res) => {
-        setUser(res);
-        setIsAuthenticated(true);
-      })
-      .catch(() => {
-        setUser(null);
-        setIsAuthenticated(false);
-      });
-  }
-  if (!isAuthenticated) {
+  useEffect(() => {
+    if (!isAuthenticated) {
+      // Check whether the user is logged in currently (the auth cookie - if existing - is sent to the endpoint which returns a user object when a valid token exists and an error otherwise)
+      usersApi
+        .getMyUser()
+        .then((res) => {
+          setUser(res);
+          setIsAuthenticated(true);
+        })
+        .catch(() => {
+          setUser(null);
+          setIsAuthenticated(false);
+        });
+    }
+  });
+
+  useEffect(() => {
+    // Check whether external authentication is activated
     authApi
       .oauthEnabled()
       .then(() => {
@@ -54,7 +58,7 @@ function App() {
       .catch(() => {
         setOauthEnabled(false);
       });
-  }
+  }, [isAuthenticated, setOauthEnabled]);
 
   useEffect(() => {
     if (!activeProject.id) return;
@@ -62,7 +66,7 @@ function App() {
       .listExtensions(activeProject.id)
       .then((res) => setProjectExtensions(res))
       .catch(() => {});
-    }, [activeProject, setProjectExtensions, user]);
+  }, [activeProject, setProjectExtensions, user]);
 
   useEffect(() => {
     setAdditionalAppDrawerItems(
@@ -84,7 +88,10 @@ function App() {
       <AppBar isAuthenticated={isAuthenticated} onDrawerOpen={onDrawerClick} />
       {user ? appDrawerElement : false}
       <main className="main">
-        <ContentContainer isAuthenticated={isAuthenticated}  additionalPages={additionalAppDrawerItems} />
+        <ContentContainer
+          isAuthenticated={isAuthenticated}
+          additionalPages={additionalAppDrawerItems}
+        />
       </main>
       <div id="snackbar-container" />
     </div>
