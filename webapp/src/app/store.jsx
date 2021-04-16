@@ -93,13 +93,21 @@ const useGlobalState = (_initialState) => {
     return [];
   };
 
+  const userId = user ? user.id : '';
   const loadProjects = useCallback(async () => {
     try {
-      setProjects(await projectsApi.listProjects());
+      const listedProjects = await projectsApi.listProjects();
+      const userProject = await projectsApi.getProject(userId);
+      if (userProject) {
+        userProject.display_name = 'Home';
+        userProject.description =
+          'My personal project nobody else has access to.';
+      }
+      setProjects([userProject, ...listedProjects]);
     } catch (err) {
       setProjects([]);
     }
-  }, []);
+  }, [userId]);
 
   return {
     user,

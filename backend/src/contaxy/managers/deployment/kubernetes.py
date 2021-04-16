@@ -50,6 +50,7 @@ from contaxy.schema.exceptions import (
     ResourceNotFoundError,
     ServerBaseError,
 )
+from contaxy.utils.auth_utils import parse_userid_from_resource_name
 from contaxy.utils.state_utils import GlobalState, RequestState
 
 
@@ -144,6 +145,9 @@ class KubernetesDeploymentManager(DeploymentManager):
             service=service,
             project_id=project_id,
             kube_namespace=self.kube_namespace,
+            user_id=parse_userid_from_resource_name(
+                self.request_state.authorized_subject
+            ),
         )
 
         check_or_create_project_network_policy(
@@ -468,6 +472,9 @@ class KubernetesDeploymentManager(DeploymentManager):
             compute_resources=job.compute,
             endpoints=job.endpoints,
             deployment_type=DeploymentType.JOB,
+            user_id=parse_userid_from_resource_name(
+                self.request_state.authorized_subject
+            ),
         )
 
         # For debugging purposes, set restart_policy=Never to have access to job logs (see https://kubernetes.io/docs/concepts/workloads/controllers/job/#pod-backoff-failure-policy)
@@ -476,6 +483,9 @@ class KubernetesDeploymentManager(DeploymentManager):
             service_id=deployment_id,
             service=job,
             metadata=metadata,
+            user_id=parse_userid_from_resource_name(
+                self.request_state.authorized_subject
+            ),
         )
         pod_spec.spec.restart_policy = "OnFailure"
 

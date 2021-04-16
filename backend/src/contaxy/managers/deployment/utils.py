@@ -23,6 +23,7 @@ _ENV_VARIABLE_CONTAXY_SERVICE_URL = "CONTAXY_SERVICE_URL"
 
 
 class Labels(Enum):
+    CREATED_BY = f"{settings.SYSTEM_NAMESPACE}.createdBy"
     DEPLOYMENT_NAME = f"{settings.SYSTEM_NAMESPACE}.deploymentName"
     DEPLOYMENT_TYPE = f"{settings.SYSTEM_NAMESPACE}.deploymentType"
     DESCRIPTION = f"{settings.SYSTEM_NAMESPACE}.description"
@@ -45,6 +46,7 @@ class MappedLabels:
     min_lifetime: Optional[int] = None
     volume_path: Optional[str] = None
     metadata: Optional[dict] = None
+    created_by: Optional[str] = None
 
 
 def map_labels(labels: Dict[str, Any]) -> MappedLabels:
@@ -126,6 +128,8 @@ def clean_labels(labels: Optional[dict] = None) -> dict:
         del cleaned_labels[Labels.REQUIREMENTS.value]
     if Labels.NAMESPACE.value in cleaned_labels:
         del cleaned_labels[Labels.NAMESPACE.value]
+    if Labels.CREATED_BY.value in cleaned_labels:
+        del cleaned_labels[Labels.CREATED_BY.value]
 
     return cleaned_labels
 
@@ -318,7 +322,9 @@ def replace_templates(
 
 
 def get_template_mapping(
-    project_id: Optional[str] = None, service_url: Optional[str] = None
+    project_id: Optional[str] = None,
+    user_id: Optional[str] = None,
+    service_url: Optional[str] = None,
 ) -> Dict[str, str]:
     template_mapping = {}
 
@@ -332,10 +338,13 @@ def get_template_mapping(
             f"{{env.{_ENV_VARIABLE_CONTAXY_API_ENDPOINT}}}"
         ] = settings.CONTAXY_API_ENDPOINT
 
+    if project_id:
+        template_mapping["{env.projectId}"] = project_id
+
+    if user_id:
+        template_mapping["{env.userId}"] = user_id
+
     if service_url:
         template_mapping[f"{{env.{_ENV_VARIABLE_CONTAXY_SERVICE_URL}}}"] = service_url
-
-    if project_id:
-        template_mapping["{label.projectName}"] = project_id
 
     return template_mapping

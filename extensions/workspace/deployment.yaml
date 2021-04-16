@@ -13,7 +13,7 @@ contaxy-extension-workspace:
     ctxy.deploymentType: "extension"
     ctxy.deploymentName: "contaxy-extension-workspace"
     ctxy.projectName: "ctxy-global"
-    ctxy.ui_extension_endpoint: "8080/projects/{label.projectName}/workspace"
-    ctxy.api_extension_endpoint: "8080/projects/{label.projectName}/workspace"
+    ctxy.ui_extension_endpoint: "8080/projects/{env.projectId}/workspace"
+    ctxy.api_extension_endpoint: "8080/projects/{env.projectId}/workspace"
   depends_on:
     - contaxy

@@ -395,6 +395,7 @@ def define_mounts(
 def create_container_config(
     service: Union[JobInput, ServiceInput],
     project_id: str,
+    user_id: Optional[str] = None,
 ) -> Dict[str, Any]:
 
     if service.display_name is None:
@@ -456,6 +457,7 @@ def create_container_config(
         environment,
         get_template_mapping(
             project_id=project_id,
+            user_id=user_id,
             service_url=environment.get(_ENV_VARIABLE_CONTAXY_SERVICE_URL, ""),
         ),
     )
@@ -484,6 +486,7 @@ def create_container_config(
             Labels.DEPLOYMENT_NAME.value: container_name,
             Labels.ENDPOINTS.value: endpoints_label,
             Labels.REQUIREMENTS.value: requirements_label,
+            Labels.CREATED_BY.value: user_id,
             **metadata,
         },
         "name": container_name,

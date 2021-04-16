@@ -210,6 +210,7 @@ def build_pod_template_spec(
     service_id: str,
     service: Union[ServiceInput, JobInput],
     metadata: V1ObjectMeta,
+    user_id: Optional[str] = None,
 ) -> V1PodTemplateSpec:
     compute_resources = service.compute or DeploymentCompute()
     # TODO: check default values and store them globally probably!
@@ -249,6 +250,7 @@ def build_pod_template_spec(
         environment,
         get_template_mapping(
             project_id=project_id,
+            user_id=user_id,
             service_url=environment.get(_ENV_VARIABLE_CONTAXY_SERVICE_URL, ""),
         ),
     )
@@ -298,6 +300,7 @@ def build_deployment_metadata(
     compute_resources: Optional[DeploymentCompute],
     endpoints: Optional[List[str]],
     deployment_type: DeploymentType = DeploymentType.SERVICE,
+    user_id: Optional[str] = None,
 ) -> V1ObjectMeta:
     display_name = display_name or ""
     _compute_resources = compute_resources or DeploymentCompute()
@@ -317,13 +320,18 @@ def build_deployment_metadata(
             Labels.DISPLAY_NAME.value: display_name,
             Labels.MIN_LIFETIME.value: str(min_lifetime),
             Labels.ENDPOINTS.value: map_endpoints_to_endpoints_label(endpoints),
+            Labels.CREATED_BY.value: user_id,
             **cleaned_labels,
         },
     )
 
 
 def build_kube_deployment_config(
-    service_id: str, service: ServiceInput, project_id: str, kube_namespace: str
+    service_id: str,
+    service: ServiceInput,
+    project_id: str,
+    kube_namespace: str,
+    user_id: Optional[str] = None,
 ) -> Tuple[V1Deployment, Union[V1PersistentVolumeClaim, None]]:
     # ---
     compute_resources = service.compute or DeploymentCompute()
@@ -386,6 +394,7 @@ def build_kube_deployment_config(
                 service_id=service_id,
                 service=service,
                 metadata=metadata,
+                user_id=user_id,
             ),
         ),
     )
