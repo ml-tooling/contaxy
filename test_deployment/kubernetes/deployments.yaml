@@ -18,6 +18,7 @@ spec:
       containers:
         - name: contaxy
           image: test_deployment_contaxy:latest
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
           env:
@@ -27,12 +28,17 @@ spec:
               value: s3:9000
             - name: S3_ACCESS_KEY
               value: minioadmin
+            - name: S3_SECRET_KEY
+              value: minioadmin
             - name: BACKEND_CORS_ORIGIN
               value: http://localhost:3000
           resources:
             limits:
               cpu: 2000m
               memory: 2Gi
+            requests:
+              cpu: 0m
+              memory: 0Gi
         # add setup side-car container
 
 ---
@@ -45,7 +51,7 @@ metadata:
 spec:
   replicas: 1
   selector:
-    matchlabels:
+    matchLabels:
       app: postgres
   template:
     metadata:
@@ -68,6 +74,9 @@ spec:
             limits:
               cpu: 2000m
               memory: 2Gi
+            requests:
+              cpu: 0m
+              memory: 0Gi
 
 ---
 apiVersion: apps/v1
@@ -82,6 +91,9 @@ spec:
     matchLabels:
       app: pgweb
   template:
+    metadata:
+      labels:
+        app: pgweb
     spec:
       containers:
         - name: pgweb
@@ -95,6 +107,9 @@ spec:
             limits:
               cpu: 500m
               memory: 0.2Gi
+            requests:
+              cpu: 0m
+              memory: 0Gi
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -122,6 +137,9 @@ spec:
             limits:
               cpu: 2000m
               memory: 2Gi
+            requests:
+              cpu: 0m
+              memory: 0Gi
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -142,12 +160,14 @@ spec:
         ctxy.deploymentType: "extension"
         ctxy.deploymentName: "contaxy-extension-workspace"
         ctxy.projectName: "ctxy-global"
+      annotations:
         ctxy.ui_extension_endpoint: "8080/projects/{env.projectId}/workspace"
         ctxy.api_extension_endpoint: "8080/projects/{env.projectId}/workspace"
     spec:
       containers:
         - name: contaxy-extension-workspace
           image: contaxy-extension-workspace:latest
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
           env:
@@ -159,3 +179,6 @@ spec:
             limits:
               cpu: 500m
               memory: 0.2Gi
+            requests:
+              cpu: 0m
+              memory: 0Gi
