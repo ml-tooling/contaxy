@@ -130,6 +130,11 @@ class RequestState(State):
         """Returns the authorized access info for the request."""
         return self.shared_namespace.authorized_access
 
+    @authorized_access.setter
+    def authorized_access(self, authorized_access: AuthorizedAccess) -> None:
+        """Sets the authorized access info."""
+        self.shared_namespace.authorized_access = authorized_access
+
     @property
     def authorized_subject(self) -> str:
         """Convenience method to check for authorized_access being not None and returns the authorized_subject."""
@@ -138,8 +143,3 @@ class RequestState(State):
             return self.authorized_access.authorized_subject
         else:
             return ""
-
-    @authorized_access.setter
-    def authorized_access(self, authorized_access: AuthorizedAccess) -> None:
-        """Sets the authorized access info."""
-        self.shared_namespace.authorized_access = authorized_access
