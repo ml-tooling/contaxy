@@ -101,3 +101,5 @@ class SystemManager(SystemOperations):
             ),
             technical_project=True,
         )
+
+        auth_utils.create_user_project(admin_user, self._project_manager)
