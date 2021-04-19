@@ -21,7 +21,7 @@ class ServiceOperations(ABC):
 
         Args:
             project_id (str): The project ID to filter the services.
-            deployment_type (Optional one of [DeploymentType.SERVICE, DeploymentType.JOB]): The deployment type of either Service or Extension (which is a subtype of Service).
+            deployment_type (One of [DeploymentType.SERVICE, DeploymentType.JOB]): The deployment type of either Service or Extension (which is a subtype of Service).
 
         Returns:
             List[Service]: The list of services associated with the project.
@@ -34,6 +34,9 @@ class ServiceOperations(ABC):
         project_id: str,
         service: ServiceInput,
         action_id: Optional[str] = None,
+        deployment_type: Literal[
+            DeploymentType.SERVICE, DeploymentType.EXTENSION
+        ] = DeploymentType.SERVICE,
     ) -> Service:
         """Deploys a service for the specified project.
 
@@ -48,6 +51,7 @@ class ServiceOperations(ABC):
             project_id (str): [description]
             service (ServiceInput): [description]
             action_id (Optional[str], optional): The ID of the selected action. Defaults to `None`.
+            deployment_type (One of [DeploymentType.SERVICE, DeploymentType.JOB]): The deployment type of either Service or Extension (which is a subtype of Service).
 
         Returns:
             Service: The metadata of the deployed service.

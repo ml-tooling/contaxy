@@ -120,6 +120,9 @@ class KubernetesDeploymentManager(DeploymentManager):
         project_id: str,
         service: ServiceInput,
         action_id: Optional[str] = None,
+        deployment_type: Literal[
+            DeploymentType.SERVICE, DeploymentType.EXTENSION
+        ] = DeploymentType.SERVICE,
         wait: bool = False,
     ) -> Service:
         if service.display_name is None:
@@ -131,7 +134,7 @@ class KubernetesDeploymentManager(DeploymentManager):
         service_id = get_deployment_id(
             project_id=project_id,
             deployment_name=service.display_name,
-            deployment_type=DeploymentType.SERVICE,
+            deployment_type=deployment_type,
         )
 
         kube_service_config = build_kube_service_config(

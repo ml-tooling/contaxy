@@ -10,13 +10,23 @@ from contaxy.managers.deployment.utils import (
     replace_template_string,
 )
 from contaxy.operations import ExtensionOperations
-from contaxy.schema import ExtensibleOperations, Extension, ExtensionInput
-from contaxy.schema.deployment import DeploymentType
-from contaxy.schema.extension import CORE_EXTENSION_ID
+from contaxy.schema import ExtensibleOperations, Extension, ExtensionInput, Service
+from contaxy.schema.deployment import DeploymentType, ServiceInput
+from contaxy.schema.extension import (
+    CORE_EXTENSION_ID,
+    GLOBAL_EXTENSION_PROJECT,
+    ExtensionType,
+)
 from contaxy.utils.auth_utils import parse_userid_from_resource_name
 from contaxy.utils.state_utils import GlobalState, RequestState
 
 COMPOSITE_ID_SEPERATOR = "~"
+
+CAPABILITIES_METADATA_SEPARATOR = ","
+METADATA_UI_EXTENSION_ENDPOINT = "ctxy.ui_extension_endpoint"
+METADATA_API_EXTENSION_ENDPOINT = f"ctxy.api_extension_endpoint"
+METADATA_CAPABILITIES = f"ctxy.capabilities"
+METADATA_EXTENSION_TYPE = f"ctxy.extensionType"
 
 
 def parse_composite_id(composite_id: str) -> Tuple[str, Union[str, None]]:
@@ -39,6 +49,53 @@ def parse_composite_id(composite_id: str) -> Tuple[str, Union[str, None]]:
 
     resource_id, extension_id = composite_id.split(COMPOSITE_ID_SEPERATOR, 1)
     return resource_id, extension_id
+
+
+def map_service_to_extension(
+    service: Service, project_id: str, user_id: str
+) -> Extension:
+    extension = Extension(**service.dict())
+
+    if service.metadata:
+        endpoint_prefix = f"{config.settings.LAB_BASE_URL}/projects/{project_id}/services/{service.metadata[Labels.DEPLOYMENT_NAME.value]}/access/"
+
+        if METADATA_CAPABILITIES in service.metadata:
+            extension.capabilities = service.metadata[METADATA_CAPABILITIES].split(
+                CAPABILITIES_METADATA_SEPARATOR
+            )
+
+        template_mapping = get_template_mapping(
+            project_id=project_id,
+            user_id=parse_userid_from_resource_name(user_id),
+        )
+
+        if METADATA_UI_EXTENSION_ENDPOINT in service.metadata:
+            service_ui_extension_endpoint = replace_template_string(
+                input=service.metadata[METADATA_UI_EXTENSION_ENDPOINT],
+                templates_mapping=template_mapping,
+            )
+            extension.ui_extension_endpoint = (
+                f"{endpoint_prefix}{service_ui_extension_endpoint}"
+            )
+
+        if METADATA_API_EXTENSION_ENDPOINT in service.metadata:
+            service_api_extension_endpoint = replace_template_string(
+                input=service.metadata[METADATA_API_EXTENSION_ENDPOINT],
+                templates_mapping=template_mapping,
+            )
+            extension.api_extension_endpoint = (
+                f"{endpoint_prefix}{service_api_extension_endpoint}"
+            )
+
+        if METADATA_EXTENSION_TYPE in service.metadata:
+            try:
+                extension.extension_type = ExtensionType(
+                    service.metadata[METADATA_EXTENSION_TYPE]
+                )
+            except ValueError:
+                pass
+
+    return extension
 
 
 class ExtensionClient(FileClient, DeploymentManagerClient):
@@ -106,7 +163,7 @@ class ExtensionManager(ExtensionOperations):
             project_id=project_id, deployment_type=DeploymentType.EXTENSION
         )
         global_services = self.deployment_manager.list_services(
-            project_id=f"{config.settings.SYSTEM_NAMESPACE}-global",
+            project_id=GLOBAL_EXTENSION_PROJECT,
             deployment_type=DeploymentType.EXTENSION,
         )
 
@@ -116,44 +173,11 @@ class ExtensionManager(ExtensionOperations):
             if service.deployment_type != DeploymentType.EXTENSION.value:
                 continue
 
-            extension = Extension(**service.dict())
-            # TODO: set extension type
-            # extension.extension_type = ""
-            if service.metadata:
-                endpoint_prefix = f"{config.settings.LAB_BASE_URL}/projects/{project_id}/services/{service.metadata[Labels.DEPLOYMENT_NAME.value]}/access/"
-                template_mapping = get_template_mapping(
-                    project_id=project_id,
-                    user_id=parse_userid_from_resource_name(
-                        self.request_state.authorized_subject
-                    ),
-                )
-                if (
-                    f"{config.settings.SYSTEM_NAMESPACE}.ui_extension_endpoint"
-                    in service.metadata
-                ):
-                    service_ui_extension_endpoint = replace_template_string(
-                        input=service.metadata[
-                            f"{config.settings.SYSTEM_NAMESPACE}.ui_extension_endpoint"
-                        ],
-                        templates_mapping=template_mapping,
-                    )
-                    extension.ui_extension_endpoint = (
-                        f"{endpoint_prefix}{service_ui_extension_endpoint}"
-                    )
-
-                if (
-                    f"{config.settings.SYSTEM_NAMESPACE}.api_extension_endpoints"
-                    in service.metadata
-                ):
-                    service_api_extension_endpoint = replace_template_string(
-                        input=service.metadata[
-                            f"{config.settings.SYSTEM_NAMESPACE}.api_extension_endpoints"
-                        ],
-                        templates_mapping=template_mapping,
-                    )
-                    extension.api_extension_endpoint = (
-                        f"{endpoint_prefix}{service_api_extension_endpoint}"
-                    )
+            extension = map_service_to_extension(
+                service=service,
+                project_id=project_id,
+                user_id=self.request_state.authorized_subject,
+            )
             extension_services.append(extension)
 
         return extension_services
@@ -172,7 +196,34 @@ class ExtensionManager(ExtensionOperations):
     def install_extension(
         self, extension: ExtensionInput, project_id: str
     ) -> Extension:
-        raise NotImplementedError
+        service_input = ServiceInput(**extension.dict())
+        if not service_input.metadata:
+            service_input.metadata = {}
+        if extension.capabilities:
+            service_input.metadata[
+                METADATA_CAPABILITIES
+            ] = CAPABILITIES_METADATA_SEPARATOR.join(extension.capabilities)
+        if extension.ui_extension_endpoint:
+            service_input.metadata[
+                METADATA_UI_EXTENSION_ENDPOINT
+            ] = extension.ui_extension_endpoint
+        if extension.api_extension_endpoint:
+            service_input.metadata[
+                METADATA_API_EXTENSION_ENDPOINT
+            ] = extension.api_extension_endpoint
+        if extension.extension_type:
+            service_input.metadata[METADATA_EXTENSION_TYPE] = extension.extension_type
+
+        service = self.deployment_manager.deploy_service(
+            project_id=project_id,
+            service=service_input,
+            deployment_type=DeploymentType.EXTENSION,
+        )
+        return map_service_to_extension(
+            service=service,
+            project_id=project_id,
+            user_id=self.request_state.authorized_subject,
+        )
 
     def suggest_extension_config(
         self, container_image: str, project_id: str

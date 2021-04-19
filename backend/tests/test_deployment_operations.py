@@ -9,7 +9,6 @@ from fastapi.testclient import TestClient
 from kubernetes import stream
 from kubernetes.client.models import V1Namespace
 from kubernetes.client.rest import ApiException
-from starlette import datastructures
 
 from contaxy import config
 from contaxy.clients import AuthClient, DeploymentManagerClient, SystemClient
@@ -391,10 +390,12 @@ class DeploymentOperationsTests(ABC):
 @pytest.mark.integration
 class TestDockerDeploymentManager(DeploymentOperationsTests):
     @pytest.fixture(autouse=True)
-    def _init_managers(self) -> Generator:
+    def _init_managers(
+        self, global_state: GlobalState, request_state: RequestState
+    ) -> Generator:
         self._deployment_manager = DockerDeploymentManager(
-            request_state=RequestState(datastructures.State()),
-            global_state=GlobalState(datastructures.State()),
+            global_state=GlobalState(global_state),
+            request_state=RequestState(request_state),
         )
 
         (
@@ -546,7 +547,9 @@ class TestDockerDeploymentManager(DeploymentOperationsTests):
 @pytest.mark.integration
 class TestKubernetesDeploymentManager(DeploymentOperationsTests):
     @pytest.fixture(autouse=True)
-    def _init_managers(self) -> Generator:
+    def _init_managers(
+        self, global_state: GlobalState, request_state: RequestState
+    ) -> Generator:
         (
             uid,
             self._project_id,
@@ -556,8 +559,8 @@ class TestKubernetesDeploymentManager(DeploymentOperationsTests):
         _kube_namespace = f"{uid}-deployment-manager-test-namespace"
 
         self._deployment_manager = KubernetesDeploymentManager(
-            global_state=GlobalState(datastructures.State()),
-            request_state=RequestState(datastructures.State()),
+            global_state=global_state,
+            request_state=request_state,
             kube_namespace=_kube_namespace,
         )
 

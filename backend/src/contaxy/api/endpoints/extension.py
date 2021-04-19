@@ -15,7 +15,9 @@ from contaxy.schema.exceptions import (
     GET_RESOURCE_RESPONSES,
     VALIDATION_ERROR_RESPONSE,
 )
+from contaxy.schema.extension import GLOBAL_EXTENSION_PROJECT
 from contaxy.schema.project import PROJECT_ID_PARAM
+from contaxy.utils import auth_utils
 
 router = APIRouter(
     tags=["extensions"],
@@ -116,8 +118,20 @@ def install_extension(
     This will deploy the extension container for the selected project and
     registers the extension for all the specified capabilities.
     """
-    # TODO: add additonal configuration
-    raise NotImplementedError
+
+    # Only admins can install "global" extensions that are shown for every user
+    if project_id == GLOBAL_EXTENSION_PROJECT:
+        component_manager.verify_access(token, "*", AccessLevel.ADMIN)
+    else:
+        component_manager.verify_access(
+            token,
+            f"/projects/{project_id}/extensions",
+            AccessLevel.WRITE,
+        )
+
+    return component_manager.get_extension_manager().install_extension(
+        extension=extension, project_id=project_id
+    )
 
 
 @router.get(

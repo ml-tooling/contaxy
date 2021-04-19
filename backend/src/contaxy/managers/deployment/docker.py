@@ -64,6 +64,9 @@ class DockerDeploymentManager(DeploymentManager):
         project_id: str,
         service: ServiceInput,
         action_id: Optional[str] = None,
+        deployment_type: Literal[
+            DeploymentType.SERVICE, DeploymentType.EXTENSION
+        ] = DeploymentType.SERVICE,
     ) -> Service:
         container_config = create_container_config(
             service=service,
@@ -72,9 +75,7 @@ class DockerDeploymentManager(DeploymentManager):
                 self.request_state.authorized_subject
             ),
         )
-        container_config["labels"][
-            Labels.DEPLOYMENT_TYPE.value
-        ] = DeploymentType.SERVICE.value
+        container_config["labels"][Labels.DEPLOYMENT_TYPE.value] = deployment_type.value
         handle_network(client=self.client, project_id=project_id)
 
         try:

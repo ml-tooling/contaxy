@@ -8,6 +8,7 @@ from contaxy.schema.deployment import Service, ServiceInput
 from contaxy.schema.shared import QUALIFIED_RESOURCE_ID_REGEX
 
 CORE_EXTENSION_ID = "core"
+GLOBAL_EXTENSION_PROJECT = "ctxy-global"
 
 EXTENSION_ID_PARAM = Query(
     None,

@@ -434,7 +434,7 @@ def build_project_network_policy_spec(
                             pod_selector=V1LabelSelector(
                                 match_labels={
                                     Labels.NAMESPACE.value: settings.SYSTEM_NAMESPACE,
-                                    Labels.DEPLOYMENT_TYPE.value: f"{DeploymentType.CORE_BACKEND}",
+                                    Labels.DEPLOYMENT_TYPE.value: f"{DeploymentType.CORE_BACKEND.value}",
                                 }
                             )
                         ),
