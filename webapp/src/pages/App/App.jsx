@@ -3,7 +3,13 @@ import React, { useCallback, useEffect, useState } from 'react';
 // import { useTranslation } from 'react-i18next';
 
 import './App.css';
-import { authApi, extensionsApi, usersApi } from '../../services/contaxy-api';
+import {
+  authApi,
+  extensionsApi,
+  /* eslint-disable sort-imports-es6-autofix/sort-imports-es6 */
+  SELECTED_PROJECT_LOCAL_STORAGE_KEY,
+  usersApi,
+} from '../../services/contaxy-api';
 import { mapExtensionToAppPage } from '../../utils/app-pages';
 import AppBar from '../../components/AppBar/AppBar';
 import AppDrawer from '../../components/AppDrawer/AppDrawer';
@@ -16,8 +22,10 @@ function App() {
   const [additionalAppDrawerItems, setAdditionalAppDrawerItems] = useState([]);
   const {
     activeProject,
+    setActiveProject,
     loadProjects,
     setUser,
+    projects,
     user,
     projectExtensions,
     setProjectExtensions,
@@ -28,11 +36,6 @@ function App() {
   const onDrawerClick = useCallback(() => setDrawerOpen(!isDrawerOpen), [
     isDrawerOpen,
   ]);
-
-  useEffect(() => {
-    if (!user) return;
-    loadProjects();
-  }, [user, loadProjects]);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -49,6 +52,39 @@ function App() {
         });
     }
   });
+
+  useEffect(() => {
+    if (!user) return;
+    loadProjects();
+  }, [user, loadProjects]);
+
+  useEffect(() => {
+    if (activeProject.id || !projects || projects.length === 0) return;
+
+    const prevSelectedProjectId = window.localStorage.getItem(
+      SELECTED_PROJECT_LOCAL_STORAGE_KEY
+    );
+
+    if (prevSelectedProjectId) {
+      const previouslySelectedProject = projects.find(
+        (project) => project.id === prevSelectedProjectId
+      );
+      if (previouslySelectedProject) {
+        setActiveProject(previouslySelectedProject);
+      } else {
+        // This project is not accessible anymore
+        window.localStorage.removeItem(SELECTED_PROJECT_LOCAL_STORAGE_KEY);
+      }
+    } else {
+      const userProject = projects.find((project) => project.id === user.id);
+      if (!userProject) return;
+      setActiveProject(userProject);
+      window.localStorage.setItem(
+        SELECTED_PROJECT_LOCAL_STORAGE_KEY,
+        userProject.id
+      );
+    }
+  }, [activeProject, setActiveProject, projects, user]);
 
   useEffect(() => {
     // Check whether external authentication is activated

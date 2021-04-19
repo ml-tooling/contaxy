@@ -1,6 +1,8 @@
 /* eslint-disable import/prefer-default-export */
-import GlobalStateContainer from '../app/store';
 import showStandardSnackbar from '../app/showStandardSnackbar';
+/* eslint-disable sort-imports-es6-autofix/sort-imports-es6 */
+import GlobalStateContainer from '../app/store';
+import { SELECTED_PROJECT_LOCAL_STORAGE_KEY } from '../services/contaxy-api';
 
 export const getProjectPermissionId = (project, permissionLevel) => {
   const level = permissionLevel ? `#${permissionLevel}` : '';
@@ -24,6 +26,7 @@ export const useProjectSelector = () => {
 
     showStandardSnackbar(`Change to project '${project.id}'`);
     setActiveProject(newProject);
+    window.localStorage.setItem(SELECTED_PROJECT_LOCAL_STORAGE_KEY, project.id);
   };
 
   return onProjectSelect;

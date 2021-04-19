@@ -1,9 +1,10 @@
-/* eslint-disable import/prefer-default-export */
-import * as Api from './contaxy-client';
 import { ENDPOINT } from '../utils/config';
+// eslint-disable import/prefer-default-export
+import * as Api from './contaxy-client';
 
 export const ENDPOINT_PROJECTS = `${ENDPOINT}/projects/{project_id}`;
 export const ENDPOINT_AUTH = `${ENDPOINT}/auth`;
+export const SELECTED_PROJECT_LOCAL_STORAGE_KEY = 'ctx_selected_project_id';
 
 export function getFileDownloadUrl(projectId, fileKey) {
   return `${ENDPOINT_PROJECTS}/files/{file_key:path}:download`
