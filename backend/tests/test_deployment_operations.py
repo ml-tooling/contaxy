@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 from kubernetes import stream
 from kubernetes.client.models import V1Namespace
 from kubernetes.client.rest import ApiException
+from starlette import datastructures
 
 from contaxy import config
 from contaxy.clients import AuthClient, DeploymentManagerClient, SystemClient
@@ -18,7 +19,11 @@ from contaxy.managers.deployment.docker_utils import (
     get_this_container,
 )
 from contaxy.managers.deployment.kubernetes import KubernetesDeploymentManager
-from contaxy.managers.deployment.utils import Labels, get_deployment_id
+from contaxy.managers.deployment.utils import (
+    _ENV_VARIABLE_CONTAXY_SERVICE_URL,
+    Labels,
+    get_deployment_id,
+)
 from contaxy.operations.deployment import DeploymentOperations
 from contaxy.schema.auth import (
     AccessLevel,
@@ -34,6 +39,7 @@ from contaxy.schema.deployment import (
 )
 from contaxy.schema.exceptions import ClientBaseError, ResourceNotFoundError
 from contaxy.utils import auth_utils
+from contaxy.utils.state_utils import GlobalState, RequestState
 
 from .conftest import test_settings
 
@@ -68,7 +74,7 @@ def create_test_service_input(service_id: str, display_name: str) -> ServiceInpu
             "FOO": "bar",
             "FOO2": "bar2",
             "NVIDIA_VISIBLE_DEVICES": "2",
-            "BASE_URL": "{env.CONTAXY_BASE_URL}",
+            "BASE_URL": f"{{env.{_ENV_VARIABLE_CONTAXY_SERVICE_URL}}}",
         },
         metadata={"some-metadata": "some-metadata-value"},
     )
@@ -387,7 +393,8 @@ class TestDockerDeploymentManager(DeploymentOperationsTests):
     @pytest.fixture(autouse=True)
     def _init_managers(self) -> Generator:
         self._deployment_manager = DockerDeploymentManager(
-            request_state=None, global_state=None
+            request_state=RequestState(datastructures.State()),
+            global_state=GlobalState(datastructures.State()),
         )
 
         (
@@ -549,7 +556,9 @@ class TestKubernetesDeploymentManager(DeploymentOperationsTests):
         _kube_namespace = f"{uid}-deployment-manager-test-namespace"
 
         self._deployment_manager = KubernetesDeploymentManager(
-            global_state=None, request_state=None, kube_namespace=_kube_namespace
+            global_state=GlobalState(datastructures.State()),
+            request_state=RequestState(datastructures.State()),
+            kube_namespace=_kube_namespace,
         )
 
         self._deployment_manager.core_api.create_namespace(
