@@ -23,14 +23,6 @@ import Widget from '../../components/Widget';
 import WidgetsGrid from '../../components/WidgetsGrid';
 import showStandardSnackbar from '../../app/showStandardSnackbar';
 
-const onFileDownload = (projectId, rowData) => {
-  const a = document.createElement('a');
-  a.href = getFileDownloadUrl(projectId, rowData.key);
-  a.target = '_blank';
-  a.download = rowData.name || 'download';
-  a.click();
-};
-
 function Files(props) {
   const { className } = props;
   const [data, setData] = useState([]);
@@ -39,23 +31,26 @@ function Files(props) {
 
   const componentIsMounted = useRef(true);
 
-  useEffect(() => {
-    // each useEffect can return a cleanup function
-    return () => {
-      componentIsMounted.current = false;
-    };
-  }, []);
-
   const reloadFiles = useCallback(async (projectId) => {
     if (!projectId) return;
     const files = await filesApi.listFiles(projectId);
     if (componentIsMounted.current) setData(files);
   }, []);
 
+  /* eslint-disable react-hooks/exhaustive-deps */
+  useEffect(() => {
+    // Will trigger inital loading during initial rendering
+    reloadFiles(activeProject.id);
+    // each useEffect can return a cleanup function
+    return () => {
+      componentIsMounted.current = false;
+    };
+  }, []);
+
   const onFileDelete = useCallback(
-    async (projectId, rowData) => {
+    async (rowData) => {
       try {
-        await filesApi.deleteFile(projectId, rowData.key);
+        await filesApi.deleteFile(activeProject.id, rowData.key);
         showStandardSnackbar(`Deleted file (${rowData.key})`);
         reloadFiles(activeProject.id);
       } catch (err) {
@@ -65,19 +60,28 @@ function Files(props) {
     [reloadFiles, activeProject.id]
   );
 
-  useEffect(() => reloadFiles(activeProject.id), [
-    activeProject.id,
-    reloadFiles,
-  ]);
+  const onFileDownload = useCallback(
+    (rowData) => {
+      const a = document.createElement('a');
+      a.href = getFileDownloadUrl(activeProject.id, rowData.key);
+      a.target = '_blank';
+      a.download = rowData.name || 'download';
+      a.click();
+    },
+    [activeProject.id]
+  );
 
-  const fileTable = useMemo(() => {
-    <FilesTable
-      data={data}
-      onFileDownload={(rowData) => onFileDownload(activeProject.id, rowData)}
-      onFileDelete={(rowData) => onFileDelete(activeProject.id, rowData)}
-      onReload={() => reloadFiles(activeProject.id)}
-    />;
-  }, [activeProject.id, data, onFileDelete, reloadFiles]);
+  const fileTable = useMemo(
+    () => (
+      <FilesTable
+        data={data}
+        onFileDownload={onFileDownload}
+        onFileDelete={onFileDelete}
+        onReload={() => reloadFiles(activeProject.id)}
+      />
+    ),
+    [activeProject.id, data, onFileDelete, reloadFiles, onFileDownload]
+  );
 
   // TODO: add correct values to widget
   return (
@@ -104,7 +108,10 @@ function Files(props) {
       <UploadFilesDialog
         endpoint={getFileUploadUrl(activeProject.id, '')}
         open={isUploadFileDialogOpen}
-        onClose={() => setUploadFileDialogOpen(false)}
+        onClose={() => {
+          setUploadFileDialogOpen(false);
+          reloadFiles(activeProject.id);
+        }}
       />
     </div>
   );
