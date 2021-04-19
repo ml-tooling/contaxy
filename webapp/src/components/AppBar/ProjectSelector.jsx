@@ -13,7 +13,7 @@ function ProjectSelector(props) {
   const projectElements = projects.map((project) => {
     return (
       <MenuItem value={JSON.stringify(project)} key={project.id}>
-        {project.id}
+        {project.display_name}
       </MenuItem>
     );
   });
