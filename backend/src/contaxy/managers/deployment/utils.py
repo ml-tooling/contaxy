@@ -23,18 +23,18 @@ _ENV_VARIABLE_CONTAXY_SERVICE_URL = "CONTAXY_SERVICE_URL"
 
 
 class Labels(Enum):
-    CREATED_BY = f"{settings.SYSTEM_NAMESPACE}.createdBy"
-    DEPLOYMENT_NAME = f"{settings.SYSTEM_NAMESPACE}.deploymentName"
-    DEPLOYMENT_TYPE = f"{settings.SYSTEM_NAMESPACE}.deploymentType"
-    DESCRIPTION = f"{settings.SYSTEM_NAMESPACE}.description"
-    DISPLAY_NAME = f"{settings.SYSTEM_NAMESPACE}.displayName"
-    ENDPOINTS = f"{settings.SYSTEM_NAMESPACE}.endpoints"
-    ICON = f"{settings.SYSTEM_NAMESPACE}.icon"
-    NAMESPACE = f"{settings.SYSTEM_NAMESPACE}.namespace"
-    MIN_LIFETIME = f"{settings.SYSTEM_NAMESPACE}.minLifetime"
-    PROJECT_NAME = f"{settings.SYSTEM_NAMESPACE}.projectName"
-    REQUIREMENTS = f"{settings.SYSTEM_NAMESPACE}.requirements"
-    VOLUME_PATH = f"{settings.SYSTEM_NAMESPACE}.volumePath"
+    CREATED_BY = "ctxy.createdBy"
+    DEPLOYMENT_NAME = "ctxy.deploymentName"
+    DEPLOYMENT_TYPE = "ctxy.deploymentType"
+    DESCRIPTION = "ctxy.description"
+    DISPLAY_NAME = "ctxy.displayName"
+    ENDPOINTS = "ctxy.endpoints"
+    ICON = "ctxy.icon"
+    NAMESPACE = "ctxy.namespace"
+    MIN_LIFETIME = "ctxy.minLifetime"
+    PROJECT_NAME = "ctxy.projectName"
+    REQUIREMENTS = "ctxy.requirements"
+    VOLUME_PATH = "ctxy.volumePath"
 
 
 class MappedLabels:

@@ -240,8 +240,12 @@ class KubernetesDeploymentManager(DeploymentManager):
                 name=service_id, namespace=self.kube_namespace
             )
 
-            # Double check that this service really belongs to the project (even though the serviceId should be unique)
-            if deployment.metadata.labels[Labels.PROJECT_NAME.value] != project_id:
+            # Make sure that the service belongs to the same contaxy namespace as the core-backend. Also, double check that this service really belongs to the project (even though the serviceId should be unique)
+            if (
+                deployment.metadata.labels[Labels.NAMESPACE.value]
+                != settings.SYSTEM_NAMESPACE
+                or deployment.metadata.labels[Labels.PROJECT_NAME.value] != project_id
+            ):
                 raise ResourceNotFoundError(
                     f"Could not get metadata of service '{service_id}' for project {project_id}."
                 )
