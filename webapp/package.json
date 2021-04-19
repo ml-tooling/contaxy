@@ -19,7 +19,7 @@
     "i18next-http-backend": "^1.0.21",
     "jdenticon": "^3.1.0",
     "jest-canvas-mock": "^2.3.0",
-    "material-table": "^1.69.2",
+    "material-table": "~1.67.0",
     "prop-types": "^15.7.2",
     "react": "^17.0.1",
     "react-cookie": "^4.0.3",
@@ -61,7 +61,7 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "start-debug": "REACT_APP_ENDPOINT=http://localhost:30010/api yarn start",
+    "start-debug": "REACT_APP_ENDPOINT=http://127.0.0.1:8082 yarn start",
     "container": "run(){ docker build -t project-template-dev ../.github/actions/build-environment && echo 'Starting the container. That can take a moment...' && docker run -it --rm -p 3000:3000 -p 6006:6006 -v $(pwd):/workspace:delegated --entrypoint \"/bin/bash\" project-template-dev -c \"cd workspace/ && yarn $1\"; }; run",
     "build": "react-scripts build",
     "test": "react-scripts test a --watchAll=false",
