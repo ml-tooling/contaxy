@@ -614,6 +614,7 @@ class TestKubernetesDeploymentManager(DeploymentOperationsTests):
 
         project_1 = f"{self.project_id}-1"
         project_2 = f"{self.project_id}-2"
+        project_core = f"{self.project_id}-core"
         test_service_input_1 = create_test_service_input(
             service_id=f"{self.service_id}-1",
             display_name=f"{self.service_display_name}-1",
@@ -625,6 +626,10 @@ class TestKubernetesDeploymentManager(DeploymentOperationsTests):
         test_service_input_3 = create_test_service_input(
             service_id=f"{self.service_id}-3",
             display_name=f"{self.service_display_name}-3",
+        )
+        test_service_input_core = create_test_service_input(
+            service_id=f"{self.service_id}-core",
+            display_name=f"{self.service_display_name}-core",
         )
 
         service_1 = self.deploy_service(
@@ -638,6 +643,9 @@ class TestKubernetesDeploymentManager(DeploymentOperationsTests):
         service_3 = self.deploy_service(
             project_id=project_2,
             service=test_service_input_3,
+        )
+        service_core = self.deploy_service(
+            project_id=project_core, service=test_service_input_core
         )
 
         namespace = self.deployment_manager.kube_namespace
@@ -655,6 +663,18 @@ class TestKubernetesDeploymentManager(DeploymentOperationsTests):
             namespace=namespace,
             label_selector=f"ctxy.deploymentName={service_3.id},ctxy.projectName={project_2}",
         ).items[0]
+
+        pod_core = self.deployment_manager.core_api.list_namespaced_pod(
+            namespace=namespace,
+            label_selector=f"ctxy.deploymentName={service_core.id},ctxy.projectName={project_core}",
+        ).items[0]
+        # modify the deployment type. Note that it cannot be done during deployment via the Contaxy API due to security reasons.
+        pod_core.metadata.labels[
+            "ctxy.deploymentType"
+        ] = DeploymentType.CORE_BACKEND.value
+        self.deployment_manager.core_api.patch_namespaced_pod(
+            name=pod_core.metadata.name, namespace=namespace, body=pod_core
+        )
 
         _command_prefix = ["/bin/sh", "-c"]
         output = stream.stream(
@@ -705,6 +725,23 @@ class TestKubernetesDeploymentManager(DeploymentOperationsTests):
         assert output
         assert "wget: download timed out" in output
 
+        # The core service can reach all services, no matter the project
+        output = stream.stream(
+            self.deployment_manager.core_api.connect_get_namespaced_pod_exec,
+            pod_core.metadata.name,
+            namespace,
+            command=[
+                *_command_prefix,
+                create_wget_command(pod_1.status.pod_ip),
+            ],
+            stderr=True,
+            stdin=False,
+            stdout=True,
+            tty=False,
+        )
+        assert output
+        assert "Hello world!" in output
+
         self.deployment_manager.delete_service(
             project_id=project_1, service_id=service_1.id, delete_volumes=True
         )
@@ -713,6 +750,9 @@ class TestKubernetesDeploymentManager(DeploymentOperationsTests):
         )
         self.deployment_manager.delete_service(
             project_id=project_2, service_id=service_3.id, delete_volumes=True
+        )
+        self.deployment_manager.delete_service(
+            project_id=project_core, service_id=service_core.id, delete_volumes=True
         )
 
 
