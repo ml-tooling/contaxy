@@ -13,7 +13,7 @@ function Iframe(props) {
   const { activeProject } = GlobalStateContainer.useContainer();
   // const [isLoading, setIsLoading] = useState(true);
 
-  let iframeUrl = url;
+  let iframeUrl = url || '';
   if (projectSpecific) {
     // use '?' if url does not contain a query parameter yet, '&' otherwise
     const delimiter = url.indexOf('?') > -1 ? '&' : '?';
