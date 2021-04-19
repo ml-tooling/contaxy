@@ -1,5 +1,5 @@
-import React from 'react';
-
+import React, { useCallback, useMemo } from 'react';
+// import React, { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import PropTypes from 'prop-types';
 import styled from 'styled-components';
@@ -23,7 +23,7 @@ function Services(props) {
   const [services, reloadServices] = useServices(activeProject.id);
   const { className } = props;
 
-  const onServiceDeploy = () => {
+  const onServiceDeploy = useCallback(() => {
     showAppDialog(DeployServiceDialog, {
       onDeploy: async (
         {
@@ -50,98 +50,105 @@ function Services(props) {
         }
       },
     });
-  };
+  }, [activeProject.id, showAppDialog, reloadServices]);
 
-  const onShowServiceMetadata = async (projectId, serviceId) => {
-    try {
-      const serviceMetadata = await servicesApi.getServiceMetadata(
-        projectId,
-        serviceId
-      );
-      showAppDialog(ContentDialog, {
-        jsonContent: serviceMetadata,
-        title: 'Service Metadata',
-      });
-    } catch (err) {
-      showStandardSnackbar('Could not load service metadata');
-    }
-  };
-
-  const onShowServiceLogs = async (projectId, serviceId) => {
-    try {
-      const logs = await servicesApi.getServiceLogs(projectId, serviceId);
-      showAppDialog(ContentDialog, { content: logs, title: 'Service Logs' });
-    } catch (err) {
-      showStandardSnackbar('Could not load service logs');
-    }
-  };
-
-  const onServiceDelete = async (projectId, serviceId) => {
-    try {
-      await servicesApi.deleteService(projectId, serviceId);
-      showStandardSnackbar(`Deleted service '${serviceId}'`);
-      reloadServices();
-    } catch (err) {
-      showStandardSnackbar(`Could not delete service '${serviceId}'`);
-    }
-  };
-
-  const onExecuteAction = async (resource, resourceAction) => {
-    try {
-      // servicesApi.apiClient.agent.redirects(0);
-      // const response = await servicesApi.executeServiceAction(
-      //   activeProject.id,
-      //   resource.id,
-      //   resourceAction.action_id
-      // );
-
-      if (resourceAction.instructions) {
-        resourceAction.instructions.some((instruction) => {
-          if (instruction.type && instruction.type === 'new-tab') {
-            window.open(instruction.url);
-            return true;
-          }
-
-          return false;
+  const onShowServiceMetadata = useCallback(
+    async (projectId, serviceId) => {
+      try {
+        const serviceMetadata = await servicesApi.getServiceMetadata(
+          projectId,
+          serviceId
+        );
+        showAppDialog(ContentDialog, {
+          jsonContent: serviceMetadata,
+          title: 'Service Metadata',
         });
+      } catch (err) {
+        showStandardSnackbar('Could not load service metadata');
       }
-    } catch (e) {
-      showStandardSnackbar(
-        `Could not execute action '${resourceAction.action_id}' for service '${resource.id}'. Reason: ${e}`
-      );
-    }
-  };
+    },
+    [showAppDialog]
+  );
 
-  const onShowServiceActions = async (projectId, service) => {
-    try {
-      const resourceActions = await servicesApi.listServiceActions(
-        projectId,
-        service.id
-      );
-      const title = `Service Actions`;
-      showAppDialog(ResourceActionsDialog, {
-        resource: service,
-        resourceActions,
-        onExecuteAction,
-        title,
-      });
-    } catch (err) {
-      showStandardSnackbar(
-        `Could not show actions for service '${service.id}'`
-      );
-    }
-  };
+  const onShowServiceLogs = useCallback(
+    async (projectId, serviceId) => {
+      try {
+        const logs = await servicesApi.getServiceLogs(projectId, serviceId);
+        showAppDialog(ContentDialog, { content: logs, title: 'Service Logs' });
+      } catch (err) {
+        showStandardSnackbar('Could not load service logs');
+      }
+    },
+    [showAppDialog]
+  );
 
-  return (
-    <div className="pages-native-component">
-      <Button
-        variant="contained"
-        color="primary"
-        onClick={onServiceDeploy}
-        className={`${className} button`}
-      >
-        {`${t('add')} ${t('service')}`}
-      </Button>
+  const onServiceDelete = useCallback(
+    async (projectId, serviceId) => {
+      try {
+        await servicesApi.deleteService(projectId, serviceId);
+        showStandardSnackbar(`Deleted service '${serviceId}'`);
+        reloadServices();
+      } catch (err) {
+        showStandardSnackbar(`Could not delete service '${serviceId}'`);
+      }
+    },
+    [reloadServices]
+  );
+
+  /* eslint-disable react-hooks/exhaustive-deps */
+  const onExecuteAction = useCallback(
+    () => async (resource, resourceAction) => {
+      try {
+        // servicesApi.apiClient.agent.redirects(0);
+        // const response = await servicesApi.executeServiceAction(
+        //   activeProject.id,
+        //   resource.id,
+        //   resourceAction.action_id
+        // );
+
+        if (resourceAction.instructions) {
+          resourceAction.instructions.some((instruction) => {
+            if (instruction.type && instruction.type === 'new-tab') {
+              window.open(instruction.url);
+              return true;
+            }
+
+            return false;
+          });
+        }
+      } catch (e) {
+        showStandardSnackbar(
+          `Could not execute action '${resourceAction.action_id}' for service '${resource.id}'. Reason: ${e}`
+        );
+      }
+    }
+  );
+
+  const onShowServiceActions = useCallback(
+    async (projectId, service) => {
+      try {
+        const resourceActions = await servicesApi.listServiceActions(
+          projectId,
+          service.id
+        );
+        const title = `Service Actions`;
+        showAppDialog(ResourceActionsDialog, {
+          resource: service,
+          resourceActions,
+          onExecuteAction,
+          title,
+        });
+      } catch (err) {
+        showStandardSnackbar(
+          `Could not show actions for service '${service.id}'`
+        );
+      }
+    },
+    [showAppDialog, onExecuteAction]
+  );
+
+  const serviceContainer = useMemo(
+    () => (
       <ServicesContainer
         data={services}
         onReload={reloadServices}
@@ -158,6 +165,45 @@ function Services(props) {
           onShowServiceMetadata(activeProject.id, rowData.id)
         }
       />
+    ),
+    [
+      activeProject.id,
+      services,
+      onServiceDelete,
+      onShowServiceActions,
+      onShowServiceLogs,
+      onShowServiceMetadata,
+      reloadServices,
+    ]
+  );
+
+  return (
+    <div className="pages-native-component">
+      <Button
+        variant="contained"
+        color="primary"
+        onClick={onServiceDeploy}
+        className={`${className} button`}
+      >
+        {`${t('add')} ${t('service')}`}
+      </Button>
+      {serviceContainer}
+      {/* <ServicesContainer
+        data={services}
+        onReload={reloadServices}
+        onServiceDelete={(rowData) =>
+          onServiceDelete(activeProject.id, rowData.id)
+        }
+        onShowServiceActions={(rowData) =>
+          onShowServiceActions(activeProject.id, rowData)
+        }
+        onShowServiceLogs={(rowData) =>
+          onShowServiceLogs(activeProject.id, rowData.id)
+        }
+        onShowServiceMetadata={(rowData) =>
+          onShowServiceMetadata(activeProject.id, rowData.id)
+        }
+      /> */}
     </div>
   );
 }
