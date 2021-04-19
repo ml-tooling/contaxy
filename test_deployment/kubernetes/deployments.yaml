@@ -4,15 +4,21 @@ metadata:
   name: contaxy
   labels:
     app: contaxy
+    ctxy.namespace: ctxy
+    ctxy.deploymentType: core-backend
 spec:
   replicas: 1
   selector:
     matchLabels:
       app: contaxy
+      ctxy.namespace: ctxy
+      ctxy.deploymentType: core-backend
   template:
     metadata:
       labels:
         app: contaxy
+        ctxy.namespace: ctxy
+        ctxy.deploymentType: core-backend
     spec:
       serviceAccountName: contaxy
       containers:
@@ -153,6 +159,9 @@ metadata:
     ctxy.deploymentType: "extension"
     ctxy.deploymentName: "contaxy-extension-workspace"
     ctxy.projectName: "ctxy-global"
+  annotations:
+    ctxy.ui_extension_endpoint: "8080/projects/{env.projectId}/workspace"
+    ctxy.api_extension_endpoint: "8080/projects/{env.projectId}/workspace"
 spec:
   replicas: 1
   selector:
