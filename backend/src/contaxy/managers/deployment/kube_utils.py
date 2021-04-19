@@ -430,14 +430,14 @@ def build_project_network_policy_spec(
                     _from=[
                         V1NetworkPolicyPeer(pod_selector=project_pod_selector),
                         # TODO: probably not needed as this rule is added via our core kube-network-policy
-                        # V1NetworkPolicyPeer(
-                        #     pod_selector=V1LabelSelector(
-                        #         match_labels={
-                        #             Labels.NAMESPACE.value: settings.SYSTEM_NAMESPACE,
-                        #             # Labels.DEPLOYMENT_TYPE.value: f"{settings.SYSTEM_NAMESPACE}.{DeploymentType.CORE_BACKEND}",
-                        #         }
-                        #     )
-                        # ),
+                        V1NetworkPolicyPeer(
+                            pod_selector=V1LabelSelector(
+                                match_labels={
+                                    Labels.NAMESPACE.value: settings.SYSTEM_NAMESPACE,
+                                    Labels.DEPLOYMENT_TYPE.value: f"{DeploymentType.CORE_BACKEND}",
+                                }
+                            )
+                        ),
                     ]
                 )
             ],
