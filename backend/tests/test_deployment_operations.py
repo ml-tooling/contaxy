@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 from kubernetes import stream
 from kubernetes.client.models import V1Namespace
 from kubernetes.client.rest import ApiException
+from starlette import datastructures
 
 from contaxy import config
 from contaxy.clients import AuthClient, DeploymentManagerClient, SystemClient
@@ -18,7 +19,11 @@ from contaxy.managers.deployment.docker_utils import (
     get_this_container,
 )
 from contaxy.managers.deployment.kubernetes import KubernetesDeploymentManager
-from contaxy.managers.deployment.utils import Labels, get_deployment_id
+from contaxy.managers.deployment.utils import (
+    _ENV_VARIABLE_CONTAXY_SERVICE_URL,
+    Labels,
+    get_deployment_id,
+)
 from contaxy.operations.deployment import DeploymentOperations
 from contaxy.schema.auth import (
     AccessLevel,
@@ -34,6 +39,7 @@ from contaxy.schema.deployment import (
 )
 from contaxy.schema.exceptions import ClientBaseError, ResourceNotFoundError
 from contaxy.utils import auth_utils
+from contaxy.utils.state_utils import GlobalState, RequestState
 
 from .conftest import test_settings
 
@@ -68,7 +74,7 @@ def create_test_service_input(service_id: str, display_name: str) -> ServiceInpu
             "FOO": "bar",
             "FOO2": "bar2",
             "NVIDIA_VISIBLE_DEVICES": "2",
-            "BASE_URL": "{env.CONTAXY_BASE_URL}",
+            "BASE_URL": f"{{env.{_ENV_VARIABLE_CONTAXY_SERVICE_URL}}}",
         },
         metadata={"some-metadata": "some-metadata-value"},
     )
@@ -387,7 +393,8 @@ class TestDockerDeploymentManager(DeploymentOperationsTests):
     @pytest.fixture(autouse=True)
     def _init_managers(self) -> Generator:
         self._deployment_manager = DockerDeploymentManager(
-            request_state=None, global_state=None
+            request_state=RequestState(datastructures.State()),
+            global_state=GlobalState(datastructures.State()),
         )
 
         (
@@ -549,7 +556,9 @@ class TestKubernetesDeploymentManager(DeploymentOperationsTests):
         _kube_namespace = f"{uid}-deployment-manager-test-namespace"
 
         self._deployment_manager = KubernetesDeploymentManager(
-            global_state=None, request_state=None, kube_namespace=_kube_namespace
+            global_state=GlobalState(datastructures.State()),
+            request_state=RequestState(datastructures.State()),
+            kube_namespace=_kube_namespace,
         )
 
         self._deployment_manager.core_api.create_namespace(
@@ -605,6 +614,7 @@ class TestKubernetesDeploymentManager(DeploymentOperationsTests):
 
         project_1 = f"{self.project_id}-1"
         project_2 = f"{self.project_id}-2"
+        project_core = f"{self.project_id}-core"
         test_service_input_1 = create_test_service_input(
             service_id=f"{self.service_id}-1",
             display_name=f"{self.service_display_name}-1",
@@ -616,6 +626,10 @@ class TestKubernetesDeploymentManager(DeploymentOperationsTests):
         test_service_input_3 = create_test_service_input(
             service_id=f"{self.service_id}-3",
             display_name=f"{self.service_display_name}-3",
+        )
+        test_service_input_core = create_test_service_input(
+            service_id=f"{self.service_id}-core",
+            display_name=f"{self.service_display_name}-core",
         )
 
         service_1 = self.deploy_service(
@@ -629,6 +643,9 @@ class TestKubernetesDeploymentManager(DeploymentOperationsTests):
         service_3 = self.deploy_service(
             project_id=project_2,
             service=test_service_input_3,
+        )
+        service_core = self.deploy_service(
+            project_id=project_core, service=test_service_input_core
         )
 
         namespace = self.deployment_manager.kube_namespace
@@ -646,6 +663,18 @@ class TestKubernetesDeploymentManager(DeploymentOperationsTests):
             namespace=namespace,
             label_selector=f"ctxy.deploymentName={service_3.id},ctxy.projectName={project_2}",
         ).items[0]
+
+        pod_core = self.deployment_manager.core_api.list_namespaced_pod(
+            namespace=namespace,
+            label_selector=f"ctxy.deploymentName={service_core.id},ctxy.projectName={project_core}",
+        ).items[0]
+        # modify the deployment type. Note that it cannot be done during deployment via the Contaxy API due to security reasons.
+        pod_core.metadata.labels[
+            "ctxy.deploymentType"
+        ] = DeploymentType.CORE_BACKEND.value
+        self.deployment_manager.core_api.patch_namespaced_pod(
+            name=pod_core.metadata.name, namespace=namespace, body=pod_core
+        )
 
         _command_prefix = ["/bin/sh", "-c"]
         output = stream.stream(
@@ -696,6 +725,23 @@ class TestKubernetesDeploymentManager(DeploymentOperationsTests):
         assert output
         assert "wget: download timed out" in output
 
+        # The core service can reach all services, no matter the project
+        output = stream.stream(
+            self.deployment_manager.core_api.connect_get_namespaced_pod_exec,
+            pod_core.metadata.name,
+            namespace,
+            command=[
+                *_command_prefix,
+                create_wget_command(pod_1.status.pod_ip),
+            ],
+            stderr=True,
+            stdin=False,
+            stdout=True,
+            tty=False,
+        )
+        assert output
+        assert "Hello world!" in output
+
         self.deployment_manager.delete_service(
             project_id=project_1, service_id=service_1.id, delete_volumes=True
         )
@@ -704,6 +750,9 @@ class TestKubernetesDeploymentManager(DeploymentOperationsTests):
         )
         self.deployment_manager.delete_service(
             project_id=project_2, service_id=service_3.id, delete_volumes=True
+        )
+        self.deployment_manager.delete_service(
+            project_id=project_core, service_id=service_core.id, delete_volumes=True
         )
 
 
