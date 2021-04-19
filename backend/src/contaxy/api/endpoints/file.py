@@ -88,8 +88,6 @@ def upload_file(
 ) -> Any:
     """Uploads a file to a file storage.
 
-    TODO: Adjust documentation
-
     The file will be streamed to the selected file storage (core platform or extension).
 
     This upload operation only supports to attach a limited set of file metadata.
@@ -98,12 +96,6 @@ def upload_file(
 
     The `file_key` allows to categorize the uploaded file under a virtual file structure managed by the core platform.
     This allows to create a directory-like structure for files from different extensions and file-storage types.
-    The actual file path on the file storage might not (and doesn't need to) correspond to the provided `file_key`.
-    This allows to move files (via [update_file_metadata operation](#files/update_file_metadata)) into differnt paths
-    without any changes on the file storage (depending on the implementation).
-
-    Additional file metadata (`additional_metadata`) can be set by using the `x-amz-meta-` prefix for HTTP header keys (e.g. `x-amz-meta-my-metadata`).
-    This corresponds to how AWS S3 handles [custom metadata](https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingMetadata.html).
     """
     component_manager.verify_access(
         token, f"projects/{project_id}/files", AccessLevel.WRITE
@@ -144,9 +136,13 @@ def upload_file_without_key(
 ) -> Any:
     """Uploads a file to a file storage.
 
+    The file will be streamed to the selected file storage (core platform or extension).
+
     The file key will be derived based on the filename in the multipart stream.
 
-    The file will be streamed to the selected file storage (core platform or extension).
+    This upload operation only supports to attach a limited set of file metadata.
+    Once the upload is finished, you can use the [update_file_metadata operation](#files/update_file_metadata)
+    to add or update the metadata of the files.
     """
     component_manager.verify_access(
         token, f"projects/{project_id}/files", AccessLevel.WRITE
