@@ -4,7 +4,6 @@ import PropTypes from 'prop-types';
 import styled from 'styled-components';
 
 import AccountCircle from '@material-ui/icons/AccountCircle';
-import Autocomplete from '@material-ui/lab/Autocomplete';
 import Button from '@material-ui/core/Button';
 import Dialog from '@material-ui/core/Dialog';
 import DialogActions from '@material-ui/core/DialogActions';
@@ -27,19 +26,26 @@ import showStandardSnackbar from '../../app/showStandardSnackbar';
 function ManageProjectDialog(props) {
   const { className, project, onClose } = props;
   const globalStateContainer = GlobalStateContainer.useContainer();
-  const users = globalStateContainer.getUsers();
   const { loadProjects } = globalStateContainer;
-  const initialUserToAdd = users && users.length > 0 ? users[0] : {};
-  const [userToAdd, setUserToAdd] = useState(initialUserToAdd); // set to empty object so that material-ui knows that it is a controlled input
+  const [userToAdd, setUserToAdd] = useState(''); // set to empty object so that material-ui knows that it is a controlled input
   const [projectMembers, reloadProjectMembers] = useProjectMembers(project.id);
 
-  const handleSelectUser = (e, newValue) => {
-    setUserToAdd(newValue);
-    return newValue;
+  const handleSelectUser = (e) => {
+    setUserToAdd(e.target.value);
   };
 
-  const handleAddUser = () => {
-    // TODO: add user `userToAdd` to project
+  const handleAddUser = async () => {
+    try {
+      await projectsApi.addProjectMember(project.id, userToAdd);
+      showStandardSnackbar(
+        `Added user '${userToAdd}' to project '${project.id}'.`
+      );
+      reloadProjectMembers();
+    } catch (e) {
+      showStandardSnackbar(
+        `Could not add user '${userToAdd}' to project '${project.id}'.`
+      );
+    }
   };
 
   const handleRemoveMemberFromProject = async (user) => {
@@ -55,7 +61,9 @@ function ManageProjectDialog(props) {
 
   return (
     <Dialog open>
-      <DialogTitle>{`Manage "${project.id}"`}</DialogTitle>
+      <DialogTitle>{`Manage "${
+        project.display_name || project.id
+      }"`}</DialogTitle>
       <DialogContent>
         <Typography variant="subtitle1">Project members:</Typography>
         <List>
@@ -75,7 +83,6 @@ function ManageProjectDialog(props) {
             );
           })}
         </List>
-        {/* <Input value={userToAdd} placeholder="Search users" /> */}
         <Typography
           className={`${className} addUserHeader`}
           variant="subtitle1"
@@ -83,21 +90,11 @@ function ManageProjectDialog(props) {
           Add members:
         </Typography>
         <div className={`${className} userInputContainer`}>
-          <Autocomplete
-            className={`${className} userInputField`}
-            getOptionLabel={(option) => option.name || ''}
-            onChange={handleSelectUser}
-            openOnFocus
-            options={users}
-            size="small"
-            renderInput={(params) => (
-              <TextField
-                {...params} // eslint-disable-line react/jsx-props-no-spreading
-                label="Available users"
-                margin="normal"
-              />
-            )}
+          <TextField
+            className={`${className} userInputTextfield`}
             value={userToAdd}
+            onChange={handleSelectUser}
+            placeholder="User Id"
           />
           <Button
             color="secondary"
@@ -136,8 +133,8 @@ const StyledManageProjectDialog = styled(ManageProjectDialog)`
     display: flex;
   }
 
-  &.userInputField {
-    min-width: 80%;
+  &.userInputTextField {
+    flex: 1;
   }
 `;
 
