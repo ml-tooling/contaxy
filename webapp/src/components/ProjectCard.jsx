@@ -51,7 +51,7 @@ function ProjectCard(props) {
             title={project.display_name || project.id}
             subheader={createdAt}
           />
-          <CardContent>
+          <CardContent className={`${className} cardContent`}>
             <Typography>{project.description}</Typography>
           </CardContent>
           <CardActions>
@@ -86,6 +86,13 @@ const StyledProjectCard = styled(ProjectCard)`
     display: flex;
     flex-direction: column;
     height: 100%;
+  }
+
+  &.cardContent {
+    flex: 1;
+    max-width: 400px;
+    max-height: 100px;
+    overflow: scroll;
   }
 `;
 
