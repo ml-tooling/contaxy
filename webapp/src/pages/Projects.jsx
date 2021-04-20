@@ -80,6 +80,7 @@ function Projects(props) {
       <ProjectCard
         key={project.id}
         project={project}
+        isHighlighted={project.id === activeProject.id}
         onApiTokenClick={onApiTokenClick}
         onClickManageMembers={onClickManageMembers}
         onDeleteProject={onDeleteProject}
@@ -88,17 +89,18 @@ function Projects(props) {
     );
   });
 
-  const fileNumber = activeProject.metadata
-    ? activeProject.metadata.fileNumber
-    : 0;
-  const serviceNumber = activeProject.metadata
-    ? activeProject.metadata.serviceNumber
-    : 0;
+  // TODO: add this again, when the projects endpoint returns metadata
+  // const fileNumber = activeProject.metadata
+  //   ? activeProject.metadata.fileNumber
+  //   : 0;
+  // const serviceNumber = activeProject.metadata
+  //   ? activeProject.metadata.serviceNumber
+  //   : 0;
 
   return (
     <div className="pages-native-component">
       <WidgetsGrid>
-        <Widget
+        {/* <Widget
           name={t('file_plural')}
           icon="folder"
           value={fileNumber}
@@ -109,6 +111,13 @@ function Projects(props) {
           icon="apps"
           value={serviceNumber}
           color="orange"
+        /> */}
+        <Widget
+          className={`${className} widgetProjectsCount`}
+          name="Projects"
+          icon="apps"
+          value={projectElements.length}
+          color="light-green"
         />
       </WidgetsGrid>
       <Button
@@ -137,6 +146,10 @@ Projects.defaultProps = {
 const StyledProjects = styled(Projects)`
   &.button {
     margin: 8px 0px;
+  }
+
+  &.widgetProjectsCount {
+    flex: 0.3;
   }
 `;
 
