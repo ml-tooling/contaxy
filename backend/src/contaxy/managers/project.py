@@ -253,6 +253,13 @@ class ProjectManager(ProjectOperations):
         user_id: str,
         access_level: AccessLevel,
     ) -> List[User]:
+
+        try:
+            # Check if user with the given ID exists
+            self._auth_manager.get_user(user_id)
+        except ResourceNotFoundError as ex:
+            raise ResourceNotFoundError(f"User {user_id} does not exist.") from ex
+
         self._auth_manager.add_permission(
             f"{USERS_KIND}/{user_id}",
             auth_utils.construct_permission(
