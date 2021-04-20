@@ -113,7 +113,7 @@ function Projects(props) {
           color="orange"
         /> */}
         <Widget
-          className={`${className} widgetProjectsCount`}
+          classes={{ root: `${className} widgetProjectsCount` }}
           name="Projects"
           icon="apps"
           value={projectElements.length}

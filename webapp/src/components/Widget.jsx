@@ -10,7 +10,7 @@ import Typography from '@material-ui/core/Typography';
 import '../assets/colors.css';
 
 function Widget(props) {
-  const { className, color, icon, link, name, value } = props;
+  const { className, classes, color, icon, link, name, value } = props;
 
   /* eslint-disable react/jsx-props-no-spreading */
   const ContainerElement = link
@@ -24,7 +24,7 @@ function Widget(props) {
 
   return (
     <ContainerElement
-      className={`${className} root hover-expand-effect bg-${color}`}
+      className={`${className} root hover-expand-effect bg-${color} ${classes.root}`}
     >
       <div className={`${className} iconContainer`}>
         <Icon className={`${className} icon widgetText`}>{icon}</Icon>
@@ -39,6 +39,7 @@ function Widget(props) {
 
 Widget.propTypes = {
   className: PropTypes.string,
+  classes: PropTypes.instanceOf(Object),
   color: PropTypes.string,
   icon: PropTypes.string,
   link: PropTypes.string,
@@ -48,6 +49,7 @@ Widget.propTypes = {
 
 Widget.defaultProps = {
   className: '',
+  classes: {},
   color: 'white',
   icon: '',
   link: '',
@@ -84,10 +86,10 @@ const StyledWidget = styled(Widget)`
     color: white;
   }
 
-  // adds ripple effect
+  /* adds ripple effect */
   &.hover-expand-effect:after {
     position: absolute;
-    left: 80px; // same as iconContainer-width
+    left: 80px; /* same as iconContainer-width */
     width: 0;
     height: 100%;
     color: transparent;
