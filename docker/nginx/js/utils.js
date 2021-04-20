@@ -1,5 +1,5 @@
-import jwt from "js/jwt.js";
 import auth from "js/auth.js";
+import jwt from "js/jwt.js";
 
 function checkWorkspace(r) {
   var token = auth.getToken(r);
@@ -22,12 +22,12 @@ function checkWorkspace(r) {
 
   r.subrequest("/ping-workspace/" + r.variables.id).then((pingReply) => {
     if (pingReply.status !== 200) {
-      r.subrequest("{LAB_BASE_URL}/api/admin/workspace/check", {
+      r.subrequest("{CONTAXY_BASE_URL}/api/admin/workspace/check", {
         args: "id=" + r.variables.id,
       }).then((checkReply) => {
         if (checkReply.status !== 200) {
           r.log(500, "Workspace check failed for " + r.variables.id);
-          r.internalRedirect("{LAB_BASE_URL}/5xx.html");
+          r.internalRedirect("{CONTAXY_BASE_URL}/5xx.html");
         } else {
           r.internalRedirect("@workspace");
         }

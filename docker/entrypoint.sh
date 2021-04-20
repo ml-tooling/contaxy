@@ -13,7 +13,7 @@ fi
 
 # Configure variables in nginx
 lab_namespace=${LAB_NAMESPACE}
-lab_base_url=${LAB_BASE_URL}
+contaxy_base_url=${CONTAXY_BASE_URL}
 service_suffix="''"
 resolver=127.0.0.11
 
@@ -24,7 +24,7 @@ fi
 
 # Substitute variables in all nginx config files including subdirectories
 find /etc/nginx/ -name "*.conf" -exec sed -s -i "s/\${LAB_NAMESPACE}/${lab_namespace}/g" {} +
-find /etc/nginx/ -name "*.conf" -exec sed -s -i "s@\${LAB_BASE_URL}@${lab_base_url}@g" {} +
+find /etc/nginx/ -name "*.conf" -exec sed -s -i "s@\${CONTAXY_BASE_URL}@${contaxy_base_url}@g" {} +
 find /etc/nginx/ -name "*.conf" -exec  sed -s -i "s@\${SERVICE_SUFFIX}@${service_suffix}@g" {} +
 find /etc/nginx/ -name "*.conf" -exec  sed -s -i "s/\${RESOLVER}/${resolver}/g" {} +
 

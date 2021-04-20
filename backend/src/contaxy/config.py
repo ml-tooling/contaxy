@@ -33,7 +33,8 @@ class Settings(BaseSettings):
 
     # TODO Decide on default values
     CONTAXY_HOST: Optional[str] = None
-    CONTAXY_BASE_URL: Optional[str] = None
+    # Set the base url prefix
+    CONTAXY_BASE_URL: str = ""
     # ? Maybe mobe up to system constants for now
     CONTAXY_API_PATH: str = "api"
     CONTAXY_WEBAPP_PATH: str = "app"
@@ -44,9 +45,6 @@ class Settings(BaseSettings):
 
     # The system namespace used to managed different versions
     SYSTEM_NAMESPACE: str = "ctxy"
-    # Set the base url prefix
-    # TODO: rename the variable
-    LAB_BASE_URL: str = ""
 
     # Selected deployment manager
     DEPLOYMENT_MANAGER: DeploymentManager = DeploymentManager.DOCKER

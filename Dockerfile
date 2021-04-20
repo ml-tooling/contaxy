@@ -28,7 +28,7 @@ RUN pip install --no-cache-dir "uvicorn[standard]" gunicorn fastapi faker
 ENV PYTHONPATH=/resources/app \
     MODULE_NAME=contaxy.api \
     IS_CONTAXY_CONTAINER=true \
-    LAB_BASE_URL= \
+    CONTAXY_BASE_URL= \
     LAB_NAMESPACE=lab \
     _SSL_RESOURCES_PATH=/resources/ssl \
     JWT_TOKEN_SECRET=please-change-this-secret

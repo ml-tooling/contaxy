@@ -23,7 +23,7 @@ class DeploymentManager(DeploymentOperations):
         #         port = action_id.split(ACTION_DELIMITER)[1]
 
         #         return RedirectResponse(
-        #             url=f"{settings.LAB_BASE_URL}/projects/{project_id}/services/{service_id}/access/{port}"
+        #             url=f"{settings.CONTAXY_BASE_URL}/projects/{project_id}/services/{service_id}/access/{port}"
         #         )
         # except Exception:
         #     raise ServerBaseError("Could not execute action")
@@ -57,7 +57,7 @@ class DeploymentManager(DeploymentOperations):
                         instructions=[
                             {
                                 "type": "new-tab",
-                                "url": f"{settings.LAB_BASE_URL}/projects/{project_id}/services/{service_id}/access/{endpoint}",
+                                "url": f"{settings.CONTAXY_BASE_URL}/projects/{project_id}/services/{service_id}/access/{endpoint}",
                             }
                         ],
                     )
