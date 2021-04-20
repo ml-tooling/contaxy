@@ -11,6 +11,8 @@ import styled from 'styled-components';
 
 import Button from '@material-ui/core/Button';
 
+import moment from 'moment';
+
 import {
   filesApi,
   getFileDownloadUrl,
@@ -26,6 +28,10 @@ import showStandardSnackbar from '../../app/showStandardSnackbar';
 function Files(props) {
   const { className } = props;
   const [data, setData] = useState([]);
+  const [widgetData, setWidgetData] = useState({
+    totalSize: '0',
+    lastUpdated: '0',
+  });
   const { activeProject } = GlobalStateContainer.useContainer();
   const [isUploadFileDialogOpen, setUploadFileDialogOpen] = useState(false);
 
@@ -34,18 +40,34 @@ function Files(props) {
   const reloadFiles = useCallback(async (projectId) => {
     if (!projectId) return;
     const files = await filesApi.listFiles(projectId);
-    if (componentIsMounted.current) setData(files);
+    if (componentIsMounted.current) {
+      setData(files);
+
+      let totalSize = 0;
+      let lastUpdated = 0;
+      files.forEach((file) => {
+        totalSize += file.file_size;
+        lastUpdated =
+          new Date(file.updated_at) > new Date(lastUpdated)
+            ? file.updated_at
+            : lastUpdated;
+      });
+      setWidgetData({
+        totalSize: `${(totalSize / 1000 ** 3).toFixed(2)} GB`,
+        lastUpdated: moment(lastUpdated).startOf('minute').fromNow(),
+      });
+    }
   }, []);
 
-  /* eslint-disable react-hooks/exhaustive-deps */
   useEffect(() => {
+    componentIsMounted.current = true;
     // Will trigger inital loading during initial rendering
     reloadFiles(activeProject.id);
     // each useEffect can return a cleanup function
     return () => {
       componentIsMounted.current = false;
     };
-  }, []);
+  }, [activeProject.id, reloadFiles]);
 
   const onFileDelete = useCallback(
     async (rowData) => {
@@ -88,11 +110,16 @@ function Files(props) {
     <div className="pages-native-component">
       <WidgetsGrid>
         <Widget name="Amount" icon="list" value={data.length} color="pink" />
-        <Widget name="Total Size" icon="cloud" value="2" color="cyan" />
+        <Widget
+          name="Total Size"
+          icon="cloud"
+          value={widgetData.totalSize}
+          color="cyan"
+        />
         <Widget
           name="Last Modified"
           icon="build"
-          value="2"
+          value={widgetData.lastUpdated}
           color="light-green"
         />
       </WidgetsGrid>

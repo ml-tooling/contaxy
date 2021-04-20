@@ -26,10 +26,8 @@ const uppy = new Uppy({
   withCredentials: 'true',
 });
 
-uppy.on('complete', (result) => {
-  showStandardSnackbar(
-    `Upload complete! We’ve uploaded these files: ${result.successful}`
-  );
+uppy.on('complete', () => {
+  showStandardSnackbar('Upload complete!');
 });
 
 function UploadFilesDialog(props) {
