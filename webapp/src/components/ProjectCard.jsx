@@ -22,6 +22,7 @@ function ProjectCard(props) {
     onDeleteProject,
     onSelect,
     project,
+    isHighlighted,
   } = props;
   const svgRef = useRef(null);
   useEffect(() => {
@@ -47,7 +48,10 @@ function ProjectCard(props) {
         <Card className={`${className} card`}>
           <CardHeader
             avatar={
-              <Avatar alt={project.display_name}>
+              <Avatar
+                className={isHighlighted ? `${className} avatar_highlight` : ''}
+                alt={project.display_name}
+              >
                 <svg
                   ref={svgRef}
                   width="60"
@@ -79,6 +83,7 @@ function ProjectCard(props) {
 
 ProjectCard.propTypes = {
   className: PropTypes.string,
+  isHighlighted: PropTypes.bool,
   onApiTokenClick: PropTypes.func.isRequired,
   onClickManageMembers: PropTypes.func.isRequired,
   onDeleteProject: PropTypes.func.isRequired,
@@ -88,6 +93,7 @@ ProjectCard.propTypes = {
 
 ProjectCard.defaultProps = {
   className: '',
+  isHighlighted: false,
 };
 
 const StyledProjectCard = styled(ProjectCard)`
@@ -108,6 +114,10 @@ const StyledProjectCard = styled(ProjectCard)`
     margin-left: 8px;
     color: rgba(0, 0, 0, 0.54);
     font-size: 0.8rem;
+  }
+
+  &.avatar_highlight {
+    border: ${(props) => props.theme.palette.primary.main} 3px dotted;
   }
 `;
 
