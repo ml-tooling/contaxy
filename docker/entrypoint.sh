@@ -18,14 +18,14 @@ service_suffix="''"
 resolver=127.0.0.11
 
 if [[ "${DEPLOYMENT_MANAGER,,}" == k8s || "${DEPLOYMENT_MANAGER,,}" == kubernetes ]]; then
-    service_suffix="$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace).svc.cluster.local";
+    service_suffix=".$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace).svc.cluster.local";
     resolver="kube-dns.kube-system.svc.cluster.local valid=10s"
 fi
 
 # Substitute variables in all nginx config files including subdirectories
 find /etc/nginx/ -name "*.conf" -exec sed -s -i "s/\${LAB_NAMESPACE}/${lab_namespace}/g" {} +
 find /etc/nginx/ -name "*.conf" -exec sed -s -i "s@\${LAB_BASE_URL}@${lab_base_url}@g" {} +
-find /etc/nginx/ -name "*.conf" -exec  sed -s -i "s@\${SERVICE_SUFFIX}@.${service_suffix}@g" {} +
+find /etc/nginx/ -name "*.conf" -exec  sed -s -i "s@\${SERVICE_SUFFIX}@${service_suffix}@g" {} +
 find /etc/nginx/ -name "*.conf" -exec  sed -s -i "s/\${RESOLVER}/${resolver}/g" {} +
 
 # Configure SSL variables in nginx
