@@ -38,20 +38,18 @@ function App() {
   ]);
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      // Check whether the user is logged in currently (the auth cookie - if existing - is sent to the endpoint which returns a user object when a valid token exists and an error otherwise)
-      usersApi
-        .getMyUser()
-        .then((res) => {
-          setUser(res);
-          setIsAuthenticated(true);
-        })
-        .catch(() => {
-          setUser(null);
-          setIsAuthenticated(false);
-        });
-    }
-  });
+    // Check whether the user is logged in currently (the auth cookie - if existing - is sent to the endpoint which returns a user object when a valid token exists and an error otherwise)
+    usersApi
+      .getMyUser()
+      .then((res) => {
+        setUser(res);
+        setIsAuthenticated(true);
+      })
+      .catch(() => {
+        setUser(null);
+        setIsAuthenticated(false);
+      });
+  }, [isAuthenticated, setUser, setIsAuthenticated]);
 
   useEffect(() => {
     if (!user) return;
