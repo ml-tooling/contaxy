@@ -37,15 +37,15 @@ function Files(props) {
     if (componentIsMounted.current) setData(files);
   }, []);
 
-  /* eslint-disable react-hooks/exhaustive-deps */
   useEffect(() => {
+    componentIsMounted.current = true;
     // Will trigger inital loading during initial rendering
     reloadFiles(activeProject.id);
     // each useEffect can return a cleanup function
     return () => {
       componentIsMounted.current = false;
     };
-  }, []);
+  }, [activeProject.id, reloadFiles]);
 
   const onFileDelete = useCallback(
     async (rowData) => {
