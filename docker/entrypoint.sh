@@ -12,7 +12,7 @@ if [[ "${LAB_ACTION,,}" != serve ]]; then
 fi
 
 # Configure variables in nginx
-lab_namespace=${LAB_NAMESPACE}
+system_namespace=${SYSTEM_NAMESPACE}
 contaxy_base_url=${CONTAXY_BASE_URL}
 service_suffix="''"
 resolver=127.0.0.11
@@ -23,7 +23,7 @@ if [[ "${DEPLOYMENT_MANAGER,,}" == k8s || "${DEPLOYMENT_MANAGER,,}" == kubernete
 fi
 
 # Substitute variables in all nginx config files including subdirectories
-find /etc/nginx/ -name "*.conf" -exec sed -s -i "s/\${LAB_NAMESPACE}/${lab_namespace}/g" {} +
+find /etc/nginx/ -name "*.conf" -exec sed -s -i "s/\${SYSTEM_NAMESPACE}/${system_namespace}/g" {} +
 find /etc/nginx/ -name "*.conf" -exec sed -s -i "s@\${CONTAXY_BASE_URL}@${contaxy_base_url}@g" {} +
 find /etc/nginx/ -name "*.conf" -exec  sed -s -i "s@\${SERVICE_SUFFIX}@${service_suffix}@g" {} +
 find /etc/nginx/ -name "*.conf" -exec  sed -s -i "s/\${RESOLVER}/${resolver}/g" {} +

@@ -29,7 +29,7 @@ ENV PYTHONPATH=/resources/app \
     MODULE_NAME=contaxy.api \
     IS_CONTAXY_CONTAINER=true \
     CONTAXY_BASE_URL= \
-    LAB_NAMESPACE=lab \
+    SYSTEM_NAMESPACE=ctxy \
     _SSL_RESOURCES_PATH=/resources/ssl \
     JWT_TOKEN_SECRET=please-change-this-secret
 
