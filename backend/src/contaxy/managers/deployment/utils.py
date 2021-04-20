@@ -245,7 +245,7 @@ def get_default_environment_variables(
 
     default_environment_variables = {
         "CONTAXY_DEPLOYMENT_NAME": deployment_id,
-        _ENV_VARIABLE_CONTAXY_BASE_URL: settings.LAB_BASE_URL,
+        _ENV_VARIABLE_CONTAXY_BASE_URL: settings.CONTAXY_BASE_URL,
         _ENV_VARIABLE_CONTAXY_API_ENDPOINT: settings.CONTAXY_API_ENDPOINT,
     }
 
@@ -255,7 +255,7 @@ def get_default_environment_variables(
             endpoint = "{endpoint}"
         default_environment_variables[
             _ENV_VARIABLE_CONTAXY_SERVICE_URL
-        ] = f"{settings.LAB_BASE_URL}projects/{project_id}/services/{deployment_id}/access/{endpoint}"
+        ] = f"{settings.CONTAXY_BASE_URL}projects/{project_id}/services/{deployment_id}/access/{endpoint}"
 
     if compute_resources:
         if compute_resources.max_gpus is not None and compute_resources.max_gpus > 0:
@@ -328,10 +328,10 @@ def get_template_mapping(
 ) -> Dict[str, str]:
     template_mapping = {}
 
-    if settings.LAB_BASE_URL:
+    if settings.CONTAXY_BASE_URL:
         template_mapping[
             f"{{env.{_ENV_VARIABLE_CONTAXY_BASE_URL}}}"
-        ] = settings.LAB_BASE_URL
+        ] = settings.CONTAXY_BASE_URL
 
     if settings.CONTAXY_API_ENDPOINT:
         template_mapping[

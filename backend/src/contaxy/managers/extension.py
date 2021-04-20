@@ -57,7 +57,7 @@ def map_service_to_extension(
     extension = Extension(**service.dict())
 
     if service.metadata:
-        endpoint_prefix = f"{config.settings.LAB_BASE_URL}/projects/{project_id}/services/{service.metadata[Labels.DEPLOYMENT_NAME.value]}/access/"
+        endpoint_prefix = f"{config.settings.CONTAXY_BASE_URL}/projects/{project_id}/services/{service.metadata[Labels.DEPLOYMENT_NAME.value]}/access/"
 
         if METADATA_CAPABILITIES in service.metadata:
             extension.capabilities = service.metadata[METADATA_CAPABILITIES].split(
