@@ -14,6 +14,7 @@ import { authApi } from '../../services/contaxy-api';
 import { getUserPemissionId } from '../../utils/app-utils';
 import { useShowAppDialog } from '../../app/AppDialogServiceProvider';
 import ApiTokenDialog from '../Dialogs/ApiTokenDialog';
+import ContentDialog from '../Dialogs/ContentDialog';
 
 const ID_MENU_APPBAR = 'menu-appbar';
 const REL = 'noopener noreferrer';
@@ -26,6 +27,13 @@ function UserMenu(props) {
 
   const onClose = () => setAnchorEl(null);
   const onMenuClick = (event) => setAnchorEl(event.currentTarget);
+
+  const onMyUserClick = async () => {
+    showAppDialog(ContentDialog, {
+      title: 'My User',
+      jsonContent: user,
+    });
+  };
 
   const onApiTokenClick = async () => {
     const apiTokens = await authApi.listApiTokens();
@@ -47,6 +55,7 @@ function UserMenu(props) {
 
   const privateElements = (
     <div>
+      <MenuItem onClick={onMyUserClick}>My User</MenuItem>
       <MenuItem onClick={onApiTokenClick}>{t('api_tokens')}</MenuItem>
       <MenuItem onClick={onLogoutClick}>{t('logout')}</MenuItem>
     </div>
