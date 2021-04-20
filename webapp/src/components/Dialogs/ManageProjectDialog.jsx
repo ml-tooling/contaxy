@@ -55,7 +55,9 @@ function ManageProjectDialog(props) {
       reloadProjectMembers();
       loadProjects();
     } catch (err) {
-      showStandardSnackbar(`Could not remove member. Reason: ${err}.`);
+      showStandardSnackbar(
+        `Could not remove member. Reason: ${err.body.message}`
+      );
     }
   };
 
