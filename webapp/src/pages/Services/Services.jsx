@@ -17,11 +17,11 @@ import ServicesContainer from './ServicesContainer';
 import showStandardSnackbar from '../../app/showStandardSnackbar';
 
 function Services(props) {
+  const { className } = props;
   const { t } = useTranslation();
   const { activeProject } = GlobalStateContainer.useContainer();
   const showAppDialog = useShowAppDialog();
   const [services, reloadServices] = useServices(activeProject.id);
-  const { className } = props;
 
   const onServiceDeploy = useCallback(() => {
     showAppDialog(DeployServiceDialog, {
@@ -74,7 +74,7 @@ function Services(props) {
     async (projectId, serviceId) => {
       try {
         const logs = await servicesApi.getServiceLogs(projectId, serviceId);
-        showAppDialog(ContentDialog, { content: logs, title: 'Service Logs' });
+        showAppDialog(ContentDialog, { content: logs, title: 'Logs' });
       } catch (err) {
         showStandardSnackbar('Could not load service logs');
       }
@@ -147,7 +147,7 @@ function Services(props) {
     [showAppDialog, onExecuteAction]
   );
 
-  const serviceContainer = useMemo(
+  const servicesContainer = useMemo(
     () => (
       <ServicesContainer
         data={services}
@@ -187,7 +187,7 @@ function Services(props) {
       >
         {`${t('add')} ${t('service')}`}
       </Button>
-      {serviceContainer}
+      {servicesContainer}
       {/* <ServicesContainer
         data={services}
         onReload={reloadServices}

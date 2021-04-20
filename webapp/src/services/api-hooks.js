@@ -1,7 +1,7 @@
 /* eslint-disable import/prefer-default-export */
 import { useCallback, useEffect, useState } from 'react';
 
-import { projectsApi, servicesApi } from './contaxy-api';
+import { jobsApi, projectsApi, servicesApi } from './contaxy-api';
 
 function useApiHook(apiCall, condition) {
   const sanitizedCondition = condition !== undefined ? condition : true;
@@ -58,6 +58,20 @@ export function useServices(projectId) {
     try {
       const services = await servicesApi.listServices(projectId);
       return services;
+    } catch (err) {
+      return [];
+    }
+  }, [projectId]);
+
+  const [data, reload] = useApiHook(apiCall, projectId);
+  return [data, reload];
+}
+
+export function useJobs(projectId) {
+  const apiCall = useCallback(async () => {
+    try {
+      const jobs = await jobsApi.listJobs(projectId);
+      return jobs;
     } catch (err) {
       return [];
     }
