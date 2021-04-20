@@ -4,10 +4,9 @@ import React, { useCallback, useEffect, useState } from 'react';
 
 import './App.css';
 import {
+  SELECTED_PROJECT_LOCAL_STORAGE_KEY,
   authApi,
   extensionsApi,
-  /* eslint-disable sort-imports-es6-autofix/sort-imports-es6 */
-  SELECTED_PROJECT_LOCAL_STORAGE_KEY,
   usersApi,
 } from '../../services/contaxy-api';
 import { mapExtensionToAppPage } from '../../utils/app-pages';
