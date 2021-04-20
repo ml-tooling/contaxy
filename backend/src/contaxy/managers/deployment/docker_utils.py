@@ -70,7 +70,16 @@ def map_container(
     )
 
     try:
-        status = DeploymentStatus(container.status).value
+        container_status = container.status
+        if container_status == "created":
+            container_status = DeploymentStatus.PENDING.value
+        elif container_status == "exited":
+            exit_code = container.attrs.get("State", {}).get("ExitCode", 0)
+            if exit_code == 0:
+                container_status = DeploymentStatus.SUCCEEDED.value
+            else:
+                container_status = DeploymentStatus.FAILED.value
+        status = DeploymentStatus(container_status).value
     except ValueError:
         status = DeploymentStatus.UNKNOWN.value
 
