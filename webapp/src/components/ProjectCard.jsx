@@ -32,6 +32,15 @@ function ProjectCard(props) {
     ? project.created_at.toLocaleString()
     : '';
 
+  const titleNode = project.display_name ? (
+    <>
+      <span>{project.display_name}</span>
+      <span className={`${className} cardTitle_projectId`}>({project.id})</span>
+    </>
+  ) : (
+    project.id
+  );
+
   return (
     <>
       <Grid item>
@@ -48,7 +57,7 @@ function ProjectCard(props) {
                 />
               </Avatar>
             }
-            title={project.display_name || project.id}
+            title={titleNode}
             subheader={createdAt}
           />
           <CardContent className={`${className} cardContent`}>
@@ -93,6 +102,12 @@ const StyledProjectCard = styled(ProjectCard)`
     max-width: 400px;
     max-height: 100px;
     overflow: scroll;
+  }
+
+  &.cardTitle_projectId {
+    margin-left: 8px;
+    color: rgba(0, 0, 0, 0.54);
+    font-size: 0.8rem;
   }
 `;
 
