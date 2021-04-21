@@ -432,7 +432,7 @@ def login_callback(
         os.path.join(
             schema,
             config.settings.get_redirect_uri(),
-            config.settings.CONTAXY_WEBAPP_PATH,
+            f"{config.settings.CONTAXY_WEBAPP_PATH}/",  # TODO remove when nginx routing is possible without trailing slash
         ),
         status_code=status.HTTP_303_SEE_OTHER,
     )
