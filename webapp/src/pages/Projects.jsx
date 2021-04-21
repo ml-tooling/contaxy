@@ -57,9 +57,7 @@ function Projects(props) {
           onClose();
           loadProjects();
         } catch (err) {
-          showStandardSnackbar(
-            `Could not create project. Error: ${err.statusText}`
-          );
+          showStandardSnackbar(`Could not create project. ${err.body.message}`);
         }
       },
     });
@@ -71,7 +69,9 @@ function Projects(props) {
       showStandardSnackbar(`Delete project '${project.id}'`);
       loadProjects();
     } catch (err) {
-      // ignore
+      showStandardSnackbar(
+        `Could not delete project '${project.id}'. ${err.body.message}.`
+      );
     }
   };
 

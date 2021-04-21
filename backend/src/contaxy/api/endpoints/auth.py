@@ -441,8 +441,14 @@ def login_callback(
     operation_id=CoreOperations.OAUTH_ENABLED.value,
     summary="Check if external OAuth2 (OIDC) IDP is enabled.",
     status_code=status.HTTP_200_OK,
+    response_model=str,
 )
 def is_external_idp_enabled() -> Any:
-    if not config.settings.OIDC_AUTH_ENABLED:
-        return Response(status_code=418)
-    return Response(status_code=status.HTTP_200_OK)
+    """Returns the value of `OIDC_AUTH_ENABLED`.
+
+    Returns "0" if it is not set, "1" if it is set.
+    """
+    return Response(
+        status_code=status.HTTP_200_OK,
+        content=str(int(config.settings.OIDC_AUTH_ENABLED)),
+    )

@@ -87,8 +87,8 @@ function App() {
     // Check whether external authentication is activated
     authApi
       .oauthEnabled()
-      .then(() => {
-        setOauthEnabled(true);
+      .then((res) => {
+        setOauthEnabled(res === '1');
       })
       .catch(() => {
         setOauthEnabled(false);
