@@ -418,7 +418,12 @@ def login_callback(
     schema = "http://" if os.getenv("OAUTHLIB_INSECURE_TRANSPORT") else "https://"
     oauth_token = auth_manager.login_callback(
         code,
-        os.path.join(schema, config.settings.get_redirect_uri(), OAUTH_CALLBACK_ROUTE),
+        os.path.join(
+            schema,
+            config.settings.get_redirect_uri(),
+            config.settings.CONTAXY_API_PATH,
+            OAUTH_CALLBACK_ROUTE,
+        ),
         state,
     )
 
@@ -427,7 +432,6 @@ def login_callback(
         os.path.join(
             schema,
             config.settings.get_redirect_uri(),
-            config.settings.CONTAXY_API_PATH,
             config.settings.CONTAXY_WEBAPP_PATH,
         ),
         status_code=status.HTTP_303_SEE_OTHER,
