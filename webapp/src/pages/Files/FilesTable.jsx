@@ -31,7 +31,6 @@ const COLUMNS = [
   {
     field: 'version',
     title: 'Version',
-    type: 'numeric',
     align: 'center',
   },
   {
