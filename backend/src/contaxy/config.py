@@ -36,6 +36,7 @@ class Settings(BaseSettings):
     # Set the base url prefix
     CONTAXY_BASE_URL: str = ""
     # ? Maybe mobe up to system constants for now
+    # TODO Make actually configurable, i.e. ensure no hardcoded paths exists anymore (backend/webapp/nginx)
     CONTAXY_API_PATH: str = "api"
     CONTAXY_WEBAPP_PATH: str = "app"
 
