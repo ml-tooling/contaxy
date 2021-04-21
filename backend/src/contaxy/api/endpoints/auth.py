@@ -427,6 +427,7 @@ def login_callback(
         os.path.join(
             schema,
             config.settings.get_redirect_uri(),
+            config.settings.CONTAXY_API_PATH,
             config.settings.CONTAXY_WEBAPP_PATH,
         ),
         status_code=status.HTTP_303_SEE_OTHER,
