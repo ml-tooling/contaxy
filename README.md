@@ -56,6 +56,20 @@ After deploying, visit `http://localhost:30010/app/`. If you deployed it via the
 
 In the `backend` directory, run `uvicorn --app-dir=src contaxy.main:app --reload`. Set the environment variables `POSTGRES_CONNECTION_URI`, `S3_ENDPOINT`, `S3_ACCESS_KEY`, `S3_SECRET_KEY` so that the locally-started Python instance can access them.
 
+### Build
+
+#### Using Act
+
+> _**Note**: We recommend to use [Docker](https://docs.docker.com/get-docker/) and [Act](https://github.com/nektos/act#installation) to execute the containerized build process. If this is not an option, run `python build.py --make` and install the dependencies based on probable errors._
+
+To simplify the process of building this project from scratch, we provide build-scripts - based on [universal-build](https://github.com/ml-tooling/universal-build) - that run all necessary steps (build, check, test, and release) within a containerized environment. To build and test your changes, execute the following command in the project root folder:
+
+```bash
+act -b -j build
+```
+
+Refer to our [contribution guides](https://github.com/ml-tooling/contaxy/blob/main/CONTRIBUTING.md#development-instructions) for more detailed information on our build scripts and development process.
+
 ### Testing
 
 The project contains unit tests, integration tests, and stress tests. For the unit and integration tests `pytest` is used, for the stress tests `locust`.
