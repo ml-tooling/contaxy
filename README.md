@@ -41,10 +41,11 @@ Contaxy is an extensible collaborative platform for teams to share files and dep
 
 For the Docker deployment, have a look at the [docker-compose.yaml file](./test_deployment/docker-compose.yml); you can start it via `docker compose up`.
 
-For Kubernetes, have a look at the [deploy script](./test_deployment/kubernetes/deploy.sh)/
+For Kubernetes, have a look at the [deploy script](./test_deployment/kubernetes/deploy.sh).
 
 *Note: Currently, not all Docker images are pushed to DockerHub. So, the project has to be built locally: `python build.py --make` or `act -b -j build -s BUILD_ARGS="--make" `*
 
+For a list of all configurable environment variables, have a look at [the config file](./backend/src/contaxy/config.py#L31). All fields of the `Settings` class represent an environment variable that can be set.
 ### Usage
 
 After deploying, visit `http://localhost:30010/app/`. If you deployed it via the `docker-compose.yaml` file, you can login with the credentials `Foo:Foobar`. If you deployed the Kubernetes version, you have to call the endpoint `/api/seed/default` in the browser once first.
