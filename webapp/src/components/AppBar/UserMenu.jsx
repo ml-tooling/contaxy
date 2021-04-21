@@ -5,6 +5,7 @@ import PropTypes from 'prop-types';
 import styled from 'styled-components';
 
 import AccountCircle from '@material-ui/icons/AccountCircle';
+import Divider from '@material-ui/core/Divider';
 import IconButton from '@material-ui/core/IconButton';
 import Menu from '@material-ui/core/Menu';
 import MenuItem from '@material-ui/core/MenuItem';
@@ -30,7 +31,7 @@ function UserMenu(props) {
 
   const onMyUserClick = async () => {
     showAppDialog(ContentDialog, {
-      title: 'My User',
+      title: 'Me',
       jsonContent: user,
     });
   };
@@ -55,9 +56,10 @@ function UserMenu(props) {
 
   const privateElements = (
     <div>
-      <MenuItem onClick={onMyUserClick}>My User</MenuItem>
+      <MenuItem onClick={onMyUserClick}>Me</MenuItem>
       <MenuItem onClick={onApiTokenClick}>{t('api_tokens')}</MenuItem>
       <MenuItem onClick={onLogoutClick}>{t('logout')}</MenuItem>
+      <Divider />
     </div>
   );
 
@@ -85,6 +87,7 @@ function UserMenu(props) {
         open={Boolean(anchorEl)}
         onClose={onClose}
       >
+        {isAuthenticated ? privateElements : false}
         <MenuItem
           className={`${className} menuItem`}
           component="a"
@@ -103,7 +106,6 @@ function UserMenu(props) {
         >
           {t('api_explorer')}
         </MenuItem>
-        {isAuthenticated ? privateElements : false}
       </Menu>
     </div>
   );

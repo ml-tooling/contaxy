@@ -33,13 +33,15 @@ function ProjectCard(props) {
     ? project.created_at.toLocaleString()
     : '';
 
-  const titleNode = project.display_name ? (
+  const subHeader = project.display_name ? (
     <>
-      <span>{project.display_name}</span>
-      <span className={`${className} cardTitle_projectId`}>({project.id})</span>
+      <div className={`${className} cardTitle_projectId`} title="Project Id">
+        {project.id}
+      </div>
+      <div>{createdAt}</div>
     </>
   ) : (
-    project.id
+    createdAt
   );
 
   return (
@@ -61,8 +63,8 @@ function ProjectCard(props) {
                 />
               </Avatar>
             }
-            title={titleNode}
-            subheader={createdAt}
+            title={project.display_name || project.id}
+            subheader={subHeader}
           />
           <CardContent className={`${className} cardContent`}>
             <Typography>{project.description}</Typography>
@@ -111,9 +113,7 @@ const StyledProjectCard = styled(ProjectCard)`
   }
 
   &.cardTitle_projectId {
-    margin-left: 8px;
-    color: rgba(0, 0, 0, 0.54);
-    font-size: 0.8rem;
+    font-size: 0.75rem;
   }
 
   &.avatar_highlight {
