@@ -90,7 +90,7 @@ function App() {
       .then((res) => {
         setOauthEnabled(res === '1');
       })
-      .catch((err) => {
+      .catch(() => {
         setOauthEnabled(false);
       });
   }, [isAuthenticated, setOauthEnabled]);
