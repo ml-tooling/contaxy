@@ -113,7 +113,9 @@ function AddProjectDialog(props) {
           CANCEL
         </Button>
         <Button
-          disabled={!isProjectIdValid || !projectInput.id}
+          disabled={
+            !isProjectNameValid || !isProjectIdValid || !projectInput.id
+          }
           onClick={() => onAdd(projectInput, onClose)}
           color="primary"
         >
