@@ -255,7 +255,7 @@ def get_default_environment_variables(
             endpoint = "{endpoint}"
         default_environment_variables[
             _ENV_VARIABLE_CONTAXY_SERVICE_URL
-        ] = f"{settings.CONTAXY_BASE_URL}projects/{project_id}/services/{deployment_id}/access/{endpoint}"
+        ] = f"{settings.CONTAXY_BASE_URL}/projects/{project_id}/services/{deployment_id}/access/{endpoint}"
 
     if compute_resources:
         if compute_resources.max_gpus is not None and compute_resources.max_gpus > 0:
