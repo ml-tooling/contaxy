@@ -1,12 +1,17 @@
-import React, { useReducer } from 'react';
+import React, { useReducer, useState } from 'react';
 
 import PropTypes from 'prop-types';
 import styled from 'styled-components';
 
 import Button from '@material-ui/core/Button';
 import TextField from '@material-ui/core/TextField';
+import showStandardSnackbar from '../app/showStandardSnackbar';
 
-import { authApi, getExternalLoginPageUrl } from '../services/contaxy-api';
+import {
+  authApi,
+  getExternalLoginPageUrl,
+  usersApi,
+} from '../services/contaxy-api';
 import GlobalStateContainer from '../app/store';
 
 function Login(props) {
@@ -15,25 +20,54 @@ function Login(props) {
     oauthEnabled,
   } = GlobalStateContainer.useContainer();
   const { className } = props;
-
+  const [isRegistration, setIsRegistration] = useState(false);
+  const initialFormState = {
+    username: '',
+    password: '',
+    password_confirmation: '',
+  };
   const [formInput, setFormInput] = useReducer(
     (state, newState) => ({ ...state, ...newState }),
-    {
-      username: '',
-      password: '',
-    }
+    initialFormState
   );
 
-  const handleSubmit = async (event) => {
-    // TODO: change the status to authenticated if login succeeded
-    event.preventDefault();
-    await authApi.requestToken('password', {
-      username: formInput.username,
-      password: formInput.password,
-      setAsCookie: true,
-    });
+  const login = async () => {
+    try {
+      await authApi.requestToken('password', {
+        username: formInput.username,
+        password: formInput.password,
+        setAsCookie: true,
+      });
+      setIsAuthenticated(true);
+    } catch (e) {
+      showStandardSnackbar(`Login failed!`);
+    }
+  };
 
-    setIsAuthenticated(true);
+  const register = async () => {
+    if (formInput.password !== formInput.password_confirmation) {
+      showStandardSnackbar('Passwords do not match!');
+      return;
+    }
+
+    try {
+      const user = await usersApi.createUser({
+        username: formInput.username,
+        password: formInput.password,
+      });
+      showStandardSnackbar(
+        `User ${user.username} successfully registered. You can now login.`
+      );
+      setIsRegistration(false);
+    } catch (e) {
+      showStandardSnackbar(`Could not register user. Reason: ${e.message}`);
+    }
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    if (isRegistration) register();
+    else login();
     return false;
   };
 
@@ -66,15 +100,27 @@ function Login(props) {
         defaultValue={formInput.password}
         onChange={handleInput}
       />
+      {isRegistration && (
+        <TextField
+          required
+          className={`${className} input`}
+          id="password_confirmation"
+          name="password_confirmation"
+          label="Password Confirm"
+          type="password"
+          variant="filled"
+          onChange={handleInput}
+        />
+      )}
       <Button
         type="submit"
         variant="contained"
         color="primary"
         className={className}
       >
-        Login
+        {!isRegistration && 'Login'}
+        {isRegistration && 'Register'}
       </Button>
-
       {oauthEnabled && <StyledSpan>-- or --</StyledSpan>}
       {oauthEnabled && (
         <Button
@@ -86,6 +132,15 @@ function Login(props) {
           External Login
         </Button>
       )}
+      <StyledSpan>-- or --</StyledSpan>
+      <Button
+        onClick={() => setIsRegistration(!isRegistration)}
+        className={className}
+        color="primary"
+      >
+        {!isRegistration && 'Register'}
+        {isRegistration && 'Back to Login'}
+      </Button>
     </form>
   );
 }
