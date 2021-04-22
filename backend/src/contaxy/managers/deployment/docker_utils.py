@@ -212,6 +212,7 @@ def handle_network(
             },
         )
 
+    # Note: connecting the backend container to the network will cause a connection drop on Macs, so the first service deploy call will be shown as failed, even though it succeeded. On Linux, this problem does not seem to exist
     backend_container = get_this_container(client)
     if backend_container:
         is_backend_connected_to_network = backend_container.attrs["NetworkSettings"][
