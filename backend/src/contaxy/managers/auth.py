@@ -2,7 +2,7 @@ import threading
 import time
 from collections import deque
 from datetime import datetime, timedelta, timezone
-from typing import Deque, List, Optional, Set, Union
+from typing import Deque, List, Optional, Set, Tuple, Union
 
 from cachetools import TTLCache
 from jose import JWTError, jwt
@@ -749,7 +749,7 @@ class AuthManager(AuthOperations):
         code: str,
         redirect_uri: str,
         state: Optional[str] = None,
-    ) -> OAuthToken:
+    ) -> Tuple[OAuthToken, Optional[User]]:
         """Implements the OAuth2 / OICD callback to finish the login process.
 
         The authorization `code` is exchanged for an access and ID token.
@@ -793,7 +793,7 @@ class AuthManager(AuthOperations):
             user = self.create_user(UserRegistration(email=email))
             user_id = user.id
 
-        return self._generate_token(user_id)
+        return self._generate_token(user_id), user
 
     # User Operations
 

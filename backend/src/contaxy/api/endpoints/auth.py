@@ -416,7 +416,7 @@ def login_callback(
     auth_manager = component_manager.get_auth_manager()
     # Needed for test setups
     schema = "http://" if os.getenv("OAUTHLIB_INSECURE_TRANSPORT") else "https://"
-    oauth_token = auth_manager.login_callback(
+    oauth_token, user = auth_manager.login_callback(
         code,
         os.path.join(
             schema,
@@ -426,6 +426,9 @@ def login_callback(
         ),
         state,
     )
+
+    if user:
+        auth_utils.create_user_project(user, component_manager.get_project_manager())
 
     # ! Currently, the webapp needs to be accessible via the same host/port
     response = RedirectResponse(

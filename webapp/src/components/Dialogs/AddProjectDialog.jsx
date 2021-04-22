@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 import { useTranslation } from 'react-i18next';
 import PropTypes from 'prop-types';
@@ -15,43 +15,63 @@ import { projectsApi } from '../../services/contaxy-api';
 import showStandardSnackbar from '../../app/showStandardSnackbar';
 
 const VALID_PROJECT_ID = new RegExp('^[a-z0-9-:/.]{0,25}$');
-const VALID_PROJECT_NAME = new RegExp('^[a-zA-Z0-9-s]*$');
+const VALID_PROJECT_NAME = new RegExp('^[a-zA-Z0-9-\\s]*$');
 function AddProjectDialog(props) {
   const { className, onAdd, onClose } = props;
   const { t } = useTranslation();
+  const [projectId, setProjectId] = useState('');
+  const [projectName, setProjectName] = useState('');
+  const [projectDescription, setProjectDescription] = useState('');
 
-  const [projectInput, setProjectInput] = useState({
-    id: '',
-    name: '',
-    description: '',
-  });
-  const [isProjectIdDisabled, setIsProjectIdDisabled] = useState(true);
+  const requestId = useRef(new Date().getTime());
 
-  const changeInput = async (e) => {
-    const targetName = e.target.name;
-    const targetValue = e.target.value;
-    setProjectInput({ ...projectInput, [targetName]: targetValue });
+  useEffect(() => {
+    // when the component unmounts, change the requestId so that pending requests don't try to modify the state.
+    return () => {
+      requestId.current = new Date().getTime();
+    };
+  }, []);
+
+  const changeProjectId = (e) => {
+    setProjectId(e.target.value);
   };
 
-  const changeName = async (e) => {
-    const input = e.target.value;
-    let projectId = projectInput.id;
-    if (input && input.length > 3) {
-      try {
-        projectId = await projectsApi.suggestProjectId(input);
-      } catch (err) {
-        showStandardSnackbar(
-          'Error in getting a suggested project id. Please edit it manually.'
-        );
-      }
-    }
+  const [isProjectIdDisabled, setIsProjectIdDisabled] = useState(true);
 
-    setProjectInput({ ...projectInput, name: input, id: projectId });
+  const changeDescription = async (e) => {
+    setProjectDescription(e.target.value);
+  };
+
+  const changeName = (e) => {
+    const input = e.target.value;
+    requestId.current = new Date().getTime();
+    if (input && input.length > 3) {
+      // This construct allows to cancel modifying the state when the name already changed before the request succeeds.
+      // Also, the request to the backend is made after a delay and, again, only if the name did not change until then.
+      ((innerUid) => {
+        setTimeout(() => {
+          if (requestId.current !== innerUid) return;
+          projectsApi
+            .suggestProjectId(input)
+            .then((id) => {
+              if (requestId.current !== innerUid) return;
+              setProjectId(id);
+            })
+            .catch(() => {
+              if (requestId.current !== innerUid) return;
+              showStandardSnackbar(
+                'Error in getting a suggested project id. Please edit it manually.'
+              );
+            });
+        }, 500);
+      })(requestId.current);
+    }
+    setProjectName(input);
     setIsProjectIdDisabled(true);
   };
 
-  const isProjectIdValid = VALID_PROJECT_ID.test(projectInput.id);
-  const isProjectNameValid = VALID_PROJECT_NAME.test(projectInput.name);
+  const isProjectIdValid = VALID_PROJECT_ID.test(projectId);
+  const isProjectNameValid = VALID_PROJECT_NAME.test(projectName);
 
   let displayNameHelperText = 'The name must be at least 4 characters long.';
   if (!isProjectNameValid) {
@@ -67,7 +87,7 @@ function AddProjectDialog(props) {
           label="Project Displayname"
           name="name"
           type="text"
-          value={projectInput.name}
+          value={projectName}
           onChange={changeName}
           error={!isProjectNameValid}
           helperText={displayNameHelperText}
@@ -81,8 +101,8 @@ function AddProjectDialog(props) {
             label="Project Id"
             name="id"
             type="text"
-            value={projectInput.id}
-            onChange={changeInput}
+            value={projectId}
+            onChange={changeProjectId}
             error={!isProjectIdValid}
             helperText={
               !isProjectIdValid
@@ -102,8 +122,8 @@ function AddProjectDialog(props) {
           label="Project Description"
           name="description"
           type="text"
-          value={projectInput.description}
-          onChange={changeInput}
+          value={projectDescription}
+          onChange={changeDescription}
           margin="dense"
           fullWidth
         />
@@ -113,8 +133,17 @@ function AddProjectDialog(props) {
           CANCEL
         </Button>
         <Button
-          disabled={!isProjectIdValid || !projectInput.id}
-          onClick={() => onAdd(projectInput, onClose)}
+          disabled={!isProjectNameValid || !isProjectIdValid || !projectId}
+          onClick={() =>
+            onAdd(
+              {
+                id: projectId,
+                name: projectName,
+                description: projectDescription,
+              },
+              onClose
+            )
+          }
           color="primary"
         >
           ADD

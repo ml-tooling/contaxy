@@ -102,8 +102,10 @@ const useGlobalState = (_initialState) => {
         listedProjects = listedProjects.filter(
           (project) => project.id !== userProject.id
         );
+        listedProjects = [userProject, ...listedProjects];
       }
-      setProjects([userProject, ...listedProjects]);
+
+      setProjects(listedProjects);
     } catch (err) {
       setProjects([]);
     }
