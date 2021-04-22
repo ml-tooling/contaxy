@@ -60,7 +60,9 @@ function Login(props) {
       );
       setIsRegistration(false);
     } catch (e) {
-      showStandardSnackbar(`Could not register user. Reason: ${e.message}`);
+      showStandardSnackbar(
+        `Could not register user. Reason: ${e.body.message}`
+      );
     }
   };
 
