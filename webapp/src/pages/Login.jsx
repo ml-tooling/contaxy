@@ -74,7 +74,8 @@ function Login(props) {
       >
         Login
       </Button>
-      <br />
+
+      {oauthEnabled && <StyledSpan>-- or --</StyledSpan>}
       {oauthEnabled && (
         <Button
           href={getExternalLoginPageUrl()}
@@ -96,6 +97,11 @@ Login.propTypes = {
 Login.defaultProps = {
   className: '',
 };
+
+const StyledSpan = styled.span`
+  color: ${(props) => props.theme.palette.gray};
+  font-size: 0.75rem;
+`;
 
 const StyledLogin = styled(Login)`
   &.container {
