@@ -6,11 +6,14 @@ import styled from 'styled-components';
 import Button from '@material-ui/core/Button';
 import TextField from '@material-ui/core/TextField';
 
-import { authApi } from '../services/contaxy-api';
+import { authApi, getExternalLoginPageUrl } from '../services/contaxy-api';
 import GlobalStateContainer from '../app/store';
 
 function Login(props) {
-  const { setIsAuthenticated } = GlobalStateContainer.useContainer();
+  const {
+    setIsAuthenticated,
+    oauthEnabled,
+  } = GlobalStateContainer.useContainer();
   const { className } = props;
 
   const [formInput, setFormInput] = useReducer(
@@ -71,6 +74,17 @@ function Login(props) {
       >
         Login
       </Button>
+      <br />
+      {oauthEnabled && (
+        <Button
+          href={getExternalLoginPageUrl()}
+          variant="contained"
+          color="primary"
+          className={className}
+        >
+          External Login
+        </Button>
+      )}
     </form>
   );
 }

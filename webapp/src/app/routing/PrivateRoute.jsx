@@ -11,8 +11,6 @@ function PrivateRoute({
   componentProps,
   ...rest
 }) {
-  const redirectRoute = useDefaultLogin ? '/default-login' : '/login';
-
   return (
     <Route
       {...rest}
@@ -21,7 +19,7 @@ function PrivateRoute({
           <Component {...props} {...componentProps} />
         ) : (
           <Redirect
-            to={{ pathname: redirectRoute, state: { from: props.location } }} // eslint-disable-line react/prop-types
+            to={{ pathname: '/login', state: { from: props.location } }} // eslint-disable-line react/prop-types
           />
         )
       }

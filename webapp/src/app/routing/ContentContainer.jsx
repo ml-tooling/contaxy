@@ -8,22 +8,19 @@ import Toolbar from '@material-ui/core/Toolbar';
 
 import APP_PAGES, { APP_DRAWER_ITEM_TYPES } from '../../utils/app-pages';
 import DefaultLoginRoute from './DefaultLoginRoute';
-import ExternalLoginRoute from './ExternalLoginRoute';
 import GlobalStateContainer from '../store';
 import PrivateRoute from './PrivateRoute';
 
 function ContentContainer(props) {
   const { oauthEnabled } = GlobalStateContainer.useContainer();
   const { additionalPages, className, isAuthenticated } = props;
+
   const routes = [...APP_PAGES, ...additionalPages]
     .filter((item) => item.TYPE === APP_DRAWER_ITEM_TYPES.link)
     .map((item) => {
-      const ConfiguredLoginRoute = oauthEnabled
-        ? ExternalLoginRoute
-        : DefaultLoginRoute;
       const RouteElement = item.REQUIRE_LOGIN
         ? PrivateRoute
-        : ConfiguredLoginRoute;
+        : DefaultLoginRoute;
 
       return (
         <RouteElement
@@ -32,6 +29,7 @@ function ContentContainer(props) {
           exact
           component={item.COMPONENT}
           isAuthenticated={isAuthenticated}
+          useDefaultLogin={!oauthEnabled}
           componentProps={item.PROPS}
         />
       );
