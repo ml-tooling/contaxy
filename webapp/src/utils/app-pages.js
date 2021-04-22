@@ -1,3 +1,4 @@
+import ExternalLogin from '../pages/ExternalLogin';
 import Files from '../pages/Files/Files';
 import Iframe from '../pages/Iframe';
 import Jobs from '../pages/Jobs';
@@ -57,12 +58,20 @@ export default [
     COMPONENT: Jobs,
   },
   {
+    NAME: 'default-login',
+    PATH: '/default-login',
+    REQUIRE_LOGIN: false,
+    APP_DRAWER_ITEM: false,
+    TYPE: APP_DRAWER_ITEM_TYPES.link,
+    COMPONENT: Login,
+  },
+  {
     NAME: 'login',
     PATH: '/login',
     REQUIRE_LOGIN: false,
     APP_DRAWER_ITEM: false,
     TYPE: APP_DRAWER_ITEM_TYPES.link,
-    COMPONENT: Login,
+    COMPONENT: ExternalLogin,
   },
   // TODO: remove this hard-coded embedding of Expyriments
   // {

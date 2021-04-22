@@ -25,7 +25,7 @@ export function getFileUploadUrl(projectId, fileKey) {
   );
 }
 
-export function getLoginPageUrl() {
+export function getExternalLoginPageUrl() {
   return `${ENDPOINT_AUTH}/login-page`;
 }
 

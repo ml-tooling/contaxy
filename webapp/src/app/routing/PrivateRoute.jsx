@@ -7,9 +7,12 @@ import PropTypes from 'prop-types';
 function PrivateRoute({
   component: Component,
   isAuthenticated,
+  useDefaultLogin,
   componentProps,
   ...rest
 }) {
+  const redirectRoute = useDefaultLogin ? '/default-login' : '/login';
+
   return (
     <Route
       {...rest}
@@ -18,7 +21,7 @@ function PrivateRoute({
           <Component {...props} {...componentProps} />
         ) : (
           <Redirect
-            to={{ pathname: '/login', state: { from: props.location } }} // eslint-disable-line react/prop-types
+            to={{ pathname: redirectRoute, state: { from: props.location } }} // eslint-disable-line react/prop-types
           />
         )
       }
@@ -30,11 +33,13 @@ PrivateRoute.propTypes = {
   component: PropTypes.oneOfType([PropTypes.func, PropTypes.object]).isRequired,
   componentProps: PropTypes.instanceOf(Object),
   isAuthenticated: PropTypes.bool,
+  useDefaultLogin: PropTypes.bool,
 };
 
 PrivateRoute.defaultProps = {
   componentProps: {},
   isAuthenticated: false,
+  useDefaultLogin: true,
 };
 
 export default PrivateRoute;
