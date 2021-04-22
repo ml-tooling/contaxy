@@ -30,7 +30,7 @@ function Files(props) {
   const [data, setData] = useState([]);
   const [widgetData, setWidgetData] = useState({
     totalSize: '0',
-    lastUpdated: '0',
+    lastUpdated: '-',
   });
   const { activeProject } = GlobalStateContainer.useContainer();
   const [isUploadFileDialogOpen, setUploadFileDialogOpen] = useState(false);
