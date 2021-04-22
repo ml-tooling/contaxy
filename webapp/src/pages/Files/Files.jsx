@@ -54,7 +54,10 @@ function Files(props) {
       });
       setWidgetData({
         totalSize: `${(totalSize / 1000 ** 3).toFixed(2)} GB`,
-        lastUpdated: moment(lastUpdated).startOf('minute').fromNow(),
+        lastUpdated:
+          lastUpdated > 0
+            ? moment(lastUpdated).startOf('minute').fromNow()
+            : '-',
       });
     }
   }, []);
