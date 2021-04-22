@@ -96,33 +96,31 @@ function Services(props) {
   );
 
   /* eslint-disable react-hooks/exhaustive-deps */
-  const onExecuteAction = useCallback(
-    () => async (resource, resourceAction) => {
-      try {
-        // servicesApi.apiClient.agent.redirects(0);
-        // const response = await servicesApi.executeServiceAction(
-        //   activeProject.id,
-        //   resource.id,
-        //   resourceAction.action_id
-        // );
+  const onExecuteAction = useCallback(async (resource, resourceAction) => {
+    try {
+      // servicesApi.apiClient.agent.redirects(0);
+      // const response = await servicesApi.executeServiceAction(
+      //   activeProject.id,
+      //   resource.id,
+      //   resourceAction.action_id
+      // );
 
-        if (resourceAction.instructions) {
-          resourceAction.instructions.some((instruction) => {
-            if (instruction.type && instruction.type === 'new-tab') {
-              window.open(instruction.url);
-              return true;
-            }
+      if (resourceAction.instructions) {
+        resourceAction.instructions.some((instruction) => {
+          if (instruction.type && instruction.type === 'new-tab') {
+            window.open(instruction.url);
+            return true;
+          }
 
-            return false;
-          });
-        }
-      } catch (e) {
-        showStandardSnackbar(
-          `Could not execute action '${resourceAction.action_id}' for service '${resource.id}'. Reason: ${e}`
-        );
+          return false;
+        });
       }
+    } catch (e) {
+      showStandardSnackbar(
+        `Could not execute action '${resourceAction.action_id}' for service '${resource.id}'. Reason: ${e}`
+      );
     }
-  );
+  });
 
   const onShowServiceActions = useCallback(
     async (projectId, service) => {
