@@ -15,7 +15,7 @@ import { projectsApi } from '../../services/contaxy-api';
 import showStandardSnackbar from '../../app/showStandardSnackbar';
 
 const VALID_PROJECT_ID = new RegExp('^[a-z0-9-:/.]{0,25}$');
-const VALID_PROJECT_NAME = new RegExp('^[a-zA-Z0-9-s]*$');
+const VALID_PROJECT_NAME = new RegExp('^[a-zA-Z0-9-\\s]*$');
 function AddProjectDialog(props) {
   const { className, onAdd, onClose } = props;
   const { t } = useTranslation();
