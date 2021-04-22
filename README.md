@@ -42,13 +42,35 @@ Contaxy is an extensible collaborative platform for teams to share files and dep
 > _**Note**: Currently, not all Docker images are pushed to DockerHub. So, the project has to be built locally, see the [build section](#build)_.
 
 For the Docker deployment, have a look at the [docker-compose.yaml file](./test_deployment/docker-compose.yml); you can start it via `docker compose up`. For Kubernetes, have a look at the [deploy script](./test_deployment/kubernetes/deploy.sh).
+
 > _**Important**: The configurations are not meant to be used for production as the JWT secret is the default one and the ports of all services instead of only the core service are published; change the configuration accordingly._
 
 For a list of all configurable environment variables, have a look at [the config file](./backend/src/contaxy/config.py#L31). All fields of the `Settings` class represent an environment variable that can be set.
 
+#### Deploy Behind a Proxy
+
+If you deploy Contaxy behind a proxy, you can define a base url. It must not end with a slash. For example, if the web app should be accessible behind /test/app instead of /app, the CONTAXY_BASE_URL would be defined as /test.
+
+#### Use external OAuth2/OIDC Identity Provider
+
+The application needs to be registered at the desired identity provider as a prerequisite. The IDP requires a redirect URI which is `https://{CONTAXY_HOST}/api/auth/oauth/callback`. For further details on how to registering the application at your IDP you should refer to it's documentation (e.g. [Google](https://developers.google.com/identity/protocols/oauth2/web-server)). Moreover, the following env variables need to be added to contaxy:
+
+- CONTAXY_HOST - The domain where contaxy gets deployed without scheme and path, e.g. if the app will be accessible under `https://home.contaxy.com/app` then you need to set `home.contaxy.com`.
+- OIDC_AUTH_ENABLED - Set to 1
+- OIDC_AUTH_URL - The OAuth2 authentication endpoint of the IDP
+- OIDC_TOKEN_URL - The OAuth2 endpint of the IDP to exchange an authorization code for an access token / identity token
+- OIDC_CLIENT_ID - The client ID of the application obtained from the IDP during app registration
+- OIDC_CLIENT_SECRET - The client secret of the application obtained from the IDP during app registration
+
+If you want to prevent user registration via the default username / password flow, then you can set USER_REGISTRATION_ENABLED=0. You still need to initially create an admin user.
+
+#### Initialize and register admin user
+
+In order to initialze the system and create the admin user, visit `http://localhost:30010/api/system/admin-form` and submit the form. This can only be done once.
+
 ### Usage
 
-After deploying, visit `http://localhost:30010/app/`. If you deployed it via the `docker-compose.yaml` file, you can login with the credentials `Foo:Foobar`. If you deployed the Kubernetes version, you have to call the endpoint `/api/seed/default` in the browser once first.
+After initializing, visit `http://localhost:30010/app/`. If you deployed it via the `docker-compose.yaml` file, you can login with the credentials `Foo:Foobar`. If you deployed the Kubernetes version, you have to call the endpoint `/api/seed/default` in the browser once first.
 
 ## Development
 
@@ -80,7 +102,7 @@ To run the unit/integration tests, you have the following options:
 2. in the root folder, execute `python build.py --test`
 3. `cd` into the `backend/` folder and run `PYTHONPATH=$(pwd) pytest`
 
-By default, unit tests are executed (marked via `pytest.mark.unit`). If you want to execute the integration tests, pass `--test-marker integration` to *options 1* or *2* or `-m "integration"` to *option 3*. This can be a valid pytest markexpression, hence it would also be possible to execute unit *and* integration tests by passing `"unit and integration"` to one of the flags. If neither unit nor integration tests should be executed, pass an unknown marker such as `notests`.
+By default, unit tests are executed (marked via `pytest.mark.unit`). If you want to execute the integration tests, pass `--test-marker integration` to _options 1_ or _2_ or `-m "integration"` to _option 3_. This can be a valid pytest markexpression, hence it would also be possible to execute unit _and_ integration tests by passing `"unit and integration"` to one of the flags. If neither unit nor integration tests should be executed, pass an unknown marker such as `notests`.
 By default, the deployment tests are executed for the DockerDeploymentManager. If you want to execute them for the `KubernetesDeploymentManager`, set the environment variables `KUBERNETES_INTEGRATION_TESTS=True` and `DEPLOYMENT_MANAGER=kubernetes` (for example in an `.env` file in the [backend directory](./backend)).
 Using option 1 (`act`) will create a Kubernetes cluster. If you don't use `act`, make sure that a Kubernetes cluster is accessible.
 
