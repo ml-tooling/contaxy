@@ -145,9 +145,15 @@ class ProjectOperationsTests(ABC):
             )
             created_projects_without_user.append(created_project)
 
-        assert len(self.project_manager.list_projects()) == len(
-            created_projects_without_user
+        # when running the test against an endpoint, list_projects might also return the project belonging to the user which is a technical project
+        projects = list(
+            filter(
+                lambda project: not project.technical_project,
+                self.project_manager.list_projects(),
+            )
         )
+        assert len(projects) == len(created_projects_without_user)
+
 
         # Set an authorized user in the request state
         username = faker.simple_profile()["username"]
@@ -223,7 +229,14 @@ class ProjectOperationsTests(ABC):
         with pytest.raises(ResourceNotFoundError):
             self.project_manager.get_project(created_project.id)
 
-        assert len(self.project_manager.list_projects()) == 0
+        # when running the test against an endpoint, list_projects might also return the project belonging to the user which is a technical project
+        projects = list(
+            filter(
+                lambda project: not project.technical_project,
+                self.project_manager.list_projects(),
+            )
+        )
+        assert len(projects) == 0
 
     def test_project_member_handling(self, faker: Faker) -> None:
         project_name = faker.bs()
