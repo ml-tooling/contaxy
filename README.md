@@ -26,7 +26,7 @@
   <a href="https://github.com/ml-tooling/opyrator/releases">Changelog</a>
 </p>
 
-Contaxy is an extensible collaborative platform for teams to share files and deploy services and jobs easily using Docker or Kubernetes.The platform is secured so only members of a project can access its resources (files, services, jobs). Its strong extension system allows to add further functionality to the backend and web app and also to override the behavior of Contaxy's core endpoints. By adding project members or generating fine-granular access tokens, resources can easily be shared with others. Deploying a service and securely sharing it with a stakeholder? No problem. It is based on the [Machine Learning Lab project](https://github.com/SAP/machine-learning-lab) with a completely rewritten backend and web app using the newer React functions.
+Contaxy is an extensible collaborative platform for teams to share files and deploy services and jobs easily using Docker or Kubernetes.The platform is secured so only members of a project can access its resources (files, services, jobs). Its strong extension system allows to add further functionality to the backend and web app and also to override the behavior of Contaxy's core endpoints. By adding project members or generating fine-granular access tokens, resources can easily be shared with others. Deploying a service and securely sharing it with a stakeholder? No problem.
 
 ## Highlights
 
@@ -66,11 +66,11 @@ If you want to prevent user registration via the default username / password flo
 
 #### Initialize and register admin user
 
-In order to initialze the system and create the admin user, visit `http://localhost:30010/api/system/admin-form` and submit the form. This can only be done once.
+In order to initialze the system and create the admin user, call the endpoint `/api/system/admin-form` on the started instance and submit the form. This can only be done once.
 
 ### Usage
 
-After initializing, visit `http://localhost:30010/app/`. If you deployed it via the `docker-compose.yaml` file, you can login with the credentials `Foo:Foobar`. If you deployed the Kubernetes version, you have to call the endpoint `/api/seed/default` in the browser once first.
+After initializing, visit `/app/`.
 
 ## Development
 
