@@ -54,6 +54,10 @@ services:
         ports:
             - "127.0.0.1:30013:9000"
 
+networks:
+    default:
+        name: contaxy
+
     # contaxy-extension-workspace:
     #     image: contaxy-extension-workspace
     #     restart: always
