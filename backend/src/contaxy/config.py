@@ -42,7 +42,7 @@ class Settings(BaseSettings):
 
     # TODO: handle HTTP/HTTPS
     # bypass Contaxy nginx and access FastAPI directly
-    CONTAXY_API_ENDPOINT: str = "http://contaxy:8090/api"
+    CONTAXY_API_ENDPOINT: str = "http://contaxy:8090"
 
     # The system namespace used to managed different versions
     SYSTEM_NAMESPACE: str = "ctxy"
