@@ -17,7 +17,7 @@ function Iframe(props) {
   if (projectSpecific) {
     // use '?' if url does not contain a query parameter yet, '&' otherwise
     const delimiter = url.indexOf('?') > -1 ? '&' : '?';
-    iframeUrl = `${url}${delimiter}project=${activeProject.id}`;
+    iframeUrl = `${url}${delimiter}project_id=${activeProject.id}`;
   }
 
   // const handleOnLoad = () => {
