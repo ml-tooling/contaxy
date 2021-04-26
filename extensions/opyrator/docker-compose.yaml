@@ -1,0 +1,23 @@
+version: "3.9"
+
+services:
+    contaxy-extension-opyrator:
+        image: contaxy-extension-opyrator
+        restart: always
+        ports:
+            - "127.0.0.1:30015:8080"
+        environment:
+            - CONTAXY_API_ENDPOINT=http://contaxy:8080/api
+            - CONTAXY_SERVICE_URL=/projects/{project_id}/services/contaxy-extension-opyrator/access/8080
+            - CONTAXY_DEPLOYMENT_NAME=contaxy-extension-opyrator
+        labels:
+            ctxy.namespace: "ctxy"
+            ctxy.deploymentType: "extension"
+            ctxy.deploymentName: "contaxy-extension-opyrator"
+            ctxy.projectName: "ctxy-global"
+            ctxy.ui_extension_endpoint: "8080/ui"
+            ctxy.api_extension_endpoint: "8080/api"
+
+networks:
+    default:
+        name: contaxy
