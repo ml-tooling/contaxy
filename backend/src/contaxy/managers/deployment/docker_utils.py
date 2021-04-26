@@ -220,7 +220,7 @@ def handle_network(
         ].get(network_name, False)
         if not is_backend_connected_to_network:
             try:
-                network.connect(backend_container)
+                network.connect(backend_container, aliases=["contaxy"])
             except docker.errors.APIError:
                 # Remove the network again as it is not connected to any service.
                 network.remove()
