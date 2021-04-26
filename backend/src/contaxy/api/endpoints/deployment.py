@@ -91,6 +91,7 @@ def suggest_service_config(
         project_id, container_image
     )
 
+
 @service_router.get(
     "/projects/{project_id}/services/{service_id}",
     operation_id=ExtensibleOperations.GET_SERVICE_METADATA.value,
@@ -186,9 +187,22 @@ def deploy_service(
 
     The action mechanism is further explained in the description of the [list_deploy_service_actions](#services/list_deploy_service_actions).
     """
-    component_manager.verify_access(
+    authorized_access = component_manager.verify_access(
         token, f"projects/{project_id}/services", AccessLevel.WRITE
     )
+
+    project_token = component_manager.get_auth_manager().create_token(
+        token_subject=authorized_access.authorized_subject,
+        scopes=[
+            auth_utils.construct_permission(f"projects/{project_id}", AccessLevel.READ)
+        ],
+        token_type=TokenType.API_TOKEN,
+        description="Injected by the Contaxy endpoint upon service deployment.",
+        token_purpose=TokenPurpose.SERVICE_ACCESS_TOKEN,
+    )
+    if service.parameters is None:
+        service.parameters = {}
+    service.parameters["CONTAXY_API_TOKEN"] = project_token
 
     extension_id = None
     if action_id:
