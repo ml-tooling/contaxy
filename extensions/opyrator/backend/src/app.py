@@ -73,4 +73,4 @@ async def deploy(
 #     """
 
 #     return HTMLResponse(content=content)
-api.mount('/ui', StaticFiles(directory='/resources/webapp'), name='webapp')
+api.mount('/ui', StaticFiles(directory='/resources/webapp', html=True), name='webapp')

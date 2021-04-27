@@ -15,7 +15,7 @@ services:
             ctxy.deploymentType: "extension"
             ctxy.deploymentName: "contaxy-extension-opyrator"
             ctxy.projectName: "ctxy-global"
-            ctxy.ui_extension_endpoint: "8080/ui"
+            ctxy.ui_extension_endpoint: "8080/ui/"
             ctxy.api_extension_endpoint: "8080/api"
 
 networks:
