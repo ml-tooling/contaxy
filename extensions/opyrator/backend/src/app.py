@@ -18,7 +18,7 @@ CONTAXY_SERVICE_URL = os.getenv("CONTAXY_SERVICE_URL", "")
 api = FastAPI()
 
 
-@api.post("/deploy/")
+@api.post("/deploy")
 async def deploy(
     project_id: str = None,
     filekey: str = Form(...),
