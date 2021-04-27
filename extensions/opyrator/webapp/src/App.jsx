@@ -2,6 +2,7 @@ import React, { useRef } from 'react';
 
 import Button from '@material-ui/core/Button';
 import TextField from '@material-ui/core/TextField';
+import Typography from '@material-ui/core/Typography';
 
 import './App.css';
 
@@ -18,10 +19,15 @@ function App() {
   return (
     <div className="App">
       <header className="App-header">
-        <p>Deploy your Opyrator!</p>
+        <Typography variant="h1">Deploy your Opyrator!</Typography>
+        <Typography>
+          Upload an Opyrator file and deploy it via Contaxy!
+        </Typography>
         <form noValidate autoComplete="off">
           <TextField label="File key" variant="filled" inputRef={valueRef} />
-          <Button variant="contained" onClick={handleSubmit} />
+          <Button variant="contained" onClick={handleSubmit}>
+            Submit
+          </Button>
         </form>
       </header>
     </div>
