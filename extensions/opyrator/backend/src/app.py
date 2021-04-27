@@ -7,7 +7,7 @@ from contaxy.clients import DeploymentManagerClient
 from contaxy.clients.shared import BaseUrlSession
 from contaxy.schema import ServiceInput
 import os
-
+from starlette.staticfiles import StaticFiles
 
 CONTAXY_API_ENDPOINT = os.getenv("CONTAXY_API_ENDPOINT", None)
 if not CONTAXY_API_ENDPOINT:
@@ -46,30 +46,31 @@ async def deploy(
     )
 
 
-@api.get("/ui")
-async def get_ui(project_id: str = None) -> Any:
-    # content = """
-    #     <body>
-    #     <form action="/files/" enctype="multipart/form-data" method="post">
-    #     <input name="files" type="file" multiple>
-    #     <input type="submit">
-    #     </form>
-    #     <form action="/uploadfiles/" enctype="multipart/form-data" method="post">
-    #     <input name="files" type="file" multiple>
-    #     <input type="submit">
-    #     </form>
-    #     </body>
-    # """
-    print(project_id)
-    service_url = CONTAXY_SERVICE_URL.replace("{project_id}", project_id) if project_id else CONTAXY_SERVICE_URL
-    content = f"""
-        <body>
-        <form action="{service_url}/deploy/" method="post">
-            <label for="filekey">Filekey</label>
-            <input id="filekey" name="filekey" type="text">
-            <input type="submit">
-        </form>
-        </body>
-    """
+# @api.get("/ui")
+# async def get_ui(project_id: str = None) -> Any:
+#     # content = """
+#     #     <body>
+#     #     <form action="/files/" enctype="multipart/form-data" method="post">
+#     #     <input name="files" type="file" multiple>
+#     #     <input type="submit">
+#     #     </form>
+#     #     <form action="/uploadfiles/" enctype="multipart/form-data" method="post">
+#     #     <input name="files" type="file" multiple>
+#     #     <input type="submit">
+#     #     </form>
+#     #     </body>
+#     # """
+#     print(project_id)
+#     service_url = CONTAXY_SERVICE_URL.replace("{project_id}", project_id) if project_id else CONTAXY_SERVICE_URL
+#     content = f"""
+#         <body>
+#         <form action="{service_url}/deploy/" method="post">
+#             <label for="filekey">Filekey</label>
+#             <input id="filekey" name="filekey" type="text">
+#             <input type="submit">
+#         </form>
+#         </body>
+#     """
 
-    return HTMLResponse(content=content)
+#     return HTMLResponse(content=content)
+api.mount('/ui', StaticFiles(directory='/resources/webapp'), name='webapp')

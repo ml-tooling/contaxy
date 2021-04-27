@@ -13,7 +13,7 @@ RUN \
   && apt-get install -y libpq-dev
 
 # Install gunicorn and uvicorn to run FastAPI optimized
-RUN pip install --no-cache-dir "uvicorn[standard]" gunicorn fastapi faker
+RUN pip install --no-cache-dir "uvicorn[standard]" gunicorn fastapi faker aiofiles
 
 RUN \
     mkdir /resources
@@ -24,6 +24,7 @@ WORKDIR /resources/contaxy
 RUN pip install .
 
 COPY backend/src/ /resources/app
+COPY backend/webapp /resources/webapp
 
 COPY ./docker/entrypoint.sh /resources/entrypoint.sh
 RUN chmod +x /resources/entrypoint.sh
