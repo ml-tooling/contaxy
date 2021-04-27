@@ -51,7 +51,7 @@ class DeploymentManager(DeploymentOperations):
             for endpoint in service_metadata.endpoints:
                 resource_actions.append(
                     ResourceAction(
-                        action_id=f"{ACTION_ACCESS}{ACTION_DELIMITER}{endpoint}",
+                        action_id=f"{ACTION_ACCESS}{ACTION_DELIMITER}{endpoint.replace('/', '')}",
                         display_name=f"Endpoint: {endpoint}",
                         instructions=[
                             {
