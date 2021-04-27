@@ -1,12 +1,15 @@
 import React, { useRef } from 'react';
 
+import PropTypes from 'prop-types';
+import styled from 'styled-components';
+
 import Button from '@material-ui/core/Button';
 import TextField from '@material-ui/core/TextField';
 import Typography from '@material-ui/core/Typography';
 
 import './App.css';
 
-function App() {
+function App({ className }) {
   const valueRef = useRef('');
   const handleSubmit = () => {
     // '/ui/' is the route of the Opyrator extension webapp
@@ -14,9 +17,7 @@ function App() {
     const formData = new global.FormData();
     formData.append('filekey', valueRef.current.value);
 
-    global
-      .fetch(url, { method: 'POST', body: formData })
-      .then((res) => console.log(res));
+    global.fetch(url, { method: 'POST', body: formData }).then(() => {});
   };
 
   return (
@@ -27,8 +28,13 @@ function App() {
           Upload an Opyrator file and deploy it via Contaxy!
         </Typography>
         <form noValidate autoComplete="off">
-          <TextField label="File key" variant="filled" inputRef={valueRef} />
-          <Button variant="contained" onClick={handleSubmit}>
+          <TextField
+            className={`${className} formTextField`}
+            label="File key"
+            variant="filled"
+            inputRef={valueRef}
+          />
+          <Button color="primary" onClick={handleSubmit} variant="contained">
             Submit
           </Button>
         </form>
@@ -37,4 +43,19 @@ function App() {
   );
 }
 
-export default App;
+App.propTypes = {
+  className: PropTypes.string,
+};
+
+App.defaultProps = {
+  className: '',
+};
+
+const StyledApp = styled(App)`
+  &.formTextField {
+    display: block;
+    margin-bottom: 8px;
+  }
+`;
+
+export default StyledApp;
