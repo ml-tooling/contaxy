@@ -9,11 +9,14 @@ import './App.css';
 function App() {
   const valueRef = useRef('');
   const handleSubmit = () => {
-    const url = `${window.location.pathname.substring(
-      0,
-      window.location.pathname.lastIndexOf('/')
-    )}/deplopy`;
-    global.fetch(url, { method: 'POST' }).then((res) => console.log(res));
+    // '/ui/' is the route of the Opyrator extension webapp
+    const url = `${window.location.pathname.split('/ui/')[0]}/deploy`;
+    const formData = new global.FormData();
+    formData.append('filekey', valueRef.current.value);
+
+    global
+      .fetch(url, { method: 'POST', body: formData })
+      .then((res) => console.log(res));
   };
 
   return (
