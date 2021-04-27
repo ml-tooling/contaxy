@@ -21,22 +21,29 @@ api = FastAPI()
 @api.post("/deploy")
 async def deploy(
     project_id: str = None,
-    filekey: str = Form(...),
+    filekey: str = Form(None),
+    filedata: str = Form(None),
     token: str = Depends(get_api_token),
 ) -> Any:
     if not token:
         raise UnauthenticatedError("No token provided.")
     if not project_id:
         raise ValueError("Project information missing.")
-    if not filekey:
+    if not filekey and not filedata:
         raise ValueError("A file key must be provided.")
+
+    parameters = {}
+    if filekey:
+        parameters["OPYRATOR_FILE_KEY"] = filekey
+    elif filedata:
+        parameters["OPYRATOR_FILE_DATA"] = filedata
 
     service = ServiceInput(
         container_image="opyrator-contaxy-playground",
         display_name=f"opyrator-{project_id}-{filekey}",
         metadata={"ctxy.deploymentSource": "opyrator-extension"},
         endpoints=["8080/"],
-        parameters={"OPYRATOR_FILE": filekey},
+        parameters=parameters,
     )
 
     session = BaseUrlSession(base_url=CONTAXY_API_ENDPOINT)
