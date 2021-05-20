@@ -69,12 +69,15 @@ def check_health(
     responses={**AUTH_ERROR_RESPONSES},
 )
 def get_system_statistics(
+    include_technical: bool = True,
     component_manager: ComponentManager = Depends(get_component_manager),
     token: str = Depends(get_api_token),
 ) -> Any:
     """Returns statistics about this instance."""
     component_manager.verify_access(token, "system", AccessLevel.READ)
-    return component_manager.get_system_manager().get_system_statistics()
+    return component_manager.get_system_manager().get_system_statistics(
+        include_technical
+    )
 
 
 @router.post(

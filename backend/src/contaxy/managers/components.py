@@ -160,6 +160,9 @@ class ComponentManager:
                 self.get_json_db_manager(),
                 self.get_auth_manager(),
                 self.get_project_manager(),
+                self.get_service_manager(),
+                self.get_job_manager(),
+                self.get_file_manager(),
             )
 
         assert self._system_manager is not None
