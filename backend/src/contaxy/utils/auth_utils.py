@@ -5,6 +5,7 @@ from contaxy.operations.project import ProjectOperations
 from contaxy.schema import Project, User
 from contaxy.schema.auth import AccessLevel
 from contaxy.schema.exceptions import ClientValueError
+from contaxy.schema.extension import GLOBAL_EXTENSION_PROJECT
 from contaxy.schema.project import ProjectCreation
 
 PERMISSION_SEPERATOR = "#"
@@ -116,8 +117,12 @@ def is_permission_granted(granted_permission: str, requested_permission: str) ->
     return True
 
 
-def create_user_project(user: User, project_manager: ProjectOperations) -> Project:
-    """Create a technical project that belongs to the user, with the same id as the user.
+def setup_user(user: User, project_manager: ProjectOperations) -> Project:
+    """Execute initial setup required for each new user.
+
+    This includes:
+    - Creation of a technical project that belongs to the user, with the same id as the user id.
+    - Addition of the new user to the global extension project so the user can access global extensions.
 
     Args:
         user (User): The user for whom the project shall be created.
@@ -140,6 +145,11 @@ def create_user_project(user: User, project_manager: ProjectOperations) -> Proje
 
     if user_project.id:
         project_manager.add_project_member(user_project.id, user.id, AccessLevel.ADMIN)
+
+    # User requires read access to the global extension project to access the extension endpoints
+    project_manager.add_project_member(
+        GLOBAL_EXTENSION_PROJECT, user.id, AccessLevel.READ
+    )
 
     return user_project
 

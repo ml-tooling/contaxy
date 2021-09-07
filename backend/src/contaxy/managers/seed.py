@@ -9,7 +9,7 @@ from contaxy.operations import AuthOperations, FileOperations, ProjectOperations
 from contaxy.operations.seed import SeedOperations
 from contaxy.schema import File, Project, User, UserRegistration
 from contaxy.schema.project import ProjectCreation
-from contaxy.utils.auth_utils import create_user_project
+from contaxy.utils.auth_utils import setup_user
 from contaxy.utils.file_utils import FileStreamWrapper
 from contaxy.utils.state_utils import GlobalState, RequestState
 
@@ -43,7 +43,7 @@ class SeedManager(SeedOperations):
         if not self.auth_manager:
             raise RuntimeError("Seeder needs to be initialized with an auth manager")
         user = self.auth_manager.create_user(user_input=user_input)
-        self.create_user_project(user)
+        self.setup_user(user)
         return user
 
     def create_users(self, amount: int) -> List[User]:
@@ -60,10 +60,10 @@ class SeedManager(SeedOperations):
 
         return users
 
-    def create_user_project(self, user: User) -> Project:
+    def setup_user(self, user: User) -> Project:
         if not self.project_manager:
             raise RuntimeError(ERROR_NO_PROJECT_MANAGER)
-        return create_user_project(user, self.project_manager)
+        return setup_user(user, self.project_manager)
 
     def create_project(
         self,

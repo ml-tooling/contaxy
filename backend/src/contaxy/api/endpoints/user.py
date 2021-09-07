@@ -74,7 +74,7 @@ def create_user(
         user_input, technical_user=False
     )
 
-    auth_utils.create_user_project(user, component_manager.get_project_manager())
+    auth_utils.setup_user(user, component_manager.get_project_manager())
 
     # TODO: return also user_project?
     return user

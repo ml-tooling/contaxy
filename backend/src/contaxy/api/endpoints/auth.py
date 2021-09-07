@@ -428,7 +428,7 @@ def login_callback(
     )
 
     if user:
-        auth_utils.create_user_project(user, component_manager.get_project_manager())
+        auth_utils.setup_user(user, component_manager.get_project_manager())
 
     # ! Currently, the webapp needs to be accessible via the same host/port
     response = RedirectResponse(

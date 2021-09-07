@@ -102,4 +102,4 @@ class SystemManager(SystemOperations):
             technical_project=True,
         )
 
-        auth_utils.create_user_project(admin_user, self._project_manager)
+        auth_utils.setup_user(admin_user, self._project_manager)
