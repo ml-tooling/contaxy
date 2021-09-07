@@ -14,8 +14,7 @@ RUN \
 RUN \
     apt-get update \
     && apt-get install -y python3.8 python3-pip \
-    && ln -s /usr/bin/python3.8 /usr/bin/python \
-    && ln -s /usr/bin/pip3 /usr/bin/pip
+    && ln -s /usr/bin/python3.8 /usr/bin/python
 
 # Install lib required for psycopg2
 RUN \
