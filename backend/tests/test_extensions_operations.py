@@ -20,6 +20,7 @@ from contaxy.schema.auth import (
     OAuth2TokenGrantTypes,
     OAuth2TokenRequestFormNew,
 )
+from contaxy.schema.extension import GLOBAL_EXTENSION_PROJECT, Extension
 from contaxy.utils import auth_utils
 
 from .conftest import test_settings
@@ -37,6 +38,17 @@ def create_test_extension_input(uid: int) -> ExtensionInput:
         ui_extension_endpoint=ui_extension_endpoint,
         api_extension_endpoint=api_extension_endpoint,
     )
+
+
+def get_cleaned_extension_dict(extension: Extension):
+    """
+    Removes the started_at and status field from extension description because
+    they should not be considered for comparison of extension objects.
+    """
+    extension_dict = extension.dict()
+    for key in ["started_at", "status"]:
+        extension_dict.pop(key)
+    return extension_dict
 
 
 class ExtensionOperationsTests(ABC):
@@ -76,25 +88,41 @@ class ExtensionOperationsTests(ABC):
         project_id = f"{uid}-em-test-project"
         extension_input = create_test_extension_input(uid=uid)
 
-        extension = self.extension_manager.install_extension(
+        # Install local and global extension
+        global_extension = self.extension_manager.install_extension(
+            extension=extension_input,
+            project_id=GLOBAL_EXTENSION_PROJECT,
+        )
+        project_extension = self.extension_manager.install_extension(
             extension=extension_input,
             project_id=project_id,
         )
 
-        assert extension
+        assert project_extension
 
+        # List extensions should return project and global extensions
         extensions = self.extension_manager.list_extensions(project_id=project_id)
 
         assert extensions
         assert (
             len(extensions) > 1
         )  # The remote instance might already have extensions installed
-        is_extension_found = False
+        is_project_extension_found = False
+        is_global_extension_found = False
         for e in extensions:
-            if extension.id == e.id:
-                is_extension_found = True
+            if e.id == project_extension.id:
+                assert get_cleaned_extension_dict(e) == get_cleaned_extension_dict(
+                    project_extension
+                )
+                is_project_extension_found = True
+            elif e.id == global_extension.id:
+                assert get_cleaned_extension_dict(e) == get_cleaned_extension_dict(
+                    global_extension
+                )
+                is_global_extension_found = True
 
-        assert is_extension_found is True
+        assert is_project_extension_found is True
+        assert is_global_extension_found is True
 
         # TODO: delete extension is not implemented yet
         # self.extension_manager.delete_extension(

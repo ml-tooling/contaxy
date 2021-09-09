@@ -51,9 +51,7 @@ def parse_composite_id(composite_id: str) -> Tuple[str, Union[str, None]]:
     return resource_id, extension_id
 
 
-def map_service_to_extension(
-    service: Service, user_id: str
-) -> Extension:
+def map_service_to_extension(service: Service, user_id: str) -> Extension:
     extension = Extension(**service.dict())
 
     if service.metadata:
