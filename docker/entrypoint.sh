@@ -32,14 +32,17 @@ find /etc/nginx/ -name "*.conf" -exec  sed -s -i "s/\${RESOLVER}/${resolver}/g" 
 # When SSL is enabled, the Stream port is used as the entry port and for the main port ssl is enabled (the stream port forwards https to the ssl-enabled main port and ssh traffic to the OpenSSH server). In this case, switch the ports so that the user does not have to consider this.
 main_port=8080
 stream_port=8081
+main_port_ssl=$main_port
 if [[ "${SERVICE_SSL_ENABLED,,}" == true ]]; then
     temp=$stream_port
     stream_port=$main_port
-    main_port="$temp; ssl"
+    main_port_ssl="$temp ssl"
+    main_port=$temp
 
-    sed -i "s/# ssl_certificate \${SSL_CERTIFICATE_PATH}/${_SSL_PATH}/cert.crt/g" /etc/nginx/nginx.conf;
-    sed -i "s/# ssl_certificate_key \${SSL_CERTIFICATE_KEY_PATH}/${_SSL_PATH}/cert.key/g" /etc/nginx/nginx.conf;
+    sed -i "s|# ssl_certificate \${SSL_CERTIFICATE_PATH}| ssl_certificate ${_SSL_RESOURCES_PATH}/cert.crt;|g" /etc/nginx/nginx.conf;
+    sed -i "s|# ssl_certificate_key \${SSL_CERTIFICATE_KEY_PATH}| ssl_certificate_key ${_SSL_RESOURCES_PATH}/cert.key;|g" /etc/nginx/nginx.conf;
 fi
+sed -i "s/\${MAIN_PORT_SSL}/$main_port_ssl/g" /etc/nginx/nginx.conf;
 sed -i "s/\${MAIN_PORT}/$main_port/g" /etc/nginx/nginx.conf;
 sed -i "s/\${STREAM_PORT}/$stream_port/g" /etc/nginx/nginx.conf;
 
