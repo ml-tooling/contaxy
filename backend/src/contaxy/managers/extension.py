@@ -24,9 +24,9 @@ COMPOSITE_ID_SEPERATOR = "~"
 
 CAPABILITIES_METADATA_SEPARATOR = ","
 METADATA_UI_EXTENSION_ENDPOINT = "ctxy.ui_extension_endpoint"
-METADATA_API_EXTENSION_ENDPOINT = f"ctxy.api_extension_endpoint"
-METADATA_CAPABILITIES = f"ctxy.capabilities"
-METADATA_EXTENSION_TYPE = f"ctxy.extensionType"
+METADATA_API_EXTENSION_ENDPOINT = "ctxy.api_extension_endpoint"
+METADATA_CAPABILITIES = "ctxy.capabilities"
+METADATA_EXTENSION_TYPE = "ctxy.extensionType"
 
 
 def parse_composite_id(composite_id: str) -> Tuple[str, Union[str, None]]:

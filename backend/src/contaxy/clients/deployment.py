@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Dict, List, Literal, Optional
 
 import requests
 from pydantic.tools import parse_raw_as
@@ -7,6 +7,7 @@ from pydantic.tools import parse_raw_as
 from contaxy.clients.shared import handle_errors
 from contaxy.operations.deployment import DeploymentOperations
 from contaxy.schema import Job, JobInput, ResourceAction, Service, ServiceInput
+from contaxy.schema.deployment import DeploymentType
 
 
 class DeploymentManagerClient(DeploymentOperations):
@@ -18,9 +19,16 @@ class DeploymentManagerClient(DeploymentOperations):
         return self._client
 
     def list_services(
-        self, project_id: str, request_kwargs: Dict = {}
+        self,
+        project_id: str,
+        deployment_type: Literal[
+            DeploymentType.SERVICE, DeploymentType.EXTENSION
+        ] = DeploymentType.SERVICE,
+        request_kwargs: Dict = {},
     ) -> List[Service]:
         response = self.client.get(f"/projects/{project_id}/services", **request_kwargs)
+        if deployment_type == DeploymentType.EXTENSION:
+            raise ValueError("Use the ExtensionManager to list extensions!")
         handle_errors(response)
         return parse_raw_as(List[Service], response.text)
 
@@ -29,11 +37,17 @@ class DeploymentManagerClient(DeploymentOperations):
         project_id: str,
         service: ServiceInput,
         action_id: Optional[str] = None,
+        deployment_type: Literal[
+            DeploymentType.SERVICE, DeploymentType.EXTENSION
+        ] = DeploymentType.SERVICE,
         request_kwargs: Dict = {},
     ) -> Service:
         params = {}
         if action_id:
             params["action_id"] = action_id
+        if deployment_type == DeploymentType.EXTENSION:
+            raise ValueError("Use the ExtensionManager to deploy extensions!")
+
         resource = self.client.post(
             f"/projects/{project_id}/services",
             params=params,

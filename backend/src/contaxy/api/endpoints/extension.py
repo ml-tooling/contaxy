@@ -17,7 +17,6 @@ from contaxy.schema.exceptions import (
 )
 from contaxy.schema.extension import GLOBAL_EXTENSION_PROJECT
 from contaxy.schema.project import PROJECT_ID_PARAM
-from contaxy.utils import auth_utils
 
 router = APIRouter(
     tags=["extensions"],
