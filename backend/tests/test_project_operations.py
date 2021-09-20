@@ -154,7 +154,6 @@ class ProjectOperationsTests(ABC):
         )
         assert len(projects) == len(created_projects_without_user)
 
-
         # Set an authorized user in the request state
         username = faker.simple_profile()["username"]
         self.auth_manager.create_user(
