@@ -136,7 +136,7 @@ class ExtensibleOperations(str, Enum):
 # }
 # TODO: evaluate status codes: 302,303,...
 OPEN_URL_REDIRECT: Mapping[Union[int, str], Dict[str, Any]] = {
-    status.HTTP_307_TEMPORARY_REDIRECT: {"message": "Redirecting to another URL"}
+    status.HTTP_307_TEMPORARY_REDIRECT: {"description": "Redirecting to another URL"}
 }
 
 
