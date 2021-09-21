@@ -13,7 +13,7 @@ class SystemOperations(ABC):
         pass
 
     @abstractmethod
-    def get_system_statistics(self) -> SystemStatistics:
+    def get_system_statistics(self, include_technical: bool) -> SystemStatistics:
         pass
 
     @abstractmethod

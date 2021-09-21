@@ -22,8 +22,14 @@ class SystemClient(SystemOperations):
         handle_errors(response)
         return True
 
-    def get_system_statistics(self, request_kwargs: Dict = {}) -> SystemStatistics:
-        response = self._client.get("/system/statistics", **request_kwargs)
+    def get_system_statistics(
+        self, include_technical: bool = True, request_kwargs: Dict = {}
+    ) -> SystemStatistics:
+        response = self._client.get(
+            "/system/statistics",
+            params={"include_technical": include_technical},
+            **request_kwargs,
+        )
         handle_errors(response)
         return parse_raw_as(SystemStatistics, response.text)
 
