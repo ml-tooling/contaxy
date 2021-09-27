@@ -13,16 +13,22 @@
 
 import ApiClient from '../ApiClient';
 /**
- * Enum class DeploymentStatus.
+ * Enum class SystemState.
  * @enum {}
  * @readonly
  */
-export default class DeploymentStatus {
+export default class SystemState {
   /**
-   * value: "pending"
+   * value: "starting"
    * @const
    */
-  pending = 'pending';
+  starting = 'starting';
+
+  /**
+   * value: "initializing"
+   * @const
+   */
+  initializing = 'initializing';
 
   /**
    * value: "running"
@@ -31,27 +37,9 @@ export default class DeploymentStatus {
   running = 'running';
 
   /**
-   * value: "succeeded"
-   * @const
-   */
-  succeeded = 'succeeded';
-
-  /**
-   * value: "failed"
-   * @const
-   */
-  failed = 'failed';
-
-  /**
-   * value: "unknown"
-   * @const
-   */
-  unknown = 'unknown';
-
-  /**
-   * Returns a <code>DeploymentStatus</code> enum value from a Javascript object name.
+   * Returns a <code>SystemState</code> enum value from a Javascript object name.
    * @param {Object} data The plain JavaScript object containing the name of the enum value.
-   * @return {module:model/DeploymentStatus} The enum <code>DeploymentStatus</code> value.
+   * @return {module:model/SystemState} The enum <code>SystemState</code> value.
    */
   static constructFromObject(object) {
     return object;

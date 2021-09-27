@@ -14,17 +14,18 @@
 import ApiClient from '../ApiClient';
 
 /**
- * The ProjectInput model module.
- * @module model/ProjectInput
+ * The ProjectCreation model module.
+ * @module model/ProjectCreation
  * @version 0.0.0.dev1
  */
-class ProjectInput {
+class ProjectCreation {
   /**
-   * Constructs a new <code>ProjectInput</code>.
-   * @alias module:model/ProjectInput
+   * Constructs a new <code>ProjectCreation</code>.
+   * @alias module:model/ProjectCreation
+   * @param id {String} Project ID used for creating the project.
    */
-  constructor() {
-    ProjectInput.initialize(this);
+  constructor(id) {
+    ProjectCreation.initialize(this, id);
   }
 
   /**
@@ -32,18 +33,20 @@ class ProjectInput {
    * This method is used by the constructors of any subclasses, in order to implement multiple inheritance (mix-ins).
    * Only for internal use.
    */
-  static initialize(obj) {}
+  static initialize(obj, id) {
+    obj['id'] = id;
+  }
 
   /**
-   * Constructs a <code>ProjectInput</code> from a plain JavaScript object, optionally creating a new instance.
+   * Constructs a <code>ProjectCreation</code> from a plain JavaScript object, optionally creating a new instance.
    * Copies all relevant properties from <code>data</code> to <code>obj</code> if supplied or a new instance if not.
    * @param {Object} data The plain JavaScript object bearing properties of interest.
-   * @param {module:model/ProjectInput} obj Optional instance to populate.
-   * @return {module:model/ProjectInput} The populated <code>ProjectInput</code> instance.
+   * @param {module:model/ProjectCreation} obj Optional instance to populate.
+   * @return {module:model/ProjectCreation} The populated <code>ProjectCreation</code> instance.
    */
   static constructFromObject(data, obj) {
     if (data) {
-      obj = obj || new ProjectInput();
+      obj = obj || new ProjectCreation();
 
       if (data.hasOwnProperty('display_name')) {
         obj['display_name'] = ApiClient.convertToType(
@@ -68,6 +71,9 @@ class ProjectInput {
       if (data.hasOwnProperty('disabled')) {
         obj['disabled'] = ApiClient.convertToType(data['disabled'], 'Boolean');
       }
+      if (data.hasOwnProperty('id')) {
+        obj['id'] = ApiClient.convertToType(data['id'], 'String');
+      }
     }
     return obj;
   }
@@ -77,31 +83,37 @@ class ProjectInput {
  * A user-defined human-readable name of the resource. The name can be up to 128 characters long and can consist of any UTF-8 character.
  * @member {String} display_name
  */
-ProjectInput.prototype['display_name'] = undefined;
+ProjectCreation.prototype['display_name'] = undefined;
 
 /**
  * A user-defined short description about the resource. Can consist of any UTF-8 character.
  * @member {String} description
  */
-ProjectInput.prototype['description'] = undefined;
+ProjectCreation.prototype['description'] = undefined;
 
 /**
  * Identifier or image URL used for displaying this resource.
  * @member {String} icon
  */
-ProjectInput.prototype['icon'] = undefined;
+ProjectCreation.prototype['icon'] = undefined;
 
 /**
  * A collection of arbitrary key-value pairs associated with this resource that does not need predefined structure. Enable third-party integrations to decorate objects with additional metadata for their own use.
  * @member {Object.<String, String>} metadata
  */
-ProjectInput.prototype['metadata'] = undefined;
+ProjectCreation.prototype['metadata'] = undefined;
 
 /**
  * Allows to disable a resource without requiring deletion. A disabled resource is not shown and not accessible.
  * @member {Boolean} disabled
  * @default false
  */
-ProjectInput.prototype['disabled'] = false;
+ProjectCreation.prototype['disabled'] = false;
 
-export default ProjectInput;
+/**
+ * Project ID used for creating the project.
+ * @member {String} id
+ */
+ProjectCreation.prototype['id'] = undefined;
+
+export default ProjectCreation;
