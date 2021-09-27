@@ -51,13 +51,13 @@ def parse_composite_id(composite_id: str) -> Tuple[str, Union[str, None]]:
     return resource_id, extension_id
 
 
-def map_service_to_extension(
-    service: Service, project_id: str, user_id: str
-) -> Extension:
+def map_service_to_extension(service: Service, user_id: str) -> Extension:
     extension = Extension(**service.dict())
 
     if service.metadata:
-        endpoint_prefix = f"{config.settings.CONTAXY_BASE_URL}/projects/{project_id}/services/{service.metadata[Labels.DEPLOYMENT_NAME.value]}/access/"
+        project_id = service.metadata[Labels.PROJECT_NAME.value]
+        deployment_id = service.metadata[Labels.DEPLOYMENT_NAME.value]
+        endpoint_prefix = f"{config.settings.CONTAXY_BASE_URL}/projects/{project_id}/services/{deployment_id}/access/"
 
         if METADATA_CAPABILITIES in service.metadata:
             extension.capabilities = service.metadata[METADATA_CAPABILITIES].split(
@@ -175,7 +175,6 @@ class ExtensionManager(ExtensionOperations):
 
             extension = map_service_to_extension(
                 service=service,
-                project_id=project_id,
                 user_id=self.request_state.authorized_subject,
             )
             extension_services.append(extension)
@@ -221,7 +220,6 @@ class ExtensionManager(ExtensionOperations):
         )
         return map_service_to_extension(
             service=service,
-            project_id=project_id,
             user_id=self.request_state.authorized_subject,
         )
 

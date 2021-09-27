@@ -18,8 +18,8 @@ class TestSettings(BaseSettings):
     ACTIVATE_TEST_PROFILING: bool = True
     POSTGRES_INTEGRATION_TESTS: bool = False
     MINIO_INTEGRATION_TESTS: bool = False
-    REMOTE_BACKEND_TESTS: bool = False
-    REMOTE_BACKEND_ENDPOINT: Optional[str] = None
+    REMOTE_BACKEND_TESTS: bool = True
+    REMOTE_BACKEND_ENDPOINT: Optional[str] = "http://localhost:8082"
     DOCKER_INTEGRATION_TESTS: bool = True
     KUBERNETES_INTEGRATION_TESTS: bool = False
 
