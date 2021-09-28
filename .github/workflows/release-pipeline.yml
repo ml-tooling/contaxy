@@ -73,7 +73,7 @@ jobs:
       - name: run-component-tests
         uses: ./.github/actions/build-environment
         with:
-          build_args: --test --force --test-marker=slow --version=${{ env.VERSION  }}
+          build_args: --test --force --test-marker=unit --test-marker=integration --version=${{ env.VERSION  }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: release-components

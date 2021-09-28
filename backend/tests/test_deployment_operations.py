@@ -252,7 +252,7 @@ class DeploymentOperationsTests(ABC):
         assert "BASE_URL" in service.parameters
         assert (
             service.parameters["BASE_URL"]
-            == f"projects/{self.project_id}/services/{service.id}/access/{{endpoint}}"
+            == f"/projects/{self.project_id}/services/{service.id}/access/{{endpoint}}"
         )
 
     def test_get_service_metadata(self) -> None:
