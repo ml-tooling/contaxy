@@ -23,21 +23,6 @@ create_schema(engine: Engine, schema_name: str) → None
 
 
 
----
-
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/utils/postgres_utils.py#L20"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `create_jsonb_merge_patch_func`
-
-```python
-create_jsonb_merge_patch_func(engine: Engine) → None
-```
-
-
-
-
-
-
 
 
 ---

@@ -7,16 +7,16 @@ Data Models and Schemas.
 
 **Global Variables**
 ---------------
+- **exceptions**
 - **shared**
 - **auth**
 - **deployment**
-- **exceptions**
+- **AUTH_ERROR_RESPONSES**
 - **extension**
 - **file**
 - **json_db**
 - **project**
 - **system**
-- **user**
 
 
 

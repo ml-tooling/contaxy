@@ -7,6 +7,10 @@
 
 
 
+**Global Variables**
+---------------
+- **manager**
+- **utils**
 
 
 

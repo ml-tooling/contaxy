@@ -9,13 +9,14 @@
 
 **Global Variables**
 ---------------
+- **PROJECTS_KIND**
 - **MIN_PROJECT_ID_LENGTH**
 - **MAX_PROJECT_ID_LENGTH**
 
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/schema/project.py#L22"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/schema/project.py#L24"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>class</kbd> `Quota`
 
@@ -23,51 +24,14 @@
 
 
 
----
-
-#### <kbd>property</kbd> fields
-
-
-
-
-
 
 
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/schema/project.py#L73"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/schema/project.py#L75"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>class</kbd> `ProjectBase`
-
-
-
-
-
----
-
-#### <kbd>property</kbd> fields
-
-
-
-
-
-
-
-
----
-
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/schema/project.py#L80"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>class</kbd> `ProjectInput`
-
-
-
-
-
----
-
-#### <kbd>property</kbd> fields
 
 
 
@@ -80,7 +44,10 @@
 
 <a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/schema/project.py#L84"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
-## <kbd>class</kbd> `Project`
+## <kbd>class</kbd> `ProjectInput`
+
+
+
 
 
 
@@ -88,7 +55,9 @@
 
 ---
 
-#### <kbd>property</kbd> fields
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/schema/project.py#L88"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>class</kbd> `ProjectCreation`
 
 
 
@@ -101,7 +70,10 @@
 
 <a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/schema/project.py#L96"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
-## <kbd>class</kbd> `Statistics`
+## <kbd>class</kbd> `Project`
+
+
+
 
 
 
@@ -109,7 +81,9 @@
 
 ---
 
-#### <kbd>property</kbd> fields
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/schema/project.py#L108"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>class</kbd> `Statistics`
 
 
 
