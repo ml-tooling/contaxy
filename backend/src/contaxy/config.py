@@ -112,7 +112,7 @@ class Settings(BaseSettings):
     # see this GitHub issue for issue with env list decoding and why validator is needed: https://github.com/samuelcolvin/pydantic/issues/1458
     BACKEND_CORS_ORIGINS: Union[str, List[AnyHttpUrl]] = []
 
-    @validator("BACKEND_CORS_ORIGINS", pre=True)
+    @validator("BACKEND_CORS_ORIGINS", pre=True, allow_reuse=True)
     def _assemble_cors_origins(
         cls, cors_origins: Union[str, List[AnyHttpUrl]]
     ) -> Union[str, List[AnyHttpUrl]]:
