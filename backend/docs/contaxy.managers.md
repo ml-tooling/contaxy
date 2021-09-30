@@ -10,11 +10,12 @@
 **Global Variables**
 ---------------
 - **auth**
+- **deployment**
 - **extension**
 - **file**
 - **project**
+- **seed**
 - **system**
-- **user**
 - **components**
 
 
