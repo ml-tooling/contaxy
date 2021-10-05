@@ -1,6 +1,7 @@
 from enum import Enum
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
+from fastapi import Query
 from pydantic import BaseModel, Field
 
 
@@ -39,3 +40,16 @@ class SystemStatistics(BaseModel):
     job_count: int
     service_count: int
     file_count: int
+
+
+class AllowedImageInfo(BaseModel):
+    # TODO: Make sure name and tags are always lower case?
+    image_name: str
+    image_tags: List[str]
+
+
+IMAGE_NAME_PARAM = Query(
+    ...,
+    title="Docker image name",
+    description="Name of a docker image without the tag",
+)

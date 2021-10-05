@@ -64,6 +64,10 @@ class CoreOperations(str, Enum):
     LIST_SYSTEM_NODES = "list_system_nodes"
     INITIALIZE_SYSTEM = "initialize_system"
     CLEANUP_SYSTEM = "cleanup_system"
+    ADD_ALLOWED_IMAGE = "add_allowed_image"
+    LIST_ALLOWED_IMAGES = "list_allowed_images"
+    GET_ALLOWED_IMAGE = "get_allowed_image"
+    DELETE_ALLOWED_IMAGE = "delete_allowed_image"
     # Secrets Endpoints
     CREATE_SECRET = "create_secret"
     DELETE_SECRET = "delete_secret"
