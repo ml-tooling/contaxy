@@ -41,7 +41,9 @@ from contaxy.managers.deployment.utils import (
     NO_LOGS_MESSAGE,
     Labels,
     get_deployment_id,
+    split_image_name_and_tag,
 )
+from contaxy.managers.system import SystemManager
 from contaxy.schema import Job, JobInput, ResourceAction, Service, ServiceInput
 from contaxy.schema.deployment import DeploymentType
 from contaxy.schema.exceptions import (
@@ -59,6 +61,7 @@ class KubernetesDeploymentManager(DeploymentManager):
         self,
         global_state: GlobalState,
         request_state: RequestState,
+        system_manager: SystemManager,
         kube_namespace: str = None,
     ):
         """Initializes the Kubernetes Deployment Manager.
@@ -66,10 +69,12 @@ class KubernetesDeploymentManager(DeploymentManager):
         Args:
             global_state: The global state of the app instance.
             request_state: The state for the current request.
+            system_manager: The system manager used for getting the list of allowed images.
             kube_namespace (str): Set the Kubernetes namespace to use. If it is not given, the manager will try to detect the namespace automatically.
         """
         self.global_state = global_state
         self.request_state = request_state
+        self._system_manager = system_manager
 
         try:
             # incluster config is the config given by a service account and it's role permissions
@@ -125,6 +130,8 @@ class KubernetesDeploymentManager(DeploymentManager):
         ] = DeploymentType.SERVICE,
         wait: bool = False,
     ) -> Service:
+        image_name, image_tag = split_image_name_and_tag(service.container_image)
+        self._system_manager.check_image(image_name, image_tag)
         if service.display_name is None:
             raise ClientValueError(
                 message=f"Could not create a service id for service with display name {service.display_name}",
@@ -459,6 +466,8 @@ class KubernetesDeploymentManager(DeploymentManager):
         action_id: Optional[str] = None,
         wait: bool = False,
     ) -> Job:
+        image_name, image_tag = split_image_name_and_tag(job.container_image)
+        self._system_manager.check_image(image_name, image_tag)
         if job.display_name is None:
             raise ClientValueError(
                 message=f"Could not create service id for job {job.display_name}",

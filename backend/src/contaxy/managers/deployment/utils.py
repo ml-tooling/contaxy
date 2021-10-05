@@ -1,7 +1,7 @@
 import string
 import subprocess
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from contaxy.config import settings
 from contaxy.schema.deployment import DeploymentCompute, DeploymentType
@@ -348,3 +348,17 @@ def get_template_mapping(
         template_mapping[f"{{env.{_ENV_VARIABLE_CONTAXY_SERVICE_URL}}}"] = service_url
 
     return template_mapping
+
+
+def split_image_name_and_tag(full_image_name: str) -> Tuple[str, str]:
+    last_colon_position = full_image_name.rfind(":")
+    # If there is no colon then to tag is given and the default is "latest"
+    if last_colon_position == -1:
+        return full_image_name, "latest"
+    # If there is a colon but it comes before a / then it's part of the host (port separator)
+    if last_colon_position < full_image_name.rfind("/"):
+        return full_image_name, "latest"
+    return (
+        full_image_name[:last_colon_position],
+        full_image_name[last_colon_position + 1 :],
+    )

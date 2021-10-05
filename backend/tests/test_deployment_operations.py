@@ -23,6 +23,8 @@ from contaxy.managers.deployment.utils import (
     Labels,
     get_deployment_id,
 )
+from contaxy.managers.json_db.inmemory_dict import InMemoryDictJsonDocumentManager
+from contaxy.managers.system import SystemManager
 from contaxy.operations.deployment import DeploymentOperations
 from contaxy.schema.auth import (
     AccessLevel,
@@ -36,7 +38,12 @@ from contaxy.schema.deployment import (
     Service,
     ServiceInput,
 )
-from contaxy.schema.exceptions import ClientBaseError, ResourceNotFoundError
+from contaxy.schema.exceptions import (
+    ClientBaseError,
+    ClientValueError,
+    ResourceNotFoundError,
+)
+from contaxy.schema.system import AllowedImageInfo
 from contaxy.utils import auth_utils
 from contaxy.utils.state_utils import GlobalState, RequestState
 
@@ -103,6 +110,11 @@ class DeploymentOperationsTests(ABC):
 
     @property
     @abstractmethod
+    def system_manager(self) -> SystemManager:
+        pass
+
+    @property
+    @abstractmethod
     def project_id(self) -> str:
         pass
 
@@ -138,6 +150,24 @@ class DeploymentOperationsTests(ABC):
         assert service.parameters.get("FOO", "") == "bar"
 
         assert "some-metadata" in service.metadata
+
+    def test_cannot_deploy_disallowed_image(self):
+        self.system_manager.add_allowed_image(
+            AllowedImageInfo(
+                image_name="allowed-image",
+                image_tags=["0.1"],
+            )
+        )
+        with pytest.raises(ClientValueError):
+            self.deploy_service(
+                project_id=self.project_id,
+                service=ServiceInput(container_image="disallowed-image:0.1"),
+            )
+        with pytest.raises(ClientValueError):
+            self.deploy_job(
+                project_id=self.project_id,
+                job=JobInput(container_image="disallowed-image:0.1"),
+            )
 
     def test_delete_services(self) -> None:
         project_1 = f"{self.project_id}-1"
@@ -393,9 +423,15 @@ class TestDockerDeploymentManager(DeploymentOperationsTests):
     def _init_managers(
         self, global_state: GlobalState, request_state: RequestState
     ) -> Generator:
+        # Only use in memory database as the DB is not main the focus of this test
+        json_db = InMemoryDictJsonDocumentManager(global_state, request_state)
+        self._system_manager = SystemManager(
+            global_state, request_state, json_db, None, None
+        )
         self._deployment_manager = DockerDeploymentManager(
             global_state=GlobalState(global_state),
             request_state=RequestState(request_state),
+            system_manager=self._system_manager,
         )
 
         (
@@ -443,6 +479,10 @@ class TestDockerDeploymentManager(DeploymentOperationsTests):
     @property
     def deployment_manager(self) -> DeploymentOperations:
         return self._deployment_manager
+
+    @property
+    def system_manager(self) -> SystemManager:
+        return self._system_manager
 
     @property
     def project_id(self) -> str:
@@ -550,6 +590,12 @@ class TestKubernetesDeploymentManager(DeploymentOperationsTests):
     def _init_managers(
         self, global_state: GlobalState, request_state: RequestState
     ) -> Generator:
+        # Only use in memory database as the DB is not main the focus of this test
+        json_db = InMemoryDictJsonDocumentManager(global_state, request_state)
+        self._system_manager = SystemManager(
+            global_state, request_state, json_db, None, None
+        )
+
         (
             uid,
             self._project_id,
@@ -562,6 +608,7 @@ class TestKubernetesDeploymentManager(DeploymentOperationsTests):
             global_state=global_state,
             request_state=request_state,
             kube_namespace=_kube_namespace,
+            system_manager=self._system_manager,
         )
 
         self._deployment_manager.core_api.create_namespace(
@@ -586,6 +633,10 @@ class TestKubernetesDeploymentManager(DeploymentOperationsTests):
     @property
     def deployment_manager(self) -> DeploymentOperations:
         return self._deployment_manager
+
+    @property
+    def system_manager(self) -> SystemManager:
+        return self._system_manager
 
     @property
     def project_id(self) -> str:
@@ -775,6 +826,7 @@ class DeploymentOperationsEndpointTests(DeploymentOperationsTests):
     def _init_managers(self, _client: requests.Session) -> Generator:
         self._endpoint_client = _client
         system_manager = SystemClient(self._endpoint_client)
+        self._system_manager = SystemClient(self._endpoint_client)
         self._deployment_manager = DeploymentManagerClient(client=self._endpoint_client)
         self._auth_manager = AuthClient(self._endpoint_client)
         system_manager.initialize_system()
@@ -809,6 +861,10 @@ class DeploymentOperationsEndpointTests(DeploymentOperationsTests):
     @property
     def deployment_manager(self) -> DeploymentOperations:
         return self._deployment_manager
+
+    @property
+    def system_manager(self) -> SystemManager:
+        return self._system_manager
 
     @property
     def project_id(self) -> str:

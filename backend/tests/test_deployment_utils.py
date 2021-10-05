@@ -2,6 +2,7 @@ import pytest
 
 from contaxy.config import settings
 from contaxy.managers.deployment import utils
+from contaxy.managers.deployment.utils import split_image_name_and_tag
 from contaxy.schema.deployment import DeploymentType
 
 
@@ -37,3 +38,45 @@ def test_get_deployment_id(
     assert len(deployment_id) <= 63
 
     # TODO check if the id is DNS conform...
+
+
+@pytest.mark.parametrize(
+    "image_full_name,expected_image_name,expected_image_tag",
+    [
+        (
+            "my-image",
+            "my-image",
+            "latest",
+        ),
+        (
+            "my-image:0.2.2",
+            "my-image",
+            "0.2.2",
+        ),
+        (
+            "my-host.com/my-image:1-1",
+            "my-host.com/my-image",
+            "1-1",
+        ),
+        (
+            "my-host.com:8080/my-image:1-1",
+            "my-host.com:8080/my-image",
+            "1-1",
+        ),
+        (
+            "my-host.com:8080/my-image",
+            "my-host.com:8080/my-image",
+            "latest",
+        ),
+    ],
+)
+@pytest.mark.unit
+def test_split_image_name_and_tag(
+    image_full_name: str,
+    expected_image_name: str,
+    expected_image_tag: str,
+):
+    assert split_image_name_and_tag(image_full_name) == (
+        expected_image_name,
+        expected_image_tag,
+    )
