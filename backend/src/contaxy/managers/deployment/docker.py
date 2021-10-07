@@ -14,6 +14,7 @@ from contaxy.managers.deployment.docker_utils import (
     map_job,
     map_service,
     read_container_logs,
+    reconnect_to_all_networks,
 )
 from contaxy.managers.deployment.manager import DeploymentManager
 from contaxy.managers.deployment.utils import Labels
@@ -25,6 +26,8 @@ from contaxy.utils.state_utils import GlobalState, RequestState
 
 
 class DockerDeploymentManager(DeploymentManager):
+    _is_initialized = False
+
     def __init__(
         self,
         global_state: GlobalState,
@@ -40,6 +43,10 @@ class DockerDeploymentManager(DeploymentManager):
         self.request_state = request_state
 
         self.client = docker.from_env()
+        # Reconnect the backend to all existing docker networks on startup
+        if not DockerDeploymentManager._is_initialized:
+            reconnect_to_all_networks(self.client)
+            DockerDeploymentManager._is_initialized = True
 
     def list_services(
         self,
