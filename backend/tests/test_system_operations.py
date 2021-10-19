@@ -30,9 +30,9 @@ class SystemOperationsTests(ABC):
         assert len(allowed_images) == 1
         assert allowed_images[0] == allowed_image
         assert self.system_manager.get_allowed_image("test-image") == allowed_image
-        # Update allowed image by replacing
+        # Update allowed image by replacing (should be case insensitive)
         allowed_image_update = AllowedImageInfo(
-            image_name="test-image", image_tags=["0.1", "0.2"]
+            image_name="Test-Image", image_tags=["0.1", "0.2"]
         )
         self.system_manager.add_allowed_image(allowed_image_update)
         # Check if allowed image is now updated

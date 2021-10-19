@@ -2,7 +2,7 @@ from enum import Enum
 from typing import Dict, List, Optional
 
 from fastapi import Query
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator
 
 
 class SystemState(str, Enum):
@@ -43,9 +43,25 @@ class SystemStatistics(BaseModel):
 
 
 class AllowedImageInfo(BaseModel):
-    # TODO: Make sure name and tags are always lower case?
-    image_name: str
-    image_tags: List[str]
+    image_name: str = Field(
+        None,
+        example="my-docker-registry.com/my-image",
+        description="Name of the docker image to allow. Do not specify the image tag (the part after the colon)",
+    )
+    image_tags: List[str] = Field(
+        None,
+        example=["0.2.1", "0.3.0"],
+        description='List of tags that are allowed for this image. Can be set to ["*"] to allow all tags.',
+    )
+    metadata: Optional[Dict[str, str]] = Field(
+        None,
+        example={"additional-metadata": "value"},
+        description="A collection of arbitrary key-value pairs associated with this image that does not need predefined structure.",
+    )
+
+    @validator("image_name", pre=True)
+    def ensure_lowercase(cls, value: str) -> str:
+        return value.lower()
 
 
 IMAGE_NAME_PARAM = Query(
