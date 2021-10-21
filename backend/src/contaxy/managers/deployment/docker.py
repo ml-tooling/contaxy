@@ -17,7 +17,8 @@ from contaxy.managers.deployment.docker_utils import (
     reconnect_to_all_networks,
 )
 from contaxy.managers.deployment.manager import DeploymentManager
-from contaxy.managers.deployment.utils import Labels
+from contaxy.managers.deployment.utils import Labels, split_image_name_and_tag
+from contaxy.managers.system import SystemManager
 from contaxy.schema import Job, JobInput, ResourceAction, Service, ServiceInput
 from contaxy.schema.deployment import DeploymentType
 from contaxy.schema.exceptions import ClientBaseError, ClientValueError
@@ -32,15 +33,18 @@ class DockerDeploymentManager(DeploymentManager):
         self,
         global_state: GlobalState,
         request_state: RequestState,
+        system_manager: SystemManager,
     ):
         """Initializes the docker deployment manager.
 
         Args:
             global_state: The global state of the app instance.
             request_state: The state for the current request.
+            system_manager: The system manager used for getting the list of allowed images.
         """
         self.global_state = global_state
         self.request_state = request_state
+        self._system_manager = system_manager
 
         self.client = docker.from_env()
         # Reconnect the backend to all existing docker networks on startup
@@ -75,6 +79,8 @@ class DockerDeploymentManager(DeploymentManager):
             DeploymentType.SERVICE, DeploymentType.EXTENSION
         ] = DeploymentType.SERVICE,
     ) -> Service:
+        image_name, image_tag = split_image_name_and_tag(service.container_image)
+        self._system_manager.check_image(image_name, image_tag)
         container_config = create_container_config(
             service=service,
             project_id=project_id,
@@ -147,6 +153,8 @@ class DockerDeploymentManager(DeploymentManager):
         job: JobInput,
         action_id: Optional[str] = None,
     ) -> Job:
+        image_name, image_tag = split_image_name_and_tag(job.container_image)
+        self._system_manager.check_image(image_name, image_tag)
         container_config = create_container_config(
             service=job,
             project_id=project_id,

@@ -1,7 +1,7 @@
 import os
-from typing import Any
+from typing import Any, List
 
-from fastapi import APIRouter, Depends, Form, Response, status
+from fastapi import APIRouter, Body, Depends, Form, Response, status
 from fastapi.templating import Jinja2Templates
 from loguru import logger
 from starlette.requests import Request
@@ -20,6 +20,7 @@ from contaxy.schema.exceptions import (
     VALIDATION_ERROR_RESPONSE,
     ClientValueError,
 )
+from contaxy.schema.system import IMAGE_NAME_PARAM, AllowedImageInfo
 
 HERE = os.path.abspath(os.path.dirname(__file__))
 
@@ -147,3 +148,50 @@ def register_admin_user(
             "username": config.SYSTEM_ADMIN_USERNAME,
         },
     )
+
+
+@router.post(
+    "/system/allowed-images",
+    operation_id=CoreOperations.ADD_ALLOWED_IMAGE.value,
+    response_model=AllowedImageInfo,
+    summary="Add an image to the list of allowed images or replace one already on the list.",
+    status_code=status.HTTP_200_OK,
+)
+def add_allowed_image(
+    allowed_image_input: AllowedImageInfo = Body(...),
+    component_manager: ComponentManager = Depends(get_component_manager),
+    token: str = Depends(get_api_token),
+) -> Any:
+    component_manager.verify_access(token, "system/allowed-images", AccessLevel.WRITE)
+    return component_manager.get_system_manager().add_allowed_image(allowed_image_input)
+
+
+@router.get(
+    "/system/allowed-images",
+    operation_id=CoreOperations.LIST_ALLOWED_IMAGES.value,
+    response_model=List[AllowedImageInfo],
+    summary="List all allowed images.",
+    status_code=status.HTTP_200_OK,
+)
+def list_allowed_images(
+    component_manager: ComponentManager = Depends(get_component_manager),
+    token: str = Depends(get_api_token),
+) -> Any:
+    component_manager.verify_access(token, "system/allowed-images", AccessLevel.READ)
+    return component_manager.get_system_manager().list_allowed_images()
+
+
+@router.delete(
+    "/system/allowed-images",
+    operation_id=CoreOperations.DELETE_ALLOWED_IMAGE.value,
+    summary="Remove an image from the list of allowed images.",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def delete_allowed_image(
+    image_name: str = IMAGE_NAME_PARAM,
+    component_manager: ComponentManager = Depends(get_component_manager),
+    token: str = Depends(get_api_token),
+) -> Any:
+    component_manager.verify_access(token, "system/allowed-images", AccessLevel.WRITE)
+    component_manager.get_system_manager().delete_allowed_image(image_name)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

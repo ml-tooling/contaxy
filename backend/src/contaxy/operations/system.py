@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
+from typing import List
 
-from contaxy.schema.system import SystemInfo, SystemStatistics
+from contaxy.schema.system import AllowedImageInfo, SystemInfo, SystemStatistics
 
 
 class SystemOperations(ABC):
@@ -18,4 +19,16 @@ class SystemOperations(ABC):
 
     @abstractmethod
     def initialize_system(self) -> None:
+        pass
+
+    @abstractmethod
+    def list_allowed_images(self) -> List[AllowedImageInfo]:
+        pass
+
+    @abstractmethod
+    def add_allowed_image(self, allowed_image: AllowedImageInfo) -> AllowedImageInfo:
+        pass
+
+    @abstractmethod
+    def delete_allowed_image(self, allowed_image_name: str) -> None:
         pass
