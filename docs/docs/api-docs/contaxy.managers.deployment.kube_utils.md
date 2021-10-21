@@ -10,7 +10,7 @@
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/kube_utils.py#L49"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/kube_utils.py#L58"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>function</kbd> `get_label_selector`
 
@@ -23,26 +23,74 @@ Bring label tuples into the form required by the Kubernetes client, e.g. 'key1=v
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/kube_utils.py#L55"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/kube_utils.py#L63"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `get_deployment_selection_labels`
+
+```python
+get_deployment_selection_labels(
+    project_id: str,
+    deployment_type: DeploymentType = <DeploymentType.SERVICE: 'service'>
+) → str
+```
+
+Return selector identifying project services/jobs in the form Kubernetes expects a label selector. 
+
+
+
+**Args:**
+ 
+ - <b>`project_id`</b> (str):  The project id of the resources to select. 
+ - <b>`deployment_type`</b> (DeploymentType, optional):  The deployment type by which the selected resources are filtered. Defaults to DeploymentType.SERVICE. 
+
+
+
+**Returns:**
+ 
+ - <b>`str`</b>:  Kubernetes label string in the form of 'key1=value1,key2=value2,key3=value3,...' 
+
+
+---
+
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/kube_utils.py#L83"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>function</kbd> `get_pod`
 
 ```python
 get_pod(
+    project_id: str,
     service_id: str,
     kube_namespace: str,
     core_api: CoreV1Api
 ) → Union[V1Pod, NoneType]
 ```
 
+Get the pod filtered by the project id and service id labels in the given Kubernetes namespace. 
 
 
 
+**Args:**
+ 
+ - <b>`service_id`</b> (str):  If deployed via Contaxy, corresponds to the deployment id of the pod. 
+ - <b>`kube_namespace`</b> (str):  The Kubernetes namespaces in which to look for the pod. 
+ - <b>`core_api`</b> (kube_client.CoreV1Api):  Initialized Kubernetes CoreV1Api object. 
+
+
+
+**Raises:**
+ 
+ - <b>`ResourceNotFoundError`</b>:  Raised when no pod matches the selection criteria. 
+
+
+
+**Returns:**
+ 
+ - <b>`Optional[V1Pod]`</b>:  Returns the pod matching the selection criteria. In case of replicas, multiple pods can match the criteria; in this case, the first pod is selected arbitrarily. 
 
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/kube_utils.py#L76"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/kube_utils.py#L122"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>function</kbd> `create_pvc`
 
@@ -61,7 +109,7 @@ create_pvc(
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/kube_utils.py#L96"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/kube_utils.py#L142"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>function</kbd> `create_service`
 
@@ -80,7 +128,7 @@ create_service(
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/kube_utils.py#L114"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/kube_utils.py#L160"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>function</kbd> `build_kube_service_config`
 
@@ -100,15 +148,17 @@ build_kube_service_config(
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/kube_utils.py#L163"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/kube_utils.py#L209"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>function</kbd> `build_pod_template_spec`
 
 ```python
 build_pod_template_spec(
+    project_id: str,
     service_id: str,
     service: Union[ServiceInput, JobInput],
-    metadata: V1ObjectMeta
+    metadata: V1ObjectMeta,
+    user_id: Optional[str] = None
 ) → V1PodTemplateSpec
 ```
 
@@ -119,7 +169,32 @@ build_pod_template_spec(
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/kube_utils.py#L232"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/kube_utils.py#L295"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `build_deployment_metadata`
+
+```python
+build_deployment_metadata(
+    kube_namespace: str,
+    project_id: str,
+    deployment_id: str,
+    display_name: Optional[str],
+    labels: Optional[Dict[str, str]],
+    compute_resources: Optional[DeploymentCompute],
+    endpoints: Optional[List[str]],
+    deployment_type: DeploymentType = <DeploymentType.SERVICE: 'service'>,
+    user_id: Optional[str] = None
+) → V1ObjectMeta
+```
+
+
+
+
+
+
+---
+
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/kube_utils.py#L330"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>function</kbd> `build_kube_deployment_config`
 
@@ -128,7 +203,8 @@ build_kube_deployment_config(
     service_id: str,
     service: ServiceInput,
     project_id: str,
-    kube_namespace: str
+    kube_namespace: str,
+    user_id: Optional[str] = None
 ) → Tuple[V1Deployment, Union[V1PersistentVolumeClaim, NoneType]]
 ```
 
@@ -139,7 +215,7 @@ build_kube_deployment_config(
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/kube_utils.py#L309"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/kube_utils.py#L406"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>function</kbd> `build_project_network_policy_spec`
 
@@ -157,7 +233,7 @@ build_project_network_policy_spec(
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/kube_utils.py#L354"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/kube_utils.py#L451"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>function</kbd> `check_or_create_project_network_policy`
 
@@ -175,7 +251,7 @@ check_or_create_project_network_policy(
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/kube_utils.py#L368"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/kube_utils.py#L465"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>function</kbd> `wait_for_deployment`
 
@@ -195,7 +271,7 @@ wait_for_deployment(
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/kube_utils.py#L398"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/kube_utils.py#L495"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>function</kbd> `wait_for_job`
 
@@ -215,7 +291,26 @@ wait_for_job(
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/kube_utils.py#L416"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/kube_utils.py#L513"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `wait_for_deletion`
+
+```python
+wait_for_deletion(
+    api: Union[AppsV1Api, BatchV1Api],
+    kube_namespace: str,
+    deployment_id: str
+) → None
+```
+
+
+
+
+
+
+---
+
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/kube_utils.py#L534"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>function</kbd> `map_deployment`
 
@@ -230,7 +325,7 @@ map_deployment(deployment: Union[V1Deployment, V1Job]) → Dict[str, Any]
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/kube_utils.py#L488"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/kube_utils.py#L614"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>function</kbd> `map_kube_service`
 
@@ -245,7 +340,7 @@ map_kube_service(deployment: V1Deployment) → Service
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/kube_utils.py#L495"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/kube_utils.py#L621"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>function</kbd> `map_kube_job`
 

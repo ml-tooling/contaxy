@@ -51,6 +51,20 @@ get_system_statistics() → SystemStatistics
 
 ---
 
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/system.py#L19"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+### <kbd>method</kbd> `initialize_system`
+
+```python
+initialize_system() → None
+```
+
+
+
+
+
+---
+
 <a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/system.py#L11"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `is_healthy`
