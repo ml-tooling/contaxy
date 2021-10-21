@@ -65,7 +65,7 @@ def map_container(
         max_memory=host_config["Memory"] / 1000 / 1000,
         max_gpus=None,  # TODO: fill with sensible information - where to get it from?
         min_lifetime=mapped_labels.min_lifetime,
-        volume_Path=mapped_labels.volume_path,
+        volume_path=mapped_labels.volume_path,
         # TODO: add max_volume_size, max_replicas
     )
 
@@ -211,24 +211,63 @@ def handle_network(
                 Labels.PROJECT_NAME.value: project_id,
             },
         )
+    connect_to_network(get_this_container(client), network)
+    return network
 
+
+def connect_to_network(
+    container: docker.models.containers.Container,
+    network: docker.models.networks.Network,
+) -> None:
     # Note: connecting the backend container to the network will cause a connection drop on Macs, so the first service deploy call will be shown as failed, even though it succeeded. On Linux, this problem does not seem to exist
-    backend_container = get_this_container(client)
-    if backend_container:
-        is_backend_connected_to_network = backend_container.attrs["NetworkSettings"][
+    if container:
+        is_backend_connected_to_network = container.attrs["NetworkSettings"][
             "Networks"
-        ].get(network_name, False)
+        ].get(network.name, False)
         if not is_backend_connected_to_network:
             try:
-                network.connect(backend_container)
+                network.connect(container)
             except docker.errors.APIError:
                 # Remove the network again as it is not connected to any service.
                 network.remove()
                 raise RuntimeError(
-                    f"Could not connect the backend container to the network {network_name}"
+                    f"Could not connect the {container.name} to the network {network.name}"
                 )
 
-    return network
+
+def reconnect_to_all_networks(
+    client: docker.client,
+) -> None:
+    """Connects the backend container to all networks that belong to the installation.
+
+    A reconnect is required after the container was recreated (e.g. to update the image) and is therefore
+    no longer part of all the networks.
+    :param client: Docker client
+    """
+    networks = get_backend_networks(client)
+    for network in networks:
+        try:
+            connect_to_network(get_this_container(client), network)
+        except RuntimeError:
+            logger.exception(
+                "Error reconnecting backend to a network. "
+                "This will cause some services to become unavailable."
+            )
+
+
+def get_backend_networks(client: docker.client) -> List[docker.models.networks.Network]:
+    try:
+        networks = client.networks.list(
+            filters={
+                "label": get_label_string(
+                    Labels.NAMESPACE.value, settings.SYSTEM_NAMESPACE
+                )
+            }
+        )
+    except docker.errors.NotFound:
+        raise ServerBaseError("Could not list backend networks.")
+
+    return networks
 
 
 def get_project_container_selection_labels(
@@ -407,7 +446,6 @@ def create_container_config(
     project_id: str,
     user_id: Optional[str] = None,
 ) -> Dict[str, Any]:
-
     if service.display_name is None:
         raise RuntimeError("Service name not defined")
 
