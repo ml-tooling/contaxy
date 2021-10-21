@@ -10,6 +10,7 @@
 **Global Variables**
 ---------------
 - **DEFAULT_DEPLOYMENT_ACTION_ID**
+- **NO_LOGS_MESSAGE**
 - **INITIAL_CIDR_FIRST_OCTET**
 - **INITIAL_CIDR_SECOND_OCTET**
 - **INITIAL_CIDR**
@@ -19,7 +20,7 @@
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/docker_utils.py#L42"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/docker_utils.py#L57"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>function</kbd> `map_container`
 
@@ -34,7 +35,7 @@ map_container(container: Container) → Dict[str, Any]
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/docker_utils.py#L96"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/docker_utils.py#L120"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>function</kbd> `map_service`
 
@@ -49,7 +50,7 @@ map_service(container: Container) → Service
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/docker_utils.py#L103"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/docker_utils.py#L127"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>function</kbd> `map_job`
 
@@ -64,13 +65,13 @@ map_job(container: Container) → Job
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/docker_utils.py#L109"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/docker_utils.py#L133"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>function</kbd> `create_network`
 
 ```python
 create_network(
-    client: <module 'client' from '/root/local/share/virtualenvs/backend-VRxcNolS/lib/8/site-packages/docker/py'>,
+    client: <module 'client' from '/github/workspace/backend/venv/lib/8/site-packages/docker/py'>,
     name: str,
     labels: Dict[str, str]
 ) → Network
@@ -100,13 +101,13 @@ Containers are separated by networks to prevent them from seeing each other. Det
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/docker_utils.py#L175"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/docker_utils.py#L199"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>function</kbd> `handle_network`
 
 ```python
 handle_network(
-    client: <module 'client' from '/root/local/share/virtualenvs/backend-VRxcNolS/lib/8/site-packages/docker/py'>,
+    client: <module 'client' from '/github/workspace/backend/venv/lib/8/site-packages/docker/py'>,
     project_id: str
 ) → Network
 ```
@@ -118,13 +119,70 @@ handle_network(
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/docker_utils.py#L209"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/docker_utils.py#L234"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `get_project_container_selection_labels`
+
+```python
+get_project_container_selection_labels(
+    project_id: str,
+    deployment_type: DeploymentType = <DeploymentType.SERVICE: 'service'>
+) → List[str]
+```
+
+
+
+
+
+
+---
+
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/docker_utils.py#L245"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `get_project_containers`
+
+```python
+get_project_containers(
+    client: <module 'client' from '/github/workspace/backend/venv/lib/8/site-packages/docker/py'>,
+    project_id: str,
+    deployment_type: DeploymentType = <DeploymentType.SERVICE: 'service'>
+) → List[Container]
+```
+
+
+
+
+
+
+---
+
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/docker_utils.py#L264"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `get_project_container`
+
+```python
+get_project_container(
+    client: <module 'client' from '/github/workspace/backend/venv/lib/8/site-packages/docker/py'>,
+    project_id: str,
+    deployment_id: str,
+    deployment_type: DeploymentType = <DeploymentType.SERVICE: 'service'>
+) → Container
+```
+
+
+
+
+
+
+---
+
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/docker_utils.py#L292"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>function</kbd> `get_this_container`
 
 ```python
 get_this_container(
-    client: <module 'client' from '/root/local/share/virtualenvs/backend-VRxcNolS/lib/8/site-packages/docker/py'>
+    client: <module 'client' from '/github/workspace/backend/venv/lib/8/site-packages/docker/py'>
 ) → Container
 ```
 
@@ -145,7 +203,22 @@ This function returns the Docker container in which this code is running or None
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/docker_utils.py#L226"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/docker_utils.py#L309"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `delete_container`
+
+```python
+delete_container(container: Container, delete_volumes: bool = False) → None
+```
+
+
+
+
+
+
+---
+
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/docker_utils.py#L326"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>function</kbd> `check_minimal_resources`
 
@@ -165,7 +238,7 @@ check_minimal_resources(
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/docker_utils.py#L252"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/docker_utils.py#L352"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>function</kbd> `extract_minimal_resources`
 
@@ -182,7 +255,7 @@ extract_minimal_resources(
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/docker_utils.py#L268"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/docker_utils.py#L368"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>function</kbd> `define_mounts`
 
@@ -202,14 +275,15 @@ define_mounts(
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/docker_utils.py#L305"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/docker_utils.py#L405"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>function</kbd> `create_container_config`
 
 ```python
 create_container_config(
     service: Union[JobInput, ServiceInput],
-    project_id: str
+    project_id: str,
+    user_id: Optional[str] = None
 ) → Dict[str, Any]
 ```
 
@@ -220,7 +294,26 @@ create_container_config(
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/docker_utils.py#L399"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/docker_utils.py#L511"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `read_container_logs`
+
+```python
+read_container_logs(
+    container: Container,
+    lines: Optional[int] = None,
+    since: Optional[datetime] = None
+) → str
+```
+
+
+
+
+
+
+---
+
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/docker_utils.py#L529"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>function</kbd> `list_deploy_service_actions`
 

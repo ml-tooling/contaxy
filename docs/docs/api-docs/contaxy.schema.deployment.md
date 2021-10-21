@@ -11,7 +11,7 @@
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/schema/deployment.py#L26"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/schema/deployment.py#L25"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>class</kbd> `DeploymentType`
 An enumeration. 
@@ -22,7 +22,7 @@ An enumeration.
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/schema/deployment.py#L33"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/schema/deployment.py#L32"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>class</kbd> `DeploymentStatus`
 An enumeration. 
@@ -33,7 +33,7 @@ An enumeration.
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/schema/deployment.py#L58"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/schema/deployment.py#L57"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>class</kbd> `DeploymentCompute`
 
@@ -41,20 +41,12 @@ An enumeration.
 
 
 
----
-
-#### <kbd>property</kbd> fields
-
-
-
-
-
 
 
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/schema/deployment.py#L129"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/schema/deployment.py#L128"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>class</kbd> `DeploymentBase`
 
@@ -62,20 +54,12 @@ An enumeration.
 
 
 
----
-
-#### <kbd>property</kbd> fields
-
-
-
-
-
 
 
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/schema/deployment.py#L170"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/schema/deployment.py#L169"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>class</kbd> `DeploymentInput`
 
@@ -83,20 +67,12 @@ An enumeration.
 
 
 
----
-
-#### <kbd>property</kbd> fields
-
-
-
-
-
 
 
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/schema/deployment.py#L174"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/schema/deployment.py#L173"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>class</kbd> `Deployment`
 
@@ -104,20 +80,12 @@ An enumeration.
 
 
 
----
-
-#### <kbd>property</kbd> fields
-
-
-
-
-
 
 
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/schema/deployment.py#L215"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/schema/deployment.py#L214"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>class</kbd> `ServiceBase`
 
@@ -125,20 +93,12 @@ An enumeration.
 
 
 
----
-
-#### <kbd>property</kbd> fields
-
-
-
-
-
 
 
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/schema/deployment.py#L233"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/schema/deployment.py#L232"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>class</kbd> `ServiceInput`
 
@@ -146,20 +106,12 @@ An enumeration.
 
 
 
----
-
-#### <kbd>property</kbd> fields
-
-
-
-
-
 
 
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/schema/deployment.py#L237"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/schema/deployment.py#L236"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>class</kbd> `Service`
 
@@ -167,20 +119,12 @@ An enumeration.
 
 
 
----
-
-#### <kbd>property</kbd> fields
-
-
-
-
-
 
 
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/schema/deployment.py#L241"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/schema/deployment.py#L240"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>class</kbd> `JobBase`
 
@@ -188,20 +132,12 @@ An enumeration.
 
 
 
----
-
-#### <kbd>property</kbd> fields
-
-
-
-
-
 
 
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/schema/deployment.py#L245"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/schema/deployment.py#L244"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>class</kbd> `JobInput`
 
@@ -209,30 +145,14 @@ An enumeration.
 
 
 
----
-
-#### <kbd>property</kbd> fields
-
-
-
-
-
 
 
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/schema/deployment.py#L254"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/schema/deployment.py#L253"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>class</kbd> `Job`
-
-
-
-
-
----
-
-#### <kbd>property</kbd> fields
 
 
 

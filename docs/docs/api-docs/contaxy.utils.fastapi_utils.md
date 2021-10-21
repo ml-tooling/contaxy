@@ -8,7 +8,22 @@ Collection of utilities for FastAPI apps.
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/utils/fastapi_utils.py#L6"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/utils/fastapi_utils.py#L10"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `as_form`
+
+```python
+as_form(cls: Type[BaseModel]) → Any
+```
+
+Adds an as_form class method to decorated models. 
+
+The as_form class method can be used with FastAPI endpoints 
+
+
+---
+
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/utils/fastapi_utils.py#L34"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>function</kbd> `patch_fastapi`
 
@@ -23,7 +38,7 @@ This patch is required to make fastapi fully functional with a relative url path
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/utils/fastapi_utils.py#L77"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/utils/fastapi_utils.py#L105"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>function</kbd> `add_timing_info`
 

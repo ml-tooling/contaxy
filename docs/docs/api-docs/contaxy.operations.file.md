@@ -11,34 +11,7 @@
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/file.py#L9"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>class</kbd> `FileStream`
-
-
-
-
-
-
-
----
-
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/file.py#L14"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-### <kbd>method</kbd> `read`
-
-```python
-read(size: int = -1) → bytes
-```
-
-
-
-
-
-
----
-
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/file.py#L19"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/file.py#L7"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>class</kbd> `FileOperations`
 
@@ -50,7 +23,7 @@ read(size: int = -1) → bytes
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/file.py#L84"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/file.py#L127"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `delete_file`
 
@@ -63,13 +36,40 @@ delete_file(
 ) → None
 ```
 
+Deletes a file. 
+
+If a specific file `version` is provided, only this one will be deleted. If no `version` is provided and `keep_latest_version` is True, all but the latest version will be deleted. Otherwise, all existing versions will be removed. 
 
 
 
+**Args:**
+ 
+ - <b>`project_id`</b> (str):  Project ID associated with the file. 
+ - <b>`file_key`</b> (str):  Key of the file. 
+ - <b>`version`</b> (Optional[str], optional):  File version. Defaults to None. 
+ - <b>`keep_latest_version`</b> (bool, optional):  [description]. Defaults to False. 
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/file.py#L59"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/file.py#L147"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+### <kbd>method</kbd> `delete_files`
+
+```python
+delete_files(project_id: str) → None
+```
+
+Deletes all files associated with a project. 
+
+
+
+**Args:**
+ 
+ - <b>`project_id`</b> (str):  Project ID associated with the file. 
+
+---
+
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/file.py#L103"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `download_file`
 
@@ -81,13 +81,33 @@ download_file(
 ) → Iterator[bytes]
 ```
 
+Download a file. 
+
+Either the latest version will be returned or the specified one. 
 
 
 
+**Args:**
+ 
+ - <b>`project_id`</b> (str):  Project ID associated with the file. 
+ - <b>`file_key`</b> (str):  Key of the file. 
+ - <b>`version`</b> (Optional[str], optional):  File version. Defaults to None. 
+
+
+
+**Raises:**
+ 
+ - <b>`ResourceNotFoundError`</b>:  If file does not exist. 
+
+
+
+**Yields:**
+ 
+ - <b>`Iterator[bytes]`</b>:  [description] 
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/file.py#L74"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/file.py#L165"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `execute_file_action`
 
@@ -97,7 +117,7 @@ execute_file_action(
     file_key: str,
     action_id: str,
     version: Optional[str] = None
-) → Response
+) → Any
 ```
 
 
@@ -106,7 +126,7 @@ execute_file_action(
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/file.py#L30"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/file.py#L29"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `get_file_metadata`
 
@@ -118,13 +138,33 @@ get_file_metadata(
 ) → File
 ```
 
+Get file metadata of a single file. 
+
+If no version is provided then the latest version will be returned. 
 
 
 
+**Args:**
+ 
+ - <b>`project_id`</b> (str):  Project ID associated with the file. 
+ - <b>`file_key`</b> (str):  Key of the file. 
+ - <b>`version`</b> (Optional[str], optional):  File version. Defaults to None. 
+
+
+
+**Raises:**
+ 
+ - <b>`ResourceNotFoundError`</b>:  If no file is found. 
+
+
+
+**Returns:**
+ 
+ - <b>`File`</b>:  The file metadata object. 
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/file.py#L68"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/file.py#L159"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `list_file_actions`
 
@@ -133,7 +173,7 @@ list_file_actions(
     project_id: str,
     file_key: str,
     version: Optional[str] = None
-) → ResourceAction
+) → List[ResourceAction]
 ```
 
 
@@ -142,7 +182,7 @@ list_file_actions(
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/file.py#L20"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/file.py#L8"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `list_files`
 
@@ -155,13 +195,26 @@ list_files(
 ) → List[File]
 ```
 
+List files. 
 
 
 
+**Args:**
+ 
+ - <b>`project_id`</b> (str):  Project ID associated with the file. 
+ - <b>`recursive`</b> (bool, optional):  List recursively as directory structure emulation. Defaults to True. 
+ - <b>`include_versions`</b> (bool, optional):  Flag to control whether include object versions. Defaults to False. 
+ - <b>`prefix`</b> (Optional[str], optional):  File key starts with prefix. Defaults to None. 
+
+
+
+**Returns:**
+ 
+ - <b>`List[File]`</b>:  List of file metadata objects. 
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/file.py#L39"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/file.py#L53"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `update_file_metadata`
 
@@ -174,13 +227,34 @@ update_file_metadata(
 ) → File
 ```
 
+Update the file metadata. 
+
+If no version is provided then the latest version will be returned. Moreover, additional custom metadata provied via `file.metadata` will executed with json merge patch strategy in case a specific version is updated. But if a new version was created it is treated as a new file and hence the metadata from older versions will not be considered. If a version should inherit the metadata from a previous version, then this data needs to be set explictly. 
 
 
 
+**Args:**
+ 
+ - <b>`file`</b> (FileInput):  The file metadata object. All unset attributes or None values will be ignored. 
+ - <b>`project_id`</b> (str):  Project ID associated with the file. 
+ - <b>`file_key`</b> (str):  Key of the file. 
+ - <b>`version`</b> (Optional[str], optional):  File version. Defaults to None. 
+
+
+
+**Raises:**
+ 
+ - <b>`ClientValueError`</b>:  If the provided keys do not match. 
+
+
+
+**Returns:**
+ 
+ - <b>`File`</b>:  The updated file metadata object. 
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/file.py#L49"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/file.py#L79"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `upload_file`
 
@@ -193,9 +267,28 @@ upload_file(
 ) → File
 ```
 
+Upload a file. 
 
 
 
+**Args:**
+ 
+ - <b>`project_id`</b> (str):  Project ID associated with the file. 
+ - <b>`file_key`</b> (str):  Key of the file. 
+ - <b>`file_stream`</b> (FileStream):  The actual file stream object. 
+ - <b>`content_type`</b> (str, optional):  The mime-type of the file. Defaults to "application/octet-stream". 
+
+
+
+**Raises:**
+ 
+ - <b>`ServerBaseError`</b>:  If the upload failed. 
+
+
+
+**Returns:**
+ 
+ - <b>`File`</b>:  The file metadata object of the uploaded file. 
 
 
 

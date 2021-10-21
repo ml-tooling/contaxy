@@ -11,11 +11,12 @@
 ---------------
 - **QUALIFIED_RESOURCE_ID_REGEX**
 - **CORE_EXTENSION_ID**
+- **GLOBAL_EXTENSION_PROJECT**
 
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/schema/extension.py#L20"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/schema/extension.py#L21"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>class</kbd> `ExtensionType`
 An enumeration. 
@@ -26,7 +27,7 @@ An enumeration.
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/schema/extension.py#L25"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/schema/extension.py#L26"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>class</kbd> `ExtensionBase`
 
@@ -34,20 +35,12 @@ An enumeration.
 
 
 
----
-
-#### <kbd>property</kbd> fields
-
-
-
-
-
 
 
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/schema/extension.py#L48"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/schema/extension.py#L49"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>class</kbd> `ExtensionInput`
 
@@ -55,30 +48,14 @@ An enumeration.
 
 
 
----
-
-#### <kbd>property</kbd> fields
-
-
-
-
-
 
 
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/schema/extension.py#L52"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/schema/extension.py#L53"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>class</kbd> `Extension`
-
-
-
-
-
----
-
-#### <kbd>property</kbd> fields
 
 
 
