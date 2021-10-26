@@ -1,12 +1,12 @@
 from typing import Optional
 
 from fastapi import Request
+from loguru import logger
 from pydantic.networks import PostgresDsn
 
 from contaxy import config
 from contaxy.managers.auth import AuthManager
 from contaxy.managers.extension import ExtensionManager
-from contaxy.managers.file.minio import MinioFileManager
 from contaxy.managers.project import ProjectManager
 from contaxy.managers.seed import SeedManager
 from contaxy.managers.system import SystemManager
@@ -136,7 +136,12 @@ class ComponentManager:
     def get_project_manager(self) -> ProjectManager:
         """Returns a Project Manager instance."""
         if not self._project_manager:
-            self._project_manager = ProjectManager(self.global_state, self.request_state, self.get_json_db_manager(), self.get_auth_manager())  # type: ignore  # TODO: remove type ignore
+            self._project_manager = ProjectManager(
+                self.global_state,
+                self.request_state,
+                self.get_json_db_manager(),
+                self.get_auth_manager(),
+            )
 
         assert self._project_manager is not None
         return self._project_manager
@@ -176,7 +181,9 @@ class ComponentManager:
         if not self._json_db_manager:
             from contaxy.managers.json_db.postgres import PostgresJsonDocumentManager
 
-            self._json_db_manager = PostgresJsonDocumentManager(self.global_state, self.request_state)  # type: ignore  # TODO: remove type ignore
+            self._json_db_manager = PostgresJsonDocumentManager(
+                self.global_state, self.request_state
+            )
         return self._json_db_manager
 
     def get_file_manager(
@@ -196,8 +203,33 @@ class ComponentManager:
             return self.get_extension_manager().get_extension_client(extension_id)
 
         if not self._file_manager:
-            self._file_manager = MinioFileManager(self.global_state, self.request_state, self.get_json_db_manager())  # type: ignore  # TODO: remove type ignore
+            self._file_manager = self._create_file_manager()
         return self._file_manager
+
+    def _create_file_manager(self) -> FileOperations:
+        if self.global_state.settings.S3_ENDPOINT:
+            logger.debug("Configuration S3_ENDPOINT set. Using external S3 storage.")
+            from contaxy.managers.file.minio import MinioFileManager
+
+            return MinioFileManager(
+                self.global_state, self.request_state, self.get_json_db_manager()
+            )
+        elif self.global_state.settings.AZURE_BLOB_CONNECTION_STRING:
+            logger.debug(
+                "Configuration AZURE_BLOB_CONNECTION_STRING set. Using external Azure Blob storage."
+            )
+            from contaxy.managers.file.azure_blob import AzureBlobFileManager
+
+            return AzureBlobFileManager(
+                self.global_state, self.request_state, self.get_json_db_manager()
+            )
+        else:
+            logger.debug(
+                "No external object storage configured. Using internal Minio service."
+            )
+            raise NotImplementedError(
+                "Internal Minio object storage is not implemented! Please configure S3_ENDPOINT or AZURE_BLOB_CONNECTION_STRING."
+            )
 
     def _get_deployment_manager(self) -> DeploymentOperations:
         # Lazyload deployment manager
