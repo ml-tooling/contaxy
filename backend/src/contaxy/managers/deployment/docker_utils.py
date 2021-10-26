@@ -411,14 +411,14 @@ def define_mounts(
     service_requirements: Optional[List[str]] = [],
 ) -> list:
     mounts = []
-    if service_requirements and "docker" in service_requirements:
-        # TODO: IMPORTANT mark container as having extended privileges so that on a higher level the platform
-        # can prevent that a non-admin creates a container with the Docker socket mounted
-        mounts.append(
-            docker.types.Mount(
-                target="/var/run/docker.sock", source="/var/run/docker.sock"
-            )
-        )
+    # if service_requirements and "docker" in service_requirements:
+    #     # TODO: IMPORTANT mark container as having extended privileges so that on a higher level the platform
+    #     # can prevent that a non-admin creates a container with the Docker socket mounted
+    #     mounts.append(
+    #         docker.types.Mount(
+    #             target="/var/run/docker.sock", source="/var/run/docker.sock"
+    #         )
+    #     )
 
     if (
         compute_resources.volume_path is not None
