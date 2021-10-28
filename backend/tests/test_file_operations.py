@@ -221,12 +221,28 @@ class FileOperationsTests(ABC):
         file_key = "delete-2.bin"
         version_1 = self.seeder.create_file(self.project_id, file_key)
         version_2 = self.seeder.create_file(self.project_id, file_key)
+        version_3 = self.seeder.create_file(self.project_id, file_key)
 
-        #      -- Delete older version
+        # Delete latest version
+        # Deletion of the currently active version is not possible on Azure Blob Storage
+        if type(self.file_manager).__name__ not in ["AzureBlobFileManager"]:
+            self.file_manager.delete_file(self.project_id, file_key, version_3.version)
+            self._validate_file_not_found(self.project_id, file_key, version_3.version)
+            file = self.file_manager.get_file_metadata(self.project_id, file_key)
+            assert version_3.version not in file.available_versions
+            assert version_2.version in file.available_versions
+        else:
+            with pytest.raises(ValueError):
+                self.file_manager.delete_file(
+                    self.project_id, file_key, version_3.version
+                )
+
+        # Delete oldest version
         self.file_manager.delete_file(self.project_id, file_key, version_1.version)
         self._validate_file_not_found(self.project_id, file_key, version_1.version)
         file = self.file_manager.get_file_metadata(self.project_id, file_key)
-        assert file.version == version_2.version
+        assert version_1.version not in file.available_versions
+        assert version_2.version in file.available_versions
 
         # Test - Keep latest version
         file_key = "delete-3.bin"
