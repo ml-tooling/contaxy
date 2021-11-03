@@ -96,9 +96,15 @@ def map_container(
     parameters = transform_env_list(
         container.attrs.get("Config", {}).get("Env", [])
     )  # dict([x for x in [container_env.split("=") for container_env in container_envs]])
+    image_tags = container.image.tags
+    # Use the first image tag as name. If the image has no tags, use the id.
+    if len(image_tags) > 0:
+        container_image = image_tags[0]
+    else:
+        container_image = container.image.short_id
 
     return {
-        "container_image": container.image.tags[0],
+        "container_image": container_image,
         "command": " ".join(container.attrs.get("Args", [])),
         "compute": compute_resources,
         "metadata": mapped_labels.metadata,
