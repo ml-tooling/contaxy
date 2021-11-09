@@ -6,7 +6,11 @@ from contaxy.managers.auth import AuthManager
 from contaxy.operations import SystemOperations
 from contaxy.operations.json_db import JsonDocumentOperations
 from contaxy.operations.project import ProjectOperations
-from contaxy.schema import ClientValueError, ResourceNotFoundError
+from contaxy.schema import (
+    ClientValueError,
+    ResourceAlreadyExistsError,
+    ResourceNotFoundError,
+)
 from contaxy.schema.auth import ADMIN_ROLE, USERS_KIND, AccessLevel, UserRegistration
 from contaxy.schema.project import ProjectCreation
 from contaxy.schema.system import AllowedImageInfo, SystemInfo, SystemStatistics
@@ -61,6 +65,11 @@ class SystemManager(SystemOperations):
         self,
         password: Optional[str] = None,
     ) -> None:
+        # Don't execute initialization if there are already existing users
+        # TODO: This does not prevent the usage of the contaxy API before the system is initialized
+        if len(self._auth_manager.list_users()) > 0:
+            raise ResourceAlreadyExistsError("The system has already been initialized")
+
         # Remove authorized access info
         self._request_state.authorized_access = None
 

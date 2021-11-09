@@ -88,7 +88,6 @@ def initialize_system(
     component_manager: ComponentManager = Depends(get_component_manager),
 ) -> Any:
     """Initializes the system."""
-    # TODO: only allow this to be called once
     component_manager.get_system_manager().initialize_system()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
