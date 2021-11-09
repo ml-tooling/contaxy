@@ -17,6 +17,7 @@ from kubernetes.client.rest import ApiException
 from loguru import logger
 
 from contaxy.config import settings
+from contaxy.managers.auth import AuthManager
 from contaxy.managers.deployment.kube_utils import (
     build_deployment_metadata,
     build_kube_deployment_config,
@@ -62,6 +63,7 @@ class KubernetesDeploymentManager(DeploymentManager):
         global_state: GlobalState,
         request_state: RequestState,
         system_manager: SystemManager,
+        auth_manager: AuthManager,
         kube_namespace: str = None,
     ):
         """Initializes the Kubernetes Deployment Manager.
@@ -70,11 +72,13 @@ class KubernetesDeploymentManager(DeploymentManager):
             global_state: The global state of the app instance.
             request_state: The state for the current request.
             system_manager: The system manager used for getting the list of allowed images.
+            auth_manager: The auth manager is used to generate api tokens that a passed to services and jobs.
             kube_namespace (str): Set the Kubernetes namespace to use. If it is not given, the manager will try to detect the namespace automatically.
         """
         self.global_state = global_state
         self.request_state = request_state
         self._system_manager = system_manager
+        self._auth_manager = auth_manager
 
         try:
             # incluster config is the config given by a service account and it's role permissions
@@ -155,6 +159,7 @@ class KubernetesDeploymentManager(DeploymentManager):
             service=service,
             project_id=project_id,
             kube_namespace=self.kube_namespace,
+            auth_manager=self._auth_manager,
             user_id=parse_userid_from_resource_name(
                 self.request_state.authorized_subject
             ),
@@ -499,6 +504,7 @@ class KubernetesDeploymentManager(DeploymentManager):
             service_id=deployment_id,
             service=job,
             metadata=metadata,
+            auth_manager=self._auth_manager,
             user_id=parse_userid_from_resource_name(
                 self.request_state.authorized_subject
             ),

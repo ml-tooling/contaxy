@@ -4,6 +4,7 @@ from typing import List, Literal, Optional
 import docker
 from loguru import logger
 
+from contaxy.managers.auth import AuthManager
 from contaxy.managers.deployment.docker_utils import (
     create_container_config,
     delete_container,
@@ -34,6 +35,7 @@ class DockerDeploymentManager(DeploymentManager):
         global_state: GlobalState,
         request_state: RequestState,
         system_manager: SystemManager,
+        auth_manager: AuthManager,
     ):
         """Initializes the docker deployment manager.
 
@@ -41,10 +43,12 @@ class DockerDeploymentManager(DeploymentManager):
             global_state: The global state of the app instance.
             request_state: The state for the current request.
             system_manager: The system manager used for getting the list of allowed images.
+            auth_manager: The auth manager is used to generate api tokens that a passed to services and jobs.
         """
         self.global_state = global_state
         self.request_state = request_state
         self._system_manager = system_manager
+        self._auth_manager = auth_manager
 
         self.client = docker.from_env()
         # Reconnect the backend to all existing docker networks on startup
@@ -84,6 +88,7 @@ class DockerDeploymentManager(DeploymentManager):
         container_config = create_container_config(
             service=service,
             project_id=project_id,
+            auth_manager=self._auth_manager,
             user_id=parse_userid_from_resource_name(
                 self.request_state.authorized_subject
             ),
@@ -158,6 +163,7 @@ class DockerDeploymentManager(DeploymentManager):
         container_config = create_container_config(
             service=job,
             project_id=project_id,
+            auth_manager=self._auth_manager,
             user_id=parse_userid_from_resource_name(
                 self.request_state.authorized_subject
             ),

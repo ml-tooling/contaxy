@@ -33,6 +33,7 @@ from kubernetes.client.models import (
 from kubernetes.client.rest import ApiException
 
 from contaxy.config import settings
+from contaxy.managers.auth import AuthManager
 from contaxy.managers.deployment.utils import (
     _ENV_VARIABLE_CONTAXY_SERVICE_URL,
     _MIN_MEMORY_DEFAULT_MB,
@@ -160,7 +161,6 @@ def create_service(
 def build_kube_service_config(
     service_id: str, service: ServiceInput, project_id: str, kube_namespace: str
 ) -> V1Service:
-
     # TODO: set the endpoints as annotations
     service_ports: Dict[str, V1ServicePort] = {}
     if service.endpoints:
@@ -211,6 +211,7 @@ def build_pod_template_spec(
     service_id: str,
     service: Union[ServiceInput, JobInput],
     metadata: V1ObjectMeta,
+    auth_manager: AuthManager,
     user_id: Optional[str] = None,
 ) -> V1PodTemplateSpec:
     compute_resources = service.compute or DeploymentCompute()
@@ -243,6 +244,7 @@ def build_pod_template_spec(
         **get_default_environment_variables(
             project_id=project_id,
             deployment_id=service_id,
+            auth_manager=auth_manager,
             endpoints=service.endpoints,
             compute_resources=compute_resources,
         ),
@@ -332,6 +334,7 @@ def build_kube_deployment_config(
     service: ServiceInput,
     project_id: str,
     kube_namespace: str,
+    auth_manager: AuthManager,
     user_id: Optional[str] = None,
 ) -> Tuple[V1Deployment, Union[V1PersistentVolumeClaim, None]]:
     # ---
@@ -395,6 +398,7 @@ def build_kube_deployment_config(
                 service_id=service_id,
                 service=service,
                 metadata=metadata,
+                auth_manager=auth_manager,
                 user_id=user_id,
             ),
         ),
@@ -406,7 +410,6 @@ def build_kube_deployment_config(
 def build_project_network_policy_spec(
     project_id: str, kube_namespace: str
 ) -> V1NetworkPolicy:
-
     project_pod_selector = V1LabelSelector(
         match_labels={
             Labels.NAMESPACE.value: settings.SYSTEM_NAMESPACE,
