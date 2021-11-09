@@ -9,7 +9,6 @@ from loguru import logger
 
 from contaxy.config import settings
 from contaxy.managers.deployment.utils import (
-    _ENV_VARIABLE_CONTAXY_SERVICE_URL,
     _MIN_MEMORY_DEFAULT_MB,
     DEFAULT_DEPLOYMENT_ACTION_ID,
     NO_LOGS_MESSAGE,
@@ -510,9 +509,7 @@ def create_container_config(
     environment = replace_templates(
         environment,
         get_template_mapping(
-            project_id=project_id,
-            user_id=user_id,
-            service_url=environment.get(_ENV_VARIABLE_CONTAXY_SERVICE_URL, ""),
+            project_id=project_id, user_id=user_id, environment=environment
         ),
     )
 
