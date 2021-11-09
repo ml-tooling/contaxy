@@ -12,6 +12,7 @@ from contaxy.clients import AuthClient, JsonDocumentClient
 from contaxy.clients.file import FileClient
 from contaxy.clients.system import SystemClient
 from contaxy.config import settings
+from contaxy.managers.file.azure_blob import AzureBlobFileManager
 from contaxy.managers.file.minio import MinioFileManager
 from contaxy.managers.json_db.postgres import PostgresJsonDocumentManager
 from contaxy.managers.seed import SeedManager
@@ -98,7 +99,7 @@ class FileOperationsTests(ABC):
         version_1 = self.seeder.create_file(self.project_id)
         version_2 = self.seeder.create_file(self.project_id)
 
-        # Test - File does not exsists
+        # Test - File does not exist
         self._validate_file_not_found(self.project_id, "invalid-file")
 
         # Test - File exists
@@ -222,17 +223,26 @@ class FileOperationsTests(ABC):
         version_2 = self.seeder.create_file(self.project_id, file_key)
         version_3 = self.seeder.create_file(self.project_id, file_key)
 
-        #      -- Delete latest
-        self.file_manager.delete_file(self.project_id, file_key, version_3.version)
-        self._validate_file_not_found(self.project_id, file_key, version_3.version)
-        file = self.file_manager.get_file_metadata(self.project_id, file_key)
-        assert file.version == version_2.version
+        # Delete latest version
+        # Deletion of the currently active version is not possible on Azure Blob Storage
+        if type(self.file_manager).__name__ not in ["AzureBlobFileManager"]:
+            self.file_manager.delete_file(self.project_id, file_key, version_3.version)
+            self._validate_file_not_found(self.project_id, file_key, version_3.version)
+            file = self.file_manager.get_file_metadata(self.project_id, file_key)
+            assert version_3.version not in file.available_versions
+            assert version_2.version in file.available_versions
+        else:
+            with pytest.raises(ValueError):
+                self.file_manager.delete_file(
+                    self.project_id, file_key, version_3.version
+                )
 
-        #      -- Delete oldest
+        # Delete oldest version
         self.file_manager.delete_file(self.project_id, file_key, version_1.version)
         self._validate_file_not_found(self.project_id, file_key, version_1.version)
         file = self.file_manager.get_file_metadata(self.project_id, file_key)
-        assert file.version == version_2.version
+        assert version_1.version not in file.available_versions
+        assert version_2.version in file.available_versions
 
         # Test - Keep latest version
         file_key = "delete-3.bin"
@@ -301,7 +311,6 @@ class TestMinioFileManagerWithPostgres(FileOperationsTests):
     def _init_managers(
         self, global_state: GlobalState, request_state: RequestState
     ) -> Generator:
-
         json_db = PostgresJsonDocumentManager(global_state, request_state)
 
         self._file_manager = MinioFileManager(global_state, request_state, json_db)
@@ -335,6 +344,46 @@ class TestMinioFileManagerWithPostgres(FileOperationsTests):
 
 
 @pytest.mark.skipif(
+    not test_settings.AZURE_BLOB_INTEGRATION_TESTS,
+    reason="Azure Blob Integration Tests are deactivated, use AZURE_BLOB_INTEGRATION_TESTS to activate.",
+)
+@pytest.mark.skipif(
+    not test_settings.POSTGRES_INTEGRATION_TESTS,
+    reason="Postgres Integration Tests are deactivated, use POSTGRES_INTEGRATION_TESTS to activate.",
+)
+@pytest.mark.integration
+class TestAzureBlobFileManagerWithPostgres(FileOperationsTests):
+    @pytest.fixture(autouse=True)
+    def _init_managers(
+        self, global_state: GlobalState, request_state: RequestState
+    ) -> Generator:
+        json_db = PostgresJsonDocumentManager(global_state, request_state)
+
+        self._file_manager = AzureBlobFileManager(global_state, request_state, json_db)
+
+        self._seeder = SeedManager(
+            global_state, request_state, file_manager=self._file_manager
+        )
+
+        self._project_id = f"{randint(1, 100000)}-file-manager-test"
+        yield
+        self._file_manager.delete_files(self.project_id)
+        self._file_manager.json_db_manager.delete_json_collections(self.project_id)
+
+    @property
+    def file_manager(self) -> FileOperations:
+        return self._file_manager
+
+    @property
+    def seeder(self) -> SeedOperations:
+        return self._seeder
+
+    @property
+    def project_id(self) -> str:
+        return self._project_id
+
+
+@pytest.mark.skipif(
     not test_settings.MINIO_INTEGRATION_TESTS,
     reason="Minio Integration Tests are deactivated, use MINIO_INTEGRATION_TESTS to activate.",
 )
@@ -346,7 +395,6 @@ class TestMinioFileManagerWithPostgres(FileOperationsTests):
 class TestMinioFileManagerViaLocalEndpoints(FileOperationsTests):
     @pytest.fixture(autouse=True)
     def _init_managers(self) -> Generator:
-
         from contaxy.api import app
 
         with TestClient(app=app, root_path="/") as test_client:

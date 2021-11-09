@@ -18,6 +18,7 @@ class TestSettings(BaseSettings):
     ACTIVATE_TEST_PROFILING: bool = True
     POSTGRES_INTEGRATION_TESTS: bool = False
     MINIO_INTEGRATION_TESTS: bool = False
+    AZURE_BLOB_INTEGRATION_TESTS: bool = False
     REMOTE_BACKEND_TESTS: bool = True
     REMOTE_BACKEND_ENDPOINT: Optional[str] = None
     DOCKER_INTEGRATION_TESTS: bool = True

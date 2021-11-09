@@ -70,6 +70,8 @@ setup(
         # Used in MinioFileManager
         "filetype",
         "minio",
+        # Used in AzureBlobFileManager
+        "azure-storage-blob",
         # Used for jwt handling
         "python-jose[cryptography]",
         # Used for password hashing

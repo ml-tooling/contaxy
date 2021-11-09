@@ -67,6 +67,10 @@ class Settings(BaseSettings):
     S3_SECURE: Optional[bool] = None
     # TODO: support for managing all data in a single bucket S3_BUCKET: Optional[str] = None
 
+    # Azure Blob Storage Connection Configuration for File Manager
+    AZURE_BLOB_CONNECTION_STRING: Optional[str] = None
+    AZURE_BLOB_TOKEN: Optional[str] = None
+
     # Cache Settings
     # VERIFY_ACCESS_CACHE caches all token <-> permission verifications
     VERIFY_ACCESS_CACHE_ENABLED: bool = True  # Enable or disable the cache
