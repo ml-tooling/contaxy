@@ -921,7 +921,11 @@ class AuthManager(AuthOperations):
             user_resource_name,
             auth_utils.construct_permission(user_resource_name, AccessLevel.ADMIN),
         )
-        # TODO: Add admin permission to the user
+        # User needs to know which images are allowed for deployments
+        self.add_permission(
+            user_resource_name,
+            auth_utils.construct_permission("system/allowed-images", AccessLevel.READ),
+        )
 
         return User.parse_raw(created_document.json_value)
 

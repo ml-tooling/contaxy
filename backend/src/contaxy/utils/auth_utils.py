@@ -138,7 +138,8 @@ def setup_user(user: User, project_manager: ProjectOperations) -> Project:
         project_input=ProjectCreation(
             id=user.id,
             display_name="Home",
-            description="My personal project nobody else has access to.",  # TODO: Maybe state that only the admin has access to the project
+            description="My personal project nobody else has access to.",
+            # TODO: Maybe state that only the admin has access to the project
         ),
         technical_project=True,
     )

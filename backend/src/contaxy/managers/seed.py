@@ -63,6 +63,8 @@ class SeedManager(SeedOperations):
     def setup_user(self, user: User) -> Project:
         if not self.project_manager:
             raise RuntimeError(ERROR_NO_PROJECT_MANAGER)
+        if not self.auth_manager:
+            raise RuntimeError("Seeder needs to be initialized with an auth manager")
         return setup_user(user, self.project_manager)
 
     def create_project(
