@@ -364,7 +364,7 @@ def build_kube_deployment_config(
             metadata=metadata,
             spec=V1PersistentVolumeClaimSpec(
                 # TODO: make the storage class name configurable?
-                storage_class_name="standard",
+                storage_class_name="default",
                 resources=V1ResourceRequirements(requests={"storage": storage_size}),
                 access_modes=["ReadWriteOnce"],
             ),
