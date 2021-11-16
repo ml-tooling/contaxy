@@ -134,10 +134,14 @@ def setup_user(user: User, project_manager: ProjectOperations) -> Project:
     Returns:
         Project: The created technical project of which the user is a member.
     """
+    if user.username is not None:
+        user_project_name = f"{user.username.split()[0]}'s Home"
+    else:
+        user_project_name = "Home"
     user_project = project_manager.create_project(
         project_input=ProjectCreation(
             id=user.id,
-            display_name="Home",
+            display_name=user_project_name,
             description="My personal project nobody else has access to.",
             # TODO: Maybe state that only the admin has access to the project
         ),
