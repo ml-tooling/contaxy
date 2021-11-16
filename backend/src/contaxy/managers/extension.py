@@ -159,9 +159,12 @@ class ExtensionManager(ExtensionOperations):
         )
 
     def list_extensions(self, project_id: str) -> List[Extension]:
-        project_services = self.deployment_manager.list_services(
-            project_id=project_id, deployment_type=DeploymentType.EXTENSION
-        )
+        if project_id != GLOBAL_EXTENSION_PROJECT:
+            project_services = self.deployment_manager.list_services(
+                project_id=project_id, deployment_type=DeploymentType.EXTENSION
+            )
+        else:
+            project_services = []
         global_services = self.deployment_manager.list_services(
             project_id=GLOBAL_EXTENSION_PROJECT,
             deployment_type=DeploymentType.EXTENSION,
