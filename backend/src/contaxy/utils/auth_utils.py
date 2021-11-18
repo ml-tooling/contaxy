@@ -135,7 +135,9 @@ def setup_user(user: User, project_manager: ProjectOperations) -> Project:
         Project: The created technical project of which the user is a member.
     """
     if user.username is not None:
-        user_project_name = f"{user.username.split()[0]}'s Home"
+        # Split name by space and dot
+        user_first_name = user.username.split()[0].split(".")[0]
+        user_project_name = f"{user_first_name.capitalize()}'s Home"
     else:
         user_project_name = "Home"
     user_project = project_manager.create_project(
