@@ -12,6 +12,7 @@ from kubernetes.client.rest import ApiException
 
 from contaxy import config
 from contaxy.clients import AuthClient, DeploymentManagerClient, SystemClient
+from contaxy.managers.auth import AuthManager
 from contaxy.managers.deployment.docker import DockerDeploymentManager
 from contaxy.managers.deployment.docker_utils import (
     get_network_name,
@@ -28,6 +29,7 @@ from contaxy.managers.system import SystemManager
 from contaxy.operations.deployment import DeploymentOperations
 from contaxy.schema.auth import (
     AccessLevel,
+    AuthorizedAccess,
     OAuth2TokenGrantTypes,
     OAuth2TokenRequestFormNew,
 )
@@ -424,14 +426,19 @@ class TestDockerDeploymentManager(DeploymentOperationsTests):
         self, global_state: GlobalState, request_state: RequestState
     ) -> Generator:
         # Only use in memory database as the DB is not main the focus of this test
+        request_state.authorized_access = AuthorizedAccess(
+            authorized_subject="user/test-user"
+        )
         json_db = InMemoryDictJsonDocumentManager(global_state, request_state)
+        self._auth_manager = AuthManager(global_state, request_state, json_db)
         self._system_manager = SystemManager(
-            global_state, request_state, json_db, None, None
+            global_state, request_state, json_db, self._auth_manager, None
         )
         self._deployment_manager = DockerDeploymentManager(
             global_state=GlobalState(global_state),
             request_state=RequestState(request_state),
             system_manager=self._system_manager,
+            auth_manager=self._auth_manager,
         )
 
         (
