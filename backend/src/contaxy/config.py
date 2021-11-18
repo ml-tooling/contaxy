@@ -51,8 +51,13 @@ class Settings(BaseSettings):
     DEPLOYMENT_MANAGER: DeploymentManager = DeploymentManager.DOCKER
     KUBERNETES_NAMESPACE: Optional[str] = None
     HOST_DATA_ROOT_PATH: Optional[str] = None
-    if HOST_DATA_ROOT_PATH is not None and not HOST_DATA_ROOT_PATH.endswith("/"):
-        HOST_DATA_ROOT_PATH = f"{HOST_DATA_ROOT_PATH}/"
+
+    # Ensure host data root path ends with a slash
+    @validator("HOST_DATA_ROOT_PATH")
+    def _validate_host_data_root_path(cls, host_data_root_path: str) -> str:
+        if host_data_root_path is None or host_data_root_path.endswith("/"):
+            return host_data_root_path
+        return f"{host_data_root_path}/"
 
     # Postgres Connection URI to use for JSON Document Manager
     # If `None`, a dedicated postgres instance will be started as a service (container).
