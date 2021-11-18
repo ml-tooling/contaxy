@@ -8,6 +8,7 @@ import psutil
 from loguru import logger
 
 from contaxy.config import settings
+from contaxy.managers.auth import AuthManager
 from contaxy.managers.deployment.utils import (
     _ENV_VARIABLE_CONTAXY_SERVICE_URL,
     _MIN_MEMORY_DEFAULT_MB,
@@ -450,6 +451,7 @@ def define_mounts(
 def create_container_config(
     service: Union[JobInput, ServiceInput],
     project_id: str,
+    auth_manager: AuthManager,
     user_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     if service.display_name is None:
@@ -503,6 +505,7 @@ def create_container_config(
         **get_default_environment_variables(
             project_id=project_id,
             deployment_id=container_name,
+            auth_manager=auth_manager,
             endpoints=service.endpoints,
             compute_resources=compute_resources,
         ),

@@ -4,8 +4,11 @@ from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
 from contaxy.config import settings
+from contaxy.managers.auth import AuthManager
+from contaxy.schema import AccessLevel, TokenType
+from contaxy.schema.auth import TokenPurpose
 from contaxy.schema.deployment import DeploymentCompute, DeploymentType
-from contaxy.utils import id_utils
+from contaxy.utils import auth_utils, id_utils
 
 DEFAULT_DEPLOYMENT_ACTION_ID = "default"
 NO_LOGS_MESSAGE = "No logs available."
@@ -19,6 +22,7 @@ _MIN_MEMORY_DEFAULT_MB = 100
 
 _ENV_VARIABLE_CONTAXY_BASE_URL = "CONTAXY_BASE_URL"
 _ENV_VARIABLE_CONTAXY_API_ENDPOINT = "CONTAXY_API_ENDPOINT"
+_ENV_VARIABLE_CONTAXY_API_TOKEN = "CONTAXY_API_TOKEN"
 _ENV_VARIABLE_CONTAXY_SERVICE_URL = "CONTAXY_SERVICE_URL"
 
 
@@ -228,6 +232,7 @@ def map_endpoints_label_to_endpoints(
 def get_default_environment_variables(
     project_id: str,
     deployment_id: str,
+    auth_manager: AuthManager,
     endpoints: Optional[List[str]] = None,
     compute_resources: Optional[DeploymentCompute] = None,
 ) -> Dict[str, str]:
@@ -236,6 +241,7 @@ def get_default_environment_variables(
     Args:
         project_id (str): The project id included in the label list
         deployment_id (str)
+        auth_manager (AuthManager): Auth manager used for creating an access token for the service
         endpoints (List[str]): List of endpoints
         compute_resources: (Optional[DeploymentCompute]): DeploymentCompute information
 
@@ -248,6 +254,18 @@ def get_default_environment_variables(
         _ENV_VARIABLE_CONTAXY_BASE_URL: settings.CONTAXY_BASE_URL,
         _ENV_VARIABLE_CONTAXY_API_ENDPOINT: settings.CONTAXY_API_ENDPOINT,
     }
+
+    # TODO: This url is only valid for services but not for jobs
+    service_access_permission = auth_utils.construct_permission(
+        f"/projects/{project_id}/services/{deployment_id}/access/", AccessLevel.READ
+    )
+    service_api_token = auth_manager.create_token(
+        scopes=[service_access_permission],
+        token_type=TokenType.API_TOKEN,
+        description=f"Access token for service {deployment_id}.",
+        token_purpose=TokenPurpose.SERVICE_ACCESS_TOKEN,
+    )
+    default_environment_variables[_ENV_VARIABLE_CONTAXY_API_TOKEN] = service_api_token
 
     if endpoints and len(endpoints) > 0:
         endpoint = endpoints[0]

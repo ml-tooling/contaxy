@@ -241,7 +241,10 @@ class ComponentManager:
                 from contaxy.managers.deployment.docker import DockerDeploymentManager
 
                 self._deployment_manager = DockerDeploymentManager(
-                    self.global_state, self.request_state, self.get_system_manager()
+                    self.global_state,
+                    self.request_state,
+                    self.get_system_manager(),
+                    self.get_auth_manager(),
                 )
             elif (
                 self.global_state.settings.DEPLOYMENT_MANAGER
@@ -255,6 +258,7 @@ class ComponentManager:
                     self.global_state,
                     self.request_state,
                     self.get_system_manager(),
+                    self.get_auth_manager(),
                     self.global_state.settings.KUBERNETES_NAMESPACE,
                 )
 
