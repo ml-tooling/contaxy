@@ -13,7 +13,6 @@
 - [`contaxy.clients.project`](./contaxy.clients.project.md#module-contaxyclientsproject)
 - [`contaxy.clients.shared`](./contaxy.clients.shared.md#module-contaxyclientsshared)
 - [`contaxy.clients.system`](./contaxy.clients.system.md#module-contaxyclientssystem)
-- [`contaxy.config`](./contaxy.config.md#module-contaxyconfig)
 - [`contaxy.main`](./contaxy.main.md#module-contaxymain)
 - [`contaxy.managers`](./contaxy.managers.md#module-contaxymanagers)
 - [`contaxy.managers.auth`](./contaxy.managers.auth.md#module-contaxymanagersauth)
@@ -27,6 +26,7 @@
 - [`contaxy.managers.deployment.utils`](./contaxy.managers.deployment.utils.md#module-contaxymanagersdeploymentutils)
 - [`contaxy.managers.extension`](./contaxy.managers.extension.md#module-contaxymanagersextension)
 - [`contaxy.managers.file`](./contaxy.managers.file.md#module-contaxymanagersfile)
+- [`contaxy.managers.file.azure_blob`](./contaxy.managers.file.azure_blob.md#module-contaxymanagersfileazure_blob)
 - [`contaxy.managers.file.minio`](./contaxy.managers.file.minio.md#module-contaxymanagersfileminio)
 - [`contaxy.managers.json_db`](./contaxy.managers.json_db.md#module-contaxymanagersjson_db)
 - [`contaxy.managers.json_db.inmemory_dict`](./contaxy.managers.json_db.inmemory_dict.md#module-contaxymanagersjson_dbinmemory_dict)
@@ -71,8 +71,6 @@
 - [`project.ProjectClient`](./contaxy.clients.project.md#class-projectclient)
 - [`shared.BaseUrlSession`](./contaxy.clients.shared.md#class-baseurlsession)
 - [`system.SystemClient`](./contaxy.clients.system.md#class-systemclient)
-- [`config.DeploymentManager`](./contaxy.config.md#class-deploymentmanager): An enumeration.
-- [`config.Settings`](./contaxy.config.md#class-settings): Platform Settings.
 - [`auth.AuthManager`](./contaxy.managers.auth.md#class-authmanager)
 - [`auth.LoginIdMapping`](./contaxy.managers.auth.md#class-loginidmapping)
 - [`auth.ResourcePermissions`](./contaxy.managers.auth.md#class-resourcepermissions)
@@ -85,6 +83,7 @@
 - [`utils.MappedLabels`](./contaxy.managers.deployment.utils.md#class-mappedlabels)
 - [`extension.ExtensionClient`](./contaxy.managers.extension.md#class-extensionclient): Handels the request forwarding to the installed extensions.
 - [`extension.ExtensionManager`](./contaxy.managers.extension.md#class-extensionmanager): Installs and manages extensions.
+- [`azure_blob.AzureBlobFileManager`](./contaxy.managers.file.azure_blob.md#class-azureblobfilemanager)
 - [`minio.MinioFileManager`](./contaxy.managers.file.minio.md#class-miniofilemanager)
 - [`inmemory_dict.InMemoryDictJsonDocumentManager`](./contaxy.managers.json_db.inmemory_dict.md#class-inmemorydictjsondocumentmanager)
 - [`postgres.PostgresJsonDocumentManager`](./contaxy.managers.json_db.postgres.md#class-postgresjsondocumentmanager)
@@ -227,6 +226,8 @@
 - [`utils.split_image_name_and_tag`](./contaxy.managers.deployment.utils.md#function-split_image_name_and_tag)
 - [`extension.map_service_to_extension`](./contaxy.managers.extension.md#function-map_service_to_extension)
 - [`extension.parse_composite_id`](./contaxy.managers.extension.md#function-parse_composite_id): Extracts the resource and extension ID from an composite ID.
+- [`azure_blob.create_azure_blob_client`](./contaxy.managers.file.azure_blob.md#function-create_azure_blob_client)
+- [`azure_blob.get_container_name`](./contaxy.managers.file.azure_blob.md#function-get_container_name)
 - [`auth_utils.construct_permission`](./contaxy.utils.auth_utils.md#function-construct_permission): Constructs a permission based on the provided `resource_name`  and `access_level`.
 - [`auth_utils.is_access_level_granted`](./contaxy.utils.auth_utils.md#function-is_access_level_granted): Checks if the requested access level is allowed by the granted access level.
 - [`auth_utils.is_jwt_token`](./contaxy.utils.auth_utils.md#function-is_jwt_token): Returns `True` if the provided token is an JWT token.

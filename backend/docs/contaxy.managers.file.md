@@ -7,9 +7,6 @@
 
 
 
-**Global Variables**
----------------
-- **minio**
 
 
 

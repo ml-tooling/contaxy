@@ -35,6 +35,37 @@ __init__(client: Session)
 
 ---
 
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/clients/system.py#L39"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+### <kbd>method</kbd> `add_allowed_image`
+
+```python
+add_allowed_image(
+    allowed_image: AllowedImageInfo,
+    request_kwargs: Dict = {}
+) → AllowedImageInfo
+```
+
+
+
+
+
+---
+
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/clients/system.py#L50"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+### <kbd>method</kbd> `delete_allowed_image`
+
+```python
+delete_allowed_image(allowed_image_name: str, request_kwargs: Dict = {}) → None
+```
+
+
+
+
+
+---
+
 <a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/clients/system.py#L15"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `get_system_info`
@@ -83,6 +114,20 @@ initialize_system(request_kwargs: Dict = {}) → None
 
 ```python
 is_healthy(request_kwargs: Dict = {}) → bool
+```
+
+
+
+
+
+---
+
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/clients/system.py#L34"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+### <kbd>method</kbd> `list_allowed_images`
+
+```python
+list_allowed_images(request_kwargs: Dict = {}) → List[AllowedImageInfo]
 ```
 
 
