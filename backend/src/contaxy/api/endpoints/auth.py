@@ -331,7 +331,7 @@ def request_token(
         return _add_cookies_to_response(
             component_manager.get_auth_manager(), response, oauth_token
         )
-    return component_manager.get_auth_manager().request_token(token_request_form)
+    return oauth_token
 
 
 @router.post(
