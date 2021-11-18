@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Setup Admin Account</title>
+  </head>
+  <body>
+    <h1>Setup initial admin account</h1>
+    <form method="post" action="{{ route }}">
+      <input
+        type="text"
+        name="username"
+        value="{{ username }}"
+        placeholder="username"
+        disabled
+      />
+      <input type="password" name="password" placeholder="Password" required />
+      <input
+        type="password"
+        name="password_confirm"
+        placeholder="Confirm Password"
+        required
+      />
+      <input type="submit" />
+    </form>
+  </body>
+</html>

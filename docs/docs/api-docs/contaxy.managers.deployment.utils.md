@@ -331,6 +331,21 @@ get_template_mapping(
 
 ---
 
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/utils.py#L353"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `split_image_name_and_tag`
+
+```python
+split_image_name_and_tag(full_image_name: str) → Tuple[str, str]
+```
+
+
+
+
+
+
+---
+
 <a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/utils.py#L25"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>class</kbd> `Labels`
