@@ -24,6 +24,7 @@ _ENV_VARIABLE_CONTAXY_BASE_URL = "CONTAXY_BASE_URL"
 _ENV_VARIABLE_CONTAXY_API_ENDPOINT = "CONTAXY_API_ENDPOINT"
 _ENV_VARIABLE_CONTAXY_API_TOKEN = "CONTAXY_API_TOKEN"
 _ENV_VARIABLE_CONTAXY_SERVICE_URL = "CONTAXY_SERVICE_URL"
+_ENV_VARIABLE_CONTAXY_DEPLOYMENT_NAME = "CONTAXY_DEPLOYMENT_NAME"
 
 
 class Labels(Enum):
@@ -250,7 +251,7 @@ def get_default_environment_variables(
     """
 
     default_environment_variables = {
-        "CONTAXY_DEPLOYMENT_NAME": deployment_id,
+        _ENV_VARIABLE_CONTAXY_DEPLOYMENT_NAME: deployment_id,
         _ENV_VARIABLE_CONTAXY_BASE_URL: settings.CONTAXY_BASE_URL,
         _ENV_VARIABLE_CONTAXY_API_ENDPOINT: settings.CONTAXY_API_ENDPOINT,
     }
@@ -271,6 +272,7 @@ def get_default_environment_variables(
         endpoint = endpoints[0]
         if len(endpoints) > 1:
             endpoint = "{endpoint}"
+        # TODO: This url is only valid for services but not for jobs
         default_environment_variables[
             _ENV_VARIABLE_CONTAXY_SERVICE_URL
         ] = f"{settings.CONTAXY_BASE_URL}/projects/{project_id}/services/{deployment_id}/access/{endpoint}"
@@ -342,7 +344,7 @@ def replace_templates(
 def get_template_mapping(
     project_id: Optional[str] = None,
     user_id: Optional[str] = None,
-    service_url: Optional[str] = None,
+    environment: Dict[str, str] = None,
 ) -> Dict[str, str]:
     template_mapping = {}
 
@@ -362,8 +364,9 @@ def get_template_mapping(
     if user_id:
         template_mapping["{env.userId}"] = user_id
 
-    if service_url:
-        template_mapping[f"{{env.{_ENV_VARIABLE_CONTAXY_SERVICE_URL}}}"] = service_url
+    if environment:
+        for env_name, env_value in environment.items():
+            template_mapping[f"{{env.{env_name}}}"] = env_value
 
     return template_mapping
 
