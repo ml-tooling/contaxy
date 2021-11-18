@@ -430,11 +430,16 @@ def define_mounts(
         compute_resources.volume_path is not None
         and compute_resources.volume_path != ""
     ):
-        mount_type = "bind" if settings.HOST_DATA_ROOT_PATH is not None else "volume"
+        if settings.HOST_DATA_ROOT_PATH is None:
+            mount_type = "volume"
+            prefix = ""
+        else:
+            mount_type = "bind"
+            prefix = settings.HOST_DATA_ROOT_PATH
         mounts.append(
             docker.types.Mount(
                 target=str(compute_resources.volume_path),
-                source=f"{settings.HOST_DATA_ROOT_PATH}{get_volume_name(project_id, container_name)}",
+                source=f"{prefix}{get_volume_name(project_id, container_name)}",
                 labels={
                     Labels.NAMESPACE.value: settings.SYSTEM_NAMESPACE,
                     Labels.PROJECT_NAME.value: project_id,
