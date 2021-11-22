@@ -3,6 +3,7 @@ from typing import Any, List, Optional
 from fastapi import APIRouter, Depends, Query, Response, status
 from fastapi.param_functions import Body
 
+from contaxy import config
 from contaxy.api.dependencies import (
     ComponentManager,
     get_api_token,
@@ -15,6 +16,7 @@ from contaxy.schema.exceptions import (
     CREATE_RESOURCE_RESPONSES,
     GET_RESOURCE_RESPONSES,
     VALIDATION_ERROR_RESPONSE,
+    PermissionDeniedError,
 )
 from contaxy.schema.project import PROJECT_ID_PARAM, ProjectCreation
 from contaxy.schema.shared import MAX_DISPLAY_NAME_LENGTH, MIN_DISPLAY_NAME_LENGTH
@@ -54,6 +56,9 @@ def create_project(
     component_manager.verify_access(
         token, authorized_access.authorized_subject, AccessLevel.WRITE
     )
+    # Make sure the system project cannot be created via the API
+    if project.id == config.SYSTEM_INTERNAL_PROJECT:
+        raise PermissionDeniedError(f"The project id {project.id} is reserved.")
     return component_manager.get_project_manager().create_project(project)
 
 
