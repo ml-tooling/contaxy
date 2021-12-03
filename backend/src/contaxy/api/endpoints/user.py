@@ -7,6 +7,7 @@ from contaxy.api.dependencies import (
     ComponentManager,
     get_api_token,
     get_component_manager,
+    get_optional_api_token,
 )
 from contaxy.schema import CoreOperations, User, UserInput, UserRegistration
 from contaxy.schema.auth import USER_ID_PARAM, AccessLevel, TokenPurpose, TokenType
@@ -59,6 +60,7 @@ def list_users(
 def create_user(
     user_input: UserRegistration,
     component_manager: ComponentManager = Depends(get_component_manager),
+    token: str = Depends(get_optional_api_token),
 ) -> Any:
     """Creates a user. For the user also a technical project is created.
 
@@ -66,8 +68,13 @@ def create_user(
     """
 
     if not component_manager.global_state.settings.USER_REGISTRATION_ENABLED:
-        # TODO: Allow for administrators
-        raise PermissionDeniedError("User self-registration is deactivated.")
+        if token is not None:
+            # An admin can create users even if registration is disabled
+            component_manager.verify_access(token, "users", AccessLevel.ADMIN)
+        else:
+            raise PermissionDeniedError(
+                "User self-registration is deactivated. Please contact an administrator."
+            )
 
     # Everyone can create users
     user = component_manager.get_auth_manager().create_user(

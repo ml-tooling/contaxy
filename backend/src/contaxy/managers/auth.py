@@ -787,11 +787,17 @@ class AuthManager(AuthOperations):
         if not token_payload.get("email_verified"):
             # ? Prevent
             logger.warning(f"The email {email} is not verified")
+        user = None
         try:
             user_id = self._get_user_id_by_login_id(email)
         except ResourceNotFoundError:
-            user = self.create_user(UserRegistration(email=email))
-            user_id = user.id
+            if config.settings.USER_REGISTRATION_ENABLED:
+                user = self.create_user(UserRegistration(email=email))
+                user_id = user.id
+            else:
+                raise PermissionDeniedError(
+                    f"No existing account for {email} found! Please contact an administrator."
+                )
 
         return self._generate_token(user_id), user
 
