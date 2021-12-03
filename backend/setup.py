@@ -93,6 +93,8 @@ setup(
         "jinja2",
         # Used for OIDC handling
         "requests_oauthlib",
+        # Create fake data for testing
+        "faker",
     ],
     # deprecated: dependency_links=dependency_links,
     extras_require={
@@ -119,8 +121,6 @@ setup(
             "pyinstrument",
             # Export profiling information about the tests
             "pytest-profiling",
-            # Create fake data for testing
-            "faker",
             # For better print debugging via debug
             "devtools[pygments]",
             # For Jupyter Kernel support
