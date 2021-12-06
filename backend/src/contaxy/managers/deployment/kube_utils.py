@@ -555,20 +555,23 @@ def map_deployment(deployment: Union[V1Deployment, V1Job]) -> Dict[str, Any]:
     )
 
     try:
-        # TODO: detect failed?
-        # TODO: return RUNNING when at least MIN_REPLICAS is fulfilled
-        # TODO: if no replica is started, return FAILED
-        # TODO: if READY_REPLICAS < MIN_REPLICAS => check exit code of POD
-        # TODO: set failed when creation_timestamp is high but still unavailable
-        successful = (
-            deployment.status.ready_replicas == deployment.status.replicas
-            if hasattr(deployment.status, "ready_replicas")
-            else deployment.status.succeeded
-        )
-        if successful:
-            status = DeploymentStatus.RUNNING.value
+        if deployment.metadata.deletion_timestamp is not None:
+            status = DeploymentStatus.TERMINATING.value
         else:
-            status = DeploymentStatus.PENDING.value
+            # TODO: detect failed?
+            # TODO: return RUNNING when at least MIN_REPLICAS is fulfilled
+            # TODO: if no replica is started, return FAILED
+            # TODO: if READY_REPLICAS < MIN_REPLICAS => check exit code of POD
+            # TODO: set failed when creation_timestamp is high but still unavailable
+            successful = (
+                deployment.status.ready_replicas == deployment.status.replicas
+                if hasattr(deployment.status, "ready_replicas")
+                else deployment.status.succeeded
+            )
+            if successful:
+                status = DeploymentStatus.RUNNING.value
+            else:
+                status = DeploymentStatus.PENDING.value
     except ValueError:
         status = DeploymentStatus.UNKNOWN.value
 
