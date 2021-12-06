@@ -148,7 +148,7 @@ build_kube_service_config(
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/kube_utils.py#L209"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/kube_utils.py#L208"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>function</kbd> `build_pod_template_spec`
 
@@ -158,6 +158,7 @@ build_pod_template_spec(
     service_id: str,
     service: Union[ServiceInput, JobInput],
     metadata: V1ObjectMeta,
+    auth_manager: AuthManager,
     user_id: Optional[str] = None
 ) → V1PodTemplateSpec
 ```
@@ -169,7 +170,7 @@ build_pod_template_spec(
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/kube_utils.py#L295"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/kube_utils.py#L294"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>function</kbd> `build_deployment_metadata`
 
@@ -194,7 +195,7 @@ build_deployment_metadata(
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/kube_utils.py#L330"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/kube_utils.py#L329"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>function</kbd> `build_kube_deployment_config`
 
@@ -204,6 +205,7 @@ build_kube_deployment_config(
     service: ServiceInput,
     project_id: str,
     kube_namespace: str,
+    auth_manager: AuthManager,
     user_id: Optional[str] = None
 ) → Tuple[V1Deployment, Union[V1PersistentVolumeClaim, NoneType]]
 ```
@@ -215,7 +217,7 @@ build_kube_deployment_config(
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/kube_utils.py#L406"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/deployment/kube_utils.py#L407"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>function</kbd> `build_project_network_policy_spec`
 

@@ -12,7 +12,6 @@
 - **auth**
 - **deployment**
 - **extension**
-- **file**
 - **project**
 - **seed**
 - **system**
