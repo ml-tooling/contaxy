@@ -55,7 +55,7 @@ def main(args: dict) -> None:
         # TODO: this is not needed since it is the env installed via make: build_python.install_build_env()
         # Run pytest in pipenv environment
         build_utils.run(
-            f"pipenv run pytest tests -m '{pytest_marker}' --cov=src --cov-append --cov-config=setup.cfg --cov-report=xml --cov-report term --cov-report=html",
+            f"LOGURU_LEVEL=INFO pipenv run pytest tests -m '{pytest_marker}' --cov=src --cov-append --cov-config=setup.cfg --cov-report=xml --cov-report term --cov-report=html",
             exit_on_error=True,
         )
 

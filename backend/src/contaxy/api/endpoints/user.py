@@ -76,12 +76,12 @@ def create_user(
                 "User self-registration is deactivated. Please contact an administrator."
             )
 
-    # Everyone can create users
-    user = component_manager.get_auth_manager().create_user(
-        user_input, technical_user=False
+    # If self registration is enabled, everyone can create users
+    user = auth_utils.create_and_setup_user(
+        user_input=user_input,
+        auth_manager=component_manager.get_auth_manager(),
+        project_manager=component_manager.get_project_manager(),
     )
-
-    auth_utils.setup_user(user, component_manager.get_project_manager())
 
     # TODO: return also user_project?
     return user
