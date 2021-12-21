@@ -3,13 +3,12 @@ from typing import List, Optional, Tuple, Union
 from contaxy import config
 from contaxy.clients import DeploymentManagerClient, FileClient
 from contaxy.clients.shared import BaseUrlSession
-from contaxy.managers.deployment.manager import DeploymentManager
 from contaxy.managers.deployment.utils import (
     Labels,
     get_template_mapping,
     replace_template_string,
 )
-from contaxy.operations import ExtensionOperations
+from contaxy.operations import DeploymentOperations, ExtensionOperations
 from contaxy.schema import ExtensibleOperations, Extension, ExtensionInput, Service
 from contaxy.schema.deployment import DeploymentType, ServiceInput
 from contaxy.schema.extension import (
@@ -132,7 +131,7 @@ class ExtensionManager(ExtensionOperations):
         self,
         global_state: GlobalState,
         request_state: RequestState,
-        deployment_manager: DeploymentManager,
+        deployment_manager: DeploymentOperations,
     ):
         """Initializes the extension manager.
 

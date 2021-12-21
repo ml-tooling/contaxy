@@ -19,6 +19,7 @@ from contaxy.managers.deployment.docker_utils import (
     get_this_container,
 )
 from contaxy.managers.deployment.kubernetes import KubernetesDeploymentManager
+from contaxy.managers.deployment.manager import DeploymentManagerWithDB
 from contaxy.managers.deployment.utils import (
     _ENV_VARIABLE_CONTAXY_SERVICE_URL,
     Labels,
@@ -34,6 +35,7 @@ from contaxy.schema.auth import (
     OAuth2TokenRequestFormNew,
 )
 from contaxy.schema.deployment import (
+    DeploymentStatus,
     DeploymentType,
     Job,
     JobInput,
@@ -434,11 +436,14 @@ class TestDockerDeploymentManager(DeploymentOperationsTests):
         self._system_manager = SystemManager(
             global_state, request_state, json_db, self._auth_manager, None
         )
-        self._deployment_manager = DockerDeploymentManager(
+        self._docker_deployment_manager = DockerDeploymentManager(
             global_state=GlobalState(global_state),
             request_state=RequestState(request_state),
             system_manager=self._system_manager,
             auth_manager=self._auth_manager,
+        )
+        self._deployment_manager = DeploymentManagerWithDB(
+            self._docker_deployment_manager, json_db
         )
 
         (
@@ -463,7 +468,7 @@ class TestDockerDeploymentManager(DeploymentOperationsTests):
         # Wait until container is deleted
         while True:
             try:
-                container = self._deployment_manager.client.containers.get(
+                container = self._docker_deployment_manager.client.containers.get(
                     self._service_id
                 )
                 container.remove(force=True)
@@ -472,11 +477,13 @@ class TestDockerDeploymentManager(DeploymentOperationsTests):
                 break
 
         try:
-            network = self._deployment_manager.client.networks.get(
+            network = self._docker_deployment_manager.client.networks.get(
                 get_network_name(project_id=self._project_id)
             )
             # only relevant for when the code runs within a container (as then the DockerDeploymentManager behaves slightly different)
-            host_container = get_this_container(client=self.deployment_manager.client)
+            host_container = get_this_container(
+                client=self._docker_deployment_manager.client
+            )
             if host_container:
                 network.disconnect()
                 network.remove()
@@ -517,6 +524,23 @@ class TestDockerDeploymentManager(DeploymentOperationsTests):
         time.sleep(3)
         return deployed_job
 
+    def test_missing_docker_container(self):
+        test_service_input = create_test_service_input(
+            service_id=self.service_id, display_name=self.service_display_name
+        )
+        service = self.deploy_service(
+            project_id=self.project_id,
+            service=test_service_input,
+        )
+        self._docker_deployment_manager.delete_service(
+            self.project_id, service.id, True
+        )
+        time.sleep(2)
+        service = self.deployment_manager.get_service_metadata(
+            self.project_id, service.id
+        )
+        assert service.status == DeploymentStatus.STOPPED
+
     def test_project_isolation(self) -> None:
         """Test that services of the same project can reach each others' endpoints and services of different projects cannot."""
 
@@ -551,9 +575,15 @@ class TestDockerDeploymentManager(DeploymentOperationsTests):
             service=test_service_input_3,
         )
 
-        container_1 = self.deployment_manager.client.containers.get(service_1.id)
-        container_2 = self.deployment_manager.client.containers.get(service_2.id)
-        container_3 = self.deployment_manager.client.containers.get(service_3.id)
+        container_1 = self._docker_deployment_manager.client.containers.get(
+            service_1.id
+        )
+        container_2 = self._docker_deployment_manager.client.containers.get(
+            service_2.id
+        )
+        container_3 = self._docker_deployment_manager.client.containers.get(
+            service_3.id
+        )
         assert container_1
         assert container_2
         assert container_3
@@ -599,6 +629,7 @@ class TestKubernetesDeploymentManager(DeploymentOperationsTests):
     ) -> Generator:
         # Only use in memory database as the DB is not main the focus of this test
         json_db = InMemoryDictJsonDocumentManager(global_state, request_state)
+        self._auth_manager = AuthManager(global_state, request_state, json_db)
         self._system_manager = SystemManager(
             global_state, request_state, json_db, None, None
         )
@@ -611,20 +642,24 @@ class TestKubernetesDeploymentManager(DeploymentOperationsTests):
         ) = get_random_resources()
         _kube_namespace = f"{uid}-deployment-manager-test-namespace"
 
-        self._deployment_manager = KubernetesDeploymentManager(
+        kubernetes_deployment_manager = KubernetesDeploymentManager(
             global_state=global_state,
             request_state=request_state,
             kube_namespace=_kube_namespace,
             system_manager=self._system_manager,
+            auth_manager=self._auth_manager,
+        )
+        self._deployment_manager = DeploymentManagerWithDB(
+            kubernetes_deployment_manager, json_db
         )
 
-        self._deployment_manager.core_api.create_namespace(
+        kubernetes_deployment_manager.core_api.create_namespace(
             V1Namespace(metadata={"name": _kube_namespace})
         )
 
         yield
 
-        self._deployment_manager.core_api.delete_namespace(
+        kubernetes_deployment_manager.core_api.delete_namespace(
             _kube_namespace, propagation_policy="Foreground"
         )
 
@@ -632,7 +667,9 @@ class TestKubernetesDeploymentManager(DeploymentOperationsTests):
         timeout = 60
         while time.time() - start < timeout:
             try:
-                self._deployment_manager.core_api.read_namespace(name=_kube_namespace)
+                kubernetes_deployment_manager.core_api.read_namespace(
+                    name=_kube_namespace
+                )
                 time.sleep(2)
             except ApiException:
                 break

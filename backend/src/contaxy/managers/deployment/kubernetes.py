@@ -1,6 +1,6 @@
 import time
 from datetime import datetime, timezone
-from typing import List, Literal, Optional
+from typing import Any, List, Literal, Optional
 
 from kubernetes import client as kube_client
 from kubernetes import config as kube_config
@@ -36,7 +36,6 @@ from contaxy.managers.deployment.kube_utils import (
     wait_for_deployment,
     wait_for_job,
 )
-from contaxy.managers.deployment.manager import DeploymentManager
 from contaxy.managers.deployment.utils import (
     DEFAULT_DEPLOYMENT_ACTION_ID,
     NO_LOGS_MESSAGE,
@@ -45,6 +44,7 @@ from contaxy.managers.deployment.utils import (
     split_image_name_and_tag,
 )
 from contaxy.managers.system import SystemManager
+from contaxy.operations import DeploymentOperations
 from contaxy.schema import Job, JobInput, ResourceAction, Service, ServiceInput
 from contaxy.schema.deployment import DeploymentType
 from contaxy.schema.exceptions import (
@@ -57,7 +57,7 @@ from contaxy.utils.auth_utils import parse_userid_from_resource_name
 from contaxy.utils.state_utils import GlobalState, RequestState
 
 
-class KubernetesDeploymentManager(DeploymentManager):
+class KubernetesDeploymentManager(DeploymentOperations):
     def __init__(
         self,
         global_state: GlobalState,
@@ -602,3 +602,27 @@ class KubernetesDeploymentManager(DeploymentManager):
         return self.get_service_logs(
             project_id=project_id, service_id=job_id, lines=lines, since=since
         )
+
+    def suggest_service_config(
+        self, project_id: str, container_image: str
+    ) -> ServiceInput:
+        raise NotImplementedError()
+
+    def list_service_actions(
+        self, project_id: str, service_id: str
+    ) -> List[ResourceAction]:
+        raise NotImplementedError()
+
+    def execute_service_action(
+        self, project_id: str, service_id: str, action_id: str
+    ) -> Any:
+        raise NotImplementedError()
+
+    def suggest_job_config(self, project_id: str, container_image: str) -> JobInput:
+        raise NotImplementedError()
+
+    def list_job_actions(self, project_id: str, job_id: str) -> List[ResourceAction]:
+        raise NotImplementedError()
+
+    def execute_job_action(self, project_id: str, job_id: str, action_id: str) -> Any:
+        raise NotImplementedError()

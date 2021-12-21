@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List, Literal, Optional
+from typing import Any, List, Literal, Optional
 
 import docker
 from loguru import logger
@@ -17,9 +17,9 @@ from contaxy.managers.deployment.docker_utils import (
     read_container_logs,
     reconnect_to_all_networks,
 )
-from contaxy.managers.deployment.manager import DeploymentManager
 from contaxy.managers.deployment.utils import Labels, split_image_name_and_tag
 from contaxy.managers.system import SystemManager
+from contaxy.operations import DeploymentOperations
 from contaxy.schema import Job, JobInput, ResourceAction, Service, ServiceInput
 from contaxy.schema.deployment import DeploymentType
 from contaxy.schema.exceptions import ClientBaseError, ClientValueError
@@ -27,7 +27,7 @@ from contaxy.utils.auth_utils import parse_userid_from_resource_name
 from contaxy.utils.state_utils import GlobalState, RequestState
 
 
-class DockerDeploymentManager(DeploymentManager):
+class DockerDeploymentManager(DeploymentOperations):
     _is_initialized = False
 
     def __init__(
@@ -234,3 +234,27 @@ class DockerDeploymentManager(DeploymentManager):
         )
 
         return read_container_logs(container=container, lines=lines, since=since)
+
+    def suggest_service_config(
+        self, project_id: str, container_image: str
+    ) -> ServiceInput:
+        raise NotImplementedError()
+
+    def list_service_actions(
+        self, project_id: str, service_id: str
+    ) -> List[ResourceAction]:
+        raise NotImplementedError()
+
+    def execute_service_action(
+        self, project_id: str, service_id: str, action_id: str
+    ) -> Any:
+        raise NotImplementedError()
+
+    def suggest_job_config(self, project_id: str, container_image: str) -> JobInput:
+        raise NotImplementedError()
+
+    def list_job_actions(self, project_id: str, job_id: str) -> List[ResourceAction]:
+        raise NotImplementedError()
+
+    def execute_job_action(self, project_id: str, job_id: str, action_id: str) -> Any:
+        raise NotImplementedError()
