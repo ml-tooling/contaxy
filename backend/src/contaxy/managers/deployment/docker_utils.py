@@ -106,7 +106,8 @@ def map_container(
 
     return {
         "container_image": container_image,
-        "command": " ".join(container.attrs.get("Args", [])),
+        "command": container.attrs["Config"].get("Entrypoint", []),
+        "args": container.attrs["Config"].get("Cmd", []),
         "compute": compute_resources,
         "metadata": mapped_labels.metadata,
         "deployment_type": mapped_labels.deployment_type,
@@ -535,7 +536,8 @@ def create_container_config(
     metadata = clean_labels(service.metadata)
     return {
         "image": service.container_image,
-        "command": service.command or None,
+        "entrypoint": service.command,
+        "command": service.args,
         "detach": True,
         "environment": environment,
         "labels": {

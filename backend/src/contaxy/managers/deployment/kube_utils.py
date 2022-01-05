@@ -1,4 +1,3 @@
-import shlex
 import string
 import time
 from typing import Any, Dict, List, Optional, Tuple, Union
@@ -262,8 +261,8 @@ def build_pod_template_spec(
         image=service.container_image,
         image_pull_policy="IfNotPresent",
         resources=resource_requirements,
-        # In Kubernetes, `command` must be an array and `shlex` helps to split the string like the shell would
-        command=shlex.split(service.command) if service.command else None,
+        command=service.command,
+        args=service.args,
         env=[V1EnvVar(name=name, value=value) for name, value in environment.items()],
         volume_mounts=[
             V1VolumeMount(
@@ -589,10 +588,8 @@ def map_deployment(deployment: Union[V1Deployment, V1Job]) -> Dict[str, Any]:
 
     return {
         "container_image": container.image,
-        # In kindkubernetes, command is an array
-        "command": container.command[0]
-        if container.command is not None and len(container.command) > 0
-        else "",
+        "command": container.command,
+        "args": container.args,
         "metadata": mapped_labels.metadata,
         "compute": compute_resources,
         "deployment_type": mapped_labels.deployment_type,

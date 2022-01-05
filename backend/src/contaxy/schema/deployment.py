@@ -145,9 +145,13 @@ class DeploymentBase(BaseModel):
         None,
         description="Compute instructions and limitations for this deployment.",
     )
-    command: Optional[str] = Field(
+    command: Optional[List[str]] = Field(
         None,
-        description="Command to run within the deployment. This overwrites the existing entrypoint.",
+        description="Command to run within the deployment. This overwrites the existing docker ENTRYPOINT.",
+    )
+    args: Optional[List[str]] = Field(
+        None,
+        description="Arguments to the command/entrypoint. This overwrites the existing docker CMD.",
     )
     requirements: Optional[List[str]] = Field(
         None,
