@@ -40,9 +40,12 @@ class DeploymentManagerClient(DeploymentOperations):
         deployment_type: Literal[
             DeploymentType.SERVICE, DeploymentType.EXTENSION
         ] = DeploymentType.SERVICE,
+        wait: bool = False,
         request_kwargs: Dict = {},
     ) -> Service:
         params = {}
+        if wait:
+            params["wait"] = "true"
         if action_id:
             params["action_id"] = action_id
         if deployment_type == DeploymentType.EXTENSION:
@@ -197,9 +200,12 @@ class DeploymentManagerClient(DeploymentOperations):
         project_id: str,
         job: JobInput,
         action_id: Optional[str] = None,
+        wait: bool = False,
         request_kwargs: Dict = {},
     ) -> Job:
         params = {}
+        if wait:
+            params["wait"] = "true"
         if action_id:
             params["action_id"] = action_id
         resource = self.client.post(

@@ -512,14 +512,13 @@ class TestDockerDeploymentManager(DeploymentOperationsTests):
 
     def deploy_service(self, project_id: str, service: ServiceInput) -> Service:
         deployed_service = self._deployment_manager.deploy_service(
-            project_id=project_id, service=service
+            project_id=project_id, service=service, wait=True
         )
-        time.sleep(2)
         return deployed_service
 
     def deploy_job(self, project_id: str, job: JobInput) -> Job:
         deployed_job = self._deployment_manager.deploy_job(
-            project_id=project_id, job=job
+            project_id=project_id, job=job, wait=True
         )
         time.sleep(3)
         return deployed_job
@@ -937,16 +936,14 @@ class DeploymentOperationsEndpointTests(DeploymentOperationsTests):
 
     def deploy_service(self, project_id: str, service: ServiceInput) -> Service:
         deployed_service = self._deployment_manager.deploy_service(
-            project_id=project_id, service=service
+            project_id=project_id, service=service, wait=True
         )
-        time.sleep(2)
         return deployed_service
 
     def deploy_job(self, project_id: str, job: JobInput) -> Job:
         deployed_job = self._deployment_manager.deploy_job(
-            project_id=project_id, job=job
+            project_id=project_id, job=job, wait=True
         )
-        time.sleep(3)
         return deployed_job
 
 

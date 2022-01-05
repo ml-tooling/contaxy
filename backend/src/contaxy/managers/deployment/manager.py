@@ -45,9 +45,10 @@ class DeploymentManagerWithDB(DeploymentOperations):
         deployment_type: Literal[
             DeploymentType.SERVICE, DeploymentType.EXTENSION
         ] = DeploymentType.SERVICE,
+        wait: bool = False,
     ) -> Service:
         deployed_service = self.deployment_manager.deploy_service(
-            project_id, service, action_id, deployment_type
+            project_id, service, action_id, deployment_type, wait
         )
         self.json_db.create_json_document(
             project_id=config.SYSTEM_INTERNAL_PROJECT,
@@ -185,9 +186,15 @@ class DeploymentManagerWithDB(DeploymentOperations):
         return jobs
 
     def deploy_job(
-        self, project_id: str, job: JobInput, action_id: Optional[str] = None
+        self,
+        project_id: str,
+        job: JobInput,
+        action_id: Optional[str] = None,
+        wait: bool = False,
     ) -> Job:
-        deployed_job = self.deployment_manager.deploy_job(project_id, job, action_id)
+        deployed_job = self.deployment_manager.deploy_job(
+            project_id, job, action_id, wait
+        )
         self.json_db.create_json_document(
             project_id=config.SYSTEM_INTERNAL_PROJECT,
             collection_id=_get_job_collection_id(project_id),

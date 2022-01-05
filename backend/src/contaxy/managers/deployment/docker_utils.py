@@ -1,5 +1,6 @@
 import ipaddress
 import os
+import time
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple, Union
 
@@ -573,6 +574,22 @@ def read_container_logs(
         logs = NO_LOGS_MESSAGE
 
     return logs
+
+
+def wait_for_container(
+    container: docker.models.containers.Container,
+    client: docker.client,
+    timeout: int = 60,
+) -> docker.models.containers.Container:
+    start = time.time()
+    while time.time() - start < timeout:
+        container_info = client.containers.get(container.id)
+        if container_info.status.lower() != "created":
+            return container_info
+        else:
+            time.sleep(2)
+
+    raise RuntimeError(f"Timeout while waiting for container {container.id}.")
 
 
 def list_deploy_service_actions(
