@@ -603,7 +603,7 @@ def map_deployment(deployment: Union[V1Deployment, V1Job]) -> Dict[str, Any]:
         # "exit_code": container.attrs.get("State", {}).get("ExitCode", -1),
         "icon": mapped_labels.icon,
         "id": deployment.metadata.name,
-        "internal_id": deployment.metadata.name,
+        "internal_id": f"{deployment.metadata.name}-{deployment.metadata.uid}",
         "parameters": parameters,
         "started_at": started_at,
         "status": status,

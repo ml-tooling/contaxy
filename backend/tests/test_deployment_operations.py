@@ -30,7 +30,6 @@ from contaxy.managers.system import SystemManager
 from contaxy.operations.deployment import DeploymentOperations
 from contaxy.schema.auth import (
     AccessLevel,
-    AuthorizedAccess,
     OAuth2TokenGrantTypes,
     OAuth2TokenRequestFormNew,
 )
@@ -209,6 +208,82 @@ class DeploymentOperationsTests(ABC):
                 project_id=self.project_id,
                 job=JobInput(container_image="disallowed-image:0.1"),
             )
+
+    def test_stop_and_start_service(self) -> None:
+        test_service_input = create_test_service_input(
+            display_name=self.service_display_name
+        )
+        service = self.deploy_service(
+            project_id=self.project_id,
+            service=test_service_input,
+        )
+        # Running service should provide stop action but not start action
+        service_action_ids = [
+            service.action_id
+            for service in self.deployment_manager.list_service_actions(
+                self.project_id, service.id
+            )
+        ]
+        assert service.status == DeploymentStatus.RUNNING
+        assert "stop" in service_action_ids
+        assert "start" not in service_action_ids
+        # Execute stop action to stop service
+        self.deployment_manager.execute_service_action(
+            self.project_id, service.id, "stop"
+        )
+        # Check that status is now stopped
+        service = self.deployment_manager.get_service_metadata(
+            self.project_id, service.id
+        )
+        assert service.status == DeploymentStatus.STOPPED
+        # Stopped service should provide start action but not stop action
+        service_action_ids = [
+            service.action_id
+            for service in self.deployment_manager.list_service_actions(
+                self.project_id, service.id
+            )
+        ]
+        assert "start" in service_action_ids
+        assert "stop" not in service_action_ids
+        # Execute start action to start service again
+        self.deployment_manager.execute_service_action(
+            self.project_id, service.id, "start"
+        )
+        # Check that status is now running
+        service = self.deployment_manager.get_service_metadata(
+            self.project_id, service.id
+        )
+        assert service.status == DeploymentStatus.RUNNING
+
+    def test_restart_service(self) -> None:
+        test_service_input = create_test_service_input(
+            display_name=self.service_display_name
+        )
+        service = self.deploy_service(
+            project_id=self.project_id,
+            service=test_service_input,
+        )
+        # Running service should provide restart action
+        service_action_ids = [
+            service.action_id
+            for service in self.deployment_manager.list_service_actions(
+                self.project_id, service.id
+            )
+        ]
+        assert service.status == DeploymentStatus.RUNNING
+        assert "restart" in service_action_ids
+        # Execute restart action
+        self.deployment_manager.execute_service_action(
+            self.project_id, service.id, "restart"
+        )
+        # Check that status is now stopped
+        restarted_service = self.deployment_manager.get_service_metadata(
+            self.project_id, service.id
+        )
+        # Service should still be running after restart
+        assert restarted_service.status == DeploymentStatus.RUNNING
+        # Internal id should change after a restart
+        assert restarted_service.internal_id != service.internal_id
 
     def test_delete_services(self) -> None:
         project_1 = f"{self.project_id}-1"
@@ -409,7 +484,7 @@ class DeploymentOperationsTests(ABC):
         assert logs
         assert logs.startswith(log_input)
 
-    def test_list_service_actions(self) -> None:
+    def test_list_service_access_actions(self) -> None:
         test_service_input = create_test_service_input(
             display_name=self.service_display_name
         )
@@ -421,8 +496,13 @@ class DeploymentOperationsTests(ABC):
             project_id=self.project_id, service_id=service.id
         )
 
-        assert len(resource_actions) == 2
-        assert resource_actions[0].action_id == f"access-{service.endpoints[0]}"
+        assert len(resource_actions) >= 2
+        assert f"access-{service.endpoints[0]}" in [
+            ra.action_id for ra in resource_actions
+        ]
+        assert f"access-{service.endpoints[1].replace('/', '')}" in [
+            ra.action_id for ra in resource_actions
+        ]
 
     def test_list_deploy_service_actions(self) -> None:
         test_service_input = create_test_service_input(
@@ -456,9 +536,6 @@ class TestDockerDeploymentManager(DeploymentOperationsTests):
         self, global_state: GlobalState, request_state: RequestState
     ) -> Generator:
         # Only use in memory database as the DB is not main the focus of this test
-        request_state.authorized_access = AuthorizedAccess(
-            authorized_subject="user/test-user"
-        )
         json_db = InMemoryDictJsonDocumentManager(global_state, request_state)
         self._auth_manager = AuthManager(global_state, request_state, json_db)
         self._system_manager = SystemManager(
@@ -662,7 +739,7 @@ class TestKubernetesDeploymentManager(DeploymentOperationsTests):
         ) = get_random_resources()
         _kube_namespace = f"{uid}-deployment-manager-test-namespace"
 
-        kubernetes_deployment_manager = KubernetesDeploymentManager(
+        self._kubernetes_deployment_manager = KubernetesDeploymentManager(
             global_state=global_state,
             request_state=request_state,
             kube_namespace=_kube_namespace,
@@ -670,16 +747,16 @@ class TestKubernetesDeploymentManager(DeploymentOperationsTests):
             auth_manager=self._auth_manager,
         )
         self._deployment_manager = DeploymentManagerWithDB(
-            kubernetes_deployment_manager, json_db
+            self._kubernetes_deployment_manager, json_db
         )
 
-        kubernetes_deployment_manager.core_api.create_namespace(
+        self._kubernetes_deployment_manager.core_api.create_namespace(
             V1Namespace(metadata={"name": _kube_namespace})
         )
 
         yield
 
-        kubernetes_deployment_manager.core_api.delete_namespace(
+        self._kubernetes_deployment_manager.core_api.delete_namespace(
             _kube_namespace, propagation_policy="Foreground"
         )
 
@@ -687,7 +764,7 @@ class TestKubernetesDeploymentManager(DeploymentOperationsTests):
         timeout = 60
         while time.time() - start < timeout:
             try:
-                kubernetes_deployment_manager.core_api.read_namespace(
+                self._kubernetes_deployment_manager.core_api.read_namespace(
                     name=_kube_namespace
                 )
                 time.sleep(2)
@@ -758,23 +835,23 @@ class TestKubernetesDeploymentManager(DeploymentOperationsTests):
             project_id=project_core, service=test_service_input_core
         )
 
-        namespace = self.deployment_manager.kube_namespace
-        pod_1 = self.deployment_manager.core_api.list_namespaced_pod(
+        namespace = self._kubernetes_deployment_manager.kube_namespace
+        pod_1 = self._kubernetes_deployment_manager.core_api.list_namespaced_pod(
             namespace=namespace,
             label_selector=f"ctxy.deploymentName={service_1.id},ctxy.projectName={project_1}",
         ).items[0]
 
-        pod_2 = self.deployment_manager.core_api.list_namespaced_pod(
+        pod_2 = self._kubernetes_deployment_manager.core_api.list_namespaced_pod(
             namespace=namespace,
             label_selector=f"ctxy.deploymentName={service_2.id},ctxy.projectName={project_1}",
         ).items[0]
 
-        pod_3 = self.deployment_manager.core_api.list_namespaced_pod(
+        pod_3 = self._kubernetes_deployment_manager.core_api.list_namespaced_pod(
             namespace=namespace,
             label_selector=f"ctxy.deploymentName={service_3.id},ctxy.projectName={project_2}",
         ).items[0]
 
-        pod_core = self.deployment_manager.core_api.list_namespaced_pod(
+        pod_core = self._kubernetes_deployment_manager.core_api.list_namespaced_pod(
             namespace=namespace,
             label_selector=f"ctxy.deploymentName={service_core.id},ctxy.projectName={project_core}",
         ).items[0]
@@ -782,13 +859,13 @@ class TestKubernetesDeploymentManager(DeploymentOperationsTests):
         pod_core.metadata.labels[
             "ctxy.deploymentType"
         ] = DeploymentType.CORE_BACKEND.value
-        self.deployment_manager.core_api.patch_namespaced_pod(
+        self._kubernetes_deployment_manager.core_api.patch_namespaced_pod(
             name=pod_core.metadata.name, namespace=namespace, body=pod_core
         )
 
         _command_prefix = ["/bin/sh", "-c"]
         output = stream.stream(
-            self.deployment_manager.core_api.connect_get_namespaced_pod_exec,
+            self._kubernetes_deployment_manager.core_api.connect_get_namespaced_pod_exec,
             pod_1.metadata.name,
             namespace,
             command=[
@@ -804,7 +881,7 @@ class TestKubernetesDeploymentManager(DeploymentOperationsTests):
         assert "Hello world!" in output
 
         output = stream.stream(
-            self.deployment_manager.core_api.connect_get_namespaced_pod_exec,
+            self._kubernetes_deployment_manager.core_api.connect_get_namespaced_pod_exec,
             pod_1.metadata.name,
             namespace,
             command=[
@@ -820,7 +897,7 @@ class TestKubernetesDeploymentManager(DeploymentOperationsTests):
         assert "wget: download timed out" in output
 
         output = stream.stream(
-            self.deployment_manager.core_api.connect_get_namespaced_pod_exec,
+            self._kubernetes_deployment_manager.core_api.connect_get_namespaced_pod_exec,
             pod_3.metadata.name,
             namespace,
             command=[
@@ -837,7 +914,7 @@ class TestKubernetesDeploymentManager(DeploymentOperationsTests):
 
         # The core service can reach all services, no matter the project
         output = stream.stream(
-            self.deployment_manager.core_api.connect_get_namespaced_pod_exec,
+            self._kubernetes_deployment_manager.core_api.connect_get_namespaced_pod_exec,
             pod_core.metadata.name,
             namespace,
             command=[

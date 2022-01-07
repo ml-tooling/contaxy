@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from contaxy.config import settings
 from contaxy.managers.auth import AuthManager
-from contaxy.schema import AccessLevel, TokenType
+from contaxy.schema import AccessLevel, TokenType, UnauthenticatedError
 from contaxy.schema.auth import TokenPurpose
 from contaxy.schema.deployment import DeploymentCompute, DeploymentType
 from contaxy.utils import auth_utils, id_utils
@@ -260,13 +260,19 @@ def get_default_environment_variables(
     service_access_permission = auth_utils.construct_permission(
         f"/projects/{project_id}/services/{deployment_id}/access/", AccessLevel.READ
     )
-    service_api_token = auth_manager.create_token(
-        scopes=[service_access_permission],
-        token_type=TokenType.API_TOKEN,
-        description=f"Access token for service {deployment_id}.",
-        token_purpose=TokenPurpose.SERVICE_ACCESS_TOKEN,
-    )
-    default_environment_variables[_ENV_VARIABLE_CONTAXY_API_TOKEN] = service_api_token
+    try:
+        service_api_token = auth_manager.create_token(
+            scopes=[service_access_permission],
+            token_type=TokenType.API_TOKEN,
+            description=f"Access token for service {deployment_id}.",
+            token_purpose=TokenPurpose.SERVICE_ACCESS_TOKEN,
+        )
+        default_environment_variables[
+            _ENV_VARIABLE_CONTAXY_API_TOKEN
+        ] = service_api_token
+    except UnauthenticatedError:
+        # If this function is called without an authenticated user, no token is provided to the service
+        pass
 
     if endpoints and len(endpoints) > 0:
         endpoint = endpoints[0]

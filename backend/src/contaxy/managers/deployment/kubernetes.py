@@ -1,3 +1,4 @@
+import os
 import time
 from datetime import datetime, timezone
 from typing import Any, List, Literal, Optional
@@ -84,7 +85,7 @@ class KubernetesDeploymentManager(DeploymentOperations):
             # incluster config is the config given by a service account and it's role permissions
             kube_config.load_incluster_config()
         except kube_config.ConfigException:
-            kube_config.load_kube_config()
+            kube_config.load_kube_config(context=os.getenv("CTXY_K8S_CONTEXT", None))
 
         self.core_api = kube_client.CoreV1Api()
         self.apps_api = kube_client.AppsV1Api()

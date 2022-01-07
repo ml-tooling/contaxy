@@ -40,6 +40,7 @@ from contaxy.schema.deployment import (
 )
 from contaxy.schema.exceptions import (
     ClientBaseError,
+    ClientValueError,
     ResourceNotFoundError,
     ServerBaseError,
 )
@@ -320,7 +321,6 @@ def get_project_container(
     labels.append(
         get_label_string(Labels.DEPLOYMENT_NAME.value, deployment_id),
     )
-
     try:
         containers = client.containers.list(all=True, filters={"label": labels})
     except docker.errors.NotFound:
@@ -461,7 +461,7 @@ def create_container_config(
     user_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     if service.display_name is None:
-        raise RuntimeError("Service name not defined")
+        raise ClientValueError("Service display_name not defined")
 
     compute_resources = service.compute or DeploymentCompute()
     (
