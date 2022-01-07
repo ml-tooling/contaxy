@@ -18,11 +18,12 @@ from contaxy.schema import (
     ServiceInput,
 )
 from contaxy.schema.auth import AccessLevel, TokenPurpose, TokenType
-from contaxy.schema.deployment import JOB_ID_PARAM, SERVICE_ID_PARAM
+from contaxy.schema.deployment import JOB_ID_PARAM, SERVICE_ID_PARAM, ServiceUpdate
 from contaxy.schema.exceptions import (
     AUTH_ERROR_RESPONSES,
     CREATE_RESOURCE_RESPONSES,
     GET_RESOURCE_RESPONSES,
+    UPDATE_RESOURCE_RESPONSES,
     VALIDATION_ERROR_RESPONSE,
 )
 from contaxy.schema.extension import EXTENSION_ID_PARAM
@@ -234,6 +235,34 @@ def delete_service(
         project_id, service_id, delete_volumes
     )
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@service_router.patch(
+    "/projects/{project_id}/services/{service_id}",
+    operation_id=ExtensibleOperations.UPDATE_SERVICE.value,
+    summary="Update a service.",
+    status_code=status.HTTP_200_OK,
+    response_model=Service,
+    responses={**UPDATE_RESOURCE_RESPONSES},
+)
+def update_service(
+    service: ServiceUpdate,
+    project_id: str = PROJECT_ID_PARAM,
+    service_id: str = SERVICE_ID_PARAM,
+    component_manager: ComponentManager = Depends(get_component_manager),
+    token: str = Depends(get_api_token),
+) -> Any:
+    """Updates a service.
+
+    This might force a recreation of the underlying container.
+    """
+    component_manager.verify_access(
+        token, f"projects/{project_id}/services/{service_id}", AccessLevel.WRITE
+    )
+    service_id, extension_id = parse_composite_id(service_id)
+    return component_manager.get_service_manager(extension_id).update_service(
+        project_id, service_id, service
+    )
 
 
 @service_router.delete(

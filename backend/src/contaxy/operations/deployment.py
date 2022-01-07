@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Any, List, Literal, Optional
 
 from contaxy.schema import Job, JobInput, ResourceAction, Service, ServiceInput
-from contaxy.schema.deployment import DeploymentType
+from contaxy.schema.deployment import DeploymentType, ServiceUpdate
 
 # TODO: update_service functionality
 
@@ -91,6 +91,21 @@ class ServiceOperations(ABC):
 
         Returns:
             Service: The service metadata.
+        """
+        pass
+
+    @abstractmethod
+    def update_service(
+        self, project_id: str, service_id: str, service: ServiceUpdate
+    ) -> Service:
+        """Updates the service.
+
+        Args:
+            project_id (str): The project ID associated with the service.
+            service_id (str): The ID of the service.
+            service (ServiceUpdate): Updates that should be applied to the service
+        Returns:
+            Service: The updated service metadata
         """
         pass
 

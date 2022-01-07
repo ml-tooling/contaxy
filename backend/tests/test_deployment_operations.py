@@ -41,6 +41,7 @@ from contaxy.schema.deployment import (
     JobInput,
     Service,
     ServiceInput,
+    ServiceUpdate,
 )
 from contaxy.schema.exceptions import (
     ClientBaseError,
@@ -70,15 +71,15 @@ def get_random_resources() -> Tuple[int, str, str, str]:
     return uid, project_id, service_display_name, service_id
 
 
-def create_test_service_input(service_id: str, display_name: str) -> ServiceInput:
+def create_test_service_input(display_name: str) -> ServiceInput:
     return ServiceInput(
-        container_image="tutum/hello-world",
-        compute={"max_cpus": 2, "max_memory": 100, "volume_path": "/test_temp"},
-        deployment_type=DeploymentType.SERVICE.value,
+        container_image="tutum/hello-world:latest",
+        compute={
+            "max_cpus": 2,
+            "max_memory": 100,
+        },  # TODO: Also test persistent volumes
         display_name=display_name,
         description="This is a test service",
-        # TODO: to pass id here does not make sense but is required by Pydantic
-        id=service_id,
         endpoints=["8080", "8090/webapp"],
         parameters={
             "FOO": "bar",
@@ -91,16 +92,14 @@ def create_test_service_input(service_id: str, display_name: str) -> ServiceInpu
 
 
 def create_test_echo_job_input(
-    job_id: str,
     display_name: str,
     log_input: str = "",
 ) -> JobInput:
     return JobInput(
         container_image="ubuntu:20.04",
-        command=f"/bin/bash -c 'echo {log_input}'",
-        deployment_type=DeploymentType.SERVICE.value,
+        command=["/bin/bash"],
+        args=["-c", f"echo {log_input}"],
         display_name=display_name,
-        id=job_id,
         parameters={"FOO": "bar", "FOO2": "bar2"},
         metadata={"some-metadata": "some-metadata-value"},
     )
@@ -127,11 +126,6 @@ class DeploymentOperationsTests(ABC):
     def service_display_name(self) -> str:
         pass
 
-    @property
-    @abstractmethod
-    def service_id(self) -> str:
-        pass
-
     @abstractmethod
     def deploy_service(self, project_id: str, service: ServiceInput) -> Service:
         pass
@@ -142,7 +136,7 @@ class DeploymentOperationsTests(ABC):
 
     def test_deploy_service(self) -> None:
         test_service_input = create_test_service_input(
-            service_id=self.service_id, display_name=self.service_display_name
+            display_name=self.service_display_name
         )
         service = self.deploy_service(
             project_id=self.project_id,
@@ -152,10 +146,53 @@ class DeploymentOperationsTests(ABC):
         assert service.internal_id != ""
         assert service.metadata.get(Labels.PROJECT_NAME.value, "") == self.project_id
         assert service.parameters.get("FOO", "") == "bar"
-
         assert "some-metadata" in service.metadata
 
-    def test_cannot_deploy_disallowed_image(self):
+    def test_update_service(self) -> None:
+        test_service_input = create_test_service_input(
+            display_name=self.service_display_name
+        )
+        service = self.deploy_service(
+            project_id=self.project_id,
+            service=test_service_input,
+        )
+        assert service.parameters.get("FOO", "") == "bar"
+        updated_service_input = ServiceUpdate(
+            parameters={"FOO": "updated", "BASE_URL": None},
+            metadata={"some-metadata": None},
+            description="Updated service",
+        )
+        service = self.deployment_manager.update_service(
+            project_id=self.project_id,
+            service_id=service.id,
+            service=updated_service_input,
+        )
+        assert service.display_name == test_service_input.display_name
+        assert service.container_image == test_service_input.container_image
+        assert service.metadata.get(Labels.PROJECT_NAME.value, "") == self.project_id
+        assert service.parameters.get("FOO", "") == "updated"
+        assert service.parameters.get("FOO2", "") == "bar2"
+        assert "BASE_URL" not in service.parameters
+        assert "some-metadata" not in service.metadata
+
+    def test_invalid_update_service(self) -> None:
+        test_service_input = create_test_service_input(
+            display_name=self.service_display_name
+        )
+        service = self.deploy_service(
+            project_id=self.project_id,
+            service=test_service_input,
+        )
+        # Update of display name should not be possible
+        updated_service_input = ServiceUpdate(display_name="new-display-name")
+        with pytest.raises(ClientValueError):
+            self.deployment_manager.update_service(
+                project_id=self.project_id,
+                service_id=service.id,
+                service=updated_service_input,
+            )
+
+    def test_cannot_deploy_disallowed_image(self) -> None:
         self.system_manager.add_allowed_image(
             AllowedImageInfo(
                 image_name="allowed-image",
@@ -176,15 +213,12 @@ class DeploymentOperationsTests(ABC):
     def test_delete_services(self) -> None:
         project_1 = f"{self.project_id}-1"
         test_service_input_1 = create_test_service_input(
-            service_id=f"{self.service_id}-1",
             display_name=f"{self.service_display_name}-1",
         )
         test_service_input_2 = create_test_service_input(
-            service_id=f"{self.service_id}-2",
             display_name=f"{self.service_display_name}-2",
         )
         test_service_input_3 = create_test_service_input(
-            service_id=f"{self.service_id}-3",
             display_name=f"{self.service_display_name}-3",
         )
 
@@ -212,15 +246,12 @@ class DeploymentOperationsTests(ABC):
     def test_delete_jobs(self) -> None:
         project_1 = f"{self.project_id}-1"
         test_job_input_1 = create_test_echo_job_input(
-            job_id=f"{self.service_id}-1",
             display_name=f"{self.service_display_name}-1",
         )
         test_job_input_2 = create_test_echo_job_input(
-            job_id=f"{self.service_id}-2",
             display_name=f"{self.service_display_name}-2",
         )
         test_job_input_3 = create_test_echo_job_input(
-            job_id=f"{self.service_id}-3",
             display_name=f"{self.service_display_name}-3",
         )
 
@@ -250,7 +281,7 @@ class DeploymentOperationsTests(ABC):
         min_lifetime_via_metadata = 10
         min_lifetime_via_compute_resources = 20
         test_service_input = create_test_service_input(
-            service_id=self.service_id, display_name=self.service_display_name
+            display_name=self.service_display_name
         )
         test_service_input.compute.min_lifetime = min_lifetime_via_compute_resources
         test_service_input.metadata[Labels.PROJECT_NAME.value] = user_set_project
@@ -276,7 +307,7 @@ class DeploymentOperationsTests(ABC):
 
     def test_replacement_of_template_variables(self) -> None:
         test_service_input = create_test_service_input(
-            service_id=self.service_id, display_name=self.service_display_name
+            display_name=self.service_display_name
         )
 
         service = self.deploy_service(
@@ -291,7 +322,7 @@ class DeploymentOperationsTests(ABC):
 
     def test_get_service_metadata(self) -> None:
         test_service_input = create_test_service_input(
-            service_id=self.service_id, display_name=self.service_display_name
+            display_name=self.service_display_name
         )
         service = self.deploy_service(
             project_id=self.project_id,
@@ -316,9 +347,7 @@ class DeploymentOperationsTests(ABC):
             )
 
     def test_get_job_metadata(self) -> None:
-        job_input = create_test_echo_job_input(
-            job_id=self.service_id, display_name=self.service_display_name
-        )
+        job_input = create_test_echo_job_input(display_name=self.service_display_name)
         job = self.deploy_job(project_id=self.project_id, job=job_input)
 
         queried_job = self.deployment_manager.get_job_metadata(
@@ -338,7 +367,7 @@ class DeploymentOperationsTests(ABC):
 
     def test_list_services(self) -> None:
         test_service_input = create_test_service_input(
-            service_id=self.service_id, display_name=self.service_display_name
+            display_name=self.service_display_name
         )
         service = self.deploy_service(
             project_id=self.project_id,
@@ -355,7 +384,7 @@ class DeploymentOperationsTests(ABC):
 
     def test_list_jobs(self) -> None:
         test_job_input = create_test_echo_job_input(
-            job_id=self.service_id, display_name=self.service_display_name
+            display_name=self.service_display_name
         )
         job = self.deploy_job(project_id=self.project_id, job=test_job_input)
         jobs = self.deployment_manager.list_jobs(project_id=self.project_id)
@@ -367,7 +396,6 @@ class DeploymentOperationsTests(ABC):
     def test_get_logs(self) -> None:
         log_input = "foobar"
         job_input = create_test_echo_job_input(
-            job_id=self.service_id,
             display_name=self.service_display_name,
             log_input=log_input,
         )
@@ -383,7 +411,7 @@ class DeploymentOperationsTests(ABC):
 
     def test_list_service_actions(self) -> None:
         test_service_input = create_test_service_input(
-            service_id=self.service_id, display_name=self.service_display_name
+            display_name=self.service_display_name
         )
         service = self.deploy_service(
             project_id=self.project_id,
@@ -398,7 +426,7 @@ class DeploymentOperationsTests(ABC):
 
     def test_list_deploy_service_actions(self) -> None:
         test_service_input = create_test_service_input(
-            service_id=self.service_id, display_name=self.service_display_name
+            display_name=self.service_display_name
         )
         resource_actions = self.deployment_manager.list_deploy_service_actions(
             project_id=self.project_id, service=test_service_input
@@ -408,7 +436,7 @@ class DeploymentOperationsTests(ABC):
 
     def test_list_deploy_job_actions(self) -> None:
         test_job_input = create_test_echo_job_input(
-            job_id=self.service_id, display_name=self.service_display_name
+            display_name=self.service_display_name
         )
         resource_actions = self.deployment_manager.list_deploy_job_actions(
             project_id=self.project_id, job=test_job_input
@@ -506,10 +534,6 @@ class TestDockerDeploymentManager(DeploymentOperationsTests):
     def service_display_name(self) -> str:
         return self._service_display_name
 
-    @property
-    def service_id(self) -> str:
-        return self._service_id
-
     def deploy_service(self, project_id: str, service: ServiceInput) -> Service:
         deployed_service = self._deployment_manager.deploy_service(
             project_id=project_id, service=service, wait=True
@@ -525,7 +549,7 @@ class TestDockerDeploymentManager(DeploymentOperationsTests):
 
     def test_missing_docker_container(self):
         test_service_input = create_test_service_input(
-            service_id=self.service_id, display_name=self.service_display_name
+            display_name=self.service_display_name
         )
         service = self.deploy_service(
             project_id=self.project_id,
@@ -549,15 +573,12 @@ class TestDockerDeploymentManager(DeploymentOperationsTests):
         project_1 = f"{self.project_id}-1"
         project_2 = f"{self.project_id}-2"
         test_service_input_1 = create_test_service_input(
-            service_id=f"{self.service_id}-1",
             display_name=f"{self.service_display_name}-1",
         )
         test_service_input_2 = create_test_service_input(
-            service_id=f"{self.service_id}-2",
             display_name=f"{self.service_display_name}-2",
         )
         test_service_input_3 = create_test_service_input(
-            service_id=f"{self.service_id}-3",
             display_name=f"{self.service_display_name}-3",
         )
 
@@ -689,10 +710,6 @@ class TestKubernetesDeploymentManager(DeploymentOperationsTests):
     def service_display_name(self) -> str:
         return self._service_display_name
 
-    @property
-    def service_id(self) -> str:
-        return self._service_id
-
     def deploy_service(self, project_id: str, service: ServiceInput) -> Service:
         return self._deployment_manager.deploy_service(
             project_id=project_id, service=service, wait=True
@@ -713,19 +730,15 @@ class TestKubernetesDeploymentManager(DeploymentOperationsTests):
         project_2 = f"{self.project_id}-2"
         project_core = f"{self.project_id}-core"
         test_service_input_1 = create_test_service_input(
-            service_id=f"{self.service_id}-1",
             display_name=f"{self.service_display_name}-1",
         )
         test_service_input_2 = create_test_service_input(
-            service_id=f"{self.service_id}-2",
             display_name=f"{self.service_display_name}-2",
         )
         test_service_input_3 = create_test_service_input(
-            service_id=f"{self.service_id}-3",
             display_name=f"{self.service_display_name}-3",
         )
         test_service_input_core = create_test_service_input(
-            service_id=f"{self.service_id}-core",
             display_name=f"{self.service_display_name}-core",
         )
 

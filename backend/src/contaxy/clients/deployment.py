@@ -7,7 +7,7 @@ from pydantic.tools import parse_raw_as
 from contaxy.clients.shared import handle_errors
 from contaxy.operations.deployment import DeploymentOperations
 from contaxy.schema import Job, JobInput, ResourceAction, Service, ServiceInput
-from contaxy.schema.deployment import DeploymentType
+from contaxy.schema.deployment import DeploymentType, ServiceUpdate
 
 
 class DeploymentManagerClient(DeploymentOperations):
@@ -54,6 +54,21 @@ class DeploymentManagerClient(DeploymentOperations):
         resource = self.client.post(
             f"/projects/{project_id}/services",
             params=params,
+            json=service.dict(exclude_unset=True),
+            **request_kwargs,
+        )
+        handle_errors(resource)
+        return parse_raw_as(Service, resource.text)
+
+    def update_service(
+        self,
+        project_id: str,
+        service_id: str,
+        service: ServiceUpdate,
+        request_kwargs: Dict = {},
+    ) -> Service:
+        resource = self.client.patch(
+            f"/projects/{project_id}/services/{service_id}",
             json=service.dict(exclude_unset=True),
             **request_kwargs,
         )

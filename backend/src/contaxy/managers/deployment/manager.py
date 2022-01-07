@@ -14,7 +14,7 @@ from contaxy.schema import (
     Service,
     ServiceInput,
 )
-from contaxy.schema.deployment import DeploymentStatus, DeploymentType
+from contaxy.schema.deployment import DeploymentStatus, DeploymentType, ServiceUpdate
 
 ACTION_DELIMITER = "-"
 ACTION_ACCESS = "access"
@@ -105,6 +105,31 @@ class DeploymentManagerWithDB(DeploymentOperations):
         try:
             deployed_service = self.deployment_manager.get_service_metadata(
                 project_id, db_service.id
+            )
+            db_service.status = deployed_service.status
+        except ResourceNotFoundError:
+            db_service.status = DeploymentStatus.STOPPED
+
+        return db_service
+
+    def update_service(
+        self, project_id: str, service_id: str, service: ServiceUpdate
+    ) -> Service:
+        if "display_name" in service.dict(exclude_unset=True):
+            raise ClientValueError("Display name of service cannot be updated!")
+        service_doc = self.json_db.update_json_document(
+            project_id=config.SYSTEM_INTERNAL_PROJECT,
+            collection_id=_get_service_collection_id(project_id),
+            key=service_id,
+            json_document=service.json(exclude_unset=True),
+        )
+        db_service = Service.parse_raw(service_doc.json_value)
+        try:
+            self.deployment_manager.delete_service(
+                project_id, service_id, delete_volumes=False
+            )
+            deployed_service = self.deployment_manager.deploy_service(
+                project_id, ServiceInput(**db_service.dict())
             )
             db_service.status = deployed_service.status
         except ResourceNotFoundError:

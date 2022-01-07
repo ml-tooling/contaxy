@@ -22,7 +22,7 @@ from contaxy.managers.deployment.utils import Labels, split_image_name_and_tag
 from contaxy.managers.system import SystemManager
 from contaxy.operations import DeploymentOperations
 from contaxy.schema import Job, JobInput, ResourceAction, Service, ServiceInput
-from contaxy.schema.deployment import DeploymentType
+from contaxy.schema.deployment import DeploymentType, ServiceUpdate
 from contaxy.schema.exceptions import ClientBaseError, ClientValueError
 from contaxy.utils.auth_utils import parse_userid_from_resource_name
 from contaxy.utils.state_utils import GlobalState, RequestState
@@ -120,6 +120,12 @@ class DockerDeploymentManager(DeploymentOperations):
             client=self.client, project_id=project_id, deployment_id=service_id
         )
         return map_service(container)
+
+    def update_service(
+        self, project_id: str, service_id: str, service: ServiceUpdate
+    ) -> Service:
+        # Service update is only implemented on DeploymentManagerWithDB wrapper
+        raise NotImplementedError()
 
     def delete_service(
         self, project_id: str, service_id: str, delete_volumes: bool = False

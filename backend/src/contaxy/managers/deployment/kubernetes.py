@@ -46,7 +46,7 @@ from contaxy.managers.deployment.utils import (
 from contaxy.managers.system import SystemManager
 from contaxy.operations import DeploymentOperations
 from contaxy.schema import Job, JobInput, ResourceAction, Service, ServiceInput
-from contaxy.schema.deployment import DeploymentType
+from contaxy.schema.deployment import DeploymentType, ServiceUpdate
 from contaxy.schema.exceptions import (
     ClientBaseError,
     ClientValueError,
@@ -237,6 +237,12 @@ class KubernetesDeploymentManager(DeploymentOperations):
             )
 
         return transformed_service
+
+    def update_service(
+        self, project_id: str, service_id: str, service: ServiceUpdate
+    ) -> Service:
+        # Service update is only implemented on DeploymentManagerWithDB wrapper
+        raise NotImplementedError()
 
     def list_deploy_service_actions(
         self, project_id: str, service: ServiceInput
