@@ -25,8 +25,10 @@ from contaxy.schema.auth import AccessLevel, OAuth2ErrorDetails, OAuth2TokenGran
 from contaxy.schema.exceptions import (
     AUTH_ERROR_RESPONSES,
     VALIDATION_ERROR_RESPONSE,
+    ClientBaseError,
     ServerBaseError,
 )
+from contaxy.schema.system import SystemState
 from contaxy.utils import auth_utils, id_utils
 
 OAUTH_CALLBACK_ROUTE = "auth/oauth/callback"
@@ -87,6 +89,13 @@ def login_user_session(
 
     This will set http-only cookies containg tokens with full user access.
     """
+    system_info = component_manager.get_system_manager().get_system_info()
+    if system_info.system_state != SystemState.RUNNING:
+        raise ClientBaseError(
+            status.HTTP_400_BAD_REQUEST,
+            "Login is not possible before system has been initialized!",
+        )
+
     oauth_token = component_manager.get_auth_manager().request_token(
         OAuth2TokenRequestFormNew(
             grant_type=OAuth2TokenGrantTypes.PASSWORD,
@@ -325,6 +334,13 @@ def request_token(
 
     This endpoint implements the [OAuth2 Token Endpoint](https://tools.ietf.org/html/rfc6749#section-3.2).
     """
+    system_info = component_manager.get_system_manager().get_system_info()
+    if system_info.system_state != SystemState.RUNNING:
+        raise ClientBaseError(
+            status.HTTP_400_BAD_REQUEST,
+            "Login is not possible before system has been initialized!",
+        )
+
     oauth_token = component_manager.get_auth_manager().request_token(token_request_form)
     if token_request_form.set_as_cookie:
         response = Response(status_code=status.HTTP_200_OK)
@@ -413,6 +429,13 @@ def login_callback(
 
     This endpoint implements the [Authorization Response](https://tools.ietf.org/html/rfc6749#section-4.1.2) from RFC6749.
     """
+    system_info = component_manager.get_system_manager().get_system_info()
+    if system_info.system_state != SystemState.RUNNING:
+        raise ClientBaseError(
+            status.HTTP_400_BAD_REQUEST,
+            "Login is not possible before system has been initialized!",
+        )
+
     auth_manager = component_manager.get_auth_manager()
     # Needed for test setups
     schema = "http://" if os.getenv("OAUTHLIB_INSECURE_TRANSPORT") else "https://"

@@ -669,7 +669,7 @@ class AuthManager(AuthOperations):
 
         except ResourceNotFoundError as ex:
             # The user was not found in the system
-            raise OAuth2Error("invalid_request") from ex
+            raise OAuth2Error("unauthorized_client") from ex
 
     def _generate_token(
         self, user_id: str, scopes: Union[str, List[str], None] = None

@@ -17,8 +17,10 @@ from contaxy.schema.exceptions import (
     GET_RESOURCE_RESPONSES,
     UPDATE_RESOURCE_RESPONSES,
     VALIDATION_ERROR_RESPONSE,
+    ClientBaseError,
     PermissionDeniedError,
 )
+from contaxy.schema.system import SystemState
 from contaxy.utils import auth_utils, id_utils
 
 router = APIRouter(
@@ -66,6 +68,12 @@ def create_user(
 
     If the `password` is not provided, the user can only login by using other methods (social login).
     """
+    system_info = component_manager.get_system_manager().get_system_info()
+    if system_info.system_state != SystemState.RUNNING:
+        raise ClientBaseError(
+            status.HTTP_400_BAD_REQUEST,
+            "User registration is not possible before system has been initialized!",
+        )
 
     if not component_manager.global_state.settings.USER_REGISTRATION_ENABLED:
         if token is not None:
