@@ -6,8 +6,7 @@ from pydantic import BaseModel, Field, validator
 
 
 class SystemState(str, Enum):
-    STARTING = "starting"
-    INITIALIZING = "initializing"
+    UNINITIALIZED = "uninitialized"
     RUNNING = "running"
 
 
@@ -23,9 +22,7 @@ class SystemInfo(BaseModel):
         example="mlhub",
         description="Namespace of this system.",
     )
-    system_state: SystemState = Field(
-        SystemState.STARTING, description="The state of the system."
-    )
+    system_state: SystemState = Field(..., description="The state of the system.")
     metadata: Optional[Dict[str, str]] = Field(
         None,
         example={"additional-metadata": "value"},

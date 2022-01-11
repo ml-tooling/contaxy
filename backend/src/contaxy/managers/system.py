@@ -1,4 +1,5 @@
-from typing import List, Optional
+import json
+from typing import Any, List, Optional
 
 from loguru import logger
 
@@ -22,14 +23,21 @@ from contaxy.schema.auth import (
 )
 from contaxy.schema.extension import GLOBAL_EXTENSION_PROJECT
 from contaxy.schema.project import PROJECTS_KIND, ProjectCreation
-from contaxy.schema.system import AllowedImageInfo, SystemInfo, SystemStatistics
+from contaxy.schema.system import (
+    AllowedImageInfo,
+    SystemInfo,
+    SystemState,
+    SystemStatistics,
+)
 from contaxy.utils import auth_utils
 from contaxy.utils.state_utils import GlobalState, RequestState
 
 
 class SystemManager(SystemOperations):
-    _SYSTEM_INFO_COLLECTION = "system-info"
     _ALLOWED_IMAGES_COLLECTION = "allowed-images"
+
+    _SYSTEM_PROPERTIES_COLLECTION = "system-properties"
+    _SYSTEM_PROPERTY_IS_INITIALIZED = "is-initialized"
 
     def __init__(
         self,
@@ -55,9 +63,14 @@ class SystemManager(SystemOperations):
         self._json_db_manager = json_db_manager
 
     def get_system_info(self) -> SystemInfo:
+        if self._is_initialized():
+            system_state = SystemState.RUNNING
+        else:
+            system_state = SystemState.UNINITIALIZED
         return SystemInfo(
             version=__version__,
             namespace=settings.SYSTEM_NAMESPACE,
+            system_state=system_state,
         )
 
     def is_healthy(self) -> bool:
@@ -74,9 +87,8 @@ class SystemManager(SystemOperations):
         self,
         password: Optional[str] = None,
     ) -> None:
-        # Don't execute initialization if there are already existing users
-        # TODO: This does not prevent the usage of the contaxy API before the system is initialized
-        if len(self._auth_manager.list_users()) > 0:
+        # Only allow initialization once
+        if self._is_initialized():
             raise ResourceAlreadyExistsError("The system has already been initialized")
         logger.debug("Started system initialization.")
 
@@ -136,6 +148,8 @@ class SystemManager(SystemOperations):
             ADMIN_ROLE,
         )
 
+        self._set_system_property(SystemManager._SYSTEM_PROPERTY_IS_INITIALIZED, True)
+
     def check_image(self, image_name: str, image_tag: str) -> None:
         # If allowed image list is empty (default), then allow all images
         if len(self.list_allowed_images()) == 0:
@@ -187,4 +201,57 @@ class SystemManager(SystemOperations):
             config.SYSTEM_INTERNAL_PROJECT,
             self._ALLOWED_IMAGES_COLLECTION,
             key=image_name,
+        )
+
+    _is_initialized_cache = False
+
+    def _is_initialized(self) -> bool:
+        # After the initialization was successful, is_initialized cannot be set back to false, so caching it is safe
+        if not SystemManager._is_initialized_cache:
+            # Cache says that system is not initialized. Check if that is correct.
+            SystemManager._is_initialized_cache = self._get_system_property(
+                self._SYSTEM_PROPERTY_IS_INITIALIZED, default=False
+            )
+        return SystemManager._is_initialized_cache
+
+    def _get_system_property(self, property_name: str, default: Any = ...) -> Any:
+        """Returns the value of the system property.
+
+        Args:
+            property_name (str): Name of the system property that should be retrieved
+            default (None): Default value to return if property is not set. If not set, ResourceNotFoundError will be raised instead.
+
+        Raises:
+            ResourceNotFoundError: If no system property with the given name is found
+
+        Returns:
+            The value of the system property
+        """
+        try:
+            system_property_doc = self._json_db_manager.get_json_document(
+                config.SYSTEM_INTERNAL_PROJECT,
+                self._SYSTEM_PROPERTIES_COLLECTION,
+                key=property_name,
+            )
+        except ResourceNotFoundError as e:
+            if default is ...:
+                raise e
+            else:
+                return default
+        is_initialized = json.loads(system_property_doc.json_value)
+        return is_initialized
+
+    def _set_system_property(self, property_name: str, property_value: Any) -> None:
+        """Sets the specified value for the given system property.
+
+        Args:
+            property_name (str): The name of the property to set
+            property_value (Any): The new value of the property
+        """
+        self._json_db_manager.create_json_document(
+            config.SYSTEM_INTERNAL_PROJECT,
+            self._SYSTEM_PROPERTIES_COLLECTION,
+            key=property_name,
+            json_document=json.dumps(property_value),
+            upsert=True,
         )
