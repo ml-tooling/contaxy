@@ -145,7 +145,7 @@ OPEN_URL_REDIRECT: Mapping[Union[int, str], Dict[str, Any]] = {
 
 
 class ResourceMetadata(BaseModel):
-    id: Optional[str] = Field(
+    id: str = Field(
         None,
         example="ac9ldprwdi68oihk34jli3kdp",
         description="Resource ID. Identifies a resource in a given context and time, for example, in combination with its type. Used in API operations and/or configuration files.",

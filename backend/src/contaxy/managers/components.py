@@ -6,6 +6,7 @@ from pydantic.networks import PostgresDsn
 
 from contaxy import config
 from contaxy.managers.auth import AuthManager
+from contaxy.managers.deployment.manager import DeploymentManagerWithDB
 from contaxy.managers.extension import ExtensionManager
 from contaxy.managers.project import ProjectManager
 from contaxy.managers.seed import SeedManager
@@ -246,6 +247,10 @@ class ComponentManager:
                     self.get_system_manager(),
                     self.get_auth_manager(),
                 )
+                # Add DB persistence to docker deployment manager
+                self._deployment_manager = DeploymentManagerWithDB(
+                    self._deployment_manager, self.get_json_db_manager()
+                )
             elif (
                 self.global_state.settings.DEPLOYMENT_MANAGER
                 == config.DeploymentManager.KUBERNETES
@@ -260,6 +265,10 @@ class ComponentManager:
                     self.get_system_manager(),
                     self.get_auth_manager(),
                     self.global_state.settings.KUBERNETES_NAMESPACE,
+                )
+                # Add DB persistence to kubernetes deployment manager
+                self._deployment_manager = DeploymentManagerWithDB(
+                    self._deployment_manager, self.get_json_db_manager()
                 )
 
         assert self._deployment_manager is not None

@@ -316,6 +316,7 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
             conn.commit()
 
     def _add_metadata_for_insert(self, data: dict) -> dict:
+        # TODO: Copy required?
         insert_data = data.copy()
         # TODO: Finalize
         insert_data["created_at"] = datetime.datetime.utcnow()

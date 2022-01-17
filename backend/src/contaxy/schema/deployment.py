@@ -40,6 +40,8 @@ class DeploymentStatus(str, Enum):
     FAILED = "failed"
     # Deployment was deleted and is now terminating the pods.
     TERMINATING = "terminating"
+    # Deployment is stopped (it still exists in the DB but no container is running)
+    STOPPED = "stopped"
     # Deployment state cannot be obtained.
     UNKNOWN = "unknown"
     # Deployment is paused (only on docker?)/
