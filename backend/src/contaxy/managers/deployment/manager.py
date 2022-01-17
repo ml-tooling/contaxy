@@ -1,3 +1,4 @@
+import time
 from datetime import datetime
 from typing import Dict, List, Literal, Optional
 
@@ -7,17 +8,22 @@ from contaxy import config
 from contaxy.config import settings
 from contaxy.operations import DeploymentOperations, JsonDocumentOperations
 from contaxy.schema import (
+    ClientValueError,
     Job,
     JobInput,
     ResourceAction,
     ResourceNotFoundError,
+    ServerBaseError,
     Service,
     ServiceInput,
 )
-from contaxy.schema.deployment import DeploymentStatus, DeploymentType
+from contaxy.schema.deployment import DeploymentStatus, DeploymentType, ServiceUpdate
 
 ACTION_DELIMITER = "-"
 ACTION_ACCESS = "access"
+ACTION_START = "start"
+ACTION_STOP = "stop"
+ACTION_RESTART = "restart"
 
 
 def _get_service_collection_id(project_id: str) -> str:
@@ -45,17 +51,12 @@ class DeploymentManagerWithDB(DeploymentOperations):
         deployment_type: Literal[
             DeploymentType.SERVICE, DeploymentType.EXTENSION
         ] = DeploymentType.SERVICE,
+        wait: bool = False,
     ) -> Service:
         deployed_service = self.deployment_manager.deploy_service(
-            project_id, service, action_id, deployment_type
+            project_id, service, action_id, deployment_type, wait
         )
-        self.json_db.create_json_document(
-            project_id=config.SYSTEM_INTERNAL_PROJECT,
-            collection_id=_get_service_collection_id(project_id),
-            key=deployed_service.id,
-            json_document=deployed_service.json(),
-            upsert=False,
-        )
+        self._create_service_db_document(deployed_service, project_id)
         return deployed_service
 
     def list_services(
@@ -69,6 +70,7 @@ class DeploymentManagerWithDB(DeploymentOperations):
             project_id=config.SYSTEM_INTERNAL_PROJECT,
             collection_id=_get_service_collection_id(project_id),
         )
+        # Create lookup for all running services
         deployed_service_lookup: Dict[str, Service] = {
             service.id: service
             for service in self.deployment_manager.list_services(
@@ -77,27 +79,32 @@ class DeploymentManagerWithDB(DeploymentOperations):
             if service.id is not None
         }
         services = []
-        # Go through all services in the DB and update their status
+        # Go through all services in the DB and update their status and internal id
         for service_doc in service_docs:
             db_service = Service.parse_raw(service_doc.json_value)
             deployed_service = deployed_service_lookup.pop(db_service.id, None)
             if deployed_service is None:
                 db_service.status = DeploymentStatus.STOPPED
+                db_service.internal_id = None
             else:
                 db_service.status = deployed_service.status
+                db_service.internal_id = deployed_service.internal_id
             services.append(db_service)
         # Add services to DB that were not added via the contaxy API
         for deployed_service in deployed_service_lookup.values():
-            self.json_db.create_json_document(
-                project_id=config.SYSTEM_INTERNAL_PROJECT,
-                collection_id=_get_service_collection_id(project_id),
-                key=deployed_service.id,
-                json_document=deployed_service.json(),
-                upsert=False,
-            )
+            self._create_service_db_document(deployed_service, project_id)
             services.append(deployed_service)
 
         return services
+
+    def _create_service_db_document(self, service: Service, project_id: str) -> None:
+        self.json_db.create_json_document(
+            project_id=config.SYSTEM_INTERNAL_PROJECT,
+            collection_id=_get_service_collection_id(project_id),
+            key=service.id,
+            json_document=service.json(exclude={"status", "internal_id"}),
+            upsert=False,
+        )
 
     def get_service_metadata(self, project_id: str, service_id: str) -> Service:
         db_service = self._get_service_from_db(project_id, service_id)
@@ -106,8 +113,34 @@ class DeploymentManagerWithDB(DeploymentOperations):
                 project_id, db_service.id
             )
             db_service.status = deployed_service.status
+            db_service.internal_id = deployed_service.internal_id
         except ResourceNotFoundError:
             db_service.status = DeploymentStatus.STOPPED
+            db_service.internal_id = None
+
+        return db_service
+
+    def update_service(
+        self, project_id: str, service_id: str, service: ServiceUpdate
+    ) -> Service:
+        if "display_name" in service.dict(exclude_unset=True):
+            raise ClientValueError("Display name of service cannot be updated!")
+        service_doc = self.json_db.update_json_document(
+            project_id=config.SYSTEM_INTERNAL_PROJECT,
+            collection_id=_get_service_collection_id(project_id),
+            key=service_id,
+            json_document=service.json(exclude_unset=True),
+        )
+        db_service = Service.parse_raw(service_doc.json_value)
+        try:
+            deployed_service = self._execute_restart_service_action(
+                project_id, service_id
+            )
+            db_service.status = deployed_service.status
+            db_service.internal_id = deployed_service.internal_id
+        except ClientValueError:
+            db_service.status = DeploymentStatus.STOPPED
+            db_service.internal_id = None
 
         return db_service
 
@@ -178,16 +211,24 @@ class DeploymentManagerWithDB(DeploymentOperations):
             deployed_job = deployed_job_lookup.get(db_job.id)
             if deployed_job is None:
                 db_job.status = DeploymentStatus.STOPPED
+                db_job.internal_id = None
             else:
                 db_job.status = deployed_job.status
+                db_job.internal_id = deployed_job.internal_id
             jobs.append(db_job)
 
         return jobs
 
     def deploy_job(
-        self, project_id: str, job: JobInput, action_id: Optional[str] = None
+        self,
+        project_id: str,
+        job: JobInput,
+        action_id: Optional[str] = None,
+        wait: bool = False,
     ) -> Job:
-        deployed_job = self.deployment_manager.deploy_job(project_id, job, action_id)
+        deployed_job = self.deployment_manager.deploy_job(
+            project_id, job, action_id, wait
+        )
         self.json_db.create_json_document(
             project_id=config.SYSTEM_INTERNAL_PROJECT,
             collection_id=_get_job_collection_id(project_id),
@@ -204,8 +245,10 @@ class DeploymentManagerWithDB(DeploymentOperations):
                 project_id, db_job.id
             )
             db_job.status = deployed_job.status
+            db_job.internal_id = deployed_job.internal_id
         except ResourceNotFoundError:
             db_job.status = DeploymentStatus.STOPPED
+            db_job.internal_id = None
 
         return db_job
 
@@ -262,21 +305,78 @@ class DeploymentManagerWithDB(DeploymentOperations):
         service_id: str,
         action_id: str,
     ) -> Response:
-        # TODO: redirect from web app fetch / request does not work as the request itself is redirected and not the page.
-        # try:
-        #     if action_id.startswith(ACTION_ACCESS):
-        #         port = action_id.split(ACTION_DELIMITER)[1]
+        if action_id == ACTION_START:
+            self._execute_start_service_action(project_id, service_id)
+        elif action_id == ACTION_STOP:
+            self._execute_stop_service_action(project_id, service_id)
+        elif action_id == ACTION_RESTART:
+            self._execute_restart_service_action(project_id, service_id)
+        else:
+            return Response(
+                content=f"No implementation for action id '{action_id}'",
+                status_code=501,
+            )
+        return Response(
+            content=f"Action {action_id} successfully executed.", status_code=200
+        )
 
-        #         return RedirectResponse(
-        #             url=f"{settings.CONTAXY_BASE_URL}/projects/{project_id}/services/{service_id}/access/{port}"
-        #         )
-        # except Exception:
-        #     raise ServerBaseError("Could not execute action")
+    def _execute_start_service_action(self, project_id: str, service_id: str) -> None:
+        service = self.get_service_metadata(project_id, service_id)
+        if service.status != DeploymentStatus.STOPPED:
+            raise ClientValueError(
+                f"Action {ACTION_START} on service {service_id} can only be performed "
+                f"when service is stopped but status is {service.status}!"
+            )
+        self.deployment_manager.deploy_service(
+            project_id, ServiceInput(**service.dict()), wait=True
+        )
 
-        # return Response(
-        #     content=f"No implementation for action id '{action_id}'", status_code=501
-        # )
-        raise NotImplementedError
+    def _execute_stop_service_action(self, project_id: str, service_id: str) -> None:
+        service = self.get_service_metadata(project_id, service_id)
+        if service.status == DeploymentStatus.STOPPED:
+            raise ClientValueError(
+                f"Action {ACTION_STOP} on service {service_id} can only be performed "
+                f"when service is not stopped already!"
+            )
+        self.deployment_manager.delete_service(
+            project_id, service_id, delete_volumes=False
+        )
+
+    def _execute_restart_service_action(
+        self, project_id: str, service_id: str
+    ) -> Service:
+        service = self.get_service_metadata(project_id, service_id)
+        if service.status == DeploymentStatus.STOPPED:
+            raise ClientValueError(
+                f"Action {ACTION_RESTART} on service {service_id} can only be performed "
+                f"when service is not stopped already!"
+            )
+        return self._restart_service(project_id, service)
+
+    def _restart_service(self, project_id: str, service: Service) -> Service:
+        self.deployment_manager.delete_service(
+            project_id, service.id, delete_volumes=False
+        )
+        self._wait_for_deployment_deletion(project_id, service.id)
+        return self.deployment_manager.deploy_service(
+            project_id, ServiceInput(**service.dict()), wait=True
+        )
+
+    def _wait_for_deployment_deletion(
+        self, project_id: str, service_id: str, timeout_seconds: int = 60
+    ) -> None:
+        try:
+            start_time = time.time()
+            while time.time() - start_time < timeout_seconds:
+                self.deployment_manager.get_service_metadata(project_id, service_id)
+                time.sleep(3)
+            raise ServerBaseError(
+                f"Action {ACTION_RESTART} on service {service_id} failed as service "
+                f"did not stop after waiting {timeout_seconds} seconds."
+            )
+        except ResourceNotFoundError:
+            # Service was successfully deleted
+            pass
 
     def execute_job_action(
         self, project_id: str, job_id: str, action_id: str
@@ -292,23 +392,48 @@ class DeploymentManagerWithDB(DeploymentOperations):
         )
 
         resource_actions: List[ResourceAction] = []
-        if service_metadata.endpoints:
-            for endpoint in service_metadata.endpoints:
-                endpoint = endpoint.replace("/", "")
-                resource_actions.append(
-                    ResourceAction(
-                        action_id=f"{ACTION_ACCESS}{ACTION_DELIMITER}{endpoint}",
-                        display_name=f"Endpoint: {endpoint}",
-                        instructions=[
-                            {
-                                "type": "new-tab",
-                                "url": f"{settings.CONTAXY_BASE_URL}/projects/{project_id}/services/{service_id}/access/{endpoint}",
-                            }
-                        ],
-                    )
-                )
+        if service_metadata.status == DeploymentStatus.STOPPED:
+            resource_actions.append(
+                ResourceAction(action_id=ACTION_START, display_name="Start Service")
+            )
+        else:
+            resource_actions.append(
+                ResourceAction(action_id=ACTION_STOP, display_name="Stop Service")
+            )
+            resource_actions.append(
+                ResourceAction(action_id=ACTION_RESTART, display_name="Restart Service")
+            )
+            resource_actions += self._get_service_access_actions(
+                project_id, service_id, service_metadata
+            )
 
         return resource_actions
+
+    @staticmethod
+    def _get_service_access_actions(
+        project_id: str, service_id: str, service_metadata: Service
+    ) -> List[ResourceAction]:
+        if not service_metadata.endpoints:
+            return []
+        access_actions = []
+        for endpoint in service_metadata.endpoints:
+            if len(service_metadata.endpoints) > 1:
+                display_name = f"Access Service on Endpoint: {endpoint}"
+            else:
+                display_name = "Access Service"
+            access_actions.append(
+                ResourceAction(
+                    action_id=f"{ACTION_ACCESS}{ACTION_DELIMITER}{endpoint.replace('/', '')}",
+                    display_name=display_name,
+                    instructions=[
+                        {
+                            "type": "new-tab",
+                            "url": f"{settings.CONTAXY_BASE_URL}/projects/{project_id}/services/{service_id}/access/{endpoint}",
+                        }
+                    ],
+                )
+            )
+        return access_actions
 
     def list_deploy_service_actions(
         self, project_id: str, service: ServiceInput

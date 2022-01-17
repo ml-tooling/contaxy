@@ -30,7 +30,6 @@ from contaxy.managers.system import SystemManager
 from contaxy.operations.deployment import DeploymentOperations
 from contaxy.schema.auth import (
     AccessLevel,
-    AuthorizedAccess,
     OAuth2TokenGrantTypes,
     OAuth2TokenRequestFormNew,
 )
@@ -41,6 +40,7 @@ from contaxy.schema.deployment import (
     JobInput,
     Service,
     ServiceInput,
+    ServiceUpdate,
 )
 from contaxy.schema.exceptions import (
     ClientBaseError,
@@ -70,15 +70,15 @@ def get_random_resources() -> Tuple[int, str, str, str]:
     return uid, project_id, service_display_name, service_id
 
 
-def create_test_service_input(service_id: str, display_name: str) -> ServiceInput:
+def create_test_service_input(display_name: str) -> ServiceInput:
     return ServiceInput(
-        container_image="tutum/hello-world",
-        compute={"max_cpus": 2, "max_memory": 100, "volume_path": "/test_temp"},
-        deployment_type=DeploymentType.SERVICE.value,
+        container_image="tutum/hello-world:latest",
+        compute={
+            "max_cpus": 2,
+            "max_memory": 100,
+        },  # TODO: Also test persistent volumes
         display_name=display_name,
         description="This is a test service",
-        # TODO: to pass id here does not make sense but is required by Pydantic
-        id=service_id,
         endpoints=["8080", "8090/webapp"],
         parameters={
             "FOO": "bar",
@@ -91,16 +91,14 @@ def create_test_service_input(service_id: str, display_name: str) -> ServiceInpu
 
 
 def create_test_echo_job_input(
-    job_id: str,
     display_name: str,
     log_input: str = "",
 ) -> JobInput:
     return JobInput(
         container_image="ubuntu:20.04",
-        command=f"/bin/bash -c 'echo {log_input}'",
-        deployment_type=DeploymentType.SERVICE.value,
+        command=["/bin/bash"],
+        args=["-c", f"echo {log_input}"],
         display_name=display_name,
-        id=job_id,
         parameters={"FOO": "bar", "FOO2": "bar2"},
         metadata={"some-metadata": "some-metadata-value"},
     )
@@ -127,11 +125,6 @@ class DeploymentOperationsTests(ABC):
     def service_display_name(self) -> str:
         pass
 
-    @property
-    @abstractmethod
-    def service_id(self) -> str:
-        pass
-
     @abstractmethod
     def deploy_service(self, project_id: str, service: ServiceInput) -> Service:
         pass
@@ -142,7 +135,7 @@ class DeploymentOperationsTests(ABC):
 
     def test_deploy_service(self) -> None:
         test_service_input = create_test_service_input(
-            service_id=self.service_id, display_name=self.service_display_name
+            display_name=self.service_display_name
         )
         service = self.deploy_service(
             project_id=self.project_id,
@@ -152,10 +145,53 @@ class DeploymentOperationsTests(ABC):
         assert service.internal_id != ""
         assert service.metadata.get(Labels.PROJECT_NAME.value, "") == self.project_id
         assert service.parameters.get("FOO", "") == "bar"
-
         assert "some-metadata" in service.metadata
 
-    def test_cannot_deploy_disallowed_image(self):
+    def test_update_service(self) -> None:
+        test_service_input = create_test_service_input(
+            display_name=self.service_display_name
+        )
+        service = self.deploy_service(
+            project_id=self.project_id,
+            service=test_service_input,
+        )
+        assert service.parameters.get("FOO", "") == "bar"
+        updated_service_input = ServiceUpdate(
+            parameters={"FOO": "updated", "BASE_URL": None},
+            metadata={"some-metadata": None},
+            description="Updated service",
+        )
+        service = self.deployment_manager.update_service(
+            project_id=self.project_id,
+            service_id=service.id,
+            service=updated_service_input,
+        )
+        assert service.display_name == test_service_input.display_name
+        assert service.container_image == test_service_input.container_image
+        assert service.metadata.get(Labels.PROJECT_NAME.value, "") == self.project_id
+        assert service.parameters.get("FOO", "") == "updated"
+        assert service.parameters.get("FOO2", "") == "bar2"
+        assert "BASE_URL" not in service.parameters
+        assert "some-metadata" not in service.metadata
+
+    def test_invalid_update_service(self) -> None:
+        test_service_input = create_test_service_input(
+            display_name=self.service_display_name
+        )
+        service = self.deploy_service(
+            project_id=self.project_id,
+            service=test_service_input,
+        )
+        # Update of display name should not be possible
+        updated_service_input = ServiceUpdate(display_name="new-display-name")
+        with pytest.raises(ClientValueError):
+            self.deployment_manager.update_service(
+                project_id=self.project_id,
+                service_id=service.id,
+                service=updated_service_input,
+            )
+
+    def test_cannot_deploy_disallowed_image(self) -> None:
         self.system_manager.add_allowed_image(
             AllowedImageInfo(
                 image_name="allowed-image",
@@ -173,18 +209,91 @@ class DeploymentOperationsTests(ABC):
                 job=JobInput(container_image="disallowed-image:0.1"),
             )
 
+    def test_stop_and_start_service(self) -> None:
+        test_service_input = create_test_service_input(
+            display_name=self.service_display_name
+        )
+        service = self.deploy_service(
+            project_id=self.project_id,
+            service=test_service_input,
+        )
+        # Running service should provide stop action but not start action
+        service_action_ids = [
+            service.action_id
+            for service in self.deployment_manager.list_service_actions(
+                self.project_id, service.id
+            )
+        ]
+        assert service.status == DeploymentStatus.RUNNING
+        assert "stop" in service_action_ids
+        assert "start" not in service_action_ids
+        # Execute stop action to stop service
+        self.deployment_manager.execute_service_action(
+            self.project_id, service.id, "stop"
+        )
+        # Check that status is now stopped
+        service = self.deployment_manager.get_service_metadata(
+            self.project_id, service.id
+        )
+        assert service.status == DeploymentStatus.STOPPED
+        # Stopped service should provide start action but not stop action
+        service_action_ids = [
+            service.action_id
+            for service in self.deployment_manager.list_service_actions(
+                self.project_id, service.id
+            )
+        ]
+        assert "start" in service_action_ids
+        assert "stop" not in service_action_ids
+        # Execute start action to start service again
+        self.deployment_manager.execute_service_action(
+            self.project_id, service.id, "start"
+        )
+        # Check that status is now running
+        service = self.deployment_manager.get_service_metadata(
+            self.project_id, service.id
+        )
+        assert service.status == DeploymentStatus.RUNNING
+
+    def test_restart_service(self) -> None:
+        test_service_input = create_test_service_input(
+            display_name=self.service_display_name
+        )
+        service = self.deploy_service(
+            project_id=self.project_id,
+            service=test_service_input,
+        )
+        # Running service should provide restart action
+        service_action_ids = [
+            service.action_id
+            for service in self.deployment_manager.list_service_actions(
+                self.project_id, service.id
+            )
+        ]
+        assert service.status == DeploymentStatus.RUNNING
+        assert "restart" in service_action_ids
+        # Execute restart action
+        self.deployment_manager.execute_service_action(
+            self.project_id, service.id, "restart"
+        )
+        # Check that status is now stopped
+        restarted_service = self.deployment_manager.get_service_metadata(
+            self.project_id, service.id
+        )
+        # Service should still be running after restart
+        assert restarted_service.status == DeploymentStatus.RUNNING
+        # Internal id should change after a restart
+        assert restarted_service.internal_id != service.internal_id
+
     def test_delete_services(self) -> None:
         project_1 = f"{self.project_id}-1"
         test_service_input_1 = create_test_service_input(
-            service_id=f"{self.service_id}-1",
             display_name=f"{self.service_display_name}-1",
         )
         test_service_input_2 = create_test_service_input(
-            service_id=f"{self.service_id}-2",
             display_name=f"{self.service_display_name}-2",
         )
         test_service_input_3 = create_test_service_input(
-            service_id=f"{self.service_id}-3",
             display_name=f"{self.service_display_name}-3",
         )
 
@@ -212,15 +321,12 @@ class DeploymentOperationsTests(ABC):
     def test_delete_jobs(self) -> None:
         project_1 = f"{self.project_id}-1"
         test_job_input_1 = create_test_echo_job_input(
-            job_id=f"{self.service_id}-1",
             display_name=f"{self.service_display_name}-1",
         )
         test_job_input_2 = create_test_echo_job_input(
-            job_id=f"{self.service_id}-2",
             display_name=f"{self.service_display_name}-2",
         )
         test_job_input_3 = create_test_echo_job_input(
-            job_id=f"{self.service_id}-3",
             display_name=f"{self.service_display_name}-3",
         )
 
@@ -250,7 +356,7 @@ class DeploymentOperationsTests(ABC):
         min_lifetime_via_metadata = 10
         min_lifetime_via_compute_resources = 20
         test_service_input = create_test_service_input(
-            service_id=self.service_id, display_name=self.service_display_name
+            display_name=self.service_display_name
         )
         test_service_input.compute.min_lifetime = min_lifetime_via_compute_resources
         test_service_input.metadata[Labels.PROJECT_NAME.value] = user_set_project
@@ -276,7 +382,7 @@ class DeploymentOperationsTests(ABC):
 
     def test_replacement_of_template_variables(self) -> None:
         test_service_input = create_test_service_input(
-            service_id=self.service_id, display_name=self.service_display_name
+            display_name=self.service_display_name
         )
 
         service = self.deploy_service(
@@ -291,7 +397,7 @@ class DeploymentOperationsTests(ABC):
 
     def test_get_service_metadata(self) -> None:
         test_service_input = create_test_service_input(
-            service_id=self.service_id, display_name=self.service_display_name
+            display_name=self.service_display_name
         )
         service = self.deploy_service(
             project_id=self.project_id,
@@ -316,9 +422,7 @@ class DeploymentOperationsTests(ABC):
             )
 
     def test_get_job_metadata(self) -> None:
-        job_input = create_test_echo_job_input(
-            job_id=self.service_id, display_name=self.service_display_name
-        )
+        job_input = create_test_echo_job_input(display_name=self.service_display_name)
         job = self.deploy_job(project_id=self.project_id, job=job_input)
 
         queried_job = self.deployment_manager.get_job_metadata(
@@ -338,7 +442,7 @@ class DeploymentOperationsTests(ABC):
 
     def test_list_services(self) -> None:
         test_service_input = create_test_service_input(
-            service_id=self.service_id, display_name=self.service_display_name
+            display_name=self.service_display_name
         )
         service = self.deploy_service(
             project_id=self.project_id,
@@ -355,7 +459,7 @@ class DeploymentOperationsTests(ABC):
 
     def test_list_jobs(self) -> None:
         test_job_input = create_test_echo_job_input(
-            job_id=self.service_id, display_name=self.service_display_name
+            display_name=self.service_display_name
         )
         job = self.deploy_job(project_id=self.project_id, job=test_job_input)
         jobs = self.deployment_manager.list_jobs(project_id=self.project_id)
@@ -367,7 +471,6 @@ class DeploymentOperationsTests(ABC):
     def test_get_logs(self) -> None:
         log_input = "foobar"
         job_input = create_test_echo_job_input(
-            job_id=self.service_id,
             display_name=self.service_display_name,
             log_input=log_input,
         )
@@ -381,9 +484,9 @@ class DeploymentOperationsTests(ABC):
         assert logs
         assert logs.startswith(log_input)
 
-    def test_list_service_actions(self) -> None:
+    def test_list_service_access_actions(self) -> None:
         test_service_input = create_test_service_input(
-            service_id=self.service_id, display_name=self.service_display_name
+            display_name=self.service_display_name
         )
         service = self.deploy_service(
             project_id=self.project_id,
@@ -393,12 +496,17 @@ class DeploymentOperationsTests(ABC):
             project_id=self.project_id, service_id=service.id
         )
 
-        assert len(resource_actions) == 2
-        assert resource_actions[0].action_id == f"access-{service.endpoints[0]}"
+        assert len(resource_actions) >= 2
+        assert f"access-{service.endpoints[0]}" in [
+            ra.action_id for ra in resource_actions
+        ]
+        assert f"access-{service.endpoints[1].replace('/', '')}" in [
+            ra.action_id for ra in resource_actions
+        ]
 
     def test_list_deploy_service_actions(self) -> None:
         test_service_input = create_test_service_input(
-            service_id=self.service_id, display_name=self.service_display_name
+            display_name=self.service_display_name
         )
         resource_actions = self.deployment_manager.list_deploy_service_actions(
             project_id=self.project_id, service=test_service_input
@@ -408,7 +516,7 @@ class DeploymentOperationsTests(ABC):
 
     def test_list_deploy_job_actions(self) -> None:
         test_job_input = create_test_echo_job_input(
-            job_id=self.service_id, display_name=self.service_display_name
+            display_name=self.service_display_name
         )
         resource_actions = self.deployment_manager.list_deploy_job_actions(
             project_id=self.project_id, job=test_job_input
@@ -428,9 +536,6 @@ class TestDockerDeploymentManager(DeploymentOperationsTests):
         self, global_state: GlobalState, request_state: RequestState
     ) -> Generator:
         # Only use in memory database as the DB is not main the focus of this test
-        request_state.authorized_access = AuthorizedAccess(
-            authorized_subject="user/test-user"
-        )
         json_db = InMemoryDictJsonDocumentManager(global_state, request_state)
         self._auth_manager = AuthManager(global_state, request_state, json_db)
         self._system_manager = SystemManager(
@@ -506,27 +611,22 @@ class TestDockerDeploymentManager(DeploymentOperationsTests):
     def service_display_name(self) -> str:
         return self._service_display_name
 
-    @property
-    def service_id(self) -> str:
-        return self._service_id
-
     def deploy_service(self, project_id: str, service: ServiceInput) -> Service:
         deployed_service = self._deployment_manager.deploy_service(
-            project_id=project_id, service=service
+            project_id=project_id, service=service, wait=True
         )
-        time.sleep(2)
         return deployed_service
 
     def deploy_job(self, project_id: str, job: JobInput) -> Job:
         deployed_job = self._deployment_manager.deploy_job(
-            project_id=project_id, job=job
+            project_id=project_id, job=job, wait=True
         )
         time.sleep(3)
         return deployed_job
 
     def test_missing_docker_container(self):
         test_service_input = create_test_service_input(
-            service_id=self.service_id, display_name=self.service_display_name
+            display_name=self.service_display_name
         )
         service = self.deploy_service(
             project_id=self.project_id,
@@ -550,15 +650,12 @@ class TestDockerDeploymentManager(DeploymentOperationsTests):
         project_1 = f"{self.project_id}-1"
         project_2 = f"{self.project_id}-2"
         test_service_input_1 = create_test_service_input(
-            service_id=f"{self.service_id}-1",
             display_name=f"{self.service_display_name}-1",
         )
         test_service_input_2 = create_test_service_input(
-            service_id=f"{self.service_id}-2",
             display_name=f"{self.service_display_name}-2",
         )
         test_service_input_3 = create_test_service_input(
-            service_id=f"{self.service_id}-3",
             display_name=f"{self.service_display_name}-3",
         )
 
@@ -642,7 +739,7 @@ class TestKubernetesDeploymentManager(DeploymentOperationsTests):
         ) = get_random_resources()
         _kube_namespace = f"{uid}-deployment-manager-test-namespace"
 
-        kubernetes_deployment_manager = KubernetesDeploymentManager(
+        self._kubernetes_deployment_manager = KubernetesDeploymentManager(
             global_state=global_state,
             request_state=request_state,
             kube_namespace=_kube_namespace,
@@ -650,16 +747,16 @@ class TestKubernetesDeploymentManager(DeploymentOperationsTests):
             auth_manager=self._auth_manager,
         )
         self._deployment_manager = DeploymentManagerWithDB(
-            kubernetes_deployment_manager, json_db
+            self._kubernetes_deployment_manager, json_db
         )
 
-        kubernetes_deployment_manager.core_api.create_namespace(
+        self._kubernetes_deployment_manager.core_api.create_namespace(
             V1Namespace(metadata={"name": _kube_namespace})
         )
 
         yield
 
-        kubernetes_deployment_manager.core_api.delete_namespace(
+        self._kubernetes_deployment_manager.core_api.delete_namespace(
             _kube_namespace, propagation_policy="Foreground"
         )
 
@@ -667,7 +764,7 @@ class TestKubernetesDeploymentManager(DeploymentOperationsTests):
         timeout = 60
         while time.time() - start < timeout:
             try:
-                kubernetes_deployment_manager.core_api.read_namespace(
+                self._kubernetes_deployment_manager.core_api.read_namespace(
                     name=_kube_namespace
                 )
                 time.sleep(2)
@@ -690,10 +787,6 @@ class TestKubernetesDeploymentManager(DeploymentOperationsTests):
     def service_display_name(self) -> str:
         return self._service_display_name
 
-    @property
-    def service_id(self) -> str:
-        return self._service_id
-
     def deploy_service(self, project_id: str, service: ServiceInput) -> Service:
         return self._deployment_manager.deploy_service(
             project_id=project_id, service=service, wait=True
@@ -714,19 +807,15 @@ class TestKubernetesDeploymentManager(DeploymentOperationsTests):
         project_2 = f"{self.project_id}-2"
         project_core = f"{self.project_id}-core"
         test_service_input_1 = create_test_service_input(
-            service_id=f"{self.service_id}-1",
             display_name=f"{self.service_display_name}-1",
         )
         test_service_input_2 = create_test_service_input(
-            service_id=f"{self.service_id}-2",
             display_name=f"{self.service_display_name}-2",
         )
         test_service_input_3 = create_test_service_input(
-            service_id=f"{self.service_id}-3",
             display_name=f"{self.service_display_name}-3",
         )
         test_service_input_core = create_test_service_input(
-            service_id=f"{self.service_id}-core",
             display_name=f"{self.service_display_name}-core",
         )
 
@@ -746,23 +835,23 @@ class TestKubernetesDeploymentManager(DeploymentOperationsTests):
             project_id=project_core, service=test_service_input_core
         )
 
-        namespace = self.deployment_manager.kube_namespace
-        pod_1 = self.deployment_manager.core_api.list_namespaced_pod(
+        namespace = self._kubernetes_deployment_manager.kube_namespace
+        pod_1 = self._kubernetes_deployment_manager.core_api.list_namespaced_pod(
             namespace=namespace,
             label_selector=f"ctxy.deploymentName={service_1.id},ctxy.projectName={project_1}",
         ).items[0]
 
-        pod_2 = self.deployment_manager.core_api.list_namespaced_pod(
+        pod_2 = self._kubernetes_deployment_manager.core_api.list_namespaced_pod(
             namespace=namespace,
             label_selector=f"ctxy.deploymentName={service_2.id},ctxy.projectName={project_1}",
         ).items[0]
 
-        pod_3 = self.deployment_manager.core_api.list_namespaced_pod(
+        pod_3 = self._kubernetes_deployment_manager.core_api.list_namespaced_pod(
             namespace=namespace,
             label_selector=f"ctxy.deploymentName={service_3.id},ctxy.projectName={project_2}",
         ).items[0]
 
-        pod_core = self.deployment_manager.core_api.list_namespaced_pod(
+        pod_core = self._kubernetes_deployment_manager.core_api.list_namespaced_pod(
             namespace=namespace,
             label_selector=f"ctxy.deploymentName={service_core.id},ctxy.projectName={project_core}",
         ).items[0]
@@ -770,13 +859,13 @@ class TestKubernetesDeploymentManager(DeploymentOperationsTests):
         pod_core.metadata.labels[
             "ctxy.deploymentType"
         ] = DeploymentType.CORE_BACKEND.value
-        self.deployment_manager.core_api.patch_namespaced_pod(
+        self._kubernetes_deployment_manager.core_api.patch_namespaced_pod(
             name=pod_core.metadata.name, namespace=namespace, body=pod_core
         )
 
         _command_prefix = ["/bin/sh", "-c"]
         output = stream.stream(
-            self.deployment_manager.core_api.connect_get_namespaced_pod_exec,
+            self._kubernetes_deployment_manager.core_api.connect_get_namespaced_pod_exec,
             pod_1.metadata.name,
             namespace,
             command=[
@@ -792,7 +881,7 @@ class TestKubernetesDeploymentManager(DeploymentOperationsTests):
         assert "Hello world!" in output
 
         output = stream.stream(
-            self.deployment_manager.core_api.connect_get_namespaced_pod_exec,
+            self._kubernetes_deployment_manager.core_api.connect_get_namespaced_pod_exec,
             pod_1.metadata.name,
             namespace,
             command=[
@@ -808,7 +897,7 @@ class TestKubernetesDeploymentManager(DeploymentOperationsTests):
         assert "wget: download timed out" in output
 
         output = stream.stream(
-            self.deployment_manager.core_api.connect_get_namespaced_pod_exec,
+            self._kubernetes_deployment_manager.core_api.connect_get_namespaced_pod_exec,
             pod_3.metadata.name,
             namespace,
             command=[
@@ -825,7 +914,7 @@ class TestKubernetesDeploymentManager(DeploymentOperationsTests):
 
         # The core service can reach all services, no matter the project
         output = stream.stream(
-            self.deployment_manager.core_api.connect_get_namespaced_pod_exec,
+            self._kubernetes_deployment_manager.core_api.connect_get_namespaced_pod_exec,
             pod_core.metadata.name,
             namespace,
             command=[
@@ -937,16 +1026,14 @@ class DeploymentOperationsEndpointTests(DeploymentOperationsTests):
 
     def deploy_service(self, project_id: str, service: ServiceInput) -> Service:
         deployed_service = self._deployment_manager.deploy_service(
-            project_id=project_id, service=service
+            project_id=project_id, service=service, wait=True
         )
-        time.sleep(2)
         return deployed_service
 
     def deploy_job(self, project_id: str, job: JobInput) -> Job:
         deployed_job = self._deployment_manager.deploy_job(
-            project_id=project_id, job=job
+            project_id=project_id, job=job, wait=True
         )
-        time.sleep(3)
         return deployed_job
 
 

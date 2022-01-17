@@ -1,3 +1,4 @@
+import os
 import time
 from datetime import datetime, timezone
 from typing import Any, List, Literal, Optional
@@ -46,7 +47,7 @@ from contaxy.managers.deployment.utils import (
 from contaxy.managers.system import SystemManager
 from contaxy.operations import DeploymentOperations
 from contaxy.schema import Job, JobInput, ResourceAction, Service, ServiceInput
-from contaxy.schema.deployment import DeploymentType
+from contaxy.schema.deployment import DeploymentType, ServiceUpdate
 from contaxy.schema.exceptions import (
     ClientBaseError,
     ClientValueError,
@@ -84,7 +85,7 @@ class KubernetesDeploymentManager(DeploymentOperations):
             # incluster config is the config given by a service account and it's role permissions
             kube_config.load_incluster_config()
         except kube_config.ConfigException:
-            kube_config.load_kube_config()
+            kube_config.load_kube_config(context=os.getenv("CTXY_K8S_CONTEXT", None))
 
         self.core_api = kube_client.CoreV1Api()
         self.apps_api = kube_client.AppsV1Api()
@@ -237,6 +238,12 @@ class KubernetesDeploymentManager(DeploymentOperations):
             )
 
         return transformed_service
+
+    def update_service(
+        self, project_id: str, service_id: str, service: ServiceUpdate
+    ) -> Service:
+        # Service update is only implemented on DeploymentManagerWithDB wrapper
+        raise NotImplementedError()
 
     def list_deploy_service_actions(
         self, project_id: str, service: ServiceInput

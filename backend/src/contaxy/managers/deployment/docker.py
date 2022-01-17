@@ -16,12 +16,13 @@ from contaxy.managers.deployment.docker_utils import (
     map_service,
     read_container_logs,
     reconnect_to_all_networks,
+    wait_for_container,
 )
 from contaxy.managers.deployment.utils import Labels, split_image_name_and_tag
 from contaxy.managers.system import SystemManager
 from contaxy.operations import DeploymentOperations
 from contaxy.schema import Job, JobInput, ResourceAction, Service, ServiceInput
-from contaxy.schema.deployment import DeploymentType
+from contaxy.schema.deployment import DeploymentType, ServiceUpdate
 from contaxy.schema.exceptions import ClientBaseError, ClientValueError
 from contaxy.utils.auth_utils import parse_userid_from_resource_name
 from contaxy.utils.state_utils import GlobalState, RequestState
@@ -82,6 +83,7 @@ class DockerDeploymentManager(DeploymentOperations):
         deployment_type: Literal[
             DeploymentType.SERVICE, DeploymentType.EXTENSION
         ] = DeploymentType.SERVICE,
+        wait: bool = False,
     ) -> Service:
         image_name, image_tag = split_image_name_and_tag(service.container_image)
         self._system_manager.check_image(image_name, image_tag)
@@ -98,6 +100,8 @@ class DockerDeploymentManager(DeploymentOperations):
 
         try:
             container = self.client.containers.run(**container_config)
+            if wait:
+                container = wait_for_container(container, self.client)
         except docker.errors.APIError as e:
             logger.error(f"Error in deploy service '{service.display_name}': {e}")
             raise ClientValueError(
@@ -116,6 +120,12 @@ class DockerDeploymentManager(DeploymentOperations):
             client=self.client, project_id=project_id, deployment_id=service_id
         )
         return map_service(container)
+
+    def update_service(
+        self, project_id: str, service_id: str, service: ServiceUpdate
+    ) -> Service:
+        # Service update is only implemented on DeploymentManagerWithDB wrapper
+        raise NotImplementedError()
 
     def delete_service(
         self, project_id: str, service_id: str, delete_volumes: bool = False
@@ -157,6 +167,7 @@ class DockerDeploymentManager(DeploymentOperations):
         project_id: str,
         job: JobInput,
         action_id: Optional[str] = None,
+        wait: bool = False,
     ) -> Job:
         image_name, image_tag = split_image_name_and_tag(job.container_image)
         self._system_manager.check_image(image_name, image_tag)
@@ -175,6 +186,8 @@ class DockerDeploymentManager(DeploymentOperations):
 
         try:
             container = self.client.containers.run(**container_config)
+            if wait:
+                container = wait_for_container(container, self.client)
         except docker.errors.APIError:
             raise ClientBaseError(
                 status_code=500, message=f"Could not deploy job '{job.display_name}'."

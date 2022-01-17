@@ -45,7 +45,8 @@ def global_state() -> GlobalState:
 @pytest.fixture()
 def request_state() -> RequestState:
     """Initializes request state."""
-    return RequestState(State())
+    request_state = RequestState(State())
+    return request_state
 
 
 @pytest.fixture(autouse=True)

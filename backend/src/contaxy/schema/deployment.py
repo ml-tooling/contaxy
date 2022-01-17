@@ -145,9 +145,13 @@ class DeploymentBase(BaseModel):
         None,
         description="Compute instructions and limitations for this deployment.",
     )
-    command: Optional[str] = Field(
+    command: Optional[List[str]] = Field(
         None,
-        description="Command to run within the deployment. This overwrites the existing entrypoint.",
+        description="Command to run within the deployment. This overwrites the existing docker ENTRYPOINT.",
+    )
+    args: Optional[List[str]] = Field(
+        None,
+        description="Arguments to the command/entrypoint. This overwrites the existing docker CMD.",
     )
     requirements: Optional[List[str]] = Field(
         None,
@@ -235,6 +239,27 @@ class ServiceBase(BaseModel):
 
 class ServiceInput(ServiceBase, DeploymentInput):
     pass
+
+
+class ServiceUpdate(ServiceInput):
+    # Add default value for container_image so it is not required to be set in an update request
+    container_image: str = Field(
+        "",
+        example="hello-world:latest",
+        max_length=2000,
+        description="The container image used for this deployment.",
+    )
+    # Allow None for parameters and metadata values so they can be completely removed in an update request
+    parameters: Optional[Dict[str, Optional[str]]] = Field(  # type: ignore[assignment]
+        None,
+        example={"TEST_PARAM": "param-value"},
+        description="Parmeters (enviornment variables) for this deployment.",
+    )
+    metadata: Optional[Dict[str, Optional[str]]] = Field(  # type: ignore[assignment]
+        None,
+        example={"additional-metadata": "value"},
+        description="A collection of arbitrary key-value pairs associated with this resource that does not need predefined structure. Enable third-party integrations to decorate objects with additional metadata for their own use.",
+    )
 
 
 class Service(ServiceBase, Deployment):

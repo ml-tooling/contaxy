@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Any, List, Literal, Optional
 
 from contaxy.schema import Job, JobInput, ResourceAction, Service, ServiceInput
-from contaxy.schema.deployment import DeploymentType
+from contaxy.schema.deployment import DeploymentType, ServiceUpdate
 
 # TODO: update_service functionality
 
@@ -37,6 +37,7 @@ class ServiceOperations(ABC):
         deployment_type: Literal[
             DeploymentType.SERVICE, DeploymentType.EXTENSION
         ] = DeploymentType.SERVICE,
+        wait: bool = False,
     ) -> Service:
         """Deploys a service for the specified project.
 
@@ -48,10 +49,11 @@ class ServiceOperations(ABC):
         The action mechanism is further explained in the description of the [list_deploy_service_actions](#services/list_deploy_service_actions).
 
         Args:
-            project_id (str): [description]
-            service (ServiceInput): [description]
+            project_id (str): The id of the project that the service should be assigned to.
+            service (ServiceInput): The service input which can be used to configure the deployed service.
             action_id (Optional[str], optional): The ID of the selected action. Defaults to `None`.
             deployment_type (One of [DeploymentType.SERVICE, DeploymentType.JOB]): The deployment type of either Service or Extension (which is a subtype of Service).
+            wait (bool, optional): If set to True, the function will wait until the service was successfully created.
 
         Returns:
             Service: The metadata of the deployed service.
@@ -89,6 +91,21 @@ class ServiceOperations(ABC):
 
         Returns:
             Service: The service metadata.
+        """
+        pass
+
+    @abstractmethod
+    def update_service(
+        self, project_id: str, service_id: str, service: ServiceUpdate
+    ) -> Service:
+        """Updates the service.
+
+        Args:
+            project_id (str): The project ID associated with the service.
+            service_id (str): The ID of the service.
+            service (ServiceUpdate): Updates that should be applied to the service
+        Returns:
+            Service: The updated service metadata
         """
         pass
 
@@ -221,6 +238,7 @@ class JobOperations(ABC):
         project_id: str,
         job: JobInput,
         action_id: Optional[str] = None,
+        wait: bool = False,
     ) -> Job:
         pass
 

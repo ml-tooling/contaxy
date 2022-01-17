@@ -1,5 +1,6 @@
 import ipaddress
 import os
+import time
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple, Union
 
@@ -39,6 +40,7 @@ from contaxy.schema.deployment import (
 )
 from contaxy.schema.exceptions import (
     ClientBaseError,
+    ClientValueError,
     ResourceNotFoundError,
     ServerBaseError,
 )
@@ -105,7 +107,8 @@ def map_container(
 
     return {
         "container_image": container_image,
-        "command": " ".join(container.attrs.get("Args", [])),
+        "command": container.attrs["Config"].get("Entrypoint", []),
+        "args": container.attrs["Config"].get("Cmd", []),
         "compute": compute_resources,
         "metadata": mapped_labels.metadata,
         "deployment_type": mapped_labels.deployment_type,
@@ -318,7 +321,6 @@ def get_project_container(
     labels.append(
         get_label_string(Labels.DEPLOYMENT_NAME.value, deployment_id),
     )
-
     try:
         containers = client.containers.list(all=True, filters={"label": labels})
     except docker.errors.NotFound:
@@ -459,7 +461,7 @@ def create_container_config(
     user_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     if service.display_name is None:
-        raise RuntimeError("Service name not defined")
+        raise ClientValueError("Service display_name not defined")
 
     compute_resources = service.compute or DeploymentCompute()
     (
@@ -534,7 +536,8 @@ def create_container_config(
     metadata = clean_labels(service.metadata)
     return {
         "image": service.container_image,
-        "command": service.command or None,
+        "entrypoint": service.command,
+        "command": service.args,
         "detach": True,
         "environment": environment,
         "labels": {
@@ -573,6 +576,22 @@ def read_container_logs(
         logs = NO_LOGS_MESSAGE
 
     return logs
+
+
+def wait_for_container(
+    container: docker.models.containers.Container,
+    client: docker.client,
+    timeout: int = 60,
+) -> docker.models.containers.Container:
+    start = time.time()
+    while time.time() - start < timeout:
+        container_info = client.containers.get(container.id)
+        if container_info.status.lower() != "created":
+            return container_info
+        else:
+            time.sleep(2)
+
+    raise RuntimeError(f"Timeout while waiting for container {container.id}.")
 
 
 def list_deploy_service_actions(
