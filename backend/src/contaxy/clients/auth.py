@@ -69,6 +69,10 @@ class AuthClient(AuthOperations):
         )
         handle_errors(response)
 
+    def add_permission(self, resource_name: str, permission: str) -> None:
+        # TODO: Implement
+        pass
+
     # OAuth Operations
 
     def request_token(

@@ -1,5 +1,7 @@
 from typing import List, Optional
 
+from loguru import logger
+
 from contaxy import __version__, config
 from contaxy.config import settings
 from contaxy.managers.auth import AuthManager
@@ -11,8 +13,15 @@ from contaxy.schema import (
     ResourceAlreadyExistsError,
     ResourceNotFoundError,
 )
-from contaxy.schema.auth import ADMIN_ROLE, USERS_KIND, AccessLevel, UserRegistration
-from contaxy.schema.project import ProjectCreation
+from contaxy.schema.auth import (
+    ADMIN_ROLE,
+    USER_ROLE,
+    USERS_KIND,
+    AccessLevel,
+    UserRegistration,
+)
+from contaxy.schema.extension import GLOBAL_EXTENSION_PROJECT
+from contaxy.schema.project import PROJECTS_KIND, ProjectCreation
 from contaxy.schema.system import AllowedImageInfo, SystemInfo, SystemStatistics
 from contaxy.utils import auth_utils
 from contaxy.utils.state_utils import GlobalState, RequestState
@@ -69,41 +78,13 @@ class SystemManager(SystemOperations):
         # TODO: This does not prevent the usage of the contaxy API before the system is initialized
         if len(self._auth_manager.list_users()) > 0:
             raise ResourceAlreadyExistsError("The system has already been initialized")
+        logger.debug("Started system initialization.")
 
         # Remove authorized access info
         self._request_state.authorized_access = None
 
-        # TODO: do not clean up?
-        # Clean up all documents
-        for project in self._project_manager.list_projects():
-            assert project.id is not None
-            self._json_db_manager.delete_json_collections(project.id)
-
-        # Create Admin Role
-        self._auth_manager.add_permission(
-            ADMIN_ROLE,
-            auth_utils.construct_permission("*", AccessLevel.ADMIN),
-        )
-
-        # Create Admin User
-        # Set initial user password -> SHOULD be changed after the first login
-        admin_user = self._auth_manager.create_user(
-            UserRegistration(
-                username=config.SYSTEM_ADMIN_USERNAME,
-                password=password or config.SYSTEM_ADMIN_INITIAL_PASSWORD,  # type: ignore
-            ),
-            technical_user=True,
-        )
-
-        # Add admin role to admin user
-        # TODO: use resource name
-        admin_user_resource_name = USERS_KIND + "/" + admin_user.id
-        self._auth_manager.add_permission(
-            admin_user_resource_name,
-            ADMIN_ROLE,
-        )
-
         # Create System Internal Project
+        logger.debug("System initialization: Create system project.")
         self._project_manager.create_project(
             ProjectCreation(
                 id=config.SYSTEM_INTERNAL_PROJECT,
@@ -113,7 +94,47 @@ class SystemManager(SystemOperations):
             technical_project=True,
         )
 
-        auth_utils.setup_user(admin_user, self._project_manager)
+        # Create admin role
+        logger.debug("System initialization: Creating admin role.")
+        self._auth_manager.add_permission(
+            ADMIN_ROLE,
+            auth_utils.construct_permission("*", AccessLevel.ADMIN),
+        )
+
+        # Create user role
+        logger.debug("System initialization: Creating user role.")
+        # Users needs to know which images are allowed for deployments
+        self._auth_manager.add_permission(
+            USER_ROLE,
+            auth_utils.construct_permission("system/allowed-images", AccessLevel.READ),
+        )
+        # Users requires read access to the global extension project to access the extension endpoints
+        self._auth_manager.add_permission(
+            USER_ROLE,
+            auth_utils.construct_permission(
+                f"{PROJECTS_KIND}/{GLOBAL_EXTENSION_PROJECT}", AccessLevel.READ
+            ),
+        )
+
+        # Create Admin User
+        logger.debug("System initialization: Creating default admin user.")
+        # Set initial user password -> SHOULD be changed after the first login
+        admin_user = auth_utils.create_and_setup_user(
+            user_input=UserRegistration(
+                username=config.SYSTEM_ADMIN_USERNAME,
+                password=password or config.SYSTEM_ADMIN_INITIAL_PASSWORD,  # type: ignore
+            ),
+            technical_user=True,
+            auth_manager=self._auth_manager,
+            project_manager=self._project_manager,
+        )
+        # Add admin role to admin user
+        # TODO: use resource name
+        admin_user_resource_name = USERS_KIND + "/" + admin_user.id
+        self._auth_manager.add_permission(
+            admin_user_resource_name,
+            ADMIN_ROLE,
+        )
 
     def check_image(self, image_name: str, image_tag: str) -> None:
         # If allowed image list is empty (default), then allow all images

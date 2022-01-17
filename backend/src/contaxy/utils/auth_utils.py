@@ -1,11 +1,11 @@
 from typing import Dict, List, Tuple
 
 from contaxy import config
+from contaxy.operations import AuthOperations
 from contaxy.operations.project import ProjectOperations
 from contaxy.schema import Project, User
-from contaxy.schema.auth import AccessLevel
+from contaxy.schema.auth import USER_ROLE, USERS_KIND, AccessLevel, UserRegistration
 from contaxy.schema.exceptions import ClientValueError
-from contaxy.schema.extension import GLOBAL_EXTENSION_PROJECT
 from contaxy.schema.project import ProjectCreation
 
 PERMISSION_SEPERATOR = "#"
@@ -117,16 +117,61 @@ def is_permission_granted(granted_permission: str, requested_permission: str) ->
     return True
 
 
-def setup_user(user: User, project_manager: ProjectOperations) -> Project:
-    """Execute initial setup required for each new user.
-
-    This includes:
-    - Creation of a technical project that belongs to the user, with the same id as the user id.
-    - Addition of the new user to the global extension project so the user can access global extensions.
+def create_and_setup_user(
+    user_input: UserRegistration,
+    auth_manager: AuthOperations,
+    project_manager: ProjectOperations,
+    technical_user: bool = False,
+) -> User:
+    """Create a new user and setup default project and permissions.
 
     Args:
-        user (User): The user for whom the project shall be created.
-        project_manager (ProjectOperations): The project manager instance used to create the project.
+        user_input (UserRegistration): Information required for creating a new user.
+        auth_manager (AuthOperations): The auth manager used to setup default permissions.
+        project_manager (ProjectOperations): The project manager used to create the default user project.
+
+    Raises:
+        ResourceAlreadyExistsError: If the user already exists
+
+    Returns:
+        User: The newly created and setup user
+    """
+    user = auth_manager.create_user(user_input, technical_user)
+    _setup_user_default_permissions(user, auth_manager)
+    _setup_user_home_project(user, project_manager)
+    return user
+
+
+def _setup_user_default_permissions(user: User, auth_manager: AuthOperations) -> None:
+    """Assign the permissions/roles that every user should have by default.
+
+    Args:
+        user (User): The user for whom the home project shall be created.
+        auth_manager (AuthOperations): The auth manager used to setup the permissions/roles
+
+    Raises:
+        ResourceAlreadyExistsError: if a project with the id of the user already exists.
+
+    Returns:
+        Project: The created technical project of which the user is a member.
+    """
+    # TODO: get resource name from object
+    user_resource_name = USERS_KIND + "/" + user.id
+    # Give user admin permission to itself
+    auth_manager.add_permission(
+        user_resource_name,
+        construct_permission(user_resource_name, AccessLevel.ADMIN),
+    )
+    # Add user to the default user role
+    auth_manager.add_permission(user_resource_name, USER_ROLE)
+
+
+def _setup_user_home_project(user: User, project_manager: ProjectOperations) -> Project:
+    """Create the user's default home project that he has full access to.
+
+    Args:
+        user (User): The user for whom the home project shall be created.
+        project_manager (ProjectOperations): The project manager used to create the project.
 
     Raises:
         ResourceAlreadyExistsError: if a project with the id of the user already exists.
@@ -152,11 +197,6 @@ def setup_user(user: User, project_manager: ProjectOperations) -> Project:
 
     if user_project.id:
         project_manager.add_project_member(user_project.id, user.id, AccessLevel.ADMIN)
-
-    # User requires read access to the global extension project to access the extension endpoints
-    project_manager.add_project_member(
-        GLOBAL_EXTENSION_PROJECT, user.id, AccessLevel.READ
-    )
 
     return user_project
 

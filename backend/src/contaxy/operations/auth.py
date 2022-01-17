@@ -83,6 +83,23 @@ class AuthOperations(ABC):
         """
         pass
 
+    @abstractmethod
+    def add_permission(
+        self,
+        resource_name: str,
+        permission: str,
+    ) -> None:
+        """Grants a permission to the specified resource.
+
+        Args:
+            resource_name: The resource name that the permission is granted to.
+            permission: The permission to grant to the specified resource.
+
+        Raises:
+            ResourceUpdateFailedError: If the resource update could not be applied successfully.
+        """
+        pass
+
     # TODO: v2
     # @abstractmethod
     # def authorize_client(form_data: OAuth2AuthorizeRequestForm) -> Any:

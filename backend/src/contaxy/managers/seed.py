@@ -9,7 +9,7 @@ from contaxy.operations import AuthOperations, FileOperations, ProjectOperations
 from contaxy.operations.seed import SeedOperations
 from contaxy.schema import File, Project, User, UserRegistration
 from contaxy.schema.project import ProjectCreation
-from contaxy.utils.auth_utils import setup_user
+from contaxy.utils import auth_utils
 from contaxy.utils.file_utils import FileStreamWrapper
 from contaxy.utils.state_utils import GlobalState, RequestState
 
@@ -42,8 +42,14 @@ class SeedManager(SeedOperations):
     ) -> User:
         if not self.auth_manager:
             raise RuntimeError("Seeder needs to be initialized with an auth manager")
-        user = self.auth_manager.create_user(user_input=user_input)
-        self.setup_user(user)
+        if not self.project_manager:
+            raise RuntimeError(ERROR_NO_PROJECT_MANAGER)
+
+        user = auth_utils.create_and_setup_user(
+            user_input=user_input,
+            auth_manager=self.auth_manager,
+            project_manager=self.project_manager,
+        )
         return user
 
     def create_users(self, amount: int) -> List[User]:
@@ -59,13 +65,6 @@ class SeedManager(SeedOperations):
             users.append(user)
 
         return users
-
-    def setup_user(self, user: User) -> Project:
-        if not self.project_manager:
-            raise RuntimeError(ERROR_NO_PROJECT_MANAGER)
-        if not self.auth_manager:
-            raise RuntimeError("Seeder needs to be initialized with an auth manager")
-        return setup_user(user, self.project_manager)
 
     def create_project(
         self,
@@ -114,7 +113,7 @@ class SeedManager(SeedOperations):
         return [
             self.create_file(
                 project_id,
-                f"{prefix}-{randint(1,10000)}",
+                f"{prefix}-{randint(1, 10000)}",
                 max_number_chars,
             )
             for index in range(number_of_files)
