@@ -78,7 +78,7 @@
 - [`components.ComponentManager`](./contaxy.managers.components.md#class-componentmanager): Initializes and manages all platform components.
 - [`docker.DockerDeploymentManager`](./contaxy.managers.deployment.docker.md#class-dockerdeploymentmanager)
 - [`kubernetes.KubernetesDeploymentManager`](./contaxy.managers.deployment.kubernetes.md#class-kubernetesdeploymentmanager)
-- [`manager.DeploymentManager`](./contaxy.managers.deployment.manager.md#class-deploymentmanager)
+- [`manager.DeploymentManagerWithDB`](./contaxy.managers.deployment.manager.md#class-deploymentmanagerwithdb)
 - [`utils.Labels`](./contaxy.managers.deployment.utils.md#class-labels): An enumeration.
 - [`utils.MappedLabels`](./contaxy.managers.deployment.utils.md#class-mappedlabels)
 - [`extension.ExtensionClient`](./contaxy.managers.extension.md#class-extensionclient): Handels the request forwarding to the installed extensions.
@@ -129,6 +129,7 @@
 - [`deployment.Service`](./contaxy.schema.deployment.md#class-service)
 - [`deployment.ServiceBase`](./contaxy.schema.deployment.md#class-servicebase)
 - [`deployment.ServiceInput`](./contaxy.schema.deployment.md#class-serviceinput)
+- [`deployment.ServiceUpdate`](./contaxy.schema.deployment.md#class-serviceupdate)
 - [`exceptions.ClientBaseError`](./contaxy.schema.exceptions.md#class-clientbaseerror): Basic exception class for all errors that should be shown to the client/user.
 - [`exceptions.ClientValueError`](./contaxy.schema.exceptions.md#class-clientvalueerror): Client error that indicates that the client input is invalid.
 - [`exceptions.PermissionDeniedError`](./contaxy.schema.exceptions.md#class-permissiondeniederror): Client error that indicates that a client does not have sufficient permission for the request.
@@ -192,6 +193,7 @@
 - [`docker_utils.map_service`](./contaxy.managers.deployment.docker_utils.md#function-map_service)
 - [`docker_utils.read_container_logs`](./contaxy.managers.deployment.docker_utils.md#function-read_container_logs)
 - [`docker_utils.reconnect_to_all_networks`](./contaxy.managers.deployment.docker_utils.md#function-reconnect_to_all_networks): Connects the backend container to all networks that belong to the installation.
+- [`docker_utils.wait_for_container`](./contaxy.managers.deployment.docker_utils.md#function-wait_for_container)
 - [`kube_utils.build_deployment_metadata`](./contaxy.managers.deployment.kube_utils.md#function-build_deployment_metadata)
 - [`kube_utils.build_kube_deployment_config`](./contaxy.managers.deployment.kube_utils.md#function-build_kube_deployment_config)
 - [`kube_utils.build_kube_service_config`](./contaxy.managers.deployment.kube_utils.md#function-build_kube_service_config)
@@ -229,13 +231,13 @@
 - [`azure_blob.create_azure_blob_client`](./contaxy.managers.file.azure_blob.md#function-create_azure_blob_client)
 - [`azure_blob.get_container_name`](./contaxy.managers.file.azure_blob.md#function-get_container_name)
 - [`auth_utils.construct_permission`](./contaxy.utils.auth_utils.md#function-construct_permission): Constructs a permission based on the provided `resource_name`  and `access_level`.
+- [`auth_utils.create_and_setup_user`](./contaxy.utils.auth_utils.md#function-create_and_setup_user): Create a new user and setup default project and permissions.
 - [`auth_utils.is_access_level_granted`](./contaxy.utils.auth_utils.md#function-is_access_level_granted): Checks if the requested access level is allowed by the granted access level.
 - [`auth_utils.is_jwt_token`](./contaxy.utils.auth_utils.md#function-is_jwt_token): Returns `True` if the provided token is an JWT token.
 - [`auth_utils.is_permission_granted`](./contaxy.utils.auth_utils.md#function-is_permission_granted): Checks if the requested permission is allowed by the granted permission.
 - [`auth_utils.is_valid_permission`](./contaxy.utils.auth_utils.md#function-is_valid_permission): Returns `True` if the `permission_str` is valid permission.
 - [`auth_utils.parse_permission`](./contaxy.utils.auth_utils.md#function-parse_permission): Extracts the resource name and access level from a permission.
 - [`auth_utils.parse_userid_from_resource_name`](./contaxy.utils.auth_utils.md#function-parse_userid_from_resource_name): Returns the user id from a user-resource name.
-- [`auth_utils.setup_user`](./contaxy.utils.auth_utils.md#function-setup_user): Execute initial setup required for each new user.
 - [`fastapi_utils.add_timing_info`](./contaxy.utils.fastapi_utils.md#function-add_timing_info)
 - [`fastapi_utils.as_form`](./contaxy.utils.fastapi_utils.md#function-as_form): Adds an as_form class method to decorated models.
 - [`fastapi_utils.patch_fastapi`](./contaxy.utils.fastapi_utils.md#function-patch_fastapi): Patch function to allow relative url resolution.
