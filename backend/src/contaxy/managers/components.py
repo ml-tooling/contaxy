@@ -18,6 +18,7 @@ from contaxy.operations import (
     SeedOperations,
     ServiceOperations,
 )
+from contaxy.operations.components import ComponentOperations
 from contaxy.operations.deployment import DeploymentOperations
 from contaxy.schema.auth import AccessLevel, AuthorizedAccess
 from contaxy.schema.deployment import ServiceInput
@@ -26,7 +27,7 @@ from contaxy.utils import auth_utils
 from contaxy.utils.state_utils import GlobalState, RequestState
 
 
-class ComponentManager:
+class ComponentManager(ComponentOperations):
     """Initializes and manages all platform components.
 
     The component manager is created for every request
@@ -137,12 +138,7 @@ class ComponentManager:
     def get_project_manager(self) -> ProjectManager:
         """Returns a Project Manager instance."""
         if not self._project_manager:
-            self._project_manager = ProjectManager(
-                self.global_state,
-                self.request_state,
-                self.get_json_db_manager(),
-                self.get_auth_manager(),
-            )
+            self._project_manager = ProjectManager(self)
 
         assert self._project_manager is not None
         return self._project_manager
@@ -150,9 +146,7 @@ class ComponentManager:
     def get_auth_manager(self) -> AuthManager:
         """Returns an Auth Manager instance."""
         if not self._auth_manager:
-            self._auth_manager = AuthManager(
-                self.global_state, self.request_state, self.get_json_db_manager()
-            )
+            self._auth_manager = AuthManager(self)
 
         assert self._auth_manager is not None
         return self._auth_manager
@@ -160,13 +154,7 @@ class ComponentManager:
     def get_system_manager(self) -> SystemManager:
         """Returns a System Manager instance."""
         if not self._system_manager:
-            self._system_manager = SystemManager(
-                self.global_state,
-                self.request_state,
-                self.get_json_db_manager(),
-                self.get_auth_manager(),
-                self.get_project_manager(),
-            )
+            self._system_manager = SystemManager(self)
 
         assert self._system_manager is not None
         return self._system_manager
@@ -174,7 +162,7 @@ class ComponentManager:
     def get_extension_manager(self) -> ExtensionManager:
         """Returns an Extension Manager instance."""
         if not self._extension_manager:
-            self._extension_manager = ExtensionManager(self.global_state, self.request_state, self._get_deployment_manager())  # type: ignore  # TODO: remove type ignore
+            self._extension_manager = ExtensionManager(self)
         return self._extension_manager
 
     def get_json_db_manager(self) -> JsonDocumentOperations:
@@ -212,18 +200,14 @@ class ComponentManager:
             logger.debug("Configuration S3_ENDPOINT set. Using external S3 storage.")
             from contaxy.managers.file.minio import MinioFileManager
 
-            return MinioFileManager(
-                self.global_state, self.request_state, self.get_json_db_manager()
-            )
+            return MinioFileManager(self)
         elif self.global_state.settings.AZURE_BLOB_CONNECTION_STRING:
             logger.debug(
                 "Configuration AZURE_BLOB_CONNECTION_STRING set. Using external Azure Blob storage."
             )
             from contaxy.managers.file.azure_blob import AzureBlobFileManager
 
-            return AzureBlobFileManager(
-                self.global_state, self.request_state, self.get_json_db_manager()
-            )
+            return AzureBlobFileManager(self)
         else:
             logger.debug(
                 "No external object storage configured. Using internal Minio service."
@@ -241,15 +225,10 @@ class ComponentManager:
             ):
                 from contaxy.managers.deployment.docker import DockerDeploymentManager
 
-                self._deployment_manager = DockerDeploymentManager(
-                    self.global_state,
-                    self.request_state,
-                    self.get_system_manager(),
-                    self.get_auth_manager(),
-                )
+                self._deployment_manager = DockerDeploymentManager(self)
                 # Add DB persistence to docker deployment manager
                 self._deployment_manager = DeploymentManagerWithDB(
-                    self._deployment_manager, self.get_json_db_manager()
+                    self._deployment_manager, self
                 )
             elif (
                 self.global_state.settings.DEPLOYMENT_MANAGER
@@ -260,15 +239,12 @@ class ComponentManager:
                 )
 
                 self._deployment_manager = KubernetesDeploymentManager(
-                    self.global_state,
-                    self.request_state,
-                    self.get_system_manager(),
-                    self.get_auth_manager(),
+                    self,
                     self.global_state.settings.KUBERNETES_NAMESPACE,
                 )
                 # Add DB persistence to kubernetes deployment manager
                 self._deployment_manager = DeploymentManagerWithDB(
-                    self._deployment_manager, self.get_json_db_manager()
+                    self._deployment_manager, self
                 )
 
         assert self._deployment_manager is not None
@@ -310,13 +286,7 @@ class ComponentManager:
 
     def get_seed_manager(self) -> SeedOperations:
         if not self._seed_manager:
-            self._seed_manager = SeedManager(
-                self.global_state,
-                self.request_state,
-                auth_manager=self.get_auth_manager(),
-                file_manager=self.get_file_manager(),
-                project_manager=self.get_project_manager(),
-            )
+            self._seed_manager = SeedManager(self)
         return self._seed_manager
 
 

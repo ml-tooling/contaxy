@@ -18,7 +18,6 @@ from kubernetes.client.rest import ApiException
 from loguru import logger
 
 from contaxy.config import settings
-from contaxy.managers.auth import AuthManager
 from contaxy.managers.deployment.kube_utils import (
     build_deployment_metadata,
     build_kube_deployment_config,
@@ -44,8 +43,8 @@ from contaxy.managers.deployment.utils import (
     get_deployment_id,
     split_image_name_and_tag,
 )
-from contaxy.managers.system import SystemManager
-from contaxy.operations import DeploymentOperations
+from contaxy.operations import AuthOperations, DeploymentOperations, SystemOperations
+from contaxy.operations.components import ComponentOperations
 from contaxy.schema import Job, JobInput, ResourceAction, Service, ServiceInput
 from contaxy.schema.deployment import DeploymentType, ServiceUpdate
 from contaxy.schema.exceptions import (
@@ -55,31 +54,23 @@ from contaxy.schema.exceptions import (
     ServerBaseError,
 )
 from contaxy.utils.auth_utils import parse_userid_from_resource_name
-from contaxy.utils.state_utils import GlobalState, RequestState
 
 
 class KubernetesDeploymentManager(DeploymentOperations):
     def __init__(
         self,
-        global_state: GlobalState,
-        request_state: RequestState,
-        system_manager: SystemManager,
-        auth_manager: AuthManager,
+        component_manager: ComponentOperations,
         kube_namespace: str = None,
     ):
         """Initializes the Kubernetes Deployment Manager.
 
         Args:
-            global_state: The global state of the app instance.
-            request_state: The state for the current request.
-            system_manager: The system manager used for getting the list of allowed images.
-            auth_manager: The auth manager is used to generate api tokens that a passed to services and jobs.
+            component_manager: Instance of the component manager that grants access to the other managers.
             kube_namespace (str): Set the Kubernetes namespace to use. If it is not given, the manager will try to detect the namespace automatically.
         """
-        self.global_state = global_state
-        self.request_state = request_state
-        self._system_manager = system_manager
-        self._auth_manager = auth_manager
+        self._global_state = component_manager.global_state
+        self._request_state = component_manager.request_state
+        self._component_manager = component_manager
 
         try:
             # incluster config is the config given by a service account and it's role permissions
@@ -105,6 +96,14 @@ class KubernetesDeploymentManager(DeploymentOperations):
         else:
             self.kube_namespace = kube_namespace
         # TODO: when we have performance problems in the future, replicate the watch logic from JupyterHub KubeSpawner to keep Pod & other resource information in memory? (see https://github.com/jupyterhub/kubespawner/blob/941585f0f7acb0f366c9979b6274b7f47356a630/kubespawner/reflector.py#L238)
+
+    @property
+    def _system_manager(self) -> SystemOperations:
+        return self._component_manager.get_system_manager()
+
+    @property
+    def _auth_manager(self) -> AuthOperations:
+        return self._component_manager.get_auth_manager()
 
     def list_services(
         self,
@@ -136,7 +135,7 @@ class KubernetesDeploymentManager(DeploymentOperations):
         wait: bool = False,
     ) -> Service:
         image_name, image_tag = split_image_name_and_tag(service.container_image)
-        self._system_manager.check_image(image_name, image_tag)
+        self._system_manager.check_allowed_image(image_name, image_tag)
         if service.display_name is None:
             raise ClientValueError(
                 message=f"Could not create a service id for service with display name {service.display_name}",
@@ -162,7 +161,7 @@ class KubernetesDeploymentManager(DeploymentOperations):
             kube_namespace=self.kube_namespace,
             auth_manager=self._auth_manager,
             user_id=parse_userid_from_resource_name(
-                self.request_state.authorized_subject
+                self._request_state.authorized_subject
             ),
         )
 
@@ -479,7 +478,7 @@ class KubernetesDeploymentManager(DeploymentOperations):
         wait: bool = False,
     ) -> Job:
         image_name, image_tag = split_image_name_and_tag(job.container_image)
-        self._system_manager.check_image(image_name, image_tag)
+        self._system_manager.check_allowed_image(image_name, image_tag)
         if job.display_name is None:
             raise ClientValueError(
                 message=f"Could not create service id for job {job.display_name}",
@@ -501,7 +500,7 @@ class KubernetesDeploymentManager(DeploymentOperations):
             endpoints=job.endpoints,
             deployment_type=DeploymentType.JOB,
             user_id=parse_userid_from_resource_name(
-                self.request_state.authorized_subject
+                self._request_state.authorized_subject
             ),
         )
 
@@ -513,7 +512,7 @@ class KubernetesDeploymentManager(DeploymentOperations):
             metadata=metadata,
             auth_manager=self._auth_manager,
             user_id=parse_userid_from_resource_name(
-                self.request_state.authorized_subject
+                self._request_state.authorized_subject
             ),
         )
         pod_spec.spec.restart_policy = "OnFailure"

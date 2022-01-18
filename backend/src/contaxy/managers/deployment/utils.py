@@ -4,7 +4,7 @@ from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
 from contaxy.config import settings
-from contaxy.managers.auth import AuthManager
+from contaxy.operations import AuthOperations
 from contaxy.schema import AccessLevel, TokenType, UnauthenticatedError
 from contaxy.schema.auth import TokenPurpose
 from contaxy.schema.deployment import DeploymentCompute, DeploymentType
@@ -233,7 +233,7 @@ def map_endpoints_label_to_endpoints(
 def get_default_environment_variables(
     project_id: str,
     deployment_id: str,
-    auth_manager: AuthManager,
+    auth_manager: AuthOperations,
     endpoints: Optional[List[str]] = None,
     compute_resources: Optional[DeploymentCompute] = None,
 ) -> Dict[str, str]:
@@ -242,7 +242,7 @@ def get_default_environment_variables(
     Args:
         project_id (str): The project id included in the label list
         deployment_id (str)
-        auth_manager (AuthManager): Auth manager used for creating an access token for the service
+        auth_manager (AuthOperations): Auth manager used for creating an access token for the service
         endpoints (List[str]): List of endpoints
         compute_resources: (Optional[DeploymentCompute]): DeploymentCompute information
 

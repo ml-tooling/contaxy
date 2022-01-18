@@ -5,8 +5,8 @@ from loguru import logger
 
 from contaxy import __version__, config
 from contaxy.config import settings
-from contaxy.managers.auth import AuthManager
-from contaxy.operations import SystemOperations
+from contaxy.operations import AuthOperations, SystemOperations
+from contaxy.operations.components import ComponentOperations
 from contaxy.operations.json_db import JsonDocumentOperations
 from contaxy.operations.project import ProjectOperations
 from contaxy.schema import (
@@ -30,7 +30,6 @@ from contaxy.schema.system import (
     SystemStatistics,
 )
 from contaxy.utils import auth_utils
-from contaxy.utils.state_utils import GlobalState, RequestState
 
 
 class SystemManager(SystemOperations):
@@ -41,26 +40,28 @@ class SystemManager(SystemOperations):
 
     def __init__(
         self,
-        global_state: GlobalState,
-        request_state: RequestState,
-        json_db_manager: JsonDocumentOperations,
-        auth_manager: AuthManager,
-        project_manager: ProjectOperations,
+        component_manager: ComponentOperations,
     ):
         """Initializes the system manager.
 
         Args:
-            global_state: The global state of the app instance.
-            request_state: The state for the current request.
-            json_db_manager: Json document manager instance.
-            auth_manager: Auth manager instance.
-            project_manager: Project manager instance.
+            component_manager: Instance of the component manager that grants access to the other managers.
         """
-        self._global_state = global_state
-        self._request_state = request_state
-        self._auth_manager = auth_manager
-        self._project_manager = project_manager
-        self._json_db_manager = json_db_manager
+        self._global_state = component_manager.global_state
+        self._request_state = component_manager.request_state
+        self._component_manager = component_manager
+
+    @property
+    def _json_db_manager(self) -> JsonDocumentOperations:
+        return self._component_manager.get_json_db_manager()
+
+    @property
+    def _auth_manager(self) -> AuthOperations:
+        return self._component_manager.get_auth_manager()
+
+    @property
+    def _project_manager(self) -> ProjectOperations:
+        return self._component_manager.get_project_manager()
 
     def get_system_info(self) -> SystemInfo:
         if self._is_initialized():
@@ -150,7 +151,7 @@ class SystemManager(SystemOperations):
 
         self._set_system_property(SystemManager._SYSTEM_PROPERTY_IS_INITIALIZED, True)
 
-    def check_image(self, image_name: str, image_tag: str) -> None:
+    def check_allowed_image(self, image_name: str, image_tag: str) -> None:
         # If allowed image list is empty (default), then allow all images
         if len(self.list_allowed_images()) == 0:
             return

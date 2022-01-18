@@ -12,6 +12,7 @@ from contaxy.schema.system import AllowedImageInfo
 from contaxy.utils.state_utils import GlobalState, RequestState
 
 from .conftest import test_settings
+from .utils import ComponentManagerMock
 
 
 class SystemOperationsTests(ABC):
@@ -47,26 +48,26 @@ class SystemOperationsTests(ABC):
 
     def test_all_images_allowed_by_default(self):
         assert len(self.system_manager.list_allowed_images()) == 0
-        self.system_manager.check_image("test-image", "0.1")
+        self.system_manager.check_allowed_image("test-image", "0.1")
 
     def test_only_specific_image_allowed(self):
         assert len(self.system_manager.list_allowed_images()) == 0
         self.system_manager.add_allowed_image(
             AllowedImageInfo(image_name="test-image", image_tags=["0.1", "0.2"])
         )
-        self.system_manager.check_image("test-image", "0.1")
+        self.system_manager.check_allowed_image("test-image", "0.1")
         with pytest.raises(ClientValueError):
-            self.system_manager.check_image("other-image", "0.1")
+            self.system_manager.check_allowed_image("other-image", "0.1")
         with pytest.raises(ClientValueError):
-            self.system_manager.check_image("other-image", "0.3")
+            self.system_manager.check_allowed_image("other-image", "0.3")
 
     def test_wildcard_for_allowed_image_tag(self):
         assert len(self.system_manager.list_allowed_images()) == 0
         self.system_manager.add_allowed_image(
             AllowedImageInfo(image_name="test-image", image_tags=["*"])
         )
-        self.system_manager.check_image("test-image", "0.1")
-        self.system_manager.check_image("test-image", "0.2")
+        self.system_manager.check_allowed_image("test-image", "0.1")
+        self.system_manager.check_allowed_image("test-image", "0.2")
 
 
 @pytest.mark.skipif(
@@ -83,7 +84,7 @@ class TestSystemManagerWithPostgresDB(SystemOperationsTests):
         # Cleanup everything at the startup
         json_db.delete_json_collections(config.SYSTEM_INTERNAL_PROJECT)
         self._system_manager = SystemManager(
-            global_state, request_state, json_db, None, None
+            ComponentManagerMock(global_state, request_state, json_db_manager=json_db)
         )
         yield
         json_db.delete_json_collections(config.SYSTEM_INTERNAL_PROJECT)
@@ -103,7 +104,7 @@ class TestSystemManagerWithInMemoryDB(SystemOperationsTests):
         json_db = InMemoryDictJsonDocumentManager(global_state, request_state)
         json_db.delete_json_collections(config.SYSTEM_INTERNAL_PROJECT)
         self._system_manager = SystemManager(
-            global_state, request_state, json_db, None, None
+            ComponentManagerMock(global_state, request_state, json_db_manager=json_db)
         )
         yield
         json_db.delete_json_collections(config.SYSTEM_INTERNAL_PROJECT)

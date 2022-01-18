@@ -10,6 +10,7 @@ from minio.error import S3Error
 from starlette.responses import Response
 
 from contaxy.operations import FileOperations
+from contaxy.operations.components import ComponentOperations
 from contaxy.operations.json_db import JsonDocumentOperations
 from contaxy.schema import File, FileInput, ResourceAction
 from contaxy.schema.exceptions import (
@@ -26,7 +27,6 @@ from contaxy.utils.minio_utils import (
     delete_bucket,
     get_bucket_name,
 )
-from contaxy.utils.state_utils import GlobalState, RequestState
 
 
 class MinioFileManager(FileOperations):
@@ -47,22 +47,22 @@ class MinioFileManager(FileOperations):
 
     def __init__(
         self,
-        global_state: GlobalState,
-        request_state: RequestState,
-        json_db_manager: JsonDocumentOperations,
+        component_manager: ComponentOperations,
     ):
         """Initializes the Minio File Manager.
 
         Args:
-            global_state: The global state of the app instance.
-            request_state: The state for the current request.
-            json_db_manager: JSON DB Manager instance to store structured data.
+            component_manager: Instance of the component manager that grants access to the other managers.
         """
-        self.global_state = global_state
-        self.request_state = request_state
-        self.json_db_manager = json_db_manager
+        self._global_state = component_manager.global_state
+        self._request_state = component_manager.request_state
+        self._component_manager = component_manager
         self.client = self._create_client()
-        self.sys_namespace = self.global_state.settings.SYSTEM_NAMESPACE
+        self.sys_namespace = self._global_state.settings.SYSTEM_NAMESPACE
+
+    @property
+    def _json_db_manager(self) -> JsonDocumentOperations:
+        return self._component_manager.get_json_db_manager()
 
     def list_files(
         self,
@@ -102,7 +102,7 @@ class MinioFileManager(FileOperations):
         # This might not be the case, if someone manually added a file to S3.
         # TODO: Consider conflict handling
         for key, json_doc in docs_not_in_db:
-            self.json_db_manager.create_json_document(
+            self._json_db_manager.create_json_document(
                 project_id, self.DOC_COLLECTION_NAME, key, json_doc
             )
 
@@ -182,7 +182,7 @@ class MinioFileManager(FileOperations):
         try:
             s3_object = self.client.stat_object(
                 get_bucket_name(
-                    project_id, self.global_state.settings.SYSTEM_NAMESPACE
+                    project_id, self._global_state.settings.SYSTEM_NAMESPACE
                 ),
                 file_key,
                 version_id=version,
@@ -203,7 +203,7 @@ class MinioFileManager(FileOperations):
         doc_key = generate_file_id(file_key, s3_object.version_id)
 
         try:
-            self.json_db_manager.update_json_document(
+            self._json_db_manager.update_json_document(
                 project_id, self.DOC_COLLECTION_NAME, doc_key, json_value
             )
         except ResourceNotFoundError:
@@ -211,7 +211,7 @@ class MinioFileManager(FileOperations):
             self._create_file_metadata_json_document(
                 project_id, file_key, s3_object.version_id
             )
-            self.json_db_manager.update_json_document(
+            self._json_db_manager.update_json_document(
                 project_id, self.DOC_COLLECTION_NAME, doc_key, json_value
             )
 
@@ -367,7 +367,7 @@ class MinioFileManager(FileOperations):
             raise err
 
         try:
-            self.json_db_manager.delete_json_document(
+            self._json_db_manager.delete_json_document(
                 project_id,
                 self.DOC_COLLECTION_NAME,
                 generate_file_id(file_key, version),
@@ -388,10 +388,10 @@ class MinioFileManager(FileOperations):
         """
         delete_bucket(
             self.client,
-            get_bucket_name(project_id, self.global_state.settings.SYSTEM_NAMESPACE),
+            get_bucket_name(project_id, self._global_state.settings.SYSTEM_NAMESPACE),
             force=True,
         )
-        self.json_db_manager.delete_json_collection(
+        self._json_db_manager.delete_json_collection(
             project_id, self.DOC_COLLECTION_NAME
         )
 
@@ -411,10 +411,10 @@ class MinioFileManager(FileOperations):
         pass
 
     def _create_client(self) -> Minio:
-        settings = self.global_state.settings
-        state_namespace = self.request_state[MinioFileManager]
+        settings = self._global_state.settings
+        state_namespace = self._request_state[MinioFileManager]
         if not state_namespace.client:
-            state_namespace.client = create_minio_client(self.global_state.settings)
+            state_namespace.client = create_minio_client(self._global_state.settings)
             logger.info(
                 f"Minio client created (endpoint: {settings.S3_ENDPOINT}, region: {settings.S3_REGION}, secure: {settings.S3_SECURE})"
             )
@@ -428,7 +428,7 @@ class MinioFileManager(FileOperations):
         md5_hash: Optional[str] = None,
     ) -> JsonDocument:
         s3_object = self.client.stat_object(
-            get_bucket_name(project_id, self.global_state.settings.SYSTEM_NAMESPACE),
+            get_bucket_name(project_id, self._global_state.settings.SYSTEM_NAMESPACE),
             file_key,
             version_id=version,
         )
@@ -436,7 +436,7 @@ class MinioFileManager(FileOperations):
         if md5_hash:
             meta_file.md5_hash = md5_hash
         metadata_json = self._map_file_obj_to_json_document(meta_file)
-        return self.json_db_manager.create_json_document(
+        return self._json_db_manager.create_json_document(
             project_id,
             self.DOC_COLLECTION_NAME,
             meta_file.id,  # type: ignore
@@ -522,7 +522,7 @@ class MinioFileManager(FileOperations):
         self, project_id: str, file_data: List[File], document_keys: List[str]
     ) -> Tuple[List[File], List[Tuple[str, str]]]:
 
-        json_docs = self.json_db_manager.list_json_documents(
+        json_docs = self._json_db_manager.list_json_documents(
             project_id, self.DOC_COLLECTION_NAME, keys=document_keys
         )
 
@@ -593,7 +593,7 @@ class MinioFileManager(FileOperations):
         json_path_filter = f'$ ? (@.key == "{file_key}")'
         db_keys = [
             doc.key
-            for doc in self.json_db_manager.list_json_documents(
+            for doc in self._json_db_manager.list_json_documents(
                 project_id, self.DOC_COLLECTION_NAME, json_path_filter
             )
         ]
@@ -601,6 +601,6 @@ class MinioFileManager(FileOperations):
             db_keys.remove(latest_version_db_key)
 
         for db_key in db_keys:
-            self.json_db_manager.delete_json_document(
+            self._json_db_manager.delete_json_document(
                 project_id, self.DOC_COLLECTION_NAME, db_key
             )

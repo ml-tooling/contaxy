@@ -37,6 +37,7 @@ from contaxy.utils import auth_utils
 from contaxy.utils.state_utils import GlobalState, RequestState
 
 from .conftest import test_settings
+from .utils import ComponentManagerMock
 
 DEFAULT_PASSWORD = "pwd"
 
@@ -311,19 +312,21 @@ class TestProjectManagerWithInMemoryDB(ProjectOperationsTests):
     ) -> Generator:
         json_db = InMemoryDictJsonDocumentManager(global_state, request_state)
         json_db.delete_json_collections(config.SYSTEM_INTERNAL_PROJECT)
-        self._auth_manager = AuthManager(global_state, request_state, json_db)
-        self._project_manager = ProjectManager(
-            global_state, request_state, json_db, self._auth_manager
+        component_manager_mock = ComponentManagerMock(
+            global_state, request_state, json_db_manager=json_db
         )
+        self._auth_manager = AuthManager(component_manager_mock)
+        component_manager_mock.auth_manager = self._auth_manager
+        self._project_manager = ProjectManager(component_manager_mock)
         yield
         json_db.delete_json_collections(config.SYSTEM_INTERNAL_PROJECT)
 
     @property
-    def project_manager(self) -> ProjectOperations:
+    def project_manager(self) -> ProjectManager:
         return self._project_manager
 
     @property
-    def auth_manager(self) -> AuthOperations:
+    def auth_manager(self) -> AuthManager:
         return self._auth_manager
 
     def login_user(self, username: str, password: str) -> None:

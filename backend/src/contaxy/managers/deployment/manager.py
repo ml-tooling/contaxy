@@ -7,6 +7,7 @@ from starlette.responses import Response
 from contaxy import config
 from contaxy.config import settings
 from contaxy.operations import DeploymentOperations, JsonDocumentOperations
+from contaxy.operations.components import ComponentOperations
 from contaxy.schema import (
     ClientValueError,
     Job,
@@ -37,11 +38,15 @@ def _get_job_collection_id(project_id: str) -> str:
 class DeploymentManagerWithDB(DeploymentOperations):
     def __init__(
         self,
-        deployment_manager: DeploymentOperations,
-        json_db_manager: JsonDocumentOperations,
+        wrapped_deployment_manager: DeploymentOperations,
+        component_manager: ComponentOperations,
     ):
-        self.deployment_manager = deployment_manager
-        self.json_db = json_db_manager
+        self.deployment_manager = wrapped_deployment_manager
+        self._component_manager = component_manager
+
+    @property
+    def _json_db_manager(self) -> JsonDocumentOperations:
+        return self._component_manager.get_json_db_manager()
 
     def deploy_service(
         self,
@@ -66,7 +71,7 @@ class DeploymentManagerWithDB(DeploymentOperations):
             DeploymentType.SERVICE, DeploymentType.EXTENSION
         ] = DeploymentType.SERVICE,
     ) -> List[Service]:
-        service_docs = self.json_db.list_json_documents(
+        service_docs = self._json_db_manager.list_json_documents(
             project_id=config.SYSTEM_INTERNAL_PROJECT,
             collection_id=_get_service_collection_id(project_id),
         )
@@ -98,7 +103,7 @@ class DeploymentManagerWithDB(DeploymentOperations):
         return services
 
     def _create_service_db_document(self, service: Service, project_id: str) -> None:
-        self.json_db.create_json_document(
+        self._json_db_manager.create_json_document(
             project_id=config.SYSTEM_INTERNAL_PROJECT,
             collection_id=_get_service_collection_id(project_id),
             key=service.id,
@@ -125,7 +130,7 @@ class DeploymentManagerWithDB(DeploymentOperations):
     ) -> Service:
         if "display_name" in service.dict(exclude_unset=True):
             raise ClientValueError("Display name of service cannot be updated!")
-        service_doc = self.json_db.update_json_document(
+        service_doc = self._json_db_manager.update_json_document(
             project_id=config.SYSTEM_INTERNAL_PROJECT,
             collection_id=_get_service_collection_id(project_id),
             key=service_id,
@@ -159,7 +164,7 @@ class DeploymentManagerWithDB(DeploymentOperations):
             # Workspace is already stopped and service does not exist
             pass
 
-        self.json_db.delete_json_document(
+        self._json_db_manager.delete_json_document(
             project_id=config.SYSTEM_INTERNAL_PROJECT,
             collection_id=_get_service_collection_id(project_id),
             key=db_service.id,
@@ -167,13 +172,13 @@ class DeploymentManagerWithDB(DeploymentOperations):
 
     def delete_services(self, project_id: str) -> None:
         self.deployment_manager.delete_services(project_id)
-        self.json_db.delete_json_collection(
+        self._json_db_manager.delete_json_collection(
             config.SYSTEM_INTERNAL_PROJECT, _get_service_collection_id(project_id)
         )
 
     def _get_service_from_db(self, project_id: str, service_id: str) -> Service:
         try:
-            service_doc = self.json_db.get_json_document(
+            service_doc = self._json_db_manager.get_json_document(
                 project_id=config.SYSTEM_INTERNAL_PROJECT,
                 collection_id=_get_service_collection_id(project_id),
                 key=service_id,
@@ -198,7 +203,7 @@ class DeploymentManagerWithDB(DeploymentOperations):
         )
 
     def list_jobs(self, project_id: str) -> List[Job]:
-        job_docs = self.json_db.list_json_documents(
+        job_docs = self._json_db_manager.list_json_documents(
             project_id=config.SYSTEM_INTERNAL_PROJECT,
             collection_id=_get_job_collection_id(project_id),
         )
@@ -229,7 +234,7 @@ class DeploymentManagerWithDB(DeploymentOperations):
         deployed_job = self.deployment_manager.deploy_job(
             project_id, job, action_id, wait
         )
-        self.json_db.create_json_document(
+        self._json_db_manager.create_json_document(
             project_id=config.SYSTEM_INTERNAL_PROJECT,
             collection_id=_get_job_collection_id(project_id),
             key=deployed_job.id,
@@ -263,7 +268,7 @@ class DeploymentManagerWithDB(DeploymentOperations):
         except ResourceNotFoundError:
             pass
 
-        self.json_db.delete_json_document(
+        self._json_db_manager.delete_json_document(
             project_id=config.SYSTEM_INTERNAL_PROJECT,
             collection_id=_get_job_collection_id(project_id),
             key=db_job.id,
@@ -271,13 +276,13 @@ class DeploymentManagerWithDB(DeploymentOperations):
 
     def delete_jobs(self, project_id: str) -> None:
         self.deployment_manager.delete_jobs(project_id)
-        self.json_db.delete_json_collection(
+        self._json_db_manager.delete_json_collection(
             config.SYSTEM_INTERNAL_PROJECT, _get_job_collection_id(project_id)
         )
 
     def _get_job_from_db(self, project_id: str, job_id: str) -> Job:
         try:
-            job_doc = self.json_db.get_json_document(
+            job_doc = self._json_db_manager.get_json_document(
                 project_id=config.SYSTEM_INTERNAL_PROJECT,
                 collection_id=_get_job_collection_id(project_id),
                 key=job_id,

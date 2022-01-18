@@ -4,7 +4,6 @@ from typing import Any, List, Literal, Optional
 import docker
 from loguru import logger
 
-from contaxy.managers.auth import AuthManager
 from contaxy.managers.deployment.docker_utils import (
     create_container_config,
     delete_container,
@@ -19,13 +18,12 @@ from contaxy.managers.deployment.docker_utils import (
     wait_for_container,
 )
 from contaxy.managers.deployment.utils import Labels, split_image_name_and_tag
-from contaxy.managers.system import SystemManager
-from contaxy.operations import DeploymentOperations
+from contaxy.operations import AuthOperations, DeploymentOperations, SystemOperations
+from contaxy.operations.components import ComponentOperations
 from contaxy.schema import Job, JobInput, ResourceAction, Service, ServiceInput
 from contaxy.schema.deployment import DeploymentType, ServiceUpdate
 from contaxy.schema.exceptions import ClientBaseError, ClientValueError
 from contaxy.utils.auth_utils import parse_userid_from_resource_name
-from contaxy.utils.state_utils import GlobalState, RequestState
 
 
 class DockerDeploymentManager(DeploymentOperations):
@@ -33,29 +31,30 @@ class DockerDeploymentManager(DeploymentOperations):
 
     def __init__(
         self,
-        global_state: GlobalState,
-        request_state: RequestState,
-        system_manager: SystemManager,
-        auth_manager: AuthManager,
+        component_manager: ComponentOperations,
     ):
         """Initializes the docker deployment manager.
 
         Args:
-            global_state: The global state of the app instance.
-            request_state: The state for the current request.
-            system_manager: The system manager used for getting the list of allowed images.
-            auth_manager: The auth manager is used to generate api tokens that a passed to services and jobs.
+            component_manager: Instance of the component manager that grants access to the other managers.
         """
-        self.global_state = global_state
-        self.request_state = request_state
-        self._system_manager = system_manager
-        self._auth_manager = auth_manager
+        self._global_state = component_manager.global_state
+        self._request_state = component_manager.request_state
+        self._component_manager = component_manager
 
         self.client = docker.from_env()
         # Reconnect the backend to all existing docker networks on startup
         if not DockerDeploymentManager._is_initialized:
             reconnect_to_all_networks(self.client)
             DockerDeploymentManager._is_initialized = True
+
+    @property
+    def _system_manager(self) -> SystemOperations:
+        return self._component_manager.get_system_manager()
+
+    @property
+    def _auth_manager(self) -> AuthOperations:
+        return self._component_manager.get_auth_manager()
 
     def list_services(
         self,
@@ -86,13 +85,13 @@ class DockerDeploymentManager(DeploymentOperations):
         wait: bool = False,
     ) -> Service:
         image_name, image_tag = split_image_name_and_tag(service.container_image)
-        self._system_manager.check_image(image_name, image_tag)
+        self._system_manager.check_allowed_image(image_name, image_tag)
         container_config = create_container_config(
             service=service,
             project_id=project_id,
             auth_manager=self._auth_manager,
             user_id=parse_userid_from_resource_name(
-                self.request_state.authorized_subject
+                self._request_state.authorized_subject
             ),
         )
         container_config["labels"][Labels.DEPLOYMENT_TYPE.value] = deployment_type.value
@@ -170,13 +169,13 @@ class DockerDeploymentManager(DeploymentOperations):
         wait: bool = False,
     ) -> Job:
         image_name, image_tag = split_image_name_and_tag(job.container_image)
-        self._system_manager.check_image(image_name, image_tag)
+        self._system_manager.check_allowed_image(image_name, image_tag)
         container_config = create_container_config(
             service=job,
             project_id=project_id,
             auth_manager=self._auth_manager,
             user_id=parse_userid_from_resource_name(
-                self.request_state.authorized_subject
+                self._request_state.authorized_subject
             ),
         )
         container_config["labels"][

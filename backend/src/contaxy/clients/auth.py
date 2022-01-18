@@ -16,7 +16,7 @@ from contaxy.schema import (
     UserInput,
     UserRegistration,
 )
-from contaxy.schema.auth import ApiToken, OAuth2Error
+from contaxy.schema.auth import ApiToken, OAuth2Error, TokenPurpose
 
 
 def handle_oauth_error(response: Response) -> None:
@@ -37,8 +37,11 @@ class AuthClient(AuthOperations):
         scopes: List[str],
         token_type: TokenType,
         description: Optional[str] = None,
+        token_purpose: Optional[TokenPurpose] = None,
+        token_subject: Optional[str] = None,
         request_kwargs: Dict = {},
     ) -> str:
+        # TODO: Implement token_purpose and token_subject
         params = {"token_type": token_type.value, "scopes": scopes}
         if description:
             params["description"] = description
@@ -70,6 +73,18 @@ class AuthClient(AuthOperations):
         handle_errors(response)
 
     def add_permission(self, resource_name: str, permission: str) -> None:
+        # TODO: Implement
+        pass
+
+    def remove_permission(
+        self, resource_name: str, permission: str, remove_sub_permissions: bool = False
+    ) -> None:
+        # TODO: Implement
+        pass
+
+    def list_permissions(
+        self, resource_name: str, resolve_roles: bool = True, use_cache: bool = False
+    ) -> List[str]:
         # TODO: Implement
         pass
 
