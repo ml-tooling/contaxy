@@ -184,6 +184,7 @@ def create_token(
     scopes: Optional[List[str]] = Query(
         None,
         title="Scopes",
+        alias="scope",
         description="Scopes requested for this token. If none specified, the token will be generated with same set of scopes as the authorized token.",
     ),
     token_type: TokenType = Query(
@@ -212,11 +213,6 @@ def create_token(
     """
     authorized_access = component_manager.verify_access(token)
 
-    # Check if the caller has admin access on the user resource
-    component_manager.verify_access(
-        token, authorized_access.authorized_subject, AccessLevel.ADMIN
-    )
-
     if not scopes:
         # Get scopes from token
         scopes = []
@@ -225,6 +221,11 @@ def create_token(
         )
         if token_introspection.scope:
             scopes = token_introspection.scope.split()
+
+    # Check that caller has requested scopes/permissions
+    for scope in scopes:
+        resource_name, access_level = auth_utils.parse_permission(scope)
+        component_manager.verify_access(token, resource_name, access_level)
 
     return component_manager.get_auth_manager().create_token(
         token_subject=authorized_access.authorized_subject,

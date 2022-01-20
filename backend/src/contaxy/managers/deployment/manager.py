@@ -1,5 +1,6 @@
+import json
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Literal, Optional
 
 from starlette.responses import Response
@@ -41,6 +42,7 @@ class DeploymentManagerWithDB(DeploymentOperations):
         wrapped_deployment_manager: DeploymentOperations,
         component_manager: ComponentOperations,
     ):
+        self._request_state = component_manager.request_state
         self.deployment_manager = wrapped_deployment_manager
         self._component_manager = component_manager
 
@@ -148,6 +150,20 @@ class DeploymentManagerWithDB(DeploymentOperations):
             db_service.internal_id = None
 
         return db_service
+
+    def update_service_access(self, project_id: str, service_id: str) -> None:
+        user = self._request_state.authorized_subject
+        self._json_db_manager.update_json_document(
+            project_id=config.SYSTEM_INTERNAL_PROJECT,
+            collection_id=_get_service_collection_id(project_id),
+            key=service_id,
+            json_document=json.dumps(
+                {
+                    "last_access_time": str(datetime.now(timezone.utc)),
+                    "last_access_user": user,
+                }
+            ),
+        )
 
     def delete_service(
         self, project_id: str, service_id: str, delete_volumes: bool = False

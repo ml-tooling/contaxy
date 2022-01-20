@@ -263,7 +263,13 @@ class ServiceUpdate(ServiceInput):
 
 
 class Service(ServiceBase, Deployment):
-    pass
+    # Store the last time this service was accessed and by which user
+    last_access_time: Optional[datetime] = Field(
+        None, description="Timestamp of the last time the service was accessed."
+    )
+    last_access_user: Optional[str] = Field(
+        None, description="Id of the user that last accessed the service."
+    )
 
 
 class JobBase(BaseModel):

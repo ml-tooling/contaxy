@@ -126,6 +126,10 @@ class DockerDeploymentManager(DeploymentOperations):
         # Service update is only implemented on DeploymentManagerWithDB wrapper
         raise NotImplementedError()
 
+    def update_service_access(self, project_id: str, service_id: str) -> None:
+        # Service update is only implemented on DeploymentManagerWithDB wrapper
+        raise NotImplementedError()
+
     def delete_service(
         self, project_id: str, service_id: str, delete_volumes: bool = False
     ) -> None:

@@ -244,6 +244,10 @@ class KubernetesDeploymentManager(DeploymentOperations):
         # Service update is only implemented on DeploymentManagerWithDB wrapper
         raise NotImplementedError()
 
+    def update_service_access(self, project_id: str, service_id: str) -> None:
+        # Service update is only implemented on DeploymentManagerWithDB wrapper
+        raise NotImplementedError()
+
     def list_deploy_service_actions(
         self, project_id: str, service: ServiceInput
     ) -> List[ResourceAction]:
