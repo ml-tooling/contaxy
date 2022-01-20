@@ -30,6 +30,7 @@ from contaxy.utils.minio_utils import delete_bucket, get_bucket_name
 from contaxy.utils.state_utils import GlobalState, RequestState
 
 from .conftest import test_settings
+from .utils import ComponentManagerMock
 
 
 class FileOperationsTests(ABC):
@@ -313,10 +314,13 @@ class TestMinioFileManagerWithPostgres(FileOperationsTests):
     ) -> Generator:
         json_db = PostgresJsonDocumentManager(global_state, request_state)
 
-        self._file_manager = MinioFileManager(global_state, request_state, json_db)
-
+        self._file_manager = MinioFileManager(
+            ComponentManagerMock(global_state, request_state, json_db_manager=json_db)
+        )
         self._seeder = SeedManager(
-            global_state, request_state, file_manager=self._file_manager
+            ComponentManagerMock(
+                global_state, request_state, file_manager=self._file_manager
+            )
         )
 
         self._project_id = f"{randint(1, 100000)}-file-manager-test"
@@ -328,7 +332,7 @@ class TestMinioFileManagerWithPostgres(FileOperationsTests):
             self._bucket_name,
             force=True,
         )
-        self._file_manager.json_db_manager.delete_json_collections(self.project_id)
+        self._file_manager._json_db_manager.delete_json_collections(self.project_id)
 
     @property
     def file_manager(self) -> FileOperations:
@@ -359,16 +363,19 @@ class TestAzureBlobFileManagerWithPostgres(FileOperationsTests):
     ) -> Generator:
         json_db = PostgresJsonDocumentManager(global_state, request_state)
 
-        self._file_manager = AzureBlobFileManager(global_state, request_state, json_db)
-
+        self._file_manager = AzureBlobFileManager(
+            ComponentManagerMock(global_state, request_state, json_db_manager=json_db)
+        )
         self._seeder = SeedManager(
-            global_state, request_state, file_manager=self._file_manager
+            ComponentManagerMock(
+                global_state, request_state, file_manager=self._file_manager
+            )
         )
 
         self._project_id = f"{randint(1, 100000)}-file-manager-test"
         yield
         self._file_manager.delete_files(self.project_id)
-        self._file_manager.json_db_manager.delete_json_collections(self.project_id)
+        json_db.delete_json_collections(self.project_id)
 
     @property
     def file_manager(self) -> FileOperations:
@@ -403,7 +410,9 @@ class TestMinioFileManagerViaLocalEndpoints(FileOperationsTests):
             self._json_db = JsonDocumentClient(self._test_client)
             self._auth_manager = AuthClient(self._test_client)
             self._file_manager = FileClient(self._test_client)
-            self._seeder = SeedManager(file_manager=self._file_manager)
+            self._seeder = SeedManager(
+                ComponentManagerMock(file_manager=self._file_manager)
+            )
 
             self._project_id = f"{randint(1, 100000)}-file-manager-test"
             system_manager.initialize_system()
@@ -462,7 +471,9 @@ class TestMinioFileManagerViaRemoteEndpoints(FileOperationsTests):
         self._json_db = JsonDocumentClient(self._endpoint_client)
         self._auth_manager = AuthClient(self._endpoint_client)
         self._file_manager = FileClient(self._endpoint_client)
-        self._seeder = SeedManager(file_manager=self._file_manager)
+        self._seeder = SeedManager(
+            ComponentManagerMock(file_manager=self._file_manager)
+        )
 
         self._project_id = f"{randint(1, 100000)}-file-manager-test"
         system_manager.initialize_system()

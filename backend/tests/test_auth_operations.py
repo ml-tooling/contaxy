@@ -26,6 +26,7 @@ from contaxy.utils import id_utils
 from contaxy.utils.state_utils import GlobalState, RequestState
 
 from .conftest import test_settings
+from .utils import ComponentManagerMock
 
 DEFAULT_USERS_TO_GENERATE = 10
 
@@ -479,7 +480,9 @@ class TestAuthManagerWithPostgresDB(AuthOperationsTests):
         json_db = PostgresJsonDocumentManager(global_state, request_state)
         # Cleanup everything at the startup
         json_db.delete_json_collections(config.SYSTEM_INTERNAL_PROJECT)
-        self._auth_manager = AuthManager(global_state, request_state, json_db)
+        self._auth_manager = AuthManager(
+            ComponentManagerMock(global_state, request_state, json_db_manager=json_db)
+        )
         yield
         json_db.delete_json_collections(config.SYSTEM_INTERNAL_PROJECT)
         # Do cleanup
@@ -497,7 +500,9 @@ class TestAuthManagerWithInMemoryDB(AuthOperationsTests):
     ) -> Generator:
         json_db = InMemoryDictJsonDocumentManager(global_state, request_state)
         json_db.delete_json_collections(config.SYSTEM_INTERNAL_PROJECT)
-        self._auth_manager = AuthManager(global_state, request_state, json_db)
+        self._auth_manager = AuthManager(
+            ComponentManagerMock(global_state, request_state, json_db_manager=json_db)
+        )
         yield
         json_db.delete_json_collections(config.SYSTEM_INTERNAL_PROJECT)
 

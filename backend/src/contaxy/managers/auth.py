@@ -15,6 +15,7 @@ from starlette.responses import RedirectResponse
 from contaxy import config
 from contaxy.config import settings
 from contaxy.operations import AuthOperations, JsonDocumentOperations, ProjectOperations
+from contaxy.operations.components import ComponentOperations
 from contaxy.schema import AuthorizedAccess, TokenType, User, UserInput
 from contaxy.schema.auth import (
     AccessLevel,
@@ -37,7 +38,6 @@ from contaxy.schema.exceptions import (
     UnauthenticatedError,
 )
 from contaxy.utils import auth_utils, id_utils
-from contaxy.utils.state_utils import GlobalState, RequestState
 
 PWD_CONTEXT = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -63,22 +63,22 @@ class AuthManager(AuthOperations):
 
     def __init__(
         self,
-        global_state: GlobalState,
-        request_state: RequestState,
-        json_db_manager: JsonDocumentOperations,
+        component_manager: ComponentOperations,
     ):
         """Initializes the Auth Manager.
 
         Args:
-            global_state: The global state of the app instance.
-            request_state: The state for the current request.
-            json_db_manager: JSON DB Manager instance to store structured data.
+            component_manager: Instance of the component manager that grants access to the other managers.
         """
-        self._global_state = global_state
-        self._request_state = request_state
-        self._json_db_manager = json_db_manager
+        self._global_state = component_manager.global_state
+        self._request_state = component_manager.request_state
+        self._component_manager = component_manager
         # TODO: move down?
         self._lock = threading.Lock()
+
+    @property
+    def _json_db_manager(self) -> JsonDocumentOperations:
+        return self._component_manager.get_json_db_manager()
 
     def _get_verify_access_cache(self) -> TTLCache:
         """Returns a TTL (time to live) cache used by the access verification."""
@@ -472,13 +472,6 @@ class AuthManager(AuthOperations):
     def remove_permission(
         self, resource_name: str, permission: str, remove_sub_permissions: bool = False
     ) -> None:
-        """Revokes a permission from the specified resource.
-
-        Args:
-            resource_name: The resource name that the permission should be revoked from.
-            permission: The permission to revoke from the specified resource.
-            remove_sub_permissions: If `True`, the permission is used as prefix, and all permissions that start with this prefix will be revoked. Defaults to `False`.
-        """
         try:
             # Try to get the permission document
             resource_permission = self._get_resource_permissions_from_db(resource_name)
@@ -586,15 +579,6 @@ class AuthManager(AuthOperations):
     def list_permissions(
         self, resource_name: str, resolve_roles: bool = True, use_cache: bool = False
     ) -> List[str]:
-        """Returns all permissions granted to the specified resource.
-
-        Args:
-            resource_name: The name of the resource (relative URI).
-            resolve_roles: If `True`, all roles of the resource will be resolved to the associated permissions. Defaults to `True`.
-
-        Returns:
-            List[str]: List of permissions granted to the given resource.
-        """
         if not use_cache or not config.settings.RESOURCE_PERMISSIONS_CACHE_ENABLED:
             return self._list_permissions_from_db(resource_name, resolve_roles)
 
@@ -616,15 +600,6 @@ class AuthManager(AuthOperations):
     def list_resources_with_permission(
         self, permission: str, resource_name_prefix: Optional[str] = None
     ) -> List[str]:
-        """Returns all resources that are granted for the specified permission.
-
-        Args:
-            permission: The permission to use. If the permission is specified without the access level, it will filter for all access levels.
-            resource_name_prefix: Only return resources that match with this prefix.
-
-        Returns:
-            List[str]: List of resources names (relative URIs).
-        """
         # Filter all resources for the provided permission
         filtered_resource_docs = self._json_db_manager.list_json_documents(
             config.SYSTEM_INTERNAL_PROJECT,

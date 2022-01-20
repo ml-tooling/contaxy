@@ -32,7 +32,6 @@ from kubernetes.client.models import (
 from kubernetes.client.rest import ApiException
 
 from contaxy.config import settings
-from contaxy.managers.auth import AuthManager
 from contaxy.managers.deployment.utils import (
     _MIN_MEMORY_DEFAULT_MB,
     Labels,
@@ -45,6 +44,7 @@ from contaxy.managers.deployment.utils import (
     map_labels,
     replace_templates,
 )
+from contaxy.operations import AuthOperations
 from contaxy.schema import Job, JobInput, Service, ServiceInput
 from contaxy.schema.deployment import (
     DeploymentCompute,
@@ -209,7 +209,7 @@ def build_pod_template_spec(
     service_id: str,
     service: Union[ServiceInput, JobInput],
     metadata: V1ObjectMeta,
-    auth_manager: AuthManager,
+    auth_manager: AuthOperations,
     user_id: Optional[str] = None,
 ) -> V1PodTemplateSpec:
     compute_resources = service.compute or DeploymentCompute()
@@ -330,7 +330,7 @@ def build_kube_deployment_config(
     service: ServiceInput,
     project_id: str,
     kube_namespace: str,
-    auth_manager: AuthManager,
+    auth_manager: AuthOperations,
     user_id: Optional[str] = None,
 ) -> Tuple[V1Deployment, Union[V1PersistentVolumeClaim, None]]:
     # ---

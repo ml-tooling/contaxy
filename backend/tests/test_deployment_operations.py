@@ -52,6 +52,7 @@ from contaxy.utils import auth_utils
 from contaxy.utils.state_utils import GlobalState, RequestState
 
 from .conftest import test_settings
+from .utils import ComponentManagerMock
 
 TYPE_DOCKER = "docker"
 TYPE_KUBERNETES = "kubernetes"
@@ -537,19 +538,21 @@ class TestDockerDeploymentManager(DeploymentOperationsTests):
     ) -> Generator:
         # Only use in memory database as the DB is not main the focus of this test
         json_db = InMemoryDictJsonDocumentManager(global_state, request_state)
-        self._auth_manager = AuthManager(global_state, request_state, json_db)
-        self._system_manager = SystemManager(
-            global_state, request_state, json_db, self._auth_manager, None
+        component_manager_mock = ComponentManagerMock(
+            global_state, request_state, json_db_manager=json_db
         )
+        self._auth_manager = AuthManager(component_manager_mock)
+        component_manager_mock.auth_manager = self._auth_manager
+        self._system_manager = SystemManager(component_manager_mock)
+        component_manager_mock.system_manager = self._system_manager
+
         self._docker_deployment_manager = DockerDeploymentManager(
-            global_state=GlobalState(global_state),
-            request_state=RequestState(request_state),
-            system_manager=self._system_manager,
-            auth_manager=self._auth_manager,
+            component_manager_mock
         )
         self._deployment_manager = DeploymentManagerWithDB(
-            self._docker_deployment_manager, json_db
+            self._docker_deployment_manager, component_manager_mock
         )
+        component_manager_mock.deployment_manager = self._deployment_manager
 
         (
             _,
@@ -726,10 +729,13 @@ class TestKubernetesDeploymentManager(DeploymentOperationsTests):
     ) -> Generator:
         # Only use in memory database as the DB is not main the focus of this test
         json_db = InMemoryDictJsonDocumentManager(global_state, request_state)
-        self._auth_manager = AuthManager(global_state, request_state, json_db)
-        self._system_manager = SystemManager(
-            global_state, request_state, json_db, None, None
+        component_manager_mock = ComponentManagerMock(
+            global_state, request_state, json_db_manager=json_db
         )
+        self._auth_manager = AuthManager(component_manager_mock)
+        component_manager_mock.auth_manager = self._auth_manager
+        self._system_manager = SystemManager(component_manager_mock)
+        component_manager_mock.system_manager = self._system_manager
 
         (
             uid,
@@ -740,15 +746,12 @@ class TestKubernetesDeploymentManager(DeploymentOperationsTests):
         _kube_namespace = f"{uid}-deployment-manager-test-namespace"
 
         self._kubernetes_deployment_manager = KubernetesDeploymentManager(
-            global_state=global_state,
-            request_state=request_state,
-            kube_namespace=_kube_namespace,
-            system_manager=self._system_manager,
-            auth_manager=self._auth_manager,
+            component_manager_mock, kube_namespace=_kube_namespace
         )
         self._deployment_manager = DeploymentManagerWithDB(
-            self._kubernetes_deployment_manager, json_db
+            self._kubernetes_deployment_manager, component_manager_mock
         )
+        component_manager_mock.deployment_manager = self._deployment_manager
 
         self._kubernetes_deployment_manager.core_api.create_namespace(
             V1Namespace(metadata={"name": _kube_namespace})

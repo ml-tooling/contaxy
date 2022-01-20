@@ -5,8 +5,8 @@ from typing import List
 from loguru import logger
 
 from contaxy import config
-from contaxy.managers.auth import AuthManager
-from contaxy.operations import JsonDocumentOperations, ProjectOperations
+from contaxy.operations import AuthOperations, JsonDocumentOperations, ProjectOperations
+from contaxy.operations.components import ComponentOperations
 from contaxy.schema.auth import USERS_KIND, AccessLevel, User
 from contaxy.schema.exceptions import (
     ClientValueError,
@@ -21,7 +21,6 @@ from contaxy.schema.project import (
     ProjectInput,
 )
 from contaxy.utils import auth_utils, id_utils
-from contaxy.utils.state_utils import GlobalState, RequestState
 
 
 class ProjectManager(ProjectOperations):
@@ -31,23 +30,24 @@ class ProjectManager(ProjectOperations):
 
     def __init__(
         self,
-        global_state: GlobalState,
-        request_state: RequestState,
-        json_db_manager: JsonDocumentOperations,
-        auth_manager: AuthManager,
+        component_manager: ComponentOperations,
     ):
         """Initializes the project manager.
 
         Args:
-            global_state: The global state of the app instance.
-            request_state: The state for the current request.
-            json_db_manager: JSON DB Manager instance to store structured data.
-            auth_manager: Auth Manager instance for permission handling.
+            component_manager: Instance of the component manager that grants access to the other managers.
         """
-        self._global_state = global_state
-        self._request_state = request_state
-        self._json_db_manager = json_db_manager
-        self._auth_manager = auth_manager
+        self._global_state = component_manager.global_state
+        self._request_state = component_manager.request_state
+        self._component_manager = component_manager
+
+    @property
+    def _json_db_manager(self) -> JsonDocumentOperations:
+        return self._component_manager.get_json_db_manager()
+
+    @property
+    def _auth_manager(self) -> AuthOperations:
+        return self._component_manager.get_auth_manager()
 
     def list_projects(self) -> List[Project]:
         authorized_user = None

@@ -32,3 +32,7 @@ class SystemOperations(ABC):
     @abstractmethod
     def delete_allowed_image(self, allowed_image_name: str) -> None:
         pass
+
+    @abstractmethod
+    def check_allowed_image(self, image_name: str, image_tag: str) -> None:
+        pass

@@ -8,7 +8,8 @@ from contaxy.managers.deployment.utils import (
     get_template_mapping,
     replace_template_string,
 )
-from contaxy.operations import DeploymentOperations, ExtensionOperations
+from contaxy.operations import ExtensionOperations, ServiceOperations
+from contaxy.operations.components import ComponentOperations
 from contaxy.schema import ExtensibleOperations, Extension, ExtensionInput, Service
 from contaxy.schema.deployment import DeploymentType, ServiceInput
 from contaxy.schema.extension import (
@@ -17,7 +18,6 @@ from contaxy.schema.extension import (
     ExtensionType,
 )
 from contaxy.utils.auth_utils import parse_userid_from_resource_name
-from contaxy.utils.state_utils import GlobalState, RequestState
 
 COMPOSITE_ID_SEPERATOR = "~"
 
@@ -129,20 +129,20 @@ class ExtensionManager(ExtensionOperations):
 
     def __init__(
         self,
-        global_state: GlobalState,
-        request_state: RequestState,
-        deployment_manager: DeploymentOperations,
+        component_manager: ComponentOperations,
     ):
         """Initializes the extension manager.
 
         Args:
-            global_state: The global state of the app instance.
-            request_state: The state for the current request.
-            deployment_manager: The current deployment manager instance.
+            component_manager: Instance of the component manager that grants access to the other managers.
         """
-        self.global_state = global_state
-        self.request_state = request_state
-        self.deployment_manager = deployment_manager
+        self.global_state = component_manager.global_state
+        self.request_state = component_manager.request_state
+        self._component_manager = component_manager
+
+    @property
+    def _service_manager(self) -> ServiceOperations:
+        return self._component_manager.get_service_manager()
 
     def get_extension_client(self, extension_id: str) -> ExtensionClient:
         endpoint_url = f"http://{config.settings.SYSTEM_NAMESPACE}-{extension_id}:8080"
@@ -159,12 +159,12 @@ class ExtensionManager(ExtensionOperations):
 
     def list_extensions(self, project_id: str) -> List[Extension]:
         if project_id != GLOBAL_EXTENSION_PROJECT:
-            project_services = self.deployment_manager.list_services(
+            project_services = self._service_manager.list_services(
                 project_id=project_id, deployment_type=DeploymentType.EXTENSION
             )
         else:
             project_services = []
-        global_services = self.deployment_manager.list_services(
+        global_services = self._service_manager.list_services(
             project_id=GLOBAL_EXTENSION_PROJECT,
             deployment_type=DeploymentType.EXTENSION,
         )
@@ -215,7 +215,7 @@ class ExtensionManager(ExtensionOperations):
         if extension.extension_type:
             service_input.metadata[METADATA_EXTENSION_TYPE] = extension.extension_type
 
-        service = self.deployment_manager.deploy_service(
+        service = self._service_manager.deploy_service(
             project_id=project_id,
             service=service_input,
             deployment_type=DeploymentType.EXTENSION,

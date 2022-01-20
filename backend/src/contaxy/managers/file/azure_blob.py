@@ -16,6 +16,7 @@ from starlette.responses import Response
 
 from contaxy.config import Settings
 from contaxy.operations import FileOperations
+from contaxy.operations.components import ComponentOperations
 from contaxy.operations.json_db import JsonDocumentOperations
 from contaxy.schema import File, FileInput, ResourceAction
 from contaxy.schema.exceptions import (
@@ -26,7 +27,6 @@ from contaxy.schema.exceptions import (
 from contaxy.schema.file import FileStream
 from contaxy.schema.json_db import JsonDocument
 from contaxy.utils.file_utils import generate_file_id
-from contaxy.utils.state_utils import GlobalState, RequestState
 
 
 def get_container_name(project_id: str, prefix: str) -> str:
@@ -74,22 +74,22 @@ class AzureBlobFileManager(FileOperations):
 
     def __init__(
         self,
-        global_state: GlobalState,
-        request_state: RequestState,
-        json_db_manager: JsonDocumentOperations,
+        component_manager: ComponentOperations,
     ):
         """Initializes the Azure Blob File Manager.
 
         Args:
-            global_state: The global state of the app instance.
-            request_state: The state for the current request.
-            json_db_manager: JSON DB Manager instance to store structured data.
+            component_manager: Instance of the component manager that grants access to the other managers.
         """
-        self.global_state = global_state
-        self.request_state = request_state
-        self.json_db_manager = json_db_manager
+        self._global_state = component_manager.global_state
+        self._request_state = component_manager.request_state
+        self._component_manager = component_manager
         self.client = self._create_client()
-        self.sys_namespace = self.global_state.settings.SYSTEM_NAMESPACE
+        self.sys_namespace = self._global_state.settings.SYSTEM_NAMESPACE
+
+    @property
+    def json_db_manager(self) -> JsonDocumentOperations:
+        return self._component_manager.get_json_db_manager()
 
     def list_files(
         self,
@@ -213,7 +213,9 @@ class AzureBlobFileManager(FileOperations):
             )
 
         azure_blob_client: BlobClient = self.client.get_blob_client(
-            get_container_name(project_id, self.global_state.settings.SYSTEM_NAMESPACE),
+            get_container_name(
+                project_id, self._global_state.settings.SYSTEM_NAMESPACE
+            ),
             file_key,
         )
         try:
@@ -408,7 +410,7 @@ class AzureBlobFileManager(FileOperations):
             project_id (str): Project ID associated with the files.
         """
         container_name = get_container_name(
-            project_id, self.global_state.settings.SYSTEM_NAMESPACE
+            project_id, self._global_state.settings.SYSTEM_NAMESPACE
         )
         try:
             container_client = self.client.get_container_client(container_name)
@@ -443,11 +445,11 @@ class AzureBlobFileManager(FileOperations):
         pass
 
     def _create_client(self) -> BlobServiceClient:
-        settings = self.global_state.settings
-        state_namespace = self.global_state[AzureBlobFileManager]
+        settings = self._global_state.settings
+        state_namespace = self._global_state[AzureBlobFileManager]
         if not state_namespace.client:
             state_namespace.client = create_azure_blob_client(
-                self.global_state.settings
+                self._global_state.settings
             )
             logger.info(
                 f"Azure Blob client created (connection string: {settings.AZURE_BLOB_CONNECTION_STRING})"

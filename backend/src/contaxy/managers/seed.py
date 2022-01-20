@@ -6,12 +6,12 @@ from faker import Faker
 from pydantic import EmailStr
 
 from contaxy.operations import AuthOperations, FileOperations, ProjectOperations
+from contaxy.operations.components import ComponentOperations
 from contaxy.operations.seed import SeedOperations
 from contaxy.schema import File, Project, User, UserRegistration
 from contaxy.schema.project import ProjectCreation
 from contaxy.utils import auth_utils
 from contaxy.utils.file_utils import FileStreamWrapper
-from contaxy.utils.state_utils import GlobalState, RequestState
 
 FAKER = Faker()
 Faker.seed(0)
@@ -22,17 +22,23 @@ ERROR_NO_PROJECT_MANAGER = "Seeder needs to be initialized with a project manage
 class SeedManager(SeedOperations):
     def __init__(
         self,
-        global_state: Optional[GlobalState] = None,
-        request_state: Optional[RequestState] = None,
-        auth_manager: Optional[AuthOperations] = None,
-        file_manager: Optional[FileOperations] = None,
-        project_manager: Optional[ProjectOperations] = None,
+        component_manager: ComponentOperations,
     ):
-        self.global_state = global_state
-        self.request_state = request_state
-        self.auth_manager = auth_manager
-        self.file_manager = file_manager
-        self.project_manager = project_manager
+        self.global_state = component_manager.global_state
+        self.request_state = component_manager.request_state
+        self._component_manager = component_manager
+
+    @property
+    def file_manager(self) -> FileOperations:
+        return self._component_manager.get_file_manager()
+
+    @property
+    def auth_manager(self) -> AuthOperations:
+        return self._component_manager.get_auth_manager()
+
+    @property
+    def project_manager(self) -> ProjectOperations:
+        return self._component_manager.get_project_manager()
 
     def create_user(
         self,

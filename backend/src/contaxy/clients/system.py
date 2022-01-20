@@ -56,3 +56,7 @@ class SystemClient(SystemOperations):
             **request_kwargs,
         )
         handle_errors(response)
+
+    def check_allowed_image(self, image_name: str, image_tag: str) -> None:
+        # TODO: Implement
+        pass
