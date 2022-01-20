@@ -549,6 +549,7 @@ def create_container_config(
             Labels.ENDPOINTS.value: endpoints_label,
             Labels.REQUIREMENTS.value: requirements_label,
             Labels.CREATED_BY.value: user_id,
+            Labels.VOLUME_PATH.value: compute_resources.volume_path or "",
             **metadata,
         },
         "name": container_name,

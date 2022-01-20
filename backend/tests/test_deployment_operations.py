@@ -76,6 +76,7 @@ def create_test_service_input(display_name: str) -> ServiceInput:
         compute={
             "max_cpus": 2,
             "max_memory": 100,
+            "volume_path": "/test",
         },  # TODO: Also test persistent volumes
         display_name=display_name,
         description="This is a test service",
@@ -146,6 +147,7 @@ class DeploymentOperationsTests(ABC):
         assert service.metadata.get(Labels.PROJECT_NAME.value, "") == self.project_id
         assert service.parameters.get("FOO", "") == "bar"
         assert "some-metadata" in service.metadata
+        assert service.compute.volume_path == "/test"
 
     def test_update_service(self) -> None:
         test_service_input = create_test_service_input(
@@ -254,6 +256,7 @@ class DeploymentOperationsTests(ABC):
             self.project_id, service.id
         )
         assert service.status == DeploymentStatus.RUNNING
+        assert service.compute.volume_path == "/test"
 
     def test_restart_service(self) -> None:
         test_service_input = create_test_service_input(

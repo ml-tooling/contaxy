@@ -320,6 +320,7 @@ def build_deployment_metadata(
             Labels.MIN_LIFETIME.value: str(min_lifetime),
             Labels.ENDPOINTS.value: map_endpoints_to_endpoints_label(endpoints),
             Labels.CREATED_BY.value: user_id,
+            Labels.VOLUME_PATH.value: _compute_resources.volume_path or "",
             **cleaned_labels,
         },
     )
@@ -549,7 +550,7 @@ def map_deployment(deployment: Union[V1Deployment, V1Job]) -> Dict[str, Any]:
         ),  # / 1000 / 1000,
         max_gpus=None,  # TODO: fill with sensible information - where to get it from?
         min_lifetime=mapped_labels.min_lifetime,
-        volume_Path=mapped_labels.volume_path,
+        volume_path=mapped_labels.volume_path,
         # TODO: add max_volume_size, max_replicas
     )
 
