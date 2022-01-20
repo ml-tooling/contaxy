@@ -375,6 +375,7 @@ def revoke_token(
 
     This endpoint implements the OAuth2 Revocation Flow ([RFC7009](https://tools.ietf.org/html/rfc7009)).
     """
+    # TODO: Implement authentication required by spec
     component_manager.get_auth_manager().revoke_token(token)
 
 
@@ -403,6 +404,7 @@ def introspect_token(
 
     This endpoint implements the [OAuth2 Introspection Flow](https://www.oauth.com/oauth2-servers/token-introspection-endpoint/) ([RFC7662](https://tools.ietf.org/html/rfc7662)).
     """
+    # TODO: Implement authentication required by spec
     return component_manager.get_auth_manager().introspect_token(token)
 
 

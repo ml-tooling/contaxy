@@ -72,18 +72,37 @@ class AuthClient(AuthOperations):
         )
         handle_errors(response)
 
-    def add_permission(self, resource_name: str, permission: str) -> None:
+    def add_permission(
+        self, resource_name: str, permission: str, request_kwargs: Dict = {}
+    ) -> None:
         # TODO: Implement
         pass
 
     def remove_permission(
-        self, resource_name: str, permission: str, remove_sub_permissions: bool = False
+        self,
+        resource_name: str,
+        permission: str,
+        remove_sub_permissions: bool = False,
+        request_kwargs: Dict = {},
     ) -> None:
         # TODO: Implement
         pass
 
     def list_permissions(
-        self, resource_name: str, resolve_roles: bool = True, use_cache: bool = False
+        self,
+        resource_name: str,
+        resolve_roles: bool = True,
+        use_cache: bool = False,
+        request_kwargs: Dict = {},
+    ) -> List[str]:
+        # TODO: Implement
+        pass
+
+    def list_resources_with_permission(
+        self,
+        permission: str,
+        resource_name_prefix: Optional[str] = None,
+        request_kwargs: Dict = {},
     ) -> List[str]:
         # TODO: Implement
         pass
