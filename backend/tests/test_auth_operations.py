@@ -163,6 +163,14 @@ class AuthOperationsTests(ABC):
             == 2
         )
         assert (
+            len(
+                self.auth_manager.list_resources_with_permission(
+                    PROJECT_PERMISSION_1, "other-prefix/"
+                )
+            )
+            == 0
+        )
+        assert (
             len(self.auth_manager.list_resources_with_permission(PROJECT_PERMISSION_2))
             == 1
         )

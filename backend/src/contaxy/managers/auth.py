@@ -640,9 +640,9 @@ class AuthManager(AuthOperations):
                 ).permissions
             ):
                 continue
-            if resource_name_prefix and resource_name.startswith(resource_name_prefix):
-                resource_names.add(resource_name)
-            else:
+            if (not resource_name_prefix) or resource_name.startswith(
+                resource_name_prefix
+            ):
                 resource_names.add(resource_name)
         return list(resource_names)
 

@@ -238,10 +238,16 @@ class ProjectManager(ProjectOperations):
         for resource_name in project_member_resource_names:
             try:
                 user_id = id_utils.extract_user_id_from_resource_name(resource_name)
-                project_users.append(self._auth_manager.get_user(user_id))
             except ValueError:
                 logger.warning(
                     "Failed to extract user id from resource name: " + resource_name
+                )
+                continue
+            try:
+                project_users.append(self._auth_manager.get_user(user_id))
+            except ResourceNotFoundError:
+                logger.warning(
+                    f"User with id {user_id} does not exist anymore but its permissions have not been removed from the DB!"
                 )
                 continue
 
@@ -278,7 +284,6 @@ class ProjectManager(ProjectOperations):
             ),
             remove_sub_permissions=True,
         )
-        print("test")
 
     def remove_project_member(self, project_id: str, user_id: str) -> List[User]:
         # Remove all permissions from the user that grant access to any part of the project
