@@ -71,8 +71,8 @@ def patch_fastapi(app: FastAPI) -> None:
 
         return HTMLResponse(
             swagger_ui.body.decode("utf-8").replace(
-                "dom_id: '#swagger-ui',",
-                "dom_id: '#swagger-ui',\n\t\t" + request_interceptor + ",",
+                "SwaggerUIBundle({",
+                "SwaggerUIBundle({\n\t\t" + request_interceptor + ",",
             )
         )
 
