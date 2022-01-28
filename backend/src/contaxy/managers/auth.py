@@ -14,7 +14,12 @@ from starlette.responses import RedirectResponse
 
 from contaxy import config
 from contaxy.config import settings
-from contaxy.operations import AuthOperations, JsonDocumentOperations, ProjectOperations
+from contaxy.operations import (
+    AuthOperations,
+    JsonDocumentOperations,
+    ProjectOperations,
+    ServiceOperations,
+)
 from contaxy.operations.components import ComponentOperations
 from contaxy.schema import AuthorizedAccess, TokenType, User, UserInput
 from contaxy.schema.auth import (
@@ -38,6 +43,7 @@ from contaxy.schema.exceptions import (
     UnauthenticatedError,
 )
 from contaxy.utils import auth_utils, id_utils
+from contaxy.utils.id_utils import extract_ids_from_service_resource_name
 
 PWD_CONTEXT = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -79,6 +85,10 @@ class AuthManager(AuthOperations):
     @property
     def _json_db_manager(self) -> JsonDocumentOperations:
         return self._component_manager.get_json_db_manager()
+
+    @property
+    def _service_manager(self) -> ServiceOperations:
+        return self._component_manager.get_service_manager()
 
     def _get_verify_access_cache(self) -> TTLCache:
         """Returns a TTL (time to live) cache used by the access verification."""
@@ -177,6 +187,17 @@ class AuthManager(AuthOperations):
                 raise UnauthenticatedError("No token subject found for token creation.")
 
         if token_type is token_type.SESSION_TOKEN:
+            # Check if token for service is requested and update service last access time
+            for scope in scopes:
+                try:
+                    resource, _ = auth_utils.parse_permission(scope)
+                    project_id, service_id = extract_ids_from_service_resource_name(
+                        resource
+                    )
+                    self._service_manager.update_service_access(project_id, service_id)
+                except ValueError:
+                    pass
+
             # Create session token if selected
             return self._create_session_token(token_subject, scopes)
 

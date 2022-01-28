@@ -5,8 +5,6 @@ from typing import Any, List, Literal, Optional
 from contaxy.schema import Job, JobInput, ResourceAction, Service, ServiceInput
 from contaxy.schema.deployment import DeploymentType, ServiceUpdate
 
-# TODO: update_service functionality
-
 
 class ServiceOperations(ABC):
     @abstractmethod
@@ -106,6 +104,16 @@ class ServiceOperations(ABC):
             service (ServiceUpdate): Updates that should be applied to the service
         Returns:
             Service: The updated service metadata
+        """
+        pass
+
+    @abstractmethod
+    def update_service_access(self, project_id: str, service_id: str) -> None:
+        """Updates the last time the service was accessed and by which user.
+
+        Args:
+            project_id (str): The project ID associated with the service.
+            service_id (str): The ID of the service.
         """
         pass
 

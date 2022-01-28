@@ -100,6 +100,7 @@ class ExtensibleOperations(str, Enum):
     DELETE_SERVICE = "delete_service"
     DELETE_SERVICES = "delete_services"
     UPDATE_SERVICE = "update_service"
+    UPDATE_SERVICE_ACCESS = "update_service_access"
     GET_SERVICE_LOGS = "get_service_logs"
     LIST_SERVICE_ACTIONS = "list_service_actions"
     EXECUTE_SERVICE_ACTION = "execute_service_action"

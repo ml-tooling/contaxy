@@ -6,7 +6,7 @@ import re
 import secrets
 import string
 from email.utils import parseaddr
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 import shortuuid
 from slugify import slugify
@@ -16,6 +16,7 @@ from contaxy.config import settings
 _PROJECT_ID_SEPERATOR = "-p-"
 _PROJECT_NAME_TO_ID_REGEX = re.compile(r"^projects/([^/:\s]+)$")
 _USER_NAME_TO_ID_REGEX = re.compile(r"^users/([^/:\s]+)$")
+_SERVICE_RESOURCE_REGEX = re.compile(r"^projects/([^/:\s]+)/services/([^/:\s]+)")
 
 
 def is_email(text: str) -> bool:
@@ -53,6 +54,26 @@ def extract_project_id_from_resource_name(project_resource_name: str) -> str:
         raise ValueError(
             f"The provided project_resource_name is not valid: {project_resource_name}"
         )
+
+
+def extract_ids_from_service_resource_name(
+    service_resource_name: str,
+) -> Tuple[str, str]:
+    """Extract the project id and service id from a service resource name.
+
+    Args:
+        service_resource_name (str): The service resource name (e.g. /projects/project-id/services/service-id)
+
+    Returns:
+        Tuple[str, str]: The project id and service id contained in the resource name
+    """
+    match = _SERVICE_RESOURCE_REGEX.match(service_resource_name)
+    if match is None:
+        raise ValueError(
+            f"Resource name {service_resource_name} is not a service resource!"
+        )
+    groups = match.groups()
+    return groups[0], groups[1]
 
 
 def get_project_resource_prefix(project_id: str) -> str:
