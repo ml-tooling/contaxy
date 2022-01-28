@@ -1,14 +1,26 @@
 import string
 import subprocess
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
 from contaxy.config import settings
-from contaxy.operations import AuthOperations
-from contaxy.schema import AccessLevel, TokenType, UnauthenticatedError
+from contaxy.operations import AuthOperations, SystemOperations
+from contaxy.schema import (
+    AccessLevel,
+    ClientValueError,
+    TokenType,
+    UnauthenticatedError,
+)
 from contaxy.schema.auth import TokenPurpose
-from contaxy.schema.deployment import DeploymentCompute, DeploymentType
+from contaxy.schema.deployment import (
+    Deployment,
+    DeploymentCompute,
+    DeploymentInput,
+    DeploymentType,
+)
 from contaxy.utils import auth_utils, id_utils
+from contaxy.utils.auth_utils import parse_userid_from_resource_name
 
 DEFAULT_DEPLOYMENT_ACTION_ID = "default"
 NO_LOGS_MESSAGE = "No logs available."
@@ -29,7 +41,7 @@ _ENV_VARIABLE_CONTAXY_DEPLOYMENT_NAME = "CONTAXY_DEPLOYMENT_NAME"
 
 class Labels(Enum):
     CREATED_BY = "ctxy.createdBy"
-    DEPLOYMENT_NAME = "ctxy.deploymentName"
+    DEPLOYMENT_ID = "ctxy.deploymentId"
     DEPLOYMENT_TYPE = "ctxy.deploymentType"
     DESCRIPTION = "ctxy.description"
     DISPLAY_NAME = "ctxy.displayName"
@@ -47,11 +59,74 @@ class MappedLabels:
     description: Optional[str] = None
     display_name: Optional[str] = None
     endpoints: Optional[List[str]] = None
+    requirements: Optional[List[str]] = None
     icon: Optional[str] = None
     min_lifetime: Optional[int] = None
     volume_path: Optional[str] = None
     metadata: Optional[dict] = None
     created_by: Optional[str] = None
+
+
+def create_deployment_config(
+    project_id: str,
+    deployment_input: DeploymentInput,
+    deployment_type: DeploymentType,
+    authorized_subject: str,
+    system_manager: SystemOperations,
+    auth_manager: AuthOperations,
+) -> Deployment:
+    # Check if display name is set
+    if deployment_input.display_name is None:
+        raise ClientValueError(message="Service display_name not defined!")
+
+    # Check if image is allowed
+    image_name, image_tag = split_image_name_and_tag(deployment_input.container_image)
+    system_manager.check_allowed_image(image_name, image_tag)
+
+    deployment_id = get_deployment_id(
+        project_id,
+        deployment_name=deployment_input.display_name,
+        deployment_type=deployment_type,
+    )
+    user_id = parse_userid_from_resource_name(authorized_subject)
+    deployment_input.metadata = clean_metadata(deployment_input.metadata)
+    deployment_config = Deployment(
+        **deployment_input.dict(),
+        id=deployment_id,
+        deployment_type=deployment_type,
+        created_at=datetime.now(timezone.utc),
+        created_by=user_id,
+    )
+
+    # Process parameters which will be set as environment variables
+    environment = deployment_config.parameters
+    # The user MUST not be able to manually set (which) GPUs to use
+    if "NVIDIA_VISIBLE_DEVICES" in environment:
+        del environment["NVIDIA_VISIBLE_DEVICES"]
+    environment = {
+        **environment,
+        **get_default_environment_variables(
+            project_id=project_id,
+            deployment_id=deployment_config.id,
+            auth_manager=auth_manager,
+            endpoints=deployment_config.endpoints,
+            compute_resources=deployment_config.compute,
+        ),
+    }
+    environment = replace_templates(
+        environment,
+        get_template_mapping(
+            project_id=project_id, user_id=user_id, environment=environment
+        ),
+    )
+    deployment_config.parameters = environment
+
+    # Add default metadata
+    deployment_config.metadata[Labels.PROJECT_NAME.value] = project_id
+    deployment_config.metadata[Labels.NAMESPACE.value] = settings.SYSTEM_NAMESPACE
+    deployment_config.metadata[Labels.DEPLOYMENT_ID.value] = deployment_config.id
+
+    return deployment_config
 
 
 def map_labels(labels: Dict[str, Any]) -> MappedLabels:
@@ -69,20 +144,25 @@ def map_labels(labels: Dict[str, Any]) -> MappedLabels:
     _labels = dict.copy(labels)
     mapped_labels = MappedLabels()
 
+    if Labels.DISPLAY_NAME.value in _labels:
+        mapped_labels.display_name = _labels.get(Labels.DISPLAY_NAME.value)
+        del _labels[Labels.DISPLAY_NAME.value]
     if Labels.DEPLOYMENT_TYPE.value in _labels:
         mapped_labels.deployment_type = _labels.get(Labels.DEPLOYMENT_TYPE.value)
         del _labels[Labels.DEPLOYMENT_TYPE.value]
     if Labels.DESCRIPTION.value in _labels:
         mapped_labels.description = _labels.get(Labels.DESCRIPTION.value)
         del _labels[Labels.DESCRIPTION.value]
-    if Labels.DISPLAY_NAME.value in _labels:
-        mapped_labels.display_name = _labels.get(Labels.DISPLAY_NAME.value)
-        del _labels[Labels.DISPLAY_NAME.value]
     if Labels.ENDPOINTS.value in _labels:
-        mapped_labels.endpoints = map_endpoints_label_to_endpoints(
+        mapped_labels.endpoints = map_string_to_list(
             _labels.get(Labels.ENDPOINTS.value, "")
         )
         del _labels[Labels.ENDPOINTS.value]
+    if Labels.REQUIREMENTS.value in _labels:
+        mapped_labels.requirements = map_string_to_list(
+            _labels.get(Labels.REQUIREMENTS.value, "")
+        )
+        del _labels[Labels.REQUIREMENTS.value]
     if Labels.ICON.value in _labels:
         mapped_labels.icon = _labels.get(Labels.ICON.value)
         del _labels[Labels.ICON.value]
@@ -92,13 +172,16 @@ def map_labels(labels: Dict[str, Any]) -> MappedLabels:
     if Labels.VOLUME_PATH.value in _labels:
         mapped_labels.volume_path = _labels.get(Labels.VOLUME_PATH.value)
         del _labels[Labels.VOLUME_PATH.value]
+    if Labels.CREATED_BY.value in _labels:
+        mapped_labels.created_by = _labels.get(Labels.CREATED_BY.value)
+        del _labels[Labels.CREATED_BY.value]
 
     mapped_labels.metadata = _labels
 
     return mapped_labels
 
 
-def clean_labels(labels: Optional[dict] = None) -> dict:
+def clean_metadata(labels: Optional[dict] = None) -> dict:
     """Remove system labels that should not be settable by the user.
 
     Args:
@@ -220,14 +303,14 @@ def get_project_selection_labels(
     ]
 
 
-def map_endpoints_to_endpoints_label(endpoints: Optional[List[str]]) -> Optional[str]:
-    return ",".join(endpoints) if endpoints else None
+def map_list_to_string(endpoints: Optional[List[str]]) -> str:
+    return ",".join(endpoints) if endpoints else ""
 
 
-def map_endpoints_label_to_endpoints(
-    endpoints_label: Optional[str],
-) -> Optional[List[str]]:
-    return endpoints_label.split(",") if endpoints_label else None
+def map_string_to_list(
+    string_to_split: Optional[str],
+) -> List[str]:
+    return string_to_split.split(",") if string_to_split else []
 
 
 def get_default_environment_variables(

@@ -55,7 +55,7 @@ def map_service_to_extension(service: Service, user_id: str) -> Extension:
 
     if service.metadata:
         project_id = service.metadata[Labels.PROJECT_NAME.value]
-        deployment_id = service.metadata[Labels.DEPLOYMENT_NAME.value]
+        deployment_id = service.id
         endpoint_prefix = f"{config.settings.CONTAXY_BASE_URL}/projects/{project_id}/services/{deployment_id}/access/"
 
         if METADATA_CAPABILITIES in service.metadata:
@@ -217,7 +217,7 @@ class ExtensionManager(ExtensionOperations):
 
         service = self._service_manager.deploy_service(
             project_id=project_id,
-            service=service_input,
+            service_input=service_input,
             deployment_type=DeploymentType.EXTENSION,
         )
         return map_service_to_extension(

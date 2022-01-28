@@ -14,13 +14,13 @@ from kubernetes.client.rest import ApiException
 from contaxy import config
 from contaxy.clients import AuthClient, DeploymentManagerClient, SystemClient
 from contaxy.managers.auth import AuthManager
-from contaxy.managers.deployment.docker import DockerDeploymentManager
+from contaxy.managers.deployment.docker import DockerDeploymentPlatform
 from contaxy.managers.deployment.docker_utils import (
     get_network_name,
     get_this_container,
 )
-from contaxy.managers.deployment.kubernetes import KubernetesDeploymentManager
-from contaxy.managers.deployment.manager import DeploymentManagerWithDB
+from contaxy.managers.deployment.kubernetes import KubernetesDeploymentPlatform
+from contaxy.managers.deployment.manager import DeploymentManager
 from contaxy.managers.deployment.utils import _ENV_VARIABLE_CONTAXY_SERVICE_URL, Labels
 from contaxy.managers.json_db.inmemory_dict import InMemoryDictJsonDocumentManager
 from contaxy.managers.system import SystemManager
@@ -586,11 +586,9 @@ class TestDockerDeploymentManager(DeploymentOperationsTests):
         self._system_manager = SystemManager(component_manager_mock)
         component_manager_mock.system_manager = self._system_manager
 
-        self._docker_deployment_manager = DockerDeploymentManager(
-            component_manager_mock
-        )
-        self._deployment_manager = DeploymentManagerWithDB(
-            self._docker_deployment_manager, component_manager_mock
+        self._docker_deployment_platform = DockerDeploymentPlatform()
+        self._deployment_manager = DeploymentManager(
+            self._docker_deployment_platform, component_manager_mock
         )
         component_manager_mock.deployment_manager = self._deployment_manager
 
@@ -613,7 +611,7 @@ class TestDockerDeploymentManager(DeploymentOperationsTests):
                 while True:
                     try:
                         container = (
-                            self._docker_deployment_manager.client.containers.get(
+                            self._docker_deployment_platform.client.containers.get(
                                 service_id
                             )
                         )
@@ -626,12 +624,12 @@ class TestDockerDeploymentManager(DeploymentOperationsTests):
                 return
 
         try:
-            network = self._docker_deployment_manager.client.networks.get(
+            network = self._docker_deployment_platform.client.networks.get(
                 get_network_name(project_id=self._project_id)
             )
             # only relevant for when the code runs within a container (as then the DockerDeploymentManager behaves slightly different)
             host_container = get_this_container(
-                client=self._docker_deployment_manager.client
+                client=self._docker_deployment_platform.client
             )
             if host_container:
                 network.disconnect()
@@ -655,6 +653,19 @@ class TestDockerDeploymentManager(DeploymentOperationsTests):
     def service_display_name(self) -> str:
         return self._service_display_name
 
+    def deploy_service(self, project_id: str, service: ServiceInput) -> Service:
+        deployed_service = self._deployment_manager.deploy_service(
+            project_id=project_id, service_input=service, wait=True
+        )
+        return deployed_service
+
+    def deploy_job(self, project_id: str, job: JobInput) -> Job:
+        deployed_job = self._deployment_manager.deploy_job(
+            project_id=project_id, job_input=job, wait=True
+        )
+        time.sleep(3)
+        return deployed_job
+
     def test_missing_docker_container(self):
         test_service_input = create_test_service_input(
             display_name=self.service_display_name
@@ -663,7 +674,7 @@ class TestDockerDeploymentManager(DeploymentOperationsTests):
             project_id=self.project_id,
             service=test_service_input,
         )
-        self._docker_deployment_manager.delete_service(
+        self._docker_deployment_platform.delete_service(
             self.project_id, service.id, True
         )
         time.sleep(2)
@@ -703,13 +714,13 @@ class TestDockerDeploymentManager(DeploymentOperationsTests):
             service=test_service_input_3,
         )
 
-        container_1 = self._docker_deployment_manager.client.containers.get(
+        container_1 = self._docker_deployment_platform.client.containers.get(
             service_1.id
         )
-        container_2 = self._docker_deployment_manager.client.containers.get(
+        container_2 = self._docker_deployment_platform.client.containers.get(
             service_2.id
         )
-        container_3 = self._docker_deployment_manager.client.containers.get(
+        container_3 = self._docker_deployment_platform.client.containers.get(
             service_3.id
         )
         assert container_1
@@ -772,15 +783,15 @@ class TestKubernetesDeploymentManager(DeploymentOperationsTests):
         ) = get_random_resources()
         _kube_namespace = f"{uid}-deployment-manager-test-namespace"
 
-        self._kubernetes_deployment_manager = KubernetesDeploymentManager(
-            component_manager_mock, kube_namespace=_kube_namespace
+        self._kubernetes_deployment_platform = KubernetesDeploymentPlatform(
+            kube_namespace=_kube_namespace
         )
-        self._deployment_manager = DeploymentManagerWithDB(
-            self._kubernetes_deployment_manager, component_manager_mock
+        self._deployment_manager = DeploymentManager(
+            self._kubernetes_deployment_platform, component_manager_mock
         )
         component_manager_mock.deployment_manager = self._deployment_manager
 
-        self._kubernetes_deployment_manager.core_api.create_namespace(
+        self._kubernetes_deployment_platform.core_api.create_namespace(
             V1Namespace(metadata={"name": _kube_namespace})
         )
 
@@ -797,7 +808,7 @@ class TestKubernetesDeploymentManager(DeploymentOperationsTests):
                 # service not found
                 return
 
-        self._kubernetes_deployment_manager.core_api.delete_namespace(
+        self._kubernetes_deployment_platform.core_api.delete_namespace(
             _kube_namespace, propagation_policy="Foreground"
         )
 
@@ -805,7 +816,7 @@ class TestKubernetesDeploymentManager(DeploymentOperationsTests):
         timeout = 60
         while time.time() - start < timeout:
             try:
-                self._kubernetes_deployment_manager.core_api.read_namespace(
+                self._kubernetes_deployment_platform.core_api.read_namespace(
                     name=_kube_namespace
                 )
                 time.sleep(2)
@@ -827,6 +838,16 @@ class TestKubernetesDeploymentManager(DeploymentOperationsTests):
     @property
     def service_display_name(self) -> str:
         return self._service_display_name
+
+    def deploy_service(self, project_id: str, service: ServiceInput) -> Service:
+        return self._deployment_manager.deploy_service(
+            project_id=project_id, service_input=service, wait=True
+        )
+
+    def deploy_job(self, project_id: str, job: JobInput) -> Job:
+        return self._deployment_manager.deploy_job(
+            project_id=project_id, job_input=job, wait=True
+        )
 
     def test_project_isolation(self) -> None:
         """Test that services of the same project can reach each others' endpoints and services of different projects cannot."""
@@ -866,23 +887,23 @@ class TestKubernetesDeploymentManager(DeploymentOperationsTests):
             project_id=project_core, service=test_service_input_core
         )
 
-        namespace = self._kubernetes_deployment_manager.kube_namespace
-        pod_1 = self._kubernetes_deployment_manager.core_api.list_namespaced_pod(
+        namespace = self._kubernetes_deployment_platform.kube_namespace
+        pod_1 = self._kubernetes_deployment_platform.core_api.list_namespaced_pod(
             namespace=namespace,
             label_selector=f"ctxy.deploymentName={service_1.id},ctxy.projectName={project_1}",
         ).items[0]
 
-        pod_2 = self._kubernetes_deployment_manager.core_api.list_namespaced_pod(
+        pod_2 = self._kubernetes_deployment_platform.core_api.list_namespaced_pod(
             namespace=namespace,
             label_selector=f"ctxy.deploymentName={service_2.id},ctxy.projectName={project_1}",
         ).items[0]
 
-        pod_3 = self._kubernetes_deployment_manager.core_api.list_namespaced_pod(
+        pod_3 = self._kubernetes_deployment_platform.core_api.list_namespaced_pod(
             namespace=namespace,
             label_selector=f"ctxy.deploymentName={service_3.id},ctxy.projectName={project_2}",
         ).items[0]
 
-        pod_core = self._kubernetes_deployment_manager.core_api.list_namespaced_pod(
+        pod_core = self._kubernetes_deployment_platform.core_api.list_namespaced_pod(
             namespace=namespace,
             label_selector=f"ctxy.deploymentName={service_core.id},ctxy.projectName={project_core}",
         ).items[0]
@@ -890,13 +911,13 @@ class TestKubernetesDeploymentManager(DeploymentOperationsTests):
         pod_core.metadata.labels[
             "ctxy.deploymentType"
         ] = DeploymentType.CORE_BACKEND.value
-        self._kubernetes_deployment_manager.core_api.patch_namespaced_pod(
+        self._kubernetes_deployment_platform.core_api.patch_namespaced_pod(
             name=pod_core.metadata.name, namespace=namespace, body=pod_core
         )
 
         _command_prefix = ["/bin/sh", "-c"]
         output = stream.stream(
-            self._kubernetes_deployment_manager.core_api.connect_get_namespaced_pod_exec,
+            self._kubernetes_deployment_platform.core_api.connect_get_namespaced_pod_exec,
             pod_1.metadata.name,
             namespace,
             command=[
@@ -912,7 +933,7 @@ class TestKubernetesDeploymentManager(DeploymentOperationsTests):
         assert "Hello world!" in output
 
         output = stream.stream(
-            self._kubernetes_deployment_manager.core_api.connect_get_namespaced_pod_exec,
+            self._kubernetes_deployment_platform.core_api.connect_get_namespaced_pod_exec,
             pod_1.metadata.name,
             namespace,
             command=[
@@ -928,7 +949,7 @@ class TestKubernetesDeploymentManager(DeploymentOperationsTests):
         assert "wget: download timed out" in output
 
         output = stream.stream(
-            self._kubernetes_deployment_manager.core_api.connect_get_namespaced_pod_exec,
+            self._kubernetes_deployment_platform.core_api.connect_get_namespaced_pod_exec,
             pod_3.metadata.name,
             namespace,
             command=[
@@ -945,7 +966,7 @@ class TestKubernetesDeploymentManager(DeploymentOperationsTests):
 
         # The core service can reach all services, no matter the project
         output = stream.stream(
-            self._kubernetes_deployment_manager.core_api.connect_get_namespaced_pod_exec,
+            self._kubernetes_deployment_platform.core_api.connect_get_namespaced_pod_exec,
             pod_core.metadata.name,
             namespace,
             command=[

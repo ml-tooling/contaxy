@@ -1,13 +1,24 @@
 import json
 import time
 from datetime import datetime, timezone
-from typing import Dict, List, Literal, Optional
+from typing import Dict, List, Literal, Optional, Union
 
 from starlette.responses import Response
 
 from contaxy import config
 from contaxy.config import settings
-from contaxy.operations import DeploymentOperations, JsonDocumentOperations
+from contaxy.managers.deployment.docker import DockerDeploymentPlatform
+from contaxy.managers.deployment.kubernetes import KubernetesDeploymentPlatform
+from contaxy.managers.deployment.utils import (
+    create_deployment_config,
+    split_image_name_and_tag,
+)
+from contaxy.operations import (
+    AuthOperations,
+    DeploymentOperations,
+    JsonDocumentOperations,
+    SystemOperations,
+)
 from contaxy.operations.components import ComponentOperations
 from contaxy.schema import (
     ClientValueError,
@@ -36,35 +47,65 @@ def _get_job_collection_id(project_id: str) -> str:
     return f"project_{project_id}_job_metadata"
 
 
-class DeploymentManagerWithDB(DeploymentOperations):
+class DeploymentManager(DeploymentOperations):
     def __init__(
         self,
-        wrapped_deployment_manager: DeploymentOperations,
+        deployment_platform: Union[
+            DockerDeploymentPlatform, KubernetesDeploymentPlatform
+        ],
         component_manager: ComponentOperations,
     ):
+        self._global_state = component_manager.global_state
         self._request_state = component_manager.request_state
-        self.deployment_manager = wrapped_deployment_manager
+        self.deployment_platform = deployment_platform
         self._component_manager = component_manager
 
     @property
     def _json_db_manager(self) -> JsonDocumentOperations:
         return self._component_manager.get_json_db_manager()
 
+    @property
+    def _system_manager(self) -> SystemOperations:
+        return self._component_manager.get_system_manager()
+
+    @property
+    def _auth_manager(self) -> AuthOperations:
+        return self._component_manager.get_auth_manager()
+
     def deploy_service(
         self,
         project_id: str,
-        service: ServiceInput,
+        service_input: ServiceInput,
         action_id: Optional[str] = None,
         deployment_type: Literal[
             DeploymentType.SERVICE, DeploymentType.EXTENSION
         ] = DeploymentType.SERVICE,
         wait: bool = False,
     ) -> Service:
-        deployed_service = self.deployment_manager.deploy_service(
-            project_id, service, action_id, deployment_type, wait
+        # Create service in DB
+        db_service = Service(
+            **create_deployment_config(
+                project_id=project_id,
+                deployment_input=service_input,
+                deployment_type=deployment_type,
+                authorized_subject=self._request_state.authorized_subject,
+                system_manager=self._system_manager,
+                auth_manager=self._auth_manager,
+            ).dict()
         )
-        self._create_service_db_document(deployed_service, project_id)
-        return deployed_service
+        self._create_service_db_document(db_service, project_id)
+
+        # Start service container
+        if not service_input.is_stopped:
+            deployed_service = self.deployment_platform.deploy_service(
+                project_id, db_service, action_id, wait
+            )
+            db_service.status = deployed_service.status
+            db_service.internal_id = deployed_service.internal_id
+        else:
+            db_service.status = DeploymentStatus.STOPPED
+            db_service.internal_id = None
+        return db_service
 
     def list_services(
         self,
@@ -80,7 +121,7 @@ class DeploymentManagerWithDB(DeploymentOperations):
         # Create lookup for all running services
         deployed_service_lookup: Dict[str, Service] = {
             service.id: service
-            for service in self.deployment_manager.list_services(
+            for service in self.deployment_platform.list_services(
                 project_id, deployment_type
             )
             if service.id is not None
@@ -118,7 +159,7 @@ class DeploymentManagerWithDB(DeploymentOperations):
     def get_service_metadata(self, project_id: str, service_id: str) -> Service:
         db_service = self._get_service_from_db(project_id, service_id)
         try:
-            deployed_service = self.deployment_manager.get_service_metadata(
+            deployed_service = self.deployment_platform.get_service_metadata(
                 project_id, db_service.id
             )
             db_service.status = deployed_service.status
@@ -132,8 +173,12 @@ class DeploymentManagerWithDB(DeploymentOperations):
     def update_service(
         self, project_id: str, service_id: str, service: ServiceUpdate
     ) -> Service:
-        if "display_name" in service.dict(exclude_unset=True):
+        service_dict = service.dict(exclude_unset=True)
+        if "display_name" in service_dict:
             raise ClientValueError("Display name of service cannot be updated!")
+        if "container_image" in service_dict:
+            image_name, image_tag = split_image_name_and_tag(service.container_image)
+            self._system_manager.check_allowed_image(image_name, image_tag)
         service_doc = self._json_db_manager.update_json_document(
             project_id=config.SYSTEM_INTERNAL_PROJECT,
             collection_id=_get_service_collection_id(project_id),
@@ -173,7 +218,7 @@ class DeploymentManagerWithDB(DeploymentOperations):
         db_service = self._get_service_from_db(project_id, service_id)
 
         try:
-            self.deployment_manager.delete_service(
+            self.deployment_platform.delete_service(
                 project_id=project_id,
                 service_id=db_service.id,
                 delete_volumes=delete_volumes,
@@ -189,7 +234,7 @@ class DeploymentManagerWithDB(DeploymentOperations):
         )
 
     def delete_services(self, project_id: str) -> None:
-        self.deployment_manager.delete_services(project_id)
+        self.deployment_platform.delete_services(project_id)
         self._json_db_manager.delete_json_collection(
             config.SYSTEM_INTERNAL_PROJECT, _get_service_collection_id(project_id)
         )
@@ -216,7 +261,7 @@ class DeploymentManagerWithDB(DeploymentOperations):
         lines: Optional[int],
         since: Optional[datetime],
     ) -> str:
-        return self.deployment_manager.get_service_logs(
+        return self.deployment_platform.get_service_logs(
             project_id, service_id, lines, since
         )
 
@@ -226,7 +271,7 @@ class DeploymentManagerWithDB(DeploymentOperations):
             collection_id=_get_job_collection_id(project_id),
         )
         deployed_job_lookup: Dict[Optional[str], Job] = {
-            job.id: job for job in self.deployment_manager.list_jobs(project_id)
+            job.id: job for job in self.deployment_platform.list_jobs(project_id)
         }
         jobs = []
         for job_doc in job_docs:
@@ -245,26 +290,40 @@ class DeploymentManagerWithDB(DeploymentOperations):
     def deploy_job(
         self,
         project_id: str,
-        job: JobInput,
+        job_input: JobInput,
         action_id: Optional[str] = None,
         wait: bool = False,
     ) -> Job:
-        deployed_job = self.deployment_manager.deploy_job(
-            project_id, job, action_id, wait
+        # Create job in DB
+        db_job = Job(
+            **create_deployment_config(
+                project_id=project_id,
+                deployment_input=job_input,
+                deployment_type=DeploymentType.JOB,
+                authorized_subject=self._request_state.authorized_subject,
+                system_manager=self._system_manager,
+                auth_manager=self._auth_manager,
+            ).dict()
         )
         self._json_db_manager.create_json_document(
             project_id=config.SYSTEM_INTERNAL_PROJECT,
             collection_id=_get_job_collection_id(project_id),
-            key=deployed_job.id,
-            json_document=deployed_job.json(),
+            key=db_job.id,
+            json_document=db_job.json(),
             upsert=False,
         )
-        return deployed_job
+        # Start job container
+        deployed_job = self.deployment_platform.deploy_job(
+            project_id, db_job, action_id, wait
+        )
+        db_job.status = deployed_job.status
+        db_job.internal_id = deployed_job.internal_id
+        return db_job
 
     def get_job_metadata(self, project_id: str, job_id: str) -> Job:
         db_job = self._get_job_from_db(project_id, job_id)
         try:
-            deployed_job = self.deployment_manager.get_job_metadata(
+            deployed_job = self.deployment_platform.get_job_metadata(
                 project_id, db_job.id
             )
             db_job.status = deployed_job.status
@@ -279,7 +338,7 @@ class DeploymentManagerWithDB(DeploymentOperations):
         db_job = self._get_job_from_db(project_id, job_id)
 
         try:
-            self.deployment_manager.delete_job(
+            self.deployment_platform.delete_job(
                 project_id=project_id,
                 job_id=db_job.id,
             )
@@ -293,7 +352,7 @@ class DeploymentManagerWithDB(DeploymentOperations):
         )
 
     def delete_jobs(self, project_id: str) -> None:
-        self.deployment_manager.delete_jobs(project_id)
+        self.deployment_platform.delete_jobs(project_id)
         self._json_db_manager.delete_json_collection(
             config.SYSTEM_INTERNAL_PROJECT, _get_job_collection_id(project_id)
         )
@@ -320,7 +379,7 @@ class DeploymentManagerWithDB(DeploymentOperations):
         lines: Optional[int] = None,
         since: Optional[datetime] = None,
     ) -> str:
-        return self.deployment_manager.get_job_logs(project_id, job_id, lines, since)
+        return self.deployment_platform.get_job_logs(project_id, job_id, lines, since)
 
     def execute_service_action(
         self,
@@ -350,9 +409,7 @@ class DeploymentManagerWithDB(DeploymentOperations):
                 f"Action {ACTION_START} on service {service_id} can only be performed "
                 f"when service is stopped but status is {service.status}!"
             )
-        self.deployment_manager.deploy_service(
-            project_id, ServiceInput(**service.dict()), wait=True
-        )
+        self.deployment_platform.deploy_service(project_id, service, wait=True)
 
     def _execute_stop_service_action(self, project_id: str, service_id: str) -> None:
         service = self.get_service_metadata(project_id, service_id)
@@ -361,7 +418,7 @@ class DeploymentManagerWithDB(DeploymentOperations):
                 f"Action {ACTION_STOP} on service {service_id} can only be performed "
                 f"when service is not stopped already!"
             )
-        self.deployment_manager.delete_service(
+        self.deployment_platform.delete_service(
             project_id, service_id, delete_volumes=False
         )
 
@@ -377,13 +434,11 @@ class DeploymentManagerWithDB(DeploymentOperations):
         return self._restart_service(project_id, service)
 
     def _restart_service(self, project_id: str, service: Service) -> Service:
-        self.deployment_manager.delete_service(
+        self.deployment_platform.delete_service(
             project_id, service.id, delete_volumes=False
         )
         self._wait_for_deployment_deletion(project_id, service.id)
-        return self.deployment_manager.deploy_service(
-            project_id, ServiceInput(**service.dict()), wait=True
-        )
+        return self.deployment_platform.deploy_service(project_id, service, wait=True)
 
     def _wait_for_deployment_deletion(
         self, project_id: str, service_id: str, timeout_seconds: int = 60
@@ -391,7 +446,7 @@ class DeploymentManagerWithDB(DeploymentOperations):
         try:
             start_time = time.time()
             while time.time() - start_time < timeout_seconds:
-                self.deployment_manager.get_service_metadata(project_id, service_id)
+                self.deployment_platform.get_service_metadata(project_id, service_id)
                 time.sleep(3)
             raise ServerBaseError(
                 f"Action {ACTION_RESTART} on service {service_id} failed as service "
@@ -461,12 +516,12 @@ class DeploymentManagerWithDB(DeploymentOperations):
     def list_deploy_service_actions(
         self, project_id: str, service: ServiceInput
     ) -> List[ResourceAction]:
-        return self.deployment_manager.list_deploy_service_actions(project_id, service)
+        return self.deployment_platform.list_deploy_service_actions(project_id, service)
 
     def list_deploy_job_actions(
         self, project_id: str, job: JobInput
     ) -> List[ResourceAction]:
-        return self.deployment_manager.list_deploy_job_actions(project_id, job)
+        return self.deployment_platform.list_deploy_job_actions(project_id, job)
 
     def list_job_actions(
         self,
