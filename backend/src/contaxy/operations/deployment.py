@@ -30,7 +30,7 @@ class ServiceOperations(ABC):
     def deploy_service(
         self,
         project_id: str,
-        service: ServiceInput,
+        service_input: ServiceInput,
         action_id: Optional[str] = None,
         deployment_type: Literal[
             DeploymentType.SERVICE, DeploymentType.EXTENSION
@@ -48,7 +48,7 @@ class ServiceOperations(ABC):
 
         Args:
             project_id (str): The id of the project that the service should be assigned to.
-            service (ServiceInput): The service input which can be used to configure the deployed service.
+            service_input (ServiceInput): The service input which can be used to configure the deployed service.
             action_id (Optional[str], optional): The ID of the selected action. Defaults to `None`.
             deployment_type (One of [DeploymentType.SERVICE, DeploymentType.JOB]): The deployment type of either Service or Extension (which is a subtype of Service).
             wait (bool, optional): If set to True, the function will wait until the service was successfully created.
@@ -244,7 +244,7 @@ class JobOperations(ABC):
     def deploy_job(
         self,
         project_id: str,
-        job: JobInput,
+        job_input: JobInput,
         action_id: Optional[str] = None,
         wait: bool = False,
     ) -> Job:

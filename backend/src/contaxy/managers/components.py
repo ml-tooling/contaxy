@@ -6,7 +6,7 @@ from pydantic.networks import PostgresDsn
 
 from contaxy import config
 from contaxy.managers.auth import AuthManager
-from contaxy.managers.deployment.manager import DeploymentManagerWithDB
+from contaxy.managers.deployment.manager import DeploymentManager
 from contaxy.managers.extension import ExtensionManager
 from contaxy.managers.project import ProjectManager
 from contaxy.managers.seed import SeedManager
@@ -223,28 +223,23 @@ class ComponentManager(ComponentOperations):
                 self.global_state.settings.DEPLOYMENT_MANAGER
                 == config.DeploymentManager.DOCKER
             ):
-                from contaxy.managers.deployment.docker import DockerDeploymentManager
+                from contaxy.managers.deployment.docker import DockerDeploymentPlatform
 
-                self._deployment_manager = DockerDeploymentManager(self)
                 # Add DB persistence to docker deployment manager
-                self._deployment_manager = DeploymentManagerWithDB(
-                    self._deployment_manager, self
+                self._deployment_manager = DeploymentManager(
+                    DockerDeploymentPlatform(), self
                 )
             elif (
                 self.global_state.settings.DEPLOYMENT_MANAGER
                 == config.DeploymentManager.KUBERNETES
             ):
                 from contaxy.managers.deployment.kubernetes import (
-                    KubernetesDeploymentManager,
+                    KubernetesDeploymentPlatform,
                 )
 
-                self._deployment_manager = KubernetesDeploymentManager(
-                    self,
-                    self.global_state.settings.KUBERNETES_NAMESPACE,
-                )
                 # Add DB persistence to kubernetes deployment manager
-                self._deployment_manager = DeploymentManagerWithDB(
-                    self._deployment_manager, self
+                self._deployment_manager = DeploymentManager(
+                    KubernetesDeploymentPlatform(), self
                 )
 
         assert self._deployment_manager is not None
