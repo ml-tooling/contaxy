@@ -36,6 +36,7 @@
 - [`contaxy.managers.system`](./contaxy.managers.system.md#module-contaxymanagerssystem)
 - [`contaxy.operations`](./contaxy.operations.md#module-contaxyoperations)
 - [`contaxy.operations.auth`](./contaxy.operations.auth.md#module-contaxyoperationsauth)
+- [`contaxy.operations.components`](./contaxy.operations.components.md#module-contaxyoperationscomponents)
 - [`contaxy.operations.deployment`](./contaxy.operations.deployment.md#module-contaxyoperationsdeployment)
 - [`contaxy.operations.extension`](./contaxy.operations.extension.md#module-contaxyoperationsextension)
 - [`contaxy.operations.file`](./contaxy.operations.file.md#module-contaxyoperationsfile)
@@ -60,6 +61,7 @@
 - [`contaxy.utils.minio_utils`](./contaxy.utils.minio_utils.md#module-contaxyutilsminio_utils)
 - [`contaxy.utils.postgres_utils`](./contaxy.utils.postgres_utils.md#module-contaxyutilspostgres_utils)
 - [`contaxy.utils.state_utils`](./contaxy.utils.state_utils.md#module-contaxyutilsstate_utils): Utilities for managing global and request state for an FastAPI app.
+- [`contaxy.utils.utils`](./contaxy.utils.utils.md#module-contaxyutilsutils)
 
 ## Classes
 
@@ -76,9 +78,9 @@
 - [`auth.ResourcePermissions`](./contaxy.managers.auth.md#class-resourcepermissions)
 - [`auth.UserPassword`](./contaxy.managers.auth.md#class-userpassword)
 - [`components.ComponentManager`](./contaxy.managers.components.md#class-componentmanager): Initializes and manages all platform components.
-- [`docker.DockerDeploymentManager`](./contaxy.managers.deployment.docker.md#class-dockerdeploymentmanager)
-- [`kubernetes.KubernetesDeploymentManager`](./contaxy.managers.deployment.kubernetes.md#class-kubernetesdeploymentmanager)
-- [`manager.DeploymentManagerWithDB`](./contaxy.managers.deployment.manager.md#class-deploymentmanagerwithdb)
+- [`docker.DockerDeploymentPlatform`](./contaxy.managers.deployment.docker.md#class-dockerdeploymentplatform)
+- [`kubernetes.KubernetesDeploymentPlatform`](./contaxy.managers.deployment.kubernetes.md#class-kubernetesdeploymentplatform)
+- [`manager.DeploymentManager`](./contaxy.managers.deployment.manager.md#class-deploymentmanager)
 - [`utils.Labels`](./contaxy.managers.deployment.utils.md#class-labels): An enumeration.
 - [`utils.MappedLabels`](./contaxy.managers.deployment.utils.md#class-mappedlabels)
 - [`extension.ExtensionClient`](./contaxy.managers.extension.md#class-extensionclient): Handels the request forwarding to the installed extensions.
@@ -91,6 +93,7 @@
 - [`seed.SeedManager`](./contaxy.managers.seed.md#class-seedmanager)
 - [`system.SystemManager`](./contaxy.managers.system.md#class-systemmanager)
 - [`auth.AuthOperations`](./contaxy.operations.auth.md#class-authoperations)
+- [`components.ComponentOperations`](./contaxy.operations.components.md#class-componentoperations)
 - [`deployment.DeploymentOperations`](./contaxy.operations.deployment.md#class-deploymentoperations)
 - [`deployment.JobOperations`](./contaxy.operations.deployment.md#class-joboperations)
 - [`deployment.ServiceOperations`](./contaxy.operations.deployment.md#class-serviceoperations)
@@ -211,7 +214,8 @@
 - [`kube_utils.wait_for_deletion`](./contaxy.managers.deployment.kube_utils.md#function-wait_for_deletion)
 - [`kube_utils.wait_for_deployment`](./contaxy.managers.deployment.kube_utils.md#function-wait_for_deployment)
 - [`kube_utils.wait_for_job`](./contaxy.managers.deployment.kube_utils.md#function-wait_for_job)
-- [`utils.clean_labels`](./contaxy.managers.deployment.utils.md#function-clean_labels): Remove system labels that should not be settable by the user.
+- [`utils.clean_metadata`](./contaxy.managers.deployment.utils.md#function-clean_metadata): Remove system labels that should not be settable by the user.
+- [`utils.create_deployment_config`](./contaxy.managers.deployment.utils.md#function-create_deployment_config)
 - [`utils.get_default_environment_variables`](./contaxy.managers.deployment.utils.md#function-get_default_environment_variables): Sets default environment variables that should be set for each container.
 - [`utils.get_deployment_id`](./contaxy.managers.deployment.utils.md#function-get_deployment_id): Returns a valid deployment ID based on some specified metadata.
 - [`utils.get_gpu_info`](./contaxy.managers.deployment.utils.md#function-get_gpu_info)
@@ -220,9 +224,9 @@
 - [`utils.get_project_selection_labels`](./contaxy.managers.deployment.utils.md#function-get_project_selection_labels): Return a list of labels identifying project resources (system namespace, project id, deployment type).
 - [`utils.get_template_mapping`](./contaxy.managers.deployment.utils.md#function-get_template_mapping)
 - [`utils.get_volume_name`](./contaxy.managers.deployment.utils.md#function-get_volume_name)
-- [`utils.map_endpoints_label_to_endpoints`](./contaxy.managers.deployment.utils.md#function-map_endpoints_label_to_endpoints)
-- [`utils.map_endpoints_to_endpoints_label`](./contaxy.managers.deployment.utils.md#function-map_endpoints_to_endpoints_label)
 - [`utils.map_labels`](./contaxy.managers.deployment.utils.md#function-map_labels): Transform label dict to a MappedLabels object.
+- [`utils.map_list_to_string`](./contaxy.managers.deployment.utils.md#function-map_list_to_string)
+- [`utils.map_string_to_list`](./contaxy.managers.deployment.utils.md#function-map_string_to_list)
 - [`utils.replace_template_string`](./contaxy.managers.deployment.utils.md#function-replace_template_string): Return the input with replaced value according to the templates mapping.
 - [`utils.replace_templates`](./contaxy.managers.deployment.utils.md#function-replace_templates): Returns the input dict where those values that are matching template strings are replaced.
 - [`utils.split_image_name_and_tag`](./contaxy.managers.deployment.utils.md#function-split_image_name_and_tag)
@@ -242,6 +246,7 @@
 - [`fastapi_utils.as_form`](./contaxy.utils.fastapi_utils.md#function-as_form): Adds an as_form class method to decorated models.
 - [`fastapi_utils.patch_fastapi`](./contaxy.utils.fastapi_utils.md#function-patch_fastapi): Patch function to allow relative url resolution.
 - [`file_utils.generate_file_id`](./contaxy.utils.file_utils.md#function-generate_file_id)
+- [`id_utils.extract_ids_from_service_resource_name`](./contaxy.utils.id_utils.md#function-extract_ids_from_service_resource_name): Extract the project id and service id from a service resource name.
 - [`id_utils.extract_project_id_from_resource_name`](./contaxy.utils.id_utils.md#function-extract_project_id_from_resource_name): Extract the project id from a provided resource name.
 - [`id_utils.extract_user_id_from_resource_name`](./contaxy.utils.id_utils.md#function-extract_user_id_from_resource_name): Extract the user id from a provided resource name.
 - [`id_utils.generate_readable_id`](./contaxy.utils.id_utils.md#function-generate_readable_id): Generates a human- and URL-friendly ID from arbritary text.
@@ -256,6 +261,7 @@
 - [`minio_utils.get_bucket_name`](./contaxy.utils.minio_utils.md#function-get_bucket_name)
 - [`minio_utils.purge_bucket`](./contaxy.utils.minio_utils.md#function-purge_bucket)
 - [`postgres_utils.create_schema`](./contaxy.utils.postgres_utils.md#function-create_schema)
+- [`utils.remove_none_values_from_dict`](./contaxy.utils.utils.md#function-remove_none_values_from_dict)
 
 
 ---
