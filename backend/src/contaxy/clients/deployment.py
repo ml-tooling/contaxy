@@ -75,6 +75,18 @@ class DeploymentManagerClient(DeploymentOperations):
         handle_errors(resource)
         return parse_raw_as(Service, resource.text)
 
+    def update_service_access(
+        self,
+        project_id: str,
+        service_id: str,
+        request_kwargs: Dict = {},
+    ) -> None:
+        resource = self.client.post(
+            f"/projects/{project_id}/services/{service_id}:update-service-access",
+            **request_kwargs,
+        )
+        handle_errors(resource)
+
     def list_deploy_service_actions(
         self,
         project_id: str,

@@ -1,5 +1,6 @@
 import time
 from abc import ABC, abstractmethod
+from datetime import datetime, timezone
 from random import randint
 from typing import Generator, Tuple
 
@@ -191,6 +192,39 @@ class DeploymentOperationsTests(ABC):
                 service_id=service.id,
                 service=updated_service_input,
             )
+
+    def test_update_service_access(self):
+        test_service_input = create_test_service_input(
+            display_name=self.service_display_name
+        )
+        service = self.deploy_service(
+            project_id=self.project_id,
+            service=test_service_input,
+        )
+        assert service.last_access_time is None
+        assert service.last_access_user is None
+
+        self.deployment_manager.update_service_access(
+            project_id=self.project_id,
+            service_id=service.id,
+        )
+        service = self.deployment_manager.get_service_metadata(
+            project_id=self.project_id,
+            service_id=service.id,
+        )
+        assert service.last_access_time <= datetime.now(timezone.utc)
+        assert service.last_access_user == ""
+        # TODO: Test with authenticated user which should be set in last_access_user
+
+        self.deployment_manager.update_service_access(
+            project_id=self.project_id,
+            service_id=service.id,
+        )
+        service_updated = self.deployment_manager.get_service_metadata(
+            project_id=self.project_id,
+            service_id=service.id,
+        )
+        assert service.last_access_time <= service_updated.last_access_time
 
     def test_cannot_deploy_disallowed_image(self) -> None:
         self.system_manager.add_allowed_image(

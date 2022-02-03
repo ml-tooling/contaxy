@@ -265,6 +265,29 @@ def update_service(
     )
 
 
+@service_router.post(
+    "/projects/{project_id}/services/{service_id}:update-service-access",
+    operation_id=ExtensibleOperations.UPDATE_SERVICE_ACCESS.value,
+    summary="Update a service.",
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses={**UPDATE_RESOURCE_RESPONSES},
+)
+def update_service_access(
+    project_id: str = PROJECT_ID_PARAM,
+    service_id: str = SERVICE_ID_PARAM,
+    component_manager: ComponentManager = Depends(get_component_manager),
+    token: str = Depends(get_api_token),
+) -> Any:
+    """Update the last access information of the service to the current time and calling user."""
+    component_manager.verify_access(
+        token, f"projects/{project_id}/services/{service_id}", AccessLevel.WRITE
+    )
+    service_id, extension_id = parse_composite_id(service_id)
+    component_manager.get_service_manager(extension_id).update_service_access(
+        project_id, service_id
+    )
+
+
 @service_router.delete(
     "/projects/{project_id}/services",
     operation_id=ExtensibleOperations.DELETE_SERVICES.value,
