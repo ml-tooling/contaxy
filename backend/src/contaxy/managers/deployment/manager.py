@@ -89,6 +89,8 @@ class DeploymentManagerWithDB(DeploymentOperations):
         # Go through all services in the DB and update their status and internal id
         for service_doc in service_docs:
             db_service = Service.parse_raw(service_doc.json_value)
+            if db_service.deployment_type != deployment_type:
+                continue
             deployed_service = deployed_service_lookup.pop(db_service.id, None)
             if deployed_service is None:
                 db_service.status = DeploymentStatus.STOPPED

@@ -6,12 +6,7 @@ import pytest
 import requests
 
 from contaxy import config
-from contaxy.clients import (
-    AuthClient,
-    DeploymentManagerClient,
-    ExtensionClient,
-    SystemClient,
-)
+from contaxy.clients import AuthClient, DeploymentManagerClient, ExtensionClient
 from contaxy.managers.extension import ExtensionInput
 from contaxy.operations.deployment import DeploymentOperations
 from contaxy.operations.extension import ExtensionOperations
@@ -177,11 +172,9 @@ class TestExtensionManagerViaRemoteEndpoint(ExtensionOperationsTests):
 
     @pytest.fixture(autouse=True)
     def _init_managers(self, _client: requests.Session) -> Generator:
-        system_manager = SystemClient(_client)
         self._auth_manager = AuthClient(_client)
         self._deployment_manager = DeploymentManagerClient(_client)
         self._extension_manager = ExtensionClient(_client)
-        system_manager.initialize_system()
 
         self.login_user(
             config.SYSTEM_ADMIN_USERNAME, config.SYSTEM_ADMIN_INITIAL_PASSWORD

@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
-from typing import Generator, List
+from typing import Callable, Generator, List
 
 import pytest
 import requests
@@ -8,7 +8,7 @@ from faker import Faker
 from fastapi.testclient import TestClient
 
 from contaxy import config
-from contaxy.clients import AuthClient, JsonDocumentClient
+from contaxy.clients import AuthClient
 from contaxy.clients.project import ProjectClient
 from contaxy.clients.system import SystemClient
 from contaxy.managers.auth import AuthManager
@@ -65,13 +65,58 @@ class ProjectOperationsTests(ABC):
             ), f"Project id ({project_id}) should not be longer than the maximum allowed."
             # TODO additional tests
 
-    def test_create_project(self, faker: Faker) -> None:
+    @pytest.fixture(autouse=True)
+    def create_project(self) -> Generator:
+        _created_projects = []
+
+        def inner_create_project(
+            project_input: ProjectCreation, technical_project: bool = False
+        ):
+            new_project = self.project_manager.create_project(
+                project_input, technical_project
+            )
+            _created_projects.append(new_project)
+            return new_project
+
+        yield inner_create_project
+        for project in _created_projects:
+            try:
+                self.project_manager.delete_project(project.id)
+            except ResourceNotFoundError:
+                pass
+
+    @pytest.fixture(autouse=True)
+    def create_user(self) -> Generator:
+        _created_users = []
+
+        def inner_create_user(username=None):
+            if username is None:
+                username = Faker().simple_profile()["username"]
+            new_user = self.auth_manager.create_user(
+                UserRegistration(username=username, password=DEFAULT_PASSWORD)
+            )
+            _created_users.append(new_user)
+            return new_user
+
+        yield inner_create_user
+        self.login_user(
+            config.SYSTEM_ADMIN_USERNAME, config.SYSTEM_ADMIN_INITIAL_PASSWORD
+        )
+        for user in _created_users:
+            try:
+                self.auth_manager.delete_user(user.id)
+            except ResourceNotFoundError:
+                pass
+
+    def test_create_project(
+        self, faker: Faker, create_user: Callable, create_project: Callable
+    ) -> None:
         created_projects: List[Project] = []
-        for _ in range(10):
+        for _ in range(3):
             project_name = faker.bs()
             project_id = self.project_manager.suggest_project_id(project_name)
 
-            created_project = self.project_manager.create_project(
+            created_project = create_project(
                 ProjectCreation(
                     id=project_id,
                     display_name=project_name,
@@ -98,7 +143,7 @@ class ProjectOperationsTests(ABC):
 
         # Create project with an already existing project ID
         with pytest.raises(ResourceAlreadyExistsError):
-            self.project_manager.create_project(
+            create_project(
                 ProjectCreation(
                     id=created_projects[0].id,
                     display_name=project_name,
@@ -107,16 +152,12 @@ class ProjectOperationsTests(ABC):
             )
 
         # Create project with an authorized user
-        user = self.auth_manager.create_user(
-            UserRegistration(
-                username=faker.simple_profile()["username"], password=DEFAULT_PASSWORD
-            )
-        )
+        user = create_user()
         self.login_user(username=user.username, password=DEFAULT_PASSWORD)
 
         project_name = faker.bs()
         project_id = self.project_manager.suggest_project_id(project_name)
-        created_project = self.project_manager.create_project(
+        created_project = create_project(
             ProjectCreation(
                 id=project_id,
                 display_name=project_name,
@@ -129,45 +170,20 @@ class ProjectOperationsTests(ABC):
             == USERS_KIND + "/" + user.id  # TODO: use user.name
         ), "The authorized user should be set as creator"
 
-    def test_list_project(self, faker: Faker) -> None:
-        # Create 10 projects without authorized user
-        created_projects_without_user: List[Project] = []
-        for _ in range(10):
-            project_name = faker.bs()
-            project_id = self.project_manager.suggest_project_id(project_name)
-
-            created_project = self.project_manager.create_project(
-                ProjectCreation(
-                    id=project_id,
-                    display_name=project_name,
-                    description=faker.sentence(),
-                ),
-                technical_project=False,
-            )
-            created_projects_without_user.append(created_project)
-
-        # when running the test against an endpoint, list_projects might also return the project belonging to the user which is a technical project
-        projects = list(
-            filter(
-                lambda project: not project.technical_project,
-                self.project_manager.list_projects(),
-            )
-        )
-        assert len(projects) == len(created_projects_without_user)
-
+    def test_list_project(
+        self, faker: Faker, create_user: Callable, create_project: Callable
+    ) -> None:
         # Set an authorized user in the request state
-        username = faker.simple_profile()["username"]
-        self.auth_manager.create_user(
-            UserRegistration(username=username, password=DEFAULT_PASSWORD)
-        )
-        self.login_user(username=username, password=DEFAULT_PASSWORD)
+        user = create_user()
+        self.login_user(username=user.username, password=DEFAULT_PASSWORD)
 
+        prev_num_projects = len(self.project_manager.list_projects())
         created_projects_with_user: List[Project] = []
-        for _ in range(5):
+        for _ in range(3):
             project_name = faker.bs()
             project_id = self.project_manager.suggest_project_id(project_name)
 
-            created_project = self.project_manager.create_project(
+            created_project = create_project(
                 ProjectCreation(
                     id=project_id,
                     display_name=project_name,
@@ -178,17 +194,17 @@ class ProjectOperationsTests(ABC):
             created_projects_with_user.append(created_project)
 
         # This should only contain the projects the are created by the authorized user
-        assert len(self.project_manager.list_projects()) == len(
+        assert len(self.project_manager.list_projects()) == prev_num_projects + len(
             created_projects_with_user
         )
 
-    def test_update_project(self, faker: Faker) -> None:
+    def test_update_project(self, faker: Faker, create_project: Callable) -> None:
         # Create projects
         created_projects: List[Project] = []
-        for _ in range(10):
+        for _ in range(3):
             project_name = faker.bs()
             project_id = self.project_manager.suggest_project_id(project_name)
-            created_project = self.project_manager.create_project(
+            created_project = create_project(
                 ProjectCreation(
                     id=project_id,
                     display_name=project_name,
@@ -212,11 +228,11 @@ class ProjectOperationsTests(ABC):
             assert project.updated_at != updated_project.updated_at
             assert project.created_at == updated_project.created_at
 
-    def test_delete_project(self, faker: Faker) -> None:
+    def test_delete_project(self, faker: Faker, create_project: Callable) -> None:
         project_name = faker.bs()
         project_id = self.project_manager.suggest_project_id(project_name)
 
-        created_project = self.project_manager.create_project(
+        created_project = create_project(
             ProjectCreation(
                 id=project_id,
                 display_name=project_name,
@@ -229,19 +245,17 @@ class ProjectOperationsTests(ABC):
         with pytest.raises(ResourceNotFoundError):
             self.project_manager.get_project(created_project.id)
 
-        # when running the test against an endpoint, list_projects might also return the project belonging to the user which is a technical project
-        projects = list(
-            filter(
-                lambda project: not project.technical_project,
-                self.project_manager.list_projects(),
-            )
+        assert not any(
+            project.id == created_project.id
+            for project in self.project_manager.list_projects()
         )
-        assert len(projects) == 0
 
-    def test_project_member_handling(self, faker: Faker) -> None:
+    def test_project_member_handling(
+        self, faker: Faker, create_user: Callable, create_project: Callable
+    ) -> None:
         project_name = faker.bs()
         project_id = self.project_manager.suggest_project_id(project_name)
-        self.project_manager.create_project(
+        create_project(
             ProjectCreation(
                 id=project_id,
                 display_name=project_name,
@@ -250,22 +264,14 @@ class ProjectOperationsTests(ABC):
             technical_project=False,
         )
 
-        user1 = self.auth_manager.create_user(
-            UserRegistration(
-                username=faker.simple_profile()["username"], password=DEFAULT_PASSWORD
-            )
-        )
+        user1 = create_user()
 
         self.project_manager.add_project_member(project_id, user1.id, AccessLevel.WRITE)
         assert user1.id in [
             user.id for user in self.project_manager.list_project_members(project_id)
         ]
 
-        user2 = self.auth_manager.create_user(
-            UserRegistration(
-                username=faker.simple_profile()["username"], password=DEFAULT_PASSWORD
-            )
-        )
+        user2 = create_user()
 
         self.project_manager.add_project_member(project_id, user2.id, AccessLevel.ADMIN)
         assert user1.id in [
@@ -274,7 +280,6 @@ class ProjectOperationsTests(ABC):
         assert user2.id in [
             user.id for user in self.project_manager.list_project_members(project_id)
         ]
-
         self.login_user(username=user2.username, password=DEFAULT_PASSWORD)
 
         assert (
@@ -286,14 +291,17 @@ class ProjectOperationsTests(ABC):
             len(self.project_manager.list_projects()) == 0
         ), "The authorized user should see 0 projects"
 
-
-class ProjectOperationsEndpointTests(ProjectOperationsTests):
-    def test_create_technical_user_project(self, faker: Faker) -> None:
-        user = self.auth_manager.create_user(
-            UserRegistration(
-                username=faker.simple_profile()["username"], password=DEFAULT_PASSWORD
-            )
+        # Test that project can be deleted even if users don't exist anymore
+        self.login_user(
+            config.SYSTEM_ADMIN_USERNAME, config.SYSTEM_ADMIN_INITIAL_PASSWORD
         )
+        self.auth_manager.delete_user(user1.id)
+        self.project_manager.delete_project(project_id)
+
+
+class ProjectOperationsEndpointTests(ProjectOperationsTests, ABC):
+    def test_create_technical_user_project(self, create_user: Callable) -> None:
+        user = create_user()
 
         project = self.project_manager.get_project(user.id)
         assert project
@@ -308,18 +316,21 @@ class ProjectOperationsEndpointTests(ProjectOperationsTests):
 class TestProjectManagerWithInMemoryDB(ProjectOperationsTests):
     @pytest.fixture(autouse=True)
     def _init_managers(
-        self, global_state: GlobalState, request_state: RequestState
+        self,
+        global_state: GlobalState,
+        request_state: RequestState,
+        create_user: Callable,
     ) -> Generator:
         json_db = InMemoryDictJsonDocumentManager(global_state, request_state)
-        json_db.delete_json_collections(config.SYSTEM_INTERNAL_PROJECT)
         component_manager_mock = ComponentManagerMock(
             global_state, request_state, json_db_manager=json_db
         )
         self._auth_manager = AuthManager(component_manager_mock)
         component_manager_mock.auth_manager = self._auth_manager
         self._project_manager = ProjectManager(component_manager_mock)
+        # Make sure admin user exists in InMemoryDict DB
+        create_user("admin")
         yield
-        json_db.delete_json_collections(config.SYSTEM_INTERNAL_PROJECT)
 
     @property
     def project_manager(self) -> ProjectManager:
@@ -348,13 +359,14 @@ class TestProjectManagerWithPostgresDB(ProjectOperationsTests):
     ) -> Generator:
         json_db = PostgresJsonDocumentManager(global_state, request_state)
         json_db.delete_json_collections(config.SYSTEM_INTERNAL_PROJECT)
-        self._auth_manager = AuthManager(global_state, request_state, json_db)
-        self._project_manager = ProjectManager(
-            global_state, request_state, json_db, self._auth_manager
+        component_manager_mock = ComponentManagerMock(
+            global_state, request_state, json_db_manager=json_db
         )
+        self._auth_manager = AuthManager(component_manager_mock)
+        component_manager_mock.auth_manager = self._auth_manager
+        self._project_manager = ProjectManager(component_manager_mock)
 
         yield
-        json_db.delete_json_collections(config.SYSTEM_INTERNAL_PROJECT)
 
     @property
     def project_manager(self) -> ProjectOperations:
@@ -384,7 +396,6 @@ class TestProjectOperationsViaLocalEndpoints(ProjectOperationsEndpointTests):
         with TestClient(app=app, root_path="/") as test_client:
             self._endpoint_client = test_client
             system_manager = SystemClient(self._endpoint_client)
-            json_db = JsonDocumentClient(self._endpoint_client)
             self._auth_manager = AuthClient(self._endpoint_client)
             self._project_manager = ProjectClient(self._endpoint_client)
 
@@ -395,11 +406,6 @@ class TestProjectOperationsViaLocalEndpoints(ProjectOperationsEndpointTests):
                 config.SYSTEM_ADMIN_USERNAME, config.SYSTEM_ADMIN_INITIAL_PASSWORD
             )
             yield
-            # Login as admin again -> logged in user might have been changed
-            self.login_user(
-                config.SYSTEM_ADMIN_USERNAME, config.SYSTEM_ADMIN_INITIAL_PASSWORD
-            )
-            json_db.delete_json_collections(config.SYSTEM_INTERNAL_PROJECT)
 
     @property
     def project_manager(self) -> ProjectOperations:
@@ -436,23 +442,13 @@ class TestProjectOperationsViaRemoteEndpoints(ProjectOperationsEndpointTests):
     @pytest.fixture(autouse=True)
     def _init_managers(self, remote_client: requests.Session) -> Generator:
         self._endpoint_client = remote_client
-        system_manager = SystemClient(self._endpoint_client)
-        json_db = JsonDocumentClient(self._endpoint_client)
         self._auth_manager = AuthClient(self._endpoint_client)
         self._project_manager = ProjectClient(self._endpoint_client)
-
-        # system_manager.cleanup_system()
-        system_manager.initialize_system()
 
         self.login_user(
             config.SYSTEM_ADMIN_USERNAME, config.SYSTEM_ADMIN_INITIAL_PASSWORD
         )
         yield
-        # Login as admin again -> logged in user might have been changed
-        self.login_user(
-            config.SYSTEM_ADMIN_USERNAME, config.SYSTEM_ADMIN_INITIAL_PASSWORD
-        )
-        json_db.delete_json_collections(config.SYSTEM_INTERNAL_PROJECT)
 
     @property
     def project_manager(self) -> ProjectOperations:

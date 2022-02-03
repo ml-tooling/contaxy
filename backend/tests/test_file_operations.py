@@ -467,7 +467,6 @@ class TestMinioFileManagerViaRemoteEndpoints(FileOperationsTests):
     @pytest.fixture(autouse=True)
     def _init_managers(self, remote_client: requests.Session) -> Generator:
         self._endpoint_client = remote_client
-        system_manager = SystemClient(self._endpoint_client)
         self._json_db = JsonDocumentClient(self._endpoint_client)
         self._auth_manager = AuthClient(self._endpoint_client)
         self._file_manager = FileClient(self._endpoint_client)
@@ -476,7 +475,6 @@ class TestMinioFileManagerViaRemoteEndpoints(FileOperationsTests):
         )
 
         self._project_id = f"{randint(1, 100000)}-file-manager-test"
-        system_manager.initialize_system()
 
         self.login_user(
             config.SYSTEM_ADMIN_USERNAME, config.SYSTEM_ADMIN_INITIAL_PASSWORD
