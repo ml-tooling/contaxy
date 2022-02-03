@@ -196,18 +196,18 @@ def list_resource_permissions(
 
 @router.post(
     "/auth/permissions",
-    summary="Sets permission for resource.",
+    summary="Add permission to specified resource.",
     operation_id=CoreOperations.SET_RESOURCE_PERMISSIONS.value,
     status_code=status.HTTP_204_NO_CONTENT,
 )
-def set_resource_permissions(
+def add_resource_permission(
     resource_name: str,
     permission: str,
     token: str = Depends(get_api_token),
     component_manager: ComponentManager = Depends(get_component_manager),
 ) -> Any:
-    """Sets permission for resource, admin access for that resource is required."""
-    component_manager.verify_access(token, resource_name, AccessLevel.ADMIN)
+    """Adds permission to specified resource, admin access to the /auth/permissions resource is required."""
+    component_manager.verify_access(token, "/auth/permissions", AccessLevel.ADMIN)
 
     component_manager.get_auth_manager().add_permission(resource_name, permission)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
@@ -215,7 +215,7 @@ def set_resource_permissions(
 
 @router.delete(
     "/auth/permissions",
-    summary="Deletes permission for resource.",
+    summary="Deletes permission of specified resource.",
     operation_id=CoreOperations.DELETE_RESOURCE_PERMISSIONS.value,
     status_code=status.HTTP_204_NO_CONTENT,
 )
@@ -226,8 +226,8 @@ def delete_resource_permissions(
     token: str = Depends(get_api_token),
     component_manager: ComponentManager = Depends(get_component_manager),
 ) -> Any:
-    """Deletes permission for resource, admin access for that resource is required."""
-    #   component_manager.verify_access(token, "/auth/permissions", AccessLevel.ADMIN)
+    """Deletes permission of specified resource, admin access to the /auth/permissions resource is required."""
+    component_manager.verify_access(token, "/auth/permissions", AccessLevel.ADMIN)
 
     component_manager.get_auth_manager().remove_permission(
         resource_name, permission, remove_sub_permissions
@@ -248,8 +248,8 @@ def list_resources_with_permission(
     token: str = Depends(get_api_token),
     component_manager: ComponentManager = Depends(get_component_manager),
 ) -> Any:
-    """List all resources that have a certain permission, admin access for that resource is required."""
-    component_manager.verify_access(token, "/auth/permissions", AccessLevel.ADMIN)
+    """List all resources that have a certain permission, admin access to the /auth/resources resource is required."""
+    component_manager.verify_access(token, "/auth/resources", AccessLevel.ADMIN)
 
     component_manager.get_auth_manager().list_resources_with_permission(
         permission, resource_name_prefix
