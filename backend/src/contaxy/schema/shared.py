@@ -42,6 +42,10 @@ class CoreOperations(str, Enum):
     CREATE_TOKEN = "create_token"
     LOGOUT_USER_SESSION = "logout_user_session"
     LOGIN_USER_SESSION = "login_user_session"
+    LIST_RESOURCE_PERMISSIONS = "list_resource_permissions"
+    SET_RESOURCE_PERMISSIONS = "set_resource_permissions"
+    DELETE_RESOURCE_PERMISSIONS = "delete_resource_permissions"
+    GET_RESOURCES_WITH_PERMISSION = "get_resources_with_permission"
     # OAuth2 Endpoints
     AUTHORIZE_CLIENT = "authorize_client"
     REQUEST_TOKEN = "request_token"
