@@ -414,3 +414,7 @@ class User(UserBase):
         None,
         description="Timestamp of the user creation. Assigned by the server and read-only.",
     )
+    has_password: Optional[bool] = Field(
+        None,
+        description="Indicates if the uses log in with password or SSO",
+    )
