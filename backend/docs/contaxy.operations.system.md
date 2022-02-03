@@ -37,6 +37,20 @@ add_allowed_image(allowed_image: AllowedImageInfo) → AllowedImageInfo
 
 ---
 
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/system.py#L36"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+### <kbd>method</kbd> `check_allowed_image`
+
+```python
+check_allowed_image(image_name: str, image_tag: str) → None
+```
+
+
+
+
+
+---
+
 <a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/system.py#L32"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `delete_allowed_image`

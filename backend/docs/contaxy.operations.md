@@ -17,6 +17,7 @@
 - **project**
 - **seed**
 - **system**
+- **components**
 
 
 

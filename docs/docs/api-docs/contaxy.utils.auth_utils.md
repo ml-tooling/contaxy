@@ -9,7 +9,8 @@
 
 **Global Variables**
 ---------------
-- **GLOBAL_EXTENSION_PROJECT**
+- **USER_ROLE**
+- **USERS_KIND**
 - **PERMISSION_SEPERATOR**
 - **RESOURCE_WILDCARD**
 - **ACCESS_LEVEL_MAPPING**
@@ -151,41 +152,43 @@ Checks if the requested permission is allowed by the granted permission.
 
 <a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/utils/auth_utils.py#L120"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
-## <kbd>function</kbd> `setup_user`
+## <kbd>function</kbd> `create_and_setup_user`
 
 ```python
-setup_user(user: User, project_manager: ProjectOperations) → Project
+create_and_setup_user(
+    user_input: UserRegistration,
+    auth_manager: AuthOperations,
+    project_manager: ProjectOperations,
+    technical_user: bool = False
+) → User
 ```
 
-Execute initial setup required for each new user. 
-
-This includes: 
-- Creation of a technical project that belongs to the user, with the same id as the user id. 
-- Addition of the new user to the global extension project so the user can access global extensions. 
+Create a new user and setup default project and permissions. 
 
 
 
 **Args:**
  
- - <b>`user`</b> (User):  The user for whom the project shall be created. 
- - <b>`project_manager`</b> (ProjectOperations):  The project manager instance used to create the project. 
+ - <b>`user_input`</b> (UserRegistration):  Information required for creating a new user. 
+ - <b>`auth_manager`</b> (AuthOperations):  The auth manager used to setup default permissions. 
+ - <b>`project_manager`</b> (ProjectOperations):  The project manager used to create the default user project. 
 
 
 
 **Raises:**
  
- - <b>`ResourceAlreadyExistsError`</b>:  if a project with the id of the user already exists. 
+ - <b>`ResourceAlreadyExistsError`</b>:  If the user already exists 
 
 
 
 **Returns:**
  
- - <b>`Project`</b>:  The created technical project of which the user is a member. 
+ - <b>`User`</b>:  The newly created and setup user 
 
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/utils/auth_utils.py#L164"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/utils/auth_utils.py#L204"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>function</kbd> `parse_userid_from_resource_name`
 
