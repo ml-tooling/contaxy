@@ -416,5 +416,5 @@ class User(UserBase):
     )
     has_password: Optional[bool] = Field(
         None,
-        description="Indicates if the uses log in with password or SSO",
+        description="Indicates if the user log in with password or SSO",
     )
