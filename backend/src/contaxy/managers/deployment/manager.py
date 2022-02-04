@@ -31,6 +31,7 @@ from contaxy.schema import (
     ServiceInput,
 )
 from contaxy.schema.deployment import DeploymentStatus, DeploymentType, ServiceUpdate
+from contaxy.schema.shared import ResourceActionExecution
 
 ACTION_DELIMITER = "-"
 ACTION_ACCESS = "access"
@@ -386,11 +387,12 @@ class DeploymentManager(DeploymentOperations):
         project_id: str,
         service_id: str,
         action_id: str,
+        action_execution: ResourceActionExecution = ResourceActionExecution(),
     ) -> Response:
         if action_id == ACTION_START:
             self._execute_start_service_action(project_id, service_id)
         elif action_id == ACTION_STOP:
-            self._execute_stop_service_action(project_id, service_id)
+            self._execute_stop_service_action(project_id, service_id, action_execution)
         elif action_id == ACTION_RESTART:
             self._execute_restart_service_action(project_id, service_id)
         else:
@@ -411,15 +413,23 @@ class DeploymentManager(DeploymentOperations):
             )
         self.deployment_platform.deploy_service(project_id, service, wait=True)
 
-    def _execute_stop_service_action(self, project_id: str, service_id: str) -> None:
+    def _execute_stop_service_action(
+        self,
+        project_id: str,
+        service_id: str,
+        action_execution: ResourceActionExecution,
+    ) -> None:
         service = self.get_service_metadata(project_id, service_id)
         if service.status == DeploymentStatus.STOPPED:
             raise ClientValueError(
                 f"Action {ACTION_STOP} on service {service_id} can only be performed "
                 f"when service is not stopped already!"
             )
+        delete_volumes = (
+            action_execution.parameters.get("delete_volumes", "false").lower() == "true"
+        )
         self.deployment_platform.delete_service(
-            project_id, service_id, delete_volumes=False
+            project_id, service_id, delete_volumes=delete_volumes
         )
 
     def _execute_restart_service_action(
@@ -457,7 +467,11 @@ class DeploymentManager(DeploymentOperations):
             pass
 
     def execute_job_action(
-        self, project_id: str, job_id: str, action_id: str
+        self,
+        project_id: str,
+        job_id: str,
+        action_id: str,
+        action_execution: ResourceActionExecution = ResourceActionExecution(),
     ) -> Response:
         # 501: not implemented
         return Response(status_code=501)

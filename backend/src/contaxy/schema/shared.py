@@ -269,6 +269,14 @@ class ResourceAction(BaseModel):
     )
 
 
+class ResourceActionExecution(BaseModel):
+    parameters: Dict[str, str] = Field(
+        {},
+        description="Parameters that are passed to the resource action.",
+        example={"action-parameter": "parameter-value"},
+    )
+
+
 # TODO: use?
 # class BaseEntity(BaseModel):
 #     class Config:

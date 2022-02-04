@@ -28,7 +28,12 @@ from contaxy.schema.exceptions import (
 )
 from contaxy.schema.extension import EXTENSION_ID_PARAM
 from contaxy.schema.project import PROJECT_ID_PARAM
-from contaxy.schema.shared import OPEN_URL_REDIRECT, RESOURCE_ID_REGEX, CoreOperations
+from contaxy.schema.shared import (
+    OPEN_URL_REDIRECT,
+    RESOURCE_ID_REGEX,
+    CoreOperations,
+    ResourceActionExecution,
+)
 from contaxy.utils import auth_utils
 
 service_router = APIRouter(
@@ -379,7 +384,7 @@ def list_service_actions(
     )
 
 
-@service_router.get(
+@service_router.post(
     "/projects/{project_id}/services/{service_id}/actions/{action_id}",
     operation_id=ExtensibleOperations.EXECUTE_SERVICE_ACTION.value,
     # TODO: what is the response model? add additional status codes?
@@ -388,6 +393,7 @@ def list_service_actions(
     responses={**OPEN_URL_REDIRECT, **GET_RESOURCE_RESPONSES},
 )
 def execute_service_action(
+    action_execution: Optional[ResourceActionExecution] = None,
     project_id: str = PROJECT_ID_PARAM,
     service_id: str = SERVICE_ID_PARAM,
     action_id: str = Path(
@@ -413,7 +419,7 @@ def execute_service_action(
 
     action_id, extension_id = parse_composite_id(action_id)
     return component_manager.get_service_manager(extension_id).execute_service_action(
-        project_id, service_id, action_id
+        project_id, service_id, action_id, action_execution or ResourceActionExecution()
     )
 
 
@@ -715,7 +721,7 @@ def list_job_actions(
     )
 
 
-@job_router.get(
+@job_router.post(
     "/projects/{project_id}/jobs/{job_id}/actions/{action_id}",
     operation_id=ExtensibleOperations.EXECUTE_JOB_ACTION.value,
     # TODO: what is the response model? add additional status codes?
@@ -724,6 +730,7 @@ def list_job_actions(
     responses={**OPEN_URL_REDIRECT, **GET_RESOURCE_RESPONSES},
 )
 def execute_job_action(
+    action_execution: Optional[ResourceActionExecution] = None,
     project_id: str = PROJECT_ID_PARAM,
     job_id: str = JOB_ID_PARAM,
     action_id: str = Path(
@@ -749,7 +756,7 @@ def execute_job_action(
 
     action_id, extension_id = parse_composite_id(action_id)
     return component_manager.get_job_manager(extension_id).execute_job_action(
-        project_id, job_id, action_id
+        project_id, job_id, action_id, action_execution or ResourceActionExecution()
     )
 
 
