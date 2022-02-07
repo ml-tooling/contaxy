@@ -3,8 +3,10 @@ import time
 from collections import deque
 from datetime import datetime, timedelta, timezone
 from typing import Deque, List, Optional, Set, Union
+from warnings import WarningMessage
 
 from cachetools import TTLCache
+from dotenv import get_key
 from jose import JWTError, jwt
 from loguru import logger
 from passlib.context import CryptContext
@@ -66,7 +68,7 @@ class AuthManager(AuthOperations):
     _API_TOKEN_COLLECTION = "tokens"
     _USER_COLLECTION = "users"
     _LOGIN_ID_MAPPING_COLLECTION = "login-id-mapping"
-
+    _PROJECT_COLLECTION = "projects"
     def __init__(
         self,
         component_manager: ComponentOperations,
@@ -972,9 +974,54 @@ class AuthManager(AuthOperations):
         Raises:
             ResourceNotFoundError: If no user with the specified ID exists.
         """
-        self._json_db_manager.delete_json_document(
-            config.SYSTEM_INTERNAL_PROJECT, self._USER_COLLECTION, user_id
-        )
+        try:
+            self._json_db_manager.delete_json_document(
+                config.SYSTEM_INTERNAL_PROJECT, self._USER_COLLECTION, user_id
+            )
+        except ResourceNotFoundError:
+            logger.warning(f"ResourceNotFoundError: No JSON document was found in the useres table with the given key: {user_id}.")
+
+        try:
+            self._json_db_manager.delete_json_document(
+                config.SYSTEM_INTERNAL_PROJECT, self._USER_PASSWORD_COLLECTION, user_id
+            )
+        except ResourceNotFoundError:
+            logger.warning(f"ResourceNotFoundError: No JSON document was found in the password table with the given key: {user_id}.")
+        
+        try:
+            self._json_db_manager.delete_json_document(
+                config.SYSTEM_INTERNAL_PROJECT, self._PERMISSION_COLLECTION, "users/" + user_id
+            )
+        except ResourceNotFoundError:
+            logger.warning(f"ResourceNotFoundError: No JSON document was found in the permissions table with the given key: {user_id}.")
+        
+        try:
+            for token in self._json_db_manager.list_json_documents(config.SYSTEM_INTERNAL_PROJECT, self._API_TOKEN_COLLECTION):
+                user_mapping = ApiToken.parse_raw(token.json_value).subject
+                if user_mapping == "users/" + user_id:
+                    self._json_db_manager.delete_json_document(
+                        config.SYSTEM_INTERNAL_PROJECT, self._API_TOKEN_COLLECTION,token.key
+                    )
+        except ResourceNotFoundError:
+            logger.warning(f"ResourceNotFoundError: No JSON document was found in the token table with the given key: {user_id}.") 
+       
+       
+        try:
+            for doc in self._json_db_manager.list_json_documents(config.SYSTEM_INTERNAL_PROJECT, self._LOGIN_ID_MAPPING_COLLECTION):
+                user_id_mapping = LoginIdMapping.parse_raw(doc.json_value).user_id
+                if user_id_mapping == user_id:
+                    self._json_db_manager.delete_json_document(
+                        config.SYSTEM_INTERNAL_PROJECT, self._LOGIN_ID_MAPPING_COLLECTION,doc.key
+                        )
+        except ResourceNotFoundError:
+            logger.warning(f"ResourceNotFoundError: No JSON document was found in the loginID table with the given key: {user_id}.")          
+
+        try: 
+            self._json_db_manager.delete_json_document(
+                config.SYSTEM_INTERNAL_PROJECT, self._PROJECT_COLLECTION, user_id
+            )
+        except ResourceNotFoundError:
+            logger.warning(f"ResourceNotFoundError: No JSON document was found in the project table with the given key: {user_id}.")          
 
     def _propose_username(self, email: str) -> str:
         MAX_RETRIES = 10000
