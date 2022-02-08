@@ -991,11 +991,12 @@ class AuthManager(AuthOperations):
                 f"ResourceNotFoundError: No JSON document was found in the password table with the given key: {user_id}."
             )
 
+        user_resource_name = "users/" + user_id
         try:
             self._json_db_manager.delete_json_document(
                 config.SYSTEM_INTERNAL_PROJECT,
                 self._PERMISSION_COLLECTION,
-                "users/" + user_id,
+                user_resource_name,
             )
         except ResourceNotFoundError:
             logger.warning(
@@ -1003,15 +1004,15 @@ class AuthManager(AuthOperations):
             )
 
         try:
-            for token in self._json_db_manager.list_json_documents(
+            for token_doc in self._json_db_manager.list_json_documents(
                 config.SYSTEM_INTERNAL_PROJECT, self._API_TOKEN_COLLECTION
             ):
-                user_mapping = ApiToken.parse_raw(token.json_value).subject
-                if user_mapping == "users/" + user_id:
+                token_subject = ApiToken.parse_raw(token_doc.json_value).subject
+                if token_subject == user_resource_name:
                     self._json_db_manager.delete_json_document(
                         config.SYSTEM_INTERNAL_PROJECT,
                         self._API_TOKEN_COLLECTION,
-                        token.key,
+                        token_doc.key,
                     )
         except ResourceNotFoundError:
             logger.warning(
@@ -1019,28 +1020,19 @@ class AuthManager(AuthOperations):
             )
 
         try:
-            for doc in self._json_db_manager.list_json_documents(
+            for login_mapping_doc in self._json_db_manager.list_json_documents(
                 config.SYSTEM_INTERNAL_PROJECT, self._LOGIN_ID_MAPPING_COLLECTION
             ):
-                user_id_mapping = LoginIdMapping.parse_raw(doc.json_value).user_id
-                if user_id_mapping == user_id:
+                mapped_user_id = LoginIdMapping.parse_raw(login_mapping_doc.json_value).user_id
+                if mapped_user_id == user_id:
                     self._json_db_manager.delete_json_document(
                         config.SYSTEM_INTERNAL_PROJECT,
                         self._LOGIN_ID_MAPPING_COLLECTION,
-                        doc.key,
+                        login_mapping_doc.key,
                     )
         except ResourceNotFoundError:
             logger.warning(
                 f"ResourceNotFoundError: No JSON document was found in the loginID table with the given key: {user_id}."
-            )
-
-        try:
-            self._json_db_manager.delete_json_document(
-                config.SYSTEM_INTERNAL_PROJECT, self._PROJECT_COLLECTION, user_id
-            )
-        except ResourceNotFoundError:
-            logger.warning(
-                f"ResourceNotFoundError: No JSON document was found in the project table with the given key: {user_id}."
             )
 
     def _propose_username(self, email: str) -> str:
