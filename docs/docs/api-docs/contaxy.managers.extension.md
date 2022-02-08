@@ -114,11 +114,7 @@ The extension manager implements all methods for the full extension lifecycle. I
 ### <kbd>method</kbd> `__init__`
 
 ```python
-__init__(
-    global_state: GlobalState,
-    request_state: RequestState,
-    deployment_manager: DeploymentOperations
-)
+__init__(component_manager: ComponentOperations)
 ```
 
 Initializes the extension manager. 
@@ -127,9 +123,7 @@ Initializes the extension manager.
 
 **Args:**
  
- - <b>`global_state`</b>:  The global state of the app instance. 
- - <b>`request_state`</b>:  The state for the current request. 
- - <b>`deployment_manager`</b>:  The current deployment manager instance. 
+ - <b>`component_manager`</b>:  Instance of the component manager that grants access to the other managers. 
 
 
 
