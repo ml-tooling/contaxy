@@ -23,11 +23,7 @@
 ### <kbd>method</kbd> `__init__`
 
 ```python
-__init__(
-    global_state: GlobalState,
-    request_state: RequestState,
-    json_db_manager: JsonDocumentOperations
-)
+__init__(component_manager: ComponentOperations)
 ```
 
 Initializes the Minio File Manager. 
@@ -36,9 +32,7 @@ Initializes the Minio File Manager.
 
 **Args:**
  
- - <b>`global_state`</b>:  The global state of the app instance. 
- - <b>`request_state`</b>:  The state for the current request. 
- - <b>`json_db_manager`</b>:  JSON DB Manager instance to store structured data. 
+ - <b>`component_manager`</b>:  Instance of the component manager that grants access to the other managers. 
 
 
 

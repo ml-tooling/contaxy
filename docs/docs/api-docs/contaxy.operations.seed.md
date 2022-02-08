@@ -80,7 +80,7 @@ create_files(
 
 ```python
 create_project(
-    project_input: ProjectCreation = ProjectCreation(display_name='My Test Project!', description=None, icon=None, metadata=None, disabled=False, id='my-test-project')
+    project_input: ProjectCreation = ProjectCreation(display_name='My Test Project!', description='', icon=None, metadata={}, disabled=False, id='my-test-project')
 ) → Project
 ```
 
