@@ -979,7 +979,7 @@ class AuthManager(AuthOperations):
             )
         except ResourceNotFoundError:
             logger.warning(
-                f"ResourceNotFoundError: No JSON document was found in the useres table with the given key: {user_id}."
+                f"ResourceNotFoundError: No JSON document was found in the users table with the given key: {user_id}."
             )
 
         try:
@@ -1023,7 +1023,9 @@ class AuthManager(AuthOperations):
             for login_mapping_doc in self._json_db_manager.list_json_documents(
                 config.SYSTEM_INTERNAL_PROJECT, self._LOGIN_ID_MAPPING_COLLECTION
             ):
-                mapped_user_id = LoginIdMapping.parse_raw(login_mapping_doc.json_value).user_id
+                mapped_user_id = LoginIdMapping.parse_raw(
+                    login_mapping_doc.json_value
+                ).user_id
                 if mapped_user_id == user_id:
                     self._json_db_manager.delete_json_document(
                         config.SYSTEM_INTERNAL_PROJECT,

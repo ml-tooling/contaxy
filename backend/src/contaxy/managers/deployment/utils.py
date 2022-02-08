@@ -2,10 +2,13 @@ import string
 import subprocess
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Type, TypeVar
+
+from loguru import logger
 
 from contaxy.config import settings
 from contaxy.operations import AuthOperations, SystemOperations
+from contaxy.operations.components import ComponentOperations
 from contaxy.schema import (
     AccessLevel,
     ClientValueError,
@@ -14,10 +17,12 @@ from contaxy.schema import (
 )
 from contaxy.schema.auth import TokenPurpose
 from contaxy.schema.deployment import (
-    Deployment,
     DeploymentCompute,
     DeploymentInput,
+    DeploymentStatus,
     DeploymentType,
+    Job,
+    Service,
 )
 from contaxy.utils import auth_utils, id_utils
 from contaxy.utils.auth_utils import parse_userid_from_resource_name
@@ -67,6 +72,45 @@ class MappedLabels:
     created_by: Optional[str] = None
 
 
+# This function is registered in api/api.py to run in regular intervals
+def stop_idle_services(component_manager: ComponentOperations) -> None:
+    project_manager = component_manager.get_project_manager()
+    service_manager = component_manager.get_service_manager()
+    idle_services = [
+        (project.id, service)
+        for project in project_manager.list_projects()
+        for service in service_manager.list_services(project.id)
+        # Only check running services
+        if service.status == DeploymentStatus.RUNNING
+        # If idle timeout is not set, the service should never be stopped automatically
+        if service.idle_timeout is not None
+        # Last access time must be set to compute idle time
+        if service.last_access_time is not None
+        # Check if time last access time is longer ago than idle timeout
+        if datetime.now(timezone.utc) - service.last_access_time > service.idle_timeout
+    ]
+    for project_id, service in idle_services:
+        logger.info(
+            f"Stopping idle service {service.display_name}(id: {service.id}). Last access time: {service.last_access_time}."
+        )
+        service_manager.execute_service_action(
+            project_id,
+            service.id,
+            action_id="stop",
+        )
+
+
+def get_service_collection_id(project_id: str) -> str:
+    return f"project_{project_id}_service_metadata"
+
+
+def get_job_collection_id(project_id: str) -> str:
+    return f"project_{project_id}_job_metadata"
+
+
+DeploymentClass = TypeVar("DeploymentClass", Service, Job)
+
+
 def create_deployment_config(
     project_id: str,
     deployment_input: DeploymentInput,
@@ -74,7 +118,8 @@ def create_deployment_config(
     authorized_subject: str,
     system_manager: SystemOperations,
     auth_manager: AuthOperations,
-) -> Deployment:
+    deployment_class: Type[DeploymentClass],
+) -> DeploymentClass:
     # Check if display name is set
     if deployment_input.display_name is None:
         raise ClientValueError(message="Service display_name not defined!")
@@ -90,7 +135,7 @@ def create_deployment_config(
     )
     user_id = parse_userid_from_resource_name(authorized_subject)
     deployment_input.metadata = clean_metadata(deployment_input.metadata)
-    deployment_config = Deployment(
+    deployment_config = deployment_class(
         **deployment_input.dict(),
         id=deployment_id,
         deployment_type=deployment_type,
