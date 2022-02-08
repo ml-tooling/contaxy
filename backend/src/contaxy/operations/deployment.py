@@ -4,6 +4,7 @@ from typing import Any, List, Literal, Optional
 
 from contaxy.schema import Job, JobInput, ResourceAction, Service, ServiceInput
 from contaxy.schema.deployment import DeploymentType, ServiceUpdate
+from contaxy.schema.shared import ResourceActionExecution
 
 
 class ServiceOperations(ABC):
@@ -218,6 +219,7 @@ class ServiceOperations(ABC):
         project_id: str,
         service_id: str,
         action_id: str,
+        action_execution: ResourceActionExecution = ResourceActionExecution(),
     ) -> Any:
         """Executes the selected service action.
 
@@ -228,6 +230,7 @@ class ServiceOperations(ABC):
             project_id (str): The project ID associated with the service.
             service_id (str): The ID of the service.
             action_id (str): The ID of the selected action.
+            action_execution (ResourceActionExecution): The action execution request which contains the action parameters
 
         Returns:
             `None` or a redirect response to another URL.
@@ -301,7 +304,13 @@ class JobOperations(ABC):
         pass
 
     @abstractmethod
-    def execute_job_action(self, project_id: str, job_id: str, action_id: str) -> Any:
+    def execute_job_action(
+        self,
+        project_id: str,
+        job_id: str,
+        action_id: str,
+        action_execution: ResourceActionExecution = ResourceActionExecution(),
+    ) -> Any:
         pass
 
 

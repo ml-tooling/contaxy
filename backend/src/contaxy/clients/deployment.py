@@ -8,6 +8,7 @@ from contaxy.clients.shared import handle_errors
 from contaxy.operations.deployment import DeploymentOperations
 from contaxy.schema import Job, JobInput, ResourceAction, Service, ServiceInput
 from contaxy.schema.deployment import DeploymentType, ServiceUpdate
+from contaxy.schema.shared import ResourceActionExecution
 
 
 class DeploymentManagerClient(DeploymentOperations):
@@ -190,10 +191,12 @@ class DeploymentManagerClient(DeploymentOperations):
         project_id: str,
         service_id: str,
         action_id: str,
+        action_execution: ResourceActionExecution = ResourceActionExecution(),
         request_kwargs: Dict = {},
     ) -> None:
-        response = self.client.get(
+        response = self.client.post(
             f"/projects/{project_id}/services/{service_id}/actions/{action_id}",
+            json=action_execution.dict(exclude_unset=True),
             **request_kwargs,
         )
         handle_errors(response)
@@ -345,11 +348,13 @@ class DeploymentManagerClient(DeploymentOperations):
         project_id: str,
         job_id: str,
         action_id: str,
+        action_execution: ResourceActionExecution = ResourceActionExecution(),
         request_kwargs: Dict = {},
     ) -> None:
-        response = self.client.get(
+        response = self.client.post(
             f"/projects/{project_id}/jobs/{job_id}/actions/{action_id}",
             **request_kwargs,
+            json=action_execution.json(exclude_unset=True),
         )
         handle_errors(response)
         # TODO: Return response?
