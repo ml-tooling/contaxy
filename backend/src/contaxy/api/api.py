@@ -1,4 +1,5 @@
 import asyncio
+import functools
 from typing import Any, Dict
 
 from fastapi import FastAPI
@@ -22,6 +23,8 @@ from contaxy.api.endpoints import (
     system,
     user,
 )
+from contaxy.managers.components import ComponentManager
+from contaxy.managers.deployment.utils import stop_idle_services
 from contaxy.utils import fastapi_utils, state_utils
 
 # Initialize API
@@ -55,6 +58,12 @@ def on_startup() -> None:
     state_utils.GlobalState(
         app.state
     ).shared_namespace.async_loop = asyncio.get_running_loop()
+    component_manager = ComponentManager.from_app(app)
+    # Schedule regular cleanup of idle services
+    fastapi_utils.schedule_call(
+        func=functools.partial(stop_idle_services, component_manager),
+        interval=config.settings.SERVICE_IDLE_CHECK_INTERVAL,
+    )
 
 
 @app.on_event("shutdown")

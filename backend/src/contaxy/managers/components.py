@@ -1,8 +1,9 @@
 from typing import Optional
 
-from fastapi import Request
+from fastapi import FastAPI, Request
 from loguru import logger
 from pydantic.networks import PostgresDsn
+from starlette.datastructures import State
 
 from contaxy import config
 from contaxy.managers.auth import AuthManager
@@ -42,16 +43,31 @@ class ComponentManager(ComponentOperations):
     for a single request.
     """
 
-    def __init__(self, request: Request):
+    @classmethod
+    def from_request(cls, request: Request) -> "ComponentManager":
+        return cls(
+            GlobalState(request.app.state),
+            RequestState(request.state),
+        )
+
+    @classmethod
+    def from_app(cls, app: FastAPI) -> "ComponentManager":
+        return cls(
+            GlobalState(app.state),
+            RequestState(State()),
+        )
+
+    def __init__(self, global_state: GlobalState, request_state: RequestState):
         """Initializes the component manager.
 
         Args:
-            request: Current request.
+            global_state: Global application state.
+            request_state: Request scoped state.
         """
 
         # Individual components can store global state via the `global_state` variable
-        self._global_state = GlobalState(request.app.state)
-        self._request_state = RequestState(request.state)
+        self._global_state = global_state
+        self._request_state = request_state
 
         # Initialized variables which will be lazyloaded
         self._auth_manager: Optional[AuthManager] = None

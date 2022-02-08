@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from enum import Enum
 from typing import Dict, List, Optional
 
@@ -235,6 +235,18 @@ class ServiceBase(BaseModel):
         None,
         example="8080/healthz",
         description="The endpoint instruction that can be used for checking the deployment health.",
+    )
+    idle_timeout: Optional[timedelta] = Field(
+        None,
+        description="Time after which the service is considered idling and will be stopped during the next idle check."
+        "If set to None, the workspace will never be considered idling."
+        "Can be specified as seconds or ISO 8601 time delta.",
+        example=None,
+    )
+    clear_volume_on_stop: bool = Field(
+        False,
+        description="If set to true, any volume attached to the service be deleted when the service is stopped."
+        "This means all persisted data will be cleared on service stop.",
     )
 
 
