@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Any, List, Literal, Optional
 
 import docker
+import docker.errors
 from loguru import logger
 
 from contaxy.managers.deployment.docker_utils import (
@@ -104,7 +105,9 @@ class DockerDeploymentPlatform:
         container = get_project_container(
             self.client, project_id=project_id, deployment_id=service_id
         )
-        delete_container(container=container, delete_volumes=delete_volumes)
+        delete_container(
+            client=self.client, container=container, delete_volumes=delete_volumes
+        )
 
     def delete_services(
         self,
@@ -182,7 +185,7 @@ class DockerDeploymentPlatform:
             deployment_id=job_id,
             deployment_type=DeploymentType.JOB,
         )
-        delete_container(container=container)
+        delete_container(client=self.client, container=container)
 
     def delete_jobs(
         self,

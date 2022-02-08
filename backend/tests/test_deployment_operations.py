@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from random import randint
 from typing import Generator, Tuple
 
+import docker.errors
 import pytest
 import requests
 from fastapi.testclient import TestClient
@@ -21,7 +22,11 @@ from contaxy.managers.deployment.docker_utils import (
 )
 from contaxy.managers.deployment.kubernetes import KubernetesDeploymentPlatform
 from contaxy.managers.deployment.manager import DeploymentManager
-from contaxy.managers.deployment.utils import _ENV_VARIABLE_CONTAXY_SERVICE_URL, Labels
+from contaxy.managers.deployment.utils import (
+    _ENV_VARIABLE_CONTAXY_SERVICE_URL,
+    Labels,
+    get_volume_name,
+)
 from contaxy.managers.json_db.inmemory_dict import InMemoryDictJsonDocumentManager
 from contaxy.managers.system import SystemManager
 from contaxy.operations.deployment import DeploymentOperations
@@ -665,6 +670,23 @@ class TestDockerDeploymentManager(DeploymentOperationsTests):
         )
         time.sleep(3)
         return deployed_job
+
+    def test_volume_deletion(self):
+        test_service_input = create_test_service_input(
+            display_name=self.service_display_name
+        )
+        test_service_input.compute.volume_path = "/test"
+        service = self.deploy_service(
+            project_id=self.project_id,
+            service=test_service_input,
+        )
+        self.deployment_manager.delete_service(
+            self.project_id, service.id, delete_volumes=True
+        )
+        # Check that volume was deleted
+        with pytest.raises(docker.errors.NotFound):
+            volume_name = get_volume_name(self.project_id, service.id)
+            self._docker_deployment_platform.client.volumes.get(volume_name)
 
     def test_missing_docker_container(self):
         test_service_input = create_test_service_input(

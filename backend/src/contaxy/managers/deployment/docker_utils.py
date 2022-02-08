@@ -5,7 +5,12 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import docker
+import docker.errors
+import docker.models.containers
+import docker.models.networks
+import docker.types
 import psutil
+from docker import DockerClient
 from loguru import logger
 
 from contaxy.config import settings
@@ -139,7 +144,7 @@ def map_job(container: docker.models.containers.Container) -> Job:
 
 # TODO: copied from ML Hub
 def create_network(
-    client: docker.client, name: str, labels: Dict[str, str]
+    client: DockerClient, name: str, labels: Dict[str, str]
 ) -> docker.models.networks.Network:
     """Create a new network to put the new container into it.
 
@@ -150,8 +155,9 @@ def create_network(
     See: https://stackoverflow.com/questions/41609998/how-to-increase-maximum-docker-network-on-one-server ; https://loomchild.net/2016/09/04/docker-can-create-only-31-networks-on-a-single-machine/
 
     Args:
-        network_name (str): name of the network to be created
-        network_labels (Dict[str, str]): labels that will be attached to the network
+        client (DockerClient): docker client that provides access to the docker API
+        name (str): name of the network to be created
+        labels (Dict[str, str]): labels that will be attached to the network
     Raises:
         docker.errors.APIError: Thrown by `docker.client.networks.create` upon error.
 
@@ -290,7 +296,7 @@ def get_project_container_selection_labels(
 
 
 def get_project_containers(
-    client: docker.client,
+    client: DockerClient,
     project_id: str,
     deployment_type: DeploymentType = DeploymentType.SERVICE,
 ) -> List[docker.models.containers.Container]:
@@ -335,7 +341,9 @@ def get_project_container(
     return containers[0]
 
 
-def get_this_container(client: docker.client) -> docker.models.containers.Container:
+def get_this_container(
+    client: DockerClient,
+) -> docker.models.containers.Container:
     """This function returns the Docker container in which this code is running or None if it does not run in a container.
 
     Args:
@@ -353,7 +361,9 @@ def get_this_container(client: docker.client) -> docker.models.containers.Contai
 
 
 def delete_container(
-    container: docker.models.containers.Container, delete_volumes: bool = False
+    client: DockerClient,
+    container: docker.models.containers.Container,
+    delete_volumes: bool = False,
 ) -> None:
     try:
         container.stop()
@@ -367,6 +377,18 @@ def delete_container(
             status_code=500,
             message=f"Could not delete deployment '{container.name}'.",
         )
+
+    # Named volumes must be deleted manually
+    if delete_volumes:
+        for mount in container.attrs.get("Mounts", []):
+            if mount.get("Type") == "volume" and "Name" in mount:
+                try:
+                    client.api.remove_volume(mount["Name"])
+                except docker.errors.APIError:
+                    raise ClientBaseError(
+                        status_code=500,
+                        message=f"Could not delete volume {mount['Name']} of deployment '{container.name}'.",
+                    )
 
 
 def check_minimal_resources(
