@@ -12,6 +12,7 @@ from contaxy.config import settings
 from contaxy.managers.auth import AuthManager
 from contaxy.managers.json_db.inmemory_dict import InMemoryDictJsonDocumentManager
 from contaxy.managers.json_db.postgres import PostgresJsonDocumentManager
+from contaxy.operations import JsonDocumentOperations
 from contaxy.schema.auth import (
     AccessLevel,
     OAuth2Error,
@@ -21,14 +22,18 @@ from contaxy.schema.auth import (
     User,
     UserRegistration,
 )
-from contaxy.schema.exceptions import PermissionDeniedError, UnauthenticatedError
+from contaxy.schema.exceptions import (
+    PermissionDeniedError,
+    ResourceNotFoundError,
+    UnauthenticatedError,
+)
 from contaxy.utils import id_utils
 from contaxy.utils.state_utils import GlobalState, RequestState
 
 from .conftest import test_settings
 from .utils import ComponentManagerMock
 
-DEFAULT_USERS_TO_GENERATE = 10
+DEFAULT_USERS_TO_GENERATE = 3
 
 
 def _generate_user_data(users_to_generate: int) -> List[UserRegistration]:
@@ -56,6 +61,11 @@ class AuthOperationsTests(ABC):
     @property
     @abstractmethod
     def auth_manager(self) -> AuthManager:
+        pass
+
+    @property
+    @abstractmethod
+    def json_db(self) -> JsonDocumentOperations:
         pass
 
     def test_change_password(self, faker: Faker) -> None:
@@ -456,13 +466,35 @@ class AuthOperationsTests(ABC):
             assert updated_user.email == updated_user_data.email
             assert created_user.created_at == updated_user.created_at
 
-    def test_delete_user(self, user_data: List[UserRegistration]) -> None:
+    def test_delete_user(self) -> None:
         # Create and delete single user
         created_user = self.auth_manager.create_user(_generate_user_data(1)[0])
+        user_resource_name = f"users/{created_user.id}"
+        self.auth_manager.add_permission(user_resource_name, "test#read")
         self.auth_manager.delete_user(created_user.id)
         assert len(self.auth_manager.list_users()) == 0
+        # Check that all other resources have been cleaned up
+        # assert len(self.auth_manager.list_permissions(user_resource_name)) == 0
+        with pytest.raises(ResourceNotFoundError):
+            self.json_db.get_json_document(
+                config.SYSTEM_INTERNAL_PROJECT,
+                AuthManager._USER_PASSWORD_COLLECTION,
+                key=created_user.id,
+            )
+        with pytest.raises(ResourceNotFoundError):
+            self.json_db.get_json_document(
+                config.SYSTEM_INTERNAL_PROJECT,
+                AuthManager._LOGIN_ID_MAPPING_COLLECTION,
+                key=created_user.username,
+            )
+        with pytest.raises(ResourceNotFoundError):
+            self.json_db.get_json_document(
+                config.SYSTEM_INTERNAL_PROJECT,
+                AuthManager._LOGIN_ID_MAPPING_COLLECTION,
+                key=created_user.email,
+            )
 
-        # Create and delete multiple users
+    def test_delete_multiple_users(self, user_data: List[UserRegistration]) -> None:
         created_users: List[User] = []
         for user in user_data:
             created_users.append(self.auth_manager.create_user(user))
@@ -485,19 +517,23 @@ class TestAuthManagerWithPostgresDB(AuthOperationsTests):
     def _init_auth_manager(
         self, global_state: GlobalState, request_state: RequestState
     ) -> Generator:
-        json_db = PostgresJsonDocumentManager(global_state, request_state)
+        self._json_db = PostgresJsonDocumentManager(global_state, request_state)
         # Cleanup everything at the startup
-        json_db.delete_json_collections(config.SYSTEM_INTERNAL_PROJECT)
+        self._json_db.delete_json_collections(config.SYSTEM_INTERNAL_PROJECT)
         self._auth_manager = AuthManager(
-            ComponentManagerMock(global_state, request_state, json_db_manager=json_db)
+            ComponentManagerMock(
+                global_state, request_state, json_db_manager=self._json_db
+            )
         )
         yield
-        json_db.delete_json_collections(config.SYSTEM_INTERNAL_PROJECT)
-        # Do cleanup
 
     @property
     def auth_manager(self) -> AuthManager:
         return self._auth_manager
+
+    @property
+    def json_db(self) -> JsonDocumentOperations:
+        return self._json_db
 
 
 @pytest.mark.unit
@@ -506,14 +542,20 @@ class TestAuthManagerWithInMemoryDB(AuthOperationsTests):
     def _init_auth_manager(
         self, global_state: GlobalState, request_state: RequestState
     ) -> Generator:
-        json_db = InMemoryDictJsonDocumentManager(global_state, request_state)
-        json_db.delete_json_collections(config.SYSTEM_INTERNAL_PROJECT)
+        self._json_db = InMemoryDictJsonDocumentManager(global_state, request_state)
+        self._json_db.delete_json_collections(config.SYSTEM_INTERNAL_PROJECT)
         self._auth_manager = AuthManager(
-            ComponentManagerMock(global_state, request_state, json_db_manager=json_db)
+            ComponentManagerMock(
+                global_state, request_state, json_db_manager=self._json_db
+            )
         )
         yield
-        json_db.delete_json_collections(config.SYSTEM_INTERNAL_PROJECT)
+        self._json_db.delete_json_collections(config.SYSTEM_INTERNAL_PROJECT)
 
     @property
     def auth_manager(self) -> AuthManager:
         return self._auth_manager
+
+    @property
+    def json_db(self) -> JsonDocumentOperations:
+        return self._json_db
