@@ -102,6 +102,19 @@ An enumeration.
 
 
 
+---
+
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/schema/shared.py#L272"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>class</kbd> `ResourceActionExecution`
+
+
+
+
+
+
+
+
 
 
 ---

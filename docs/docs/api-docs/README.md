@@ -162,6 +162,7 @@
 - [`shared.ExtensibleOperations`](./contaxy.schema.shared.md#class-extensibleoperations): An enumeration.
 - [`shared.Resource`](./contaxy.schema.shared.md#class-resource)
 - [`shared.ResourceAction`](./contaxy.schema.shared.md#class-resourceaction)
+- [`shared.ResourceActionExecution`](./contaxy.schema.shared.md#class-resourceactionexecution)
 - [`shared.ResourceInput`](./contaxy.schema.shared.md#class-resourceinput)
 - [`shared.ResourceMetadata`](./contaxy.schema.shared.md#class-resourcemetadata)
 - [`file_utils.FileStreamWrapper`](./contaxy.utils.file_utils.md#class-filestreamwrapper)
@@ -219,9 +220,11 @@
 - [`utils.get_default_environment_variables`](./contaxy.managers.deployment.utils.md#function-get_default_environment_variables): Sets default environment variables that should be set for each container.
 - [`utils.get_deployment_id`](./contaxy.managers.deployment.utils.md#function-get_deployment_id): Returns a valid deployment ID based on some specified metadata.
 - [`utils.get_gpu_info`](./contaxy.managers.deployment.utils.md#function-get_gpu_info)
+- [`utils.get_job_collection_id`](./contaxy.managers.deployment.utils.md#function-get_job_collection_id)
 - [`utils.get_label_string`](./contaxy.managers.deployment.utils.md#function-get_label_string)
 - [`utils.get_network_name`](./contaxy.managers.deployment.utils.md#function-get_network_name)
 - [`utils.get_project_selection_labels`](./contaxy.managers.deployment.utils.md#function-get_project_selection_labels): Return a list of labels identifying project resources (system namespace, project id, deployment type).
+- [`utils.get_service_collection_id`](./contaxy.managers.deployment.utils.md#function-get_service_collection_id)
 - [`utils.get_template_mapping`](./contaxy.managers.deployment.utils.md#function-get_template_mapping)
 - [`utils.get_volume_name`](./contaxy.managers.deployment.utils.md#function-get_volume_name)
 - [`utils.map_labels`](./contaxy.managers.deployment.utils.md#function-map_labels): Transform label dict to a MappedLabels object.
@@ -230,6 +233,7 @@
 - [`utils.replace_template_string`](./contaxy.managers.deployment.utils.md#function-replace_template_string): Return the input with replaced value according to the templates mapping.
 - [`utils.replace_templates`](./contaxy.managers.deployment.utils.md#function-replace_templates): Returns the input dict where those values that are matching template strings are replaced.
 - [`utils.split_image_name_and_tag`](./contaxy.managers.deployment.utils.md#function-split_image_name_and_tag)
+- [`utils.stop_idle_services`](./contaxy.managers.deployment.utils.md#function-stop_idle_services)
 - [`extension.map_service_to_extension`](./contaxy.managers.extension.md#function-map_service_to_extension)
 - [`extension.parse_composite_id`](./contaxy.managers.extension.md#function-parse_composite_id): Extracts the resource and extension ID from an composite ID.
 - [`azure_blob.create_azure_blob_client`](./contaxy.managers.file.azure_blob.md#function-create_azure_blob_client)
@@ -245,6 +249,7 @@
 - [`fastapi_utils.add_timing_info`](./contaxy.utils.fastapi_utils.md#function-add_timing_info)
 - [`fastapi_utils.as_form`](./contaxy.utils.fastapi_utils.md#function-as_form): Adds an as_form class method to decorated models.
 - [`fastapi_utils.patch_fastapi`](./contaxy.utils.fastapi_utils.md#function-patch_fastapi): Patch function to allow relative url resolution.
+- [`fastapi_utils.schedule_call`](./contaxy.utils.fastapi_utils.md#function-schedule_call): Schedule a function to be called in regular intervals.
 - [`file_utils.generate_file_id`](./contaxy.utils.file_utils.md#function-generate_file_id)
 - [`id_utils.extract_ids_from_service_resource_name`](./contaxy.utils.id_utils.md#function-extract_ids_from_service_resource_name): Extract the project id and service id from a service resource name.
 - [`id_utils.extract_project_id_from_resource_name`](./contaxy.utils.id_utils.md#function-extract_project_id_from_resource_name): Extract the project id from a provided resource name.

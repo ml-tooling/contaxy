@@ -130,7 +130,7 @@ delete_services(project_id: str, request_kwargs: Dict = {}) → None
 ```python
 deploy_job(
     project_id: str,
-    job: JobInput,
+    job_input: JobInput,
     action_id: Optional[str] = None,
     wait: bool = False,
     request_kwargs: Dict = {}
@@ -150,7 +150,7 @@ deploy_job(
 ```python
 deploy_service(
     project_id: str,
-    service: ServiceInput,
+    service_input: ServiceInput,
     action_id: Optional[str] = None,
     deployment_type: Literal[<SERVICE: 'service'>, <EXTENSION: 'extension'>] = <DeploymentType.SERVICE: 'service'>,
     wait: bool = False,
