@@ -37,11 +37,11 @@ def create_test_extension_input(uid: int) -> ExtensionInput:
 
 def get_cleaned_extension_dict(extension: Extension):
     """
-    Removes the started_at and status field from extension description because
-    they should not be considered for comparison of extension objects.
+    Removes fields from extension description that
+    should not be considered for comparison of extension objects.
     """
     extension_dict = extension.dict()
-    for key in ["started_at", "status"]:
+    for key in ["started_at", "status", "last_access_time", "last_access_user"]:
         extension_dict.pop(key)
     return extension_dict
 

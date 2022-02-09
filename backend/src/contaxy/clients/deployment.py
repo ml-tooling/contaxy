@@ -36,7 +36,7 @@ class DeploymentManagerClient(DeploymentOperations):
     def deploy_service(
         self,
         project_id: str,
-        service: ServiceInput,
+        service_input: ServiceInput,
         action_id: Optional[str] = None,
         deployment_type: Literal[
             DeploymentType.SERVICE, DeploymentType.EXTENSION
@@ -55,7 +55,7 @@ class DeploymentManagerClient(DeploymentOperations):
         resource = self.client.post(
             f"/projects/{project_id}/services",
             params=params,
-            json=service.dict(exclude_unset=True),
+            data=service_input.json(exclude_unset=True),
             **request_kwargs,
         )
         handle_errors(resource)
@@ -70,7 +70,7 @@ class DeploymentManagerClient(DeploymentOperations):
     ) -> Service:
         resource = self.client.patch(
             f"/projects/{project_id}/services/{service_id}",
-            json=service.dict(exclude_unset=True),
+            data=service.json(exclude_unset=True),
             **request_kwargs,
         )
         handle_errors(resource)
@@ -96,7 +96,7 @@ class DeploymentManagerClient(DeploymentOperations):
     ) -> List[ResourceAction]:
         resources = self.client.post(
             f"/projects/{project_id}/services:deploy-actions",
-            json=service.dict(exclude_unset=True),
+            data=service.json(exclude_unset=True),
             **request_kwargs,
         )
         handle_errors(resources)
@@ -196,7 +196,7 @@ class DeploymentManagerClient(DeploymentOperations):
     ) -> None:
         response = self.client.post(
             f"/projects/{project_id}/services/{service_id}/actions/{action_id}",
-            json=action_execution.dict(exclude_unset=True),
+            data=action_execution.json(exclude_unset=True),
             **request_kwargs,
         )
         handle_errors(response)
@@ -228,7 +228,7 @@ class DeploymentManagerClient(DeploymentOperations):
     def deploy_job(
         self,
         project_id: str,
-        job: JobInput,
+        job_input: JobInput,
         action_id: Optional[str] = None,
         wait: bool = False,
         request_kwargs: Dict = {},
@@ -241,7 +241,7 @@ class DeploymentManagerClient(DeploymentOperations):
         resource = self.client.post(
             f"/projects/{project_id}/jobs",
             params=params,
-            json=job.dict(exclude_unset=True),
+            data=job_input.json(exclude_unset=True),
             **request_kwargs,
         )
         handle_errors(resource)
@@ -255,7 +255,7 @@ class DeploymentManagerClient(DeploymentOperations):
     ) -> List[ResourceAction]:
         resources = self.client.post(
             f"/projects/{project_id}/jobs:deploy-actions",
-            json=job.dict(exclude_unset=True),
+            data=job.json(exclude_unset=True),
             **request_kwargs,
         )
         handle_errors(resources)
@@ -354,7 +354,7 @@ class DeploymentManagerClient(DeploymentOperations):
         response = self.client.post(
             f"/projects/{project_id}/jobs/{job_id}/actions/{action_id}",
             **request_kwargs,
-            json=action_execution.json(exclude_unset=True),
+            data=action_execution.json(exclude_unset=True),
         )
         handle_errors(response)
         # TODO: Return response?

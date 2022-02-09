@@ -30,7 +30,7 @@ class ExtensionClient(ExtensionOperations):
     ) -> Extension:
         response = self.client.post(
             f"/projects/{project_id}/extensions",
-            json=extension.dict(exclude_unset=True),
+            data=extension.json(exclude_unset=True),
             **request_kwargs,
         )
         handle_errors(response)

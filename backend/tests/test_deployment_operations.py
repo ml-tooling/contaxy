@@ -1,6 +1,6 @@
 import time
 from abc import ABC, abstractmethod
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from random import randint
 from typing import Generator, Tuple
 
@@ -129,14 +129,14 @@ class DeploymentOperationsTests(ABC):
 
     def deploy_service(self, project_id: str, service: ServiceInput) -> Service:
         service = self.deployment_manager.deploy_service(
-            project_id=project_id, service=service, wait=True
+            project_id=project_id, service_input=service, wait=True
         )
         self._deployed_services.append(service.id)
         return service
 
     def deploy_job(self, project_id: str, job: JobInput) -> Job:
         deployed_job = self.deployment_manager.deploy_job(
-            project_id=project_id, job=job, wait=True
+            project_id=project_id, job_input=job, wait=True
         )
         return deployed_job
 
@@ -167,6 +167,8 @@ class DeploymentOperationsTests(ABC):
             parameters={"FOO": "updated", "BASE_URL": None},
             metadata={"some-metadata": None},
             description="Updated service",
+            idle_timeout=9000,
+            clear_volume_on_stop=True,
         )
         service = self.deployment_manager.update_service(
             project_id=self.project_id,
@@ -180,6 +182,8 @@ class DeploymentOperationsTests(ABC):
         assert service.parameters.get("FOO2", "") == "bar2"
         assert "BASE_URL" not in service.parameters
         assert "some-metadata" not in service.metadata
+        assert service.idle_timeout == timedelta(seconds=9000)
+        assert service.clear_volume_on_stop is True
 
     def test_invalid_update_service(self) -> None:
         test_service_input = create_test_service_input(
@@ -218,7 +222,7 @@ class DeploymentOperationsTests(ABC):
             service_id=service.id,
         )
         assert service.last_access_time <= datetime.now(timezone.utc)
-        assert service.last_access_user == ""
+        assert service.last_access_user is not None
         # TODO: Test with authenticated user which should be set in last_access_user
 
         self.deployment_manager.update_service_access(

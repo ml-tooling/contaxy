@@ -239,9 +239,8 @@ class ServiceBase(BaseModel):
     idle_timeout: Optional[timedelta] = Field(
         None,
         description="Time after which the service is considered idling and will be stopped during the next idle check."
-        "If set to None, the workspace will never be considered idling."
+        "If set to None, the service will never be considered idling."
         "Can be specified as seconds or ISO 8601 time delta.",
-        example=None,
     )
     clear_volume_on_stop: bool = Field(
         False,

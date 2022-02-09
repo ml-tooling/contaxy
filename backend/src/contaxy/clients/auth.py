@@ -164,7 +164,7 @@ class AuthClient(AuthOperations):
     ) -> User:
         response = self._client.post(
             "/users",
-            json=user_input.dict(exclude_unset=True),
+            data=user_input.json(exclude_unset=True),
             params={"technical_user": technical_user},
             **request_kwargs,
         )
@@ -181,7 +181,7 @@ class AuthClient(AuthOperations):
     ) -> User:
         response = self._client.get(
             f"/users/{user_id}",
-            json=user_input.dict(exclude_unset=True),
+            data=user_input.json(exclude_unset=True),
             **request_kwargs,
         )
         handle_errors(response)
