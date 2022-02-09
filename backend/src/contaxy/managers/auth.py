@@ -885,7 +885,7 @@ class AuthManager(AuthOperations):
             id=user_id,
             technical_user=technical_user,
             created_at=datetime.now(timezone.utc),
-            has_password=False if (user_input.password == None or user_input.password == "") else True,
+            has_password=True if bool(user_input.password) else False,
             **user_input.dict(exclude_unset=True),
         )
 
