@@ -28,28 +28,28 @@ from contaxy.utils.state_utils import GlobalState, RequestState
 from .conftest import test_settings
 from .utils import ComponentManagerMock
 
-DEFAULT_USERS_TO_GENERATE = 10
 
-
-def _generate_user_data(users_to_generate: int) -> List[UserRegistration]:
+def _generate_user_data() -> List[UserRegistration]:
     fake = Faker()
-    generated_users: List[UserRegistration] = []
-    for _ in range(users_to_generate):
-        # TODO: Also some with missing emails/usernames?
-
-        generated_users.append(
-            UserRegistration(
-                username=fake.user_name() + id_utils.generate_short_uuid(),
-                email=fake.email(),
-                password=fake.password(length=12),
-            )
+    generated_users: List[UserRegistration] = [
+        UserRegistration(
+            username=fake.user_name() + id_utils.generate_short_uuid(),
+            email=fake.email(),
+            password=fake.password(length=12),
+        ),
+        # User without password:
+        UserRegistration(
+            username=fake.user_name() + id_utils.generate_short_uuid(),
+            email=fake.email(),
         )
+        # TODO: Also some with missing emails/usernames?
+    ]
     return generated_users
 
 
 @pytest.fixture()
 def user_data() -> List[UserRegistration]:
-    return _generate_user_data(DEFAULT_USERS_TO_GENERATE)
+    return _generate_user_data()
 
 
 class AuthOperationsTests(ABC):
@@ -388,7 +388,7 @@ class AuthOperationsTests(ABC):
     def test_create_user(self, user_data: List[UserRegistration]) -> None:
         user_ids: Set[str] = set()
         for user_input in user_data:
-            created_user = self.auth_manager.create_user(user_input)
+            created_user = self.auth_manager.create_user(user_input.copy())
 
             assert created_user.id not in user_ids, "User IDs MUST be unique."
             user_ids.add(created_user.id)
@@ -398,6 +398,7 @@ class AuthOperationsTests(ABC):
             assert (
                 datetime.now(timezone.utc) - created_user.created_at
             ).seconds < 300, "Creation timestamp MUST be from a few seconds ago."
+            assert created_user.has_password == (user_input.password is not None)
 
     def test_list_users(self, user_data: List[UserRegistration]) -> None:
         created_users: Dict = {}
