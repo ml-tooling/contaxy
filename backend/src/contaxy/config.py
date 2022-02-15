@@ -132,7 +132,7 @@ class Settings(BaseSettings):
         return cors_origins
 
     # TODO: Finalize
-    DEBUG: bool = True
+    DEBUG: bool = False
     DEBUG_DEACTIVATE_VERIFICATION: bool = False
 
     def get_redirect_uri(self, omit_host: bool = False) -> str:
