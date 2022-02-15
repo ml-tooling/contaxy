@@ -38,11 +38,7 @@ from contaxy.schema.deployment import (
     Service,
     ServiceInput,
 )
-from contaxy.schema.exceptions import (
-    ClientBaseError,
-    ResourceNotFoundError,
-    ServerBaseError,
-)
+from contaxy.schema.exceptions import ResourceNotFoundError, ServerBaseError
 
 # we create networks in the range of 172.33-255.0.0/24
 # Docker by default uses the range 172.17-32.0.0, so we should be save using that range
@@ -211,7 +207,7 @@ def create_network(
 
 
 def handle_network(
-    client: docker.client, project_id: str
+    client: DockerClient, project_id: str
 ) -> docker.models.networks.Network:
     network_name = get_network_name(project_id)
     try:
@@ -241,16 +237,16 @@ def connect_to_network(
         if not is_backend_connected_to_network:
             try:
                 network.connect(container)
-            except docker.errors.APIError:
+            except docker.errors.APIError as e:
                 # Remove the network again as it is not connected to any service.
                 network.remove()
-                raise RuntimeError(
+                raise ServerBaseError(
                     f"Could not connect the {container.name} to the network {network.name}"
-                )
+                ) from e
 
 
 def reconnect_to_all_networks(
-    client: docker.client,
+    client: DockerClient,
 ) -> None:
     """Connects the backend container to all networks that belong to the installation.
 
@@ -269,7 +265,7 @@ def reconnect_to_all_networks(
             )
 
 
-def get_backend_networks(client: docker.client) -> List[docker.models.networks.Network]:
+def get_backend_networks(client: DockerClient) -> List[docker.models.networks.Network]:
     try:
         networks = client.networks.list(
             filters={
@@ -278,8 +274,8 @@ def get_backend_networks(client: docker.client) -> List[docker.models.networks.N
                 )
             }
         )
-    except docker.errors.NotFound:
-        raise ServerBaseError("Could not list backend networks.")
+    except docker.errors.APIError as e:
+        raise ServerBaseError("Could not list backend networks.") from e
 
     return networks
 
@@ -306,16 +302,16 @@ def get_project_containers(
 
     try:
         containers = client.containers.list(all=True, filters={"label": labels})
-    except docker.errors.NotFound:
+    except docker.errors.APIError as e:
         raise ServerBaseError(
             f"Could not list Docker containers for project '{project_id}'."
-        )
+        ) from e
 
     return containers
 
 
 def get_project_container(
-    client: docker.client,
+    client: DockerClient,
     project_id: str,
     deployment_id: str,
     deployment_type: DeploymentType = DeploymentType.SERVICE,
@@ -328,10 +324,10 @@ def get_project_container(
     )
     try:
         containers = client.containers.list(all=True, filters={"label": labels})
-    except docker.errors.NotFound:
+    except docker.errors.APIError as e:
         raise ServerBaseError(
             f"Could not list Docker containers for project '{project_id}' and service '{deployment_id}'."
-        )
+        ) from e
 
     if len(containers) == 0:
         raise ResourceNotFoundError(
@@ -347,7 +343,7 @@ def get_this_container(
     """This function returns the Docker container in which this code is running or None if it does not run in a container.
 
     Args:
-        client (docker.client): The Docker client object
+        client (DockerClient): The Docker client object
 
     Returns:
         docker.models.containers.Container: If this code runs in a container, it returns this container otherwise None
@@ -373,9 +369,8 @@ def delete_container(
     try:
         container.remove(v=delete_volumes)
     except docker.errors.APIError:
-        raise ClientBaseError(
-            status_code=500,
-            message=f"Could not delete deployment '{container.name}'.",
+        raise ServerBaseError(
+            f"Could not delete deployment '{container.name}'.",
         )
 
     # Named volumes must be deleted manually
@@ -385,9 +380,8 @@ def delete_container(
                 try:
                     client.api.remove_volume(mount["Name"])
                 except docker.errors.APIError:
-                    raise ClientBaseError(
-                        status_code=500,
-                        message=f"Could not delete volume {mount['Name']} of deployment '{container.name}'.",
+                    raise ServerBaseError(
+                        f"Could not delete volume {mount['Name']} of deployment '{container.name}'.",
                     )
 
 
@@ -556,7 +550,7 @@ def read_container_logs(
 
 def wait_for_container(
     container: docker.models.containers.Container,
-    client: docker.client,
+    client: DockerClient,
     timeout: int = 60,
 ) -> docker.models.containers.Container:
     start = time.time()

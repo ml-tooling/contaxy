@@ -132,7 +132,7 @@ def create_pvc(
         if e.status != 409:
             raise ServerBaseError(
                 f"Could not create persistent volume claim for service '{pvc.metadata.name}' with reason: {e}"
-            )
+            ) from e
 
 
 def create_service(
@@ -150,7 +150,7 @@ def create_service(
     except ApiException as e:
         raise ServerBaseError(
             f"Could not create namespaced service '{service_config.metadata.name}' with reason: {e}"
-        )
+        ) from e
 
 
 def build_kube_service_config(
@@ -443,7 +443,7 @@ def wait_for_deployment(
             # )
             pass
 
-    raise RuntimeError(f"Waiting timeout for deployment {deployment_name}")
+    raise ServerBaseError(f"Waiting timeout for deployment {deployment_name}")
 
 
 def wait_for_job(
