@@ -82,8 +82,8 @@ def stop_idle_services(component_manager: ComponentOperations) -> None:
         for service in service_manager.list_services(project.id)
         # Only check running services
         if service.status == DeploymentStatus.RUNNING
-        # If idle timeout is not set, the service should never be stopped automatically
-        if service.idle_timeout is not None
+        # If idle timeout is not set or 0, the service should never be stopped automatically
+        if service.idle_timeout is not None and service.idle_timeout != 0
         # Last access time must be set to compute idle time
         if service.last_access_time is not None
         # Check if time last access time is longer ago than idle timeout
