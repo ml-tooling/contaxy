@@ -1,4 +1,5 @@
 import os
+from argparse import ArgumentParser
 from pathlib import Path
 
 from universal_build import build_utils
@@ -36,6 +37,12 @@ def main(args: dict) -> None:
 
         # Build distribution via setuptools
         build_python.build_distribution(exit_on_error=True)
+
+    if args.get('fix'):
+        build_utils.run(f"pipenv run black src")
+        build_utils.run(f"pipenv run black tests")
+        build_utils.run(f"pipenv run isort --profile black src")
+        build_utils.run(f"pipenv run isort --profile black src")
 
     if args.get(build_utils.FLAG_CHECK):
         build_python.code_checks(exit_on_error=True, safety=False)
@@ -78,5 +85,9 @@ def main(args: dict) -> None:
 
 
 if __name__ == "__main__":
-    args = build_python.parse_arguments()
+    parser = ArgumentParser()
+    parser.add_argument(
+        f"--fix", help="Fix linting errors that can be solved automatically (e.g. formatting)", action='store_true'
+    )
+    args = build_python.parse_arguments(argument_parser=parser)
     main(args)
