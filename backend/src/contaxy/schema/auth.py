@@ -40,6 +40,9 @@ class TokenPurpose(str, Enum):
     # DEPLOYMENT_TOKEN = "deployment-token"
 
 
+contaxy_token_purposes = {purpose for purpose in TokenPurpose}
+
+
 class TokenType(str, Enum):
     SESSION_TOKEN = "session-token"
     API_TOKEN = "api-token"
@@ -89,9 +92,9 @@ class ApiToken(AccessToken):
         example="16fd2706-8baf-433b-82eb-8c7fada847da",
         description="ID of the user that created this token.",
     )
-    token_purpose: Optional[TokenPurpose] = Field(
+    token_purpose: Optional[str] = Field(
         None,
-        example=TokenPurpose.REFRESH_TOKEN,
+        example=TokenPurpose.LOGIN_TOKEN,
         description="The purpose of the token.",
     )
 

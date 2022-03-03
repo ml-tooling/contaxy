@@ -1,3 +1,4 @@
+import json
 from typing import Dict, List, Optional
 
 import requests
@@ -16,7 +17,7 @@ from contaxy.schema import (
     UserInput,
     UserRegistration,
 )
-from contaxy.schema.auth import ApiToken, OAuth2Error, TokenPurpose
+from contaxy.schema.auth import ApiToken, OAuth2Error
 
 
 def handle_oauth_error(response: Response) -> None:
@@ -37,32 +38,50 @@ class AuthClient(AuthOperations):
         scopes: List[str],
         token_type: TokenType,
         description: Optional[str] = None,
-        token_purpose: Optional[TokenPurpose] = None,
+        token_purpose: Optional[str] = None,
         token_subject: Optional[str] = None,
         request_kwargs: Dict = {},
     ) -> str:
         # TODO: Implement token_purpose and token_subject
-        params = {"token_type": token_type.value, "scopes": scopes}
+        params = {
+            "token_type": token_type.value,
+            "scope": scopes,
+            "token_purpose": token_purpose,
+        }
         if description:
             params["description"] = description
         response = self._client.post("/auth/tokens", params=params, **request_kwargs)
         handle_errors(response)
         return response.json()
 
-    def list_api_tokens(self, request_kwargs: Dict = {}) -> List[ApiToken]:
-        response = self._client.get("/auth/tokens")
+    def list_api_tokens(
+        self, token_subject: Optional[str] = None, request_kwargs: Dict = {}
+    ) -> List[ApiToken]:
+        params = {}
+        if token_subject is not None:
+            params["token_subject"] = token_subject
+        response = self._client.get("/auth/tokens", params=params, **request_kwargs)
         handle_errors(response)
-        return parse_raw_as(List[ApiToken], response.text, **request_kwargs)
+        return parse_raw_as(List[ApiToken], response.text)
 
     def verify_access(
         self,
         token: str,
         permission: Optional[str] = None,
-        disable_cache: bool = False,
+        use_cache: bool = True,
         request_kwargs: Dict = {},
     ) -> AuthorizedAccess:
-        # TODO: Implement
-        pass
+        params: Dict = {"use_cache": use_cache}
+        if permission is not None:
+            params["permission"] = permission
+        response = self._client.post(
+            "/auth/tokens/verify",
+            params=params,
+            data=json.dumps(token),
+            **request_kwargs,
+        )
+        handle_errors(response)
+        return parse_raw_as(AuthorizedAccess, response.text)
 
     def change_password(
         self, user_id: str, password: str, request_kwargs: Dict = {}
@@ -75,8 +94,14 @@ class AuthClient(AuthOperations):
     def add_permission(
         self, resource_name: str, permission: str, request_kwargs: Dict = {}
     ) -> None:
-        # TODO: Implement
-        pass
+        params = {
+            "resource_name": resource_name,
+            "permission": permission,
+        }
+        response = self._client.post(
+            "/auth/permissions", params=params, **request_kwargs
+        )
+        handle_errors(response)
 
     def remove_permission(
         self,
@@ -85,8 +110,15 @@ class AuthClient(AuthOperations):
         remove_sub_permissions: bool = False,
         request_kwargs: Dict = {},
     ) -> None:
-        # TODO: Implement
-        pass
+        params: Dict = {
+            "resource_name": resource_name,
+            "permission": permission,
+            "remove_sub_permissions": remove_sub_permissions,
+        }
+        response = self._client.delete(
+            "/auth/permissions", params=params, **request_kwargs
+        )
+        handle_errors(response)
 
     def list_permissions(
         self,
@@ -95,8 +127,16 @@ class AuthClient(AuthOperations):
         use_cache: bool = False,
         request_kwargs: Dict = {},
     ) -> List[str]:
-        # TODO: Implement
-        pass
+        params: Dict = {
+            "resource_name": resource_name,
+            "resolve_roles": resolve_roles,
+            "use_cache": use_cache,
+        }
+        response = self._client.get(
+            "/auth/permissions", params=params, **request_kwargs
+        )
+        handle_errors(response)
+        return parse_raw_as(List[str], response.text)
 
     def list_resources_with_permission(
         self,
@@ -104,8 +144,13 @@ class AuthClient(AuthOperations):
         resource_name_prefix: Optional[str] = None,
         request_kwargs: Dict = {},
     ) -> List[str]:
-        # TODO: Implement
-        pass
+        params = {
+            "permission": permission,
+            "resource_name_prefix": resource_name_prefix,
+        }
+        response = self._client.get("/auth/resources", params=params, **request_kwargs)
+        handle_errors(response)
+        return parse_raw_as(List[str], response.text)
 
     # OAuth Operations
 
@@ -179,7 +224,7 @@ class AuthClient(AuthOperations):
     def update_user(
         self, user_id: str, user_input: UserInput, request_kwargs: Dict = {}
     ) -> User:
-        response = self._client.get(
+        response = self._client.patch(
             f"/users/{user_id}",
             data=user_input.json(exclude_unset=True),
             **request_kwargs,

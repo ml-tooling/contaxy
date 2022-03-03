@@ -11,7 +11,7 @@ from contaxy.schema import (
     UserInput,
     UserRegistration,
 )
-from contaxy.schema.auth import ApiToken, TokenPurpose
+from contaxy.schema.auth import ApiToken
 
 
 class AuthOperations(ABC):
@@ -21,7 +21,7 @@ class AuthOperations(ABC):
         scopes: List[str],
         token_type: TokenType,
         description: Optional[str] = None,
-        token_purpose: Optional[TokenPurpose] = None,
+        token_purpose: Optional[str] = None,
         token_subject: Optional[str] = None,
     ) -> str:
         """Returns a session or API token with access to the speicfied scopes.
@@ -41,8 +41,13 @@ class AuthOperations(ABC):
         pass
 
     @abstractmethod
-    def list_api_tokens(self) -> List[ApiToken]:
-        """Lists all API tokens associated from the authorized user.
+    def list_api_tokens(self, token_subject: Optional[str] = None) -> List[ApiToken]:
+        """Lists all API tokens associated with the given token subject.
+
+        Args:
+            token_subject:
+                Subject for which the tokens should be listed.
+                If it is not provided, the tokens of the authorized user are returned.
 
         Returns:
             List[ApiToken]: A list of API tokens.
@@ -51,7 +56,7 @@ class AuthOperations(ABC):
 
     @abstractmethod
     def verify_access(
-        self, token: str, permission: Optional[str] = None, disable_cache: bool = False
+        self, token: str, permission: Optional[str] = None, use_cache: bool = True
     ) -> AuthorizedAccess:
         """Verifies if the authorized token is valid and grants a certain permission.
 
@@ -60,7 +65,7 @@ class AuthOperations(ABC):
         Args:
             token: Token (session or API) to verify.
             permission (optional): The token is checked if it is granted this permission. If none specified, only the existence or validity of the token itself is checked.
-            disable_cache (optional): If `True`, no cache will be used for verifying the token. Defaults to `False`.
+            use_cache (optional): If `False`, no cache will be used for verifying the token. Defaults to `True`.
 
         Raises:
             PermissionDeniedError: If the requested permission is denied.
