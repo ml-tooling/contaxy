@@ -30,6 +30,18 @@ class FileStream(ABC):
 
 
 class FileBase(BaseModel):
+    pass
+    # TODO: v2
+    # content_encoding: Specifies what content encodings have been applied to the object and thus what decoding mechanisms must be applied to obtain the media-type referenced by the Content-Type header field.
+    # content_disposition: Specifies presentational information for the object.
+    # content_language: The language the content is in.
+
+
+class FileInput(ResourceInput, FileBase):
+    pass
+
+
+class File(Resource, FileBase):
     key: str = Field(
         ...,
         example="datasets/customer-table.csv",
@@ -48,39 +60,28 @@ class FileBase(BaseModel):
         example="datasets/customer-table.csv",
         description="The ID (or access instruction) of the file on the file storage provider.",
     )
-    # TODO: v2
-    # content_encoding: Specifies what content encodings have been applied to the object and thus what decoding mechanisms must be applied to obtain the media-type referenced by the Content-Type header field.
-    # content_disposition: Specifies presentational information for the object.
-    # content_language: The language the content is in.
-
-
-class FileInput(ResourceInput, FileBase):
-    pass
-
-
-class File(Resource, FileBase):
-    file_extension: Optional[str] = Field(
-        None,
+    file_extension: str = Field(
+        "",
         example="csv",
         description="The full file extension extracted from the key field. May contain multiple concatenated extensions, such as `tar.gz`.",
     )
-    file_size: Optional[ByteSize] = Field(
-        None,
+    file_size: ByteSize = Field(
+        0,
         example=1073741824,
         description="The file size in bytes.",
     )
-    version: Optional[str] = Field(
-        None,
+    version: str = Field(
+        ...,
         example="1614204512210009",
         description="Version tag of this file. The version order might not be inferable from the version tag.",
     )
-    available_versions: Optional[List[str]] = Field(
-        None,
+    available_versions: List[str] = Field(
+        [],
         example=["1614204512210009", "23424512210009", "6144204512210009"],
         description="All version tags available for the given file.",
     )
-    latest_version: Optional[bool] = Field(
-        None,
+    latest_version: bool = Field(
+        ...,
         example=True,
         description="Indicates if this is the latest available version of the file.",
     )
