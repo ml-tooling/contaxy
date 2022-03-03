@@ -216,7 +216,7 @@ class AuthOperationsTests(ABC):
         self.auth_manager.add_permission(USER, PROJECT + "#admin")
         self.auth_manager.add_permission(USER, USER_ROLE)
         token = self.auth_manager.create_token(
-            # TODO: Test token_subject
+            token_subject=USER,
             scopes=[PROJECT + "#write"],
             token_type=TokenType.API_TOKEN,
             description="This is a test token.",
@@ -230,6 +230,8 @@ class AuthOperationsTests(ABC):
         )
         assert authorized_access.access_level is AccessLevel.READ
         assert authorized_access.resource_name == PROJECT
+        # TODO: Test token_subject
+        # assert authorized_access.authorized_subject == USER
 
         self.auth_manager.verify_access(
             token, PROJECT + "/services#read", use_cache=USE_CACHE
@@ -302,8 +304,7 @@ class AuthOperationsTests(ABC):
         self.auth_manager.add_permission(USER, PROJECT + "#admin")
 
         token = self.auth_manager.create_token(
-            # TODO: Test token_subject
-            # token_subject=USER,
+            token_subject=USER,
             scopes=[PROJECT + "#write", "projects#read"],
             token_type=TokenType.API_TOKEN,
             description="This is a test token.",
@@ -311,6 +312,7 @@ class AuthOperationsTests(ABC):
 
         token_introspection = self.auth_manager.introspect_token(token)
         assert token_introspection.active is True
+        # TODO: Test token_subject
         # assert token_introspection.sub == USER
         assert (PROJECT + "#write") in token_introspection.scope
         assert (
