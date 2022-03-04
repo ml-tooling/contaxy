@@ -13,11 +13,7 @@ from contaxy.operations import FileOperations
 from contaxy.operations.components import ComponentOperations
 from contaxy.operations.json_db import JsonDocumentOperations
 from contaxy.schema import File, FileInput, ResourceAction
-from contaxy.schema.exceptions import (
-    ClientValueError,
-    ResourceNotFoundError,
-    ServerBaseError,
-)
+from contaxy.schema.exceptions import ResourceNotFoundError, ServerBaseError
 from contaxy.schema.file import FileStream
 from contaxy.schema.json_db import JsonDocument
 from contaxy.utils.file_utils import generate_file_id
@@ -173,11 +169,6 @@ class MinioFileManager(FileOperations):
         logger.debug(
             f"update_file_metadata (`project_id`: {project_id}, `file_key`: {file_key}, `version`: {version})"
         )
-
-        if file.key != file_key:
-            raise ClientValueError(
-                f"File keys do not match (file_key: {file_key}, file.key {file.key})"
-            )
 
         try:
             s3_object = self.client.stat_object(
@@ -456,7 +447,7 @@ class MinioFileManager(FileOperations):
             "file_extension": file_extension,
             "file_size": object.size,
             "etag": object.etag,
-            "latest_version": object.is_latest,
+            "latest_version": object.is_latest or False,
             "version": object.version_id,
         }
 
@@ -514,7 +505,7 @@ class MinioFileManager(FileOperations):
                 return [], []
 
         for file in file_data:
-            file.available_versions = file_versions.get(file.key)
+            file.available_versions = file_versions.get(file.key, [])
 
         return file_data, db_keys
 
