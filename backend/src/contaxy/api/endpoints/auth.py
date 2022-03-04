@@ -136,12 +136,13 @@ def login_user_session(
 )
 def logout_user_session(
     component_manager: ComponentManager = Depends(get_component_manager),
+    token: str = Depends(get_api_token),
 ) -> Any:
     """Removes all session token cookies and redirects to the login page.
 
     When making requests to the this endpoint, the browser should be redirected to this endpoint.
     """
-    # RedirectResponse("./login", status_code=307)
+    component_manager.verify_access(token)
     return component_manager.get_auth_manager().logout_session()
 
 

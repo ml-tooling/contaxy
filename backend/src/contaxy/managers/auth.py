@@ -137,6 +137,16 @@ class AuthManager(AuthOperations):
         pass
 
     def logout_session(self) -> RedirectResponse:
+        # Remove login token of user from DB
+        if (
+            self._request_state.authorized_access
+            and self._request_state.authorized_access.access_token
+        ):
+            self._json_db_manager.delete_json_document(
+                config.SYSTEM_INTERNAL_PROJECT,
+                self._API_TOKEN_COLLECTION,
+                self._request_state.authorized_access.access_token.token,
+            )
         # TODO: where to redirect to
         rr = RedirectResponse("/welcome", status_code=307)
         rr.delete_cookie(config.API_TOKEN_NAME)
