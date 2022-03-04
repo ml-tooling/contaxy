@@ -1,18 +1,20 @@
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from random import randrange
-from typing import Dict, Generator, List, Set
+from typing import Generator, List, Set
 
 import pytest
+import requests
 from faker import Faker
 from jose import jwt
 
 from contaxy import config
+from contaxy.clients import AuthClient, JsonDocumentClient
 from contaxy.config import settings
 from contaxy.managers.auth import AuthManager
 from contaxy.managers.json_db.inmemory_dict import InMemoryDictJsonDocumentManager
 from contaxy.managers.json_db.postgres import PostgresJsonDocumentManager
-from contaxy.operations import JsonDocumentOperations
+from contaxy.operations import AuthOperations, JsonDocumentOperations
 from contaxy.schema.auth import (
     AccessLevel,
     OAuth2Error,
@@ -27,7 +29,7 @@ from contaxy.schema.exceptions import (
     ResourceNotFoundError,
     UnauthenticatedError,
 )
-from contaxy.utils import id_utils
+from contaxy.utils import auth_utils, id_utils
 from contaxy.utils.state_utils import GlobalState, RequestState
 
 from .conftest import test_settings
@@ -60,7 +62,7 @@ def user_data() -> List[UserRegistration]:
 class AuthOperationsTests(ABC):
     @property
     @abstractmethod
-    def auth_manager(self) -> AuthManager:
+    def auth_manager(self) -> AuthOperations:
         pass
 
     @property
@@ -68,22 +70,12 @@ class AuthOperationsTests(ABC):
     def json_db(self) -> JsonDocumentOperations:
         pass
 
-    def test_change_password(self, faker: Faker) -> None:
-        user_id = id_utils.generate_short_uuid()
-        user_password = faker.password()
-        self.auth_manager.change_password(user_id, user_password)
-        assert self.auth_manager.verify_password(user_id, user_password) is True
-
-    def test_verify_password(self, faker: Faker) -> None:
-        # does not need any extra logic, just call the change password method
-        self.test_change_password(faker)
-
-    def test_permission_handling(self, faker: Faker) -> None:
+    def test_permission_handling(self) -> None:
         added_resources = set()
-        for _ in range(50):
+        for _ in range(3):
             resource_name = "users/" + id_utils.generate_short_uuid()
             added_permissions = []
-            for _ in range(randrange(10)):
+            for _ in range(randrange(3)):
                 project = id_utils.generate_short_uuid()
                 permission = f"projects/{project}#write"
                 self.auth_manager.add_permission(resource_name, permission)
@@ -99,7 +91,7 @@ class AuthOperationsTests(ABC):
                 self.auth_manager.remove_permission(resource_name, added_permission)
             assert len(self.auth_manager.list_permissions(resource_name)) == 0
 
-    def test_remove_permission(self, faker: Faker) -> None:
+    def test_remove_single_permission(self) -> None:
         resource_name = "users/" + id_utils.generate_short_uuid()
         project = id_utils.generate_short_uuid()
         permission = f"projects/{project}"
@@ -107,45 +99,76 @@ class AuthOperationsTests(ABC):
         self.auth_manager.remove_permission(resource_name, permission)
         assert len(self.auth_manager.list_permissions(resource_name)) == 0
 
-    def test_list_permissions(self, faker: Faker) -> None:
-        # create role
-        USER_ROLE = "roles/user"
-        SYSTEM_READ_PERMISSION = "system#read"
-        self.auth_manager.add_permission(USER_ROLE, "projects/shared#read")
-        self.auth_manager.add_permission(USER_ROLE, SYSTEM_READ_PERMISSION)
-
-        assert len(self.auth_manager.list_permissions(USER_ROLE)) == 2
-
-        # create user
-        USER_RESOURCE = "users/" + id_utils.generate_short_uuid()
-        self.auth_manager.add_permission(USER_RESOURCE, USER_ROLE)
+    def test_remove_multiple_permission(self) -> None:
+        resource_name = "users/" + id_utils.generate_short_uuid()
         self.auth_manager.add_permission(
-            USER_RESOURCE, f"projects/{id_utils.generate_short_uuid()}#admin"
+            resource_name, f"projects/{id_utils.generate_short_uuid()}#read"
         )
+        self.auth_manager.add_permission(
+            resource_name, f"projects/{id_utils.generate_short_uuid()}#read"
+        )
+        self.auth_manager.add_permission(
+            resource_name, f"users/{id_utils.generate_short_uuid()}#read"
+        )
+        self.auth_manager.add_permission(
+            resource_name, f"test/{id_utils.generate_short_uuid()}#read"
+        )
+        assert len(self.auth_manager.list_permissions(resource_name)) == 4
+        self.auth_manager.remove_permission(
+            resource_name, "projects#read", remove_sub_permissions=True
+        )
+        assert len(self.auth_manager.list_permissions(resource_name)) == 2
+        self.auth_manager.remove_permission(
+            resource_name, "*#read", remove_sub_permissions=True
+        )
+        assert len(self.auth_manager.list_permissions(resource_name)) == 0
+
+    def test_list_permissions(self, user_data: List[UserRegistration]) -> None:
+        # create role
+        TEST_ROLE = "roles/test"
+        TEST_PERMISSION = "test#read"
+        self.auth_manager.add_permission(TEST_ROLE, TEST_PERMISSION)
+
+        assert len(self.auth_manager.list_permissions(TEST_ROLE)) == 1
+
+        # create user with role and project permission
+        user = self.auth_manager.create_user(user_data[0])
+        PROJECT_PERMISSION = f"projects/{id_utils.generate_short_uuid()}#admin"
+        USER_RESOURCE = "users/" + user.id
+        self.auth_manager.add_permission(USER_RESOURCE, TEST_ROLE)
+        self.auth_manager.add_permission(USER_RESOURCE, PROJECT_PERMISSION)
 
         # If not resolved, it contains the project permission and role
         unresolved_permissions = self.auth_manager.list_permissions(
             USER_RESOURCE, resolve_roles=False
         )
-        assert len(unresolved_permissions) == 2
-        assert USER_ROLE in unresolved_permissions
+        assert TEST_ROLE in unresolved_permissions
+        assert PROJECT_PERMISSION in unresolved_permissions
+        assert TEST_PERMISSION not in unresolved_permissions
 
         # Resolved permissions should contain the permission of the role
         resolved_permissions = self.auth_manager.list_permissions(
             USER_RESOURCE, resolve_roles=True
         )
-        assert len(resolved_permissions) == 3
-        assert SYSTEM_READ_PERMISSION in resolved_permissions
+        assert TEST_PERMISSION in resolved_permissions
+        assert PROJECT_PERMISSION in unresolved_permissions
+        assert TEST_ROLE not in resolved_permissions
 
         # Add the role to itself
-        self.auth_manager.add_permission(USER_ROLE, USER_ROLE)
+        self.auth_manager.add_permission(TEST_ROLE, TEST_ROLE)
         resolved_permissions = self.auth_manager.list_permissions(
-            USER_ROLE, resolve_roles=True
+            TEST_ROLE, resolve_roles=True
         )
-        # The role should have 2 permissions, sine the added one is not a valid base permission
-        assert len(resolved_permissions) == 2
+        # The role should have 1 permissions, since the added one is not a valid base permission
+        assert len(resolved_permissions) == 1
 
-    def test_list_resources_with_permission(self, faker: Faker) -> None:
+        # Clean up user and role
+        self.auth_manager.delete_user(user.id)
+        self.auth_manager.remove_permission(
+            TEST_ROLE, "*#admin", remove_sub_permissions=True
+        )
+
+    def test_list_resources_with_permission(self) -> None:
         PROJECT_PERMISSION_1 = "projects/" + id_utils.generate_short_uuid() + "#admin"
         PROJECT_PERMISSION_2 = "projects/" + id_utils.generate_short_uuid() + "#admin"
 
@@ -185,36 +208,6 @@ class AuthOperationsTests(ABC):
             == 1
         )
 
-    def test_create_token(self) -> None:
-        USER = "users/" + id_utils.generate_short_uuid()
-        self.auth_manager.create_token(
-            token_subject=USER,
-            scopes=["projects#read", "system#read"],
-            token_type=TokenType.API_TOKEN,
-            description="This is a test token.",
-        )
-        self.auth_manager.create_token(
-            token_subject=USER,
-            scopes=["projects#read"],
-            token_type=TokenType.API_TOKEN,
-            description="This is another token.",
-        )
-
-        session_token = self.auth_manager.create_token(
-            token_subject=USER,
-            scopes=["projects#read"],
-            token_type=TokenType.SESSION_TOKEN,
-            description="This is another token.",
-        )
-
-        payload = jwt.decode(
-            session_token,
-            settings.JWT_TOKEN_SECRET,
-            algorithms=[settings.JWT_ALGORITHM],
-        )
-        assert payload.get("sub") == USER
-        assert len(self.auth_manager.list_api_tokens(USER)) == 2
-
     def test_verify_access(self) -> None:
         PROJECT = "projects/" + id_utils.generate_short_uuid()
         USER_ROLE = "roles/user"
@@ -224,52 +217,24 @@ class AuthOperationsTests(ABC):
         self.auth_manager.add_permission(USER, USER_ROLE)
         token = self.auth_manager.create_token(
             token_subject=USER,
-            scopes=[PROJECT + "#write", "projects#read"],
+            scopes=[PROJECT + "#write"],
             token_type=TokenType.API_TOKEN,
             description="This is a test token.",
         )
 
         USE_CACHE = True
-        assert (
-            self.auth_manager.verify_access(
-                token, PROJECT + "#write", use_cache=USE_CACHE
-            )
-            is not None
-        )
+        self.auth_manager.verify_access(token, PROJECT + "#write", use_cache=USE_CACHE)
 
-        assert (
-            self.auth_manager.verify_access(
-                token, PROJECT + "#read", use_cache=USE_CACHE
-            ).access_level
-            is AccessLevel.READ
+        authorized_access = self.auth_manager.verify_access(
+            token, PROJECT + "#read", use_cache=USE_CACHE
         )
+        assert authorized_access.access_level is AccessLevel.READ
+        assert authorized_access.resource_name == PROJECT
+        # TODO: Test token_subject
+        # assert authorized_access.authorized_subject == USER
 
-        assert (
-            self.auth_manager.verify_access(
-                token, PROJECT + "#read", use_cache=USE_CACHE
-            ).authorized_subject
-            == USER
-        )
-
-        assert (
-            self.auth_manager.verify_access(
-                token, PROJECT + "#read", use_cache=USE_CACHE
-            ).resource_name
-            == PROJECT
-        )
-
-        assert (
-            self.auth_manager.verify_access(
-                token, PROJECT + "/services#read", use_cache=USE_CACHE
-            )
-            is not None
-        )
-
-        assert (
-            self.auth_manager.verify_access(
-                token, "projects/shared#read", use_cache=USE_CACHE
-            )
-            is not None
+        self.auth_manager.verify_access(
+            token, PROJECT + "/services#read", use_cache=USE_CACHE
         )
 
         with pytest.raises(PermissionDeniedError):
@@ -284,7 +249,7 @@ class AuthOperationsTests(ABC):
 
         session_token = self.auth_manager.create_token(
             token_subject=USER,
-            scopes=[PROJECT + "#write", "projects#read"],
+            scopes=[PROJECT + "#write"],
             token_type=TokenType.SESSION_TOKEN,
         )
 
@@ -347,7 +312,8 @@ class AuthOperationsTests(ABC):
 
         token_introspection = self.auth_manager.introspect_token(token)
         assert token_introspection.active is True
-        assert token_introspection.sub == USER
+        # TODO: Test token_subject
+        # assert token_introspection.sub == USER
         assert (PROJECT + "#write") in token_introspection.scope
         assert (
             datetime.now(timezone.utc)
@@ -418,22 +384,18 @@ class AuthOperationsTests(ABC):
             ).seconds < 300, "Creation timestamp MUST be from a few seconds ago."
 
     def test_list_users(self, user_data: List[UserRegistration]) -> None:
-        created_users: Dict = {}
+        created_users = []
         # create all users
         for user_input in user_data:
             created_user = self.auth_manager.create_user(user_input)
-            created_users[created_user.id] = created_user
+            created_users.append(created_user)
 
-        users_in_db = self.auth_manager.list_users()
+        users_in_db = {user.id: user for user in self.auth_manager.list_users()}
 
-        assert len(users_in_db) == len(
-            user_data
-        ), "The user count is not equal the the number of created users."
-
-        for user in users_in_db:
-            assert user.id in created_users
-            assert user.username == created_users[user.id].username
-            assert user.email == created_users[user.id].email
+        for user in created_users:
+            assert user.id in users_in_db
+            assert user.username == users_in_db[user.id].username
+            assert user.email == users_in_db[user.id].email
 
     def test_get_user(self, user_data: List[UserRegistration]) -> None:
         # Create and get a single user
@@ -459,12 +421,10 @@ class AuthOperationsTests(ABC):
             updated_user = self.auth_manager.update_user(
                 created_user.id, updated_user_data
             )
-            # To make sure, get the updated user
-            updated_user = self.auth_manager.get_user(created_user.id)
             assert updated_user.id == created_user.id
+            assert updated_user.created_at == created_user.created_at
             assert updated_user.username == updated_user_data.username
             assert updated_user.email == updated_user_data.email
-            assert created_user.created_at == updated_user.created_at
 
     def test_delete_user(self) -> None:
         # Create and delete single user
@@ -472,7 +432,8 @@ class AuthOperationsTests(ABC):
         user_resource_name = f"users/{created_user.id}"
         self.auth_manager.add_permission(user_resource_name, "test#read")
         self.auth_manager.delete_user(created_user.id)
-        assert len(self.auth_manager.list_users()) == 0
+        with pytest.raises(ResourceNotFoundError):
+            self.auth_manager.get_user(created_user.id)
         # Check that all other resources have been cleaned up
         # assert len(self.auth_manager.list_permissions(user_resource_name)) == 0
         with pytest.raises(ResourceNotFoundError):
@@ -493,18 +454,6 @@ class AuthOperationsTests(ABC):
                 AuthManager._LOGIN_ID_MAPPING_COLLECTION,
                 key=created_user.email,
             )
-
-    def test_delete_multiple_users(self, user_data: List[UserRegistration]) -> None:
-        created_users: List[User] = []
-        for user in user_data:
-            created_users.append(self.auth_manager.create_user(user))
-
-        assert len(self.auth_manager.list_users()) == len(user_data)
-
-        for user in created_users:
-            self.auth_manager.delete_user(user.id)
-
-        assert len(self.auth_manager.list_users()) == 0
 
 
 @pytest.mark.skipif(
@@ -559,3 +508,82 @@ class TestAuthManagerWithInMemoryDB(AuthOperationsTests):
     @property
     def json_db(self) -> JsonDocumentOperations:
         return self._json_db
+
+    def test_change_password(self, faker: Faker) -> None:
+        user_id = id_utils.generate_short_uuid()
+        user_password = faker.password()
+        self.auth_manager.change_password(user_id, user_password)
+        assert self.auth_manager.verify_password(user_id, user_password) is True
+
+    def test_create_token(self) -> None:
+        USER = "users/" + id_utils.generate_short_uuid()
+        self.auth_manager.create_token(
+            token_subject=USER,
+            scopes=["projects#read", "system#read"],
+            token_type=TokenType.API_TOKEN,
+            description="This is a test token.",
+        )
+        self.auth_manager.create_token(
+            token_subject=USER,
+            scopes=["projects#read"],
+            token_type=TokenType.API_TOKEN,
+            description="This is another token.",
+        )
+
+        session_token = self.auth_manager.create_token(
+            token_subject=USER,
+            scopes=["projects#read"],
+            token_type=TokenType.SESSION_TOKEN,
+            description="This is another token.",
+        )
+
+        payload = jwt.decode(
+            session_token,
+            settings.JWT_TOKEN_SECRET,
+            algorithms=[settings.JWT_ALGORITHM],
+        )
+        assert payload.get("sub") == USER
+        assert len(self.auth_manager.list_api_tokens(USER)) == 2
+
+
+@pytest.mark.skipif(
+    not test_settings.REMOTE_BACKEND_ENDPOINT,
+    reason="No remote backend is configured (via REMOTE_BACKEND_ENDPOINT).",
+)
+@pytest.mark.skipif(
+    not test_settings.REMOTE_BACKEND_TESTS,
+    reason="Remote Backend Tests are deactivated, use REMOTE_BACKEND_TESTS to activate.",
+)
+@pytest.mark.integration
+class TestAuthManagerViaRemoteEndpoints(AuthOperationsTests):
+    @pytest.fixture(autouse=True)
+    def _init_managers(self, remote_client: requests.Session) -> Generator:
+        self._endpoint_client = remote_client
+        self._auth_manager = AuthClient(self._endpoint_client)
+        self._json_db = JsonDocumentClient(self._endpoint_client)
+
+        self.login_user(
+            config.SYSTEM_ADMIN_USERNAME, config.SYSTEM_ADMIN_INITIAL_PASSWORD
+        )
+        yield
+
+    @property
+    def auth_manager(self) -> AuthManager:
+        return self._auth_manager
+
+    @property
+    def json_db(self) -> JsonDocumentOperations:
+        return self._json_db
+
+    def login_user(self, username: str, password: str) -> None:
+        self.auth_manager.request_token(
+            OAuth2TokenRequestFormNew(
+                grant_type=OAuth2TokenGrantTypes.PASSWORD,
+                username=username,
+                password=password,
+                scope=auth_utils.construct_permission(
+                    "*", AccessLevel.ADMIN
+                ),  # Get full scope
+                set_as_cookie=True,
+            )
+        )

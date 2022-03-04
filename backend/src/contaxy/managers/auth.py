@@ -184,7 +184,7 @@ class AuthManager(AuthOperations):
         scopes: List[str],
         token_type: TokenType,
         description: Optional[str] = None,
-        token_purpose: Optional[TokenPurpose] = None,
+        token_purpose: Optional[str] = None,
         token_subject: Optional[str] = None,
     ) -> str:
         if not token_subject:
@@ -375,7 +375,7 @@ class AuthManager(AuthOperations):
     def verify_access(
         self, token: str, permission: Optional[str] = None, use_cache: bool = True
     ) -> AuthorizedAccess:
-        # This will thows UnauthenticatedError if the token is not valid or does not existx
+        # This will throw an UnauthenticatedError if the token is not valid or does not exist
         resolved_token = self._resolve_token(token, use_cache=use_cache)
         if not permission or settings.DEBUG_DEACTIVATE_VERIFICATION:
             # no permissions to check -> return granted permission
@@ -690,7 +690,8 @@ class AuthManager(AuthOperations):
             token_subject="users/" + user_id,
             scopes=scopes,
             token_type=TokenType.API_TOKEN,
-            description="Login Token.",
+            token_purpose=TokenPurpose.LOGIN_TOKEN,
+            description=f"Login token for user {user_id}.",
         )
 
         # TODO: change this here if we validated token scopes
