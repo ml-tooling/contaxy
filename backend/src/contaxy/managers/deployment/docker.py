@@ -3,7 +3,6 @@ from typing import Any, List, Literal, Optional
 
 import docker
 import docker.errors
-from loguru import logger
 
 from contaxy.managers.deployment.docker_utils import (
     create_container_config,
@@ -20,7 +19,7 @@ from contaxy.managers.deployment.docker_utils import (
 )
 from contaxy.schema import Job, JobInput, ResourceAction, Service, ServiceInput
 from contaxy.schema.deployment import DeploymentType, ServiceUpdate
-from contaxy.schema.exceptions import ClientBaseError, ClientValueError
+from contaxy.schema.exceptions import ServerBaseError
 
 
 class DockerDeploymentPlatform:
@@ -71,10 +70,9 @@ class DockerDeploymentPlatform:
             if wait:
                 container = wait_for_container(container, self.client)
         except docker.errors.APIError as e:
-            logger.error(f"Error in deploy service '{service.display_name}': {e}")
-            raise ClientValueError(
+            raise ServerBaseError(
                 f"Could not deploy service '{service.display_name}'."
-            )
+            ) from e
 
         return map_service(container)
 
@@ -153,10 +151,8 @@ class DockerDeploymentPlatform:
             container = self.client.containers.run(**container_config)
             if wait:
                 container = wait_for_container(container, self.client)
-        except docker.errors.APIError:
-            raise ClientBaseError(
-                status_code=500, message=f"Could not deploy job '{job.display_name}'."
-            )
+        except docker.errors.APIError as e:
+            raise ServerBaseError("Could not deploy job '{job.display_name}'.") from e
 
         response_service = map_job(container)
         return response_service

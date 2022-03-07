@@ -12,7 +12,6 @@ from kubernetes.client.models import (
     V1JobList,
     V1JobSpec,
     V1ServiceList,
-    V1Status,
 )
 from kubernetes.client.rest import ApiException
 from loguru import logger
@@ -43,11 +42,7 @@ from contaxy.managers.deployment.utils import (
 )
 from contaxy.schema import Job, JobInput, ResourceAction, Service, ServiceInput
 from contaxy.schema.deployment import DeploymentType, ServiceUpdate
-from contaxy.schema.exceptions import (
-    ClientBaseError,
-    ResourceNotFoundError,
-    ServerBaseError,
-)
+from contaxy.schema.exceptions import ResourceNotFoundError, ServerBaseError
 
 
 class KubernetesDeploymentPlatform:
@@ -79,9 +74,11 @@ class KubernetesDeploymentPlatform:
                     "/var/run/secrets/kubernetes.io/serviceaccount/namespace", "r"
                 ) as namespace_file:
                     self.kube_namespace = namespace_file.read()
-            except FileNotFoundError:
+            except FileNotFoundError as e:
                 # TODO: fix arguments
-                raise ServerBaseError("Could not detect the Kubernetes Namespace")
+                raise ServerBaseError(
+                    "Could not detect the Kubernetes Namespace"
+                ) from e
         else:
             self.kube_namespace = kube_namespace
         # TODO: when we have performance problems in the future, replicate the watch logic from JupyterHub KubeSpawner to keep Pod & other resource information in memory? (see https://github.com/jupyterhub/kubespawner/blob/941585f0f7acb0f366c9979b6274b7f47356a630/kubespawner/reflector.py#L238)
@@ -158,6 +155,12 @@ class KubernetesDeploymentPlatform:
             # Delete service again as the belonging deployment could not be created, but only when status code is not 409 as 409 indicates that the deployment already exists
             if not hasattr(e, "status") or e.status != 409:  # type: ignore
                 try:
+                    self.apps_api.delete_namespaced_deployment(
+                        namespace=self.kube_namespace, name=service.id
+                    )
+                except ApiException:
+                    pass
+                try:
                     self.core_api.delete_namespaced_service(
                         namespace=self.kube_namespace, name=service.id
                     )
@@ -166,10 +169,9 @@ class KubernetesDeploymentPlatform:
 
                 # TODO: delete pvc here
 
-            raise ClientBaseError(
-                status_code=500,
-                message=f"Could not create namespaced deployment '{service.display_name}' with reason: {e}",
-            )
+            raise ServerBaseError(
+                f"Could not create namespaced deployment '{service.display_name}'"
+            ) from e
 
         try:
             transformed_service = map_kube_service(deployment)
@@ -193,7 +195,7 @@ class KubernetesDeploymentPlatform:
 
             raise ServerBaseError(
                 f"Could not transform deployment '{service.display_name}' with reason: {e}"
-            )
+            ) from e
 
         return transformed_service
 
@@ -235,10 +237,10 @@ class KubernetesDeploymentPlatform:
                 )
 
             return map_kube_service(deployment)
-        except ApiException:
+        except ApiException as e:
             raise ResourceNotFoundError(
                 f"Could not get metadata of service '{service_id}' for project {project_id}."
-            )
+            ) from e
 
     def delete_service(
         self,
@@ -249,59 +251,49 @@ class KubernetesDeploymentPlatform:
     ) -> None:
 
         try:
-            status: V1Status = self.core_api.delete_namespaced_service(
+            self.core_api.delete_namespaced_service(
                 name=service_id,
                 namespace=self.kube_namespace,
                 propagation_policy="Foreground",
             )
-            if status.status == "Failure":
+        except ApiException as e:
+            if e.reason != "NotFound":
                 raise ServerBaseError(
-                    f"Could not delete Kubernetes service for service-id {service_id}"
-                )
+                    f"Could not delete Kubernetes service for service-id {service_id}."
+                ) from e
 
-            status = self.apps_api.delete_namespaced_deployment(
+        try:
+            self.apps_api.delete_namespaced_deployment(
                 name=service_id,
                 namespace=self.kube_namespace,
                 propagation_policy="Foreground",
             )
-            if status.status == "Failure":
+        except ApiException as e:
+            if e.reason != "NotFound":
                 raise ServerBaseError(
-                    f"Could not delete Kubernetes deployment for service-id {service_id}"
+                    f"Could not delete Kubernetes deployment for service-id {service_id}."
                 )
-
-            if delete_volumes:
-                status = self.core_api.delete_namespaced_persistent_volume_claim(
+        if delete_volumes:
+            try:
+                # TODO: if we work with a queue system, then add it to a deletion queue
+                self.core_api.delete_namespaced_persistent_volume_claim(
                     namespace=self.kube_namespace, name=service_id
                 )
-                if status.status == "Failure":
-                    # TODO: if we work with a queue system, then add it to a deletion queue
-                    # log(
-                    #     f"Could not delete Kubernetes Persistent Volume Claim for service-id {service_id}"
-                    # )
+            except ApiException as e:
+                if e.reason != "NotFound":
                     raise ServerBaseError(
-                        f"Could not delete Kubernetes Persistent Volume Claim for service-id {service_id}"
+                        f"Could not delete Kubernetes Persistent Volume Claim for service-id {service_id}."
                     )
-
+        try:
             # wait some time for the deployment to be deleted
             wait_for_deletion(
                 self.apps_api, self.kube_namespace, deployment_id=service_id
             )
-        except Exception:
+        except ApiException as e:
             # TODO: add resources to delete to a queue instead of deleting directly? This would have the advantage that even if an operation failes, it is repeated. Also, if the delete endpoint is called multiple times, it is only added once to the queue
-            # if retries < max_retries:
-            #     try:
-            #         return self.delete_service(
-            #             project_id=project_id,
-            #             service_id=service_id,
-            #             delete_volumes=delete_volumes,
-            #             retries=retries + 1,
-            #         )
-            #     except Exception:
-            #         pass
-            raise ClientBaseError(
-                status_code=500,
-                message=f"Could not delete service '{service_id}'.",
-            )
+            raise ServerBaseError(
+                f"Error while waiting for deletion of service '{service_id}'.",
+            ) from e
 
     def delete_services(
         self,
@@ -311,42 +303,45 @@ class KubernetesDeploymentPlatform:
             project_id=project_id, deployment_type=DeploymentType.SERVICE
         )
 
+        # TODO: Replace with self.core_api.delete_collection_namespaced_service once added to the kubernetes python client
         try:
             services: V1ServiceList = self.core_api.list_namespaced_service(
                 namespace=self.kube_namespace, label_selector=label_selector
             )
-
             for service in services.items:
-                self.core_api.delete_namespaced_service(
-                    name=service.metadata.name, namespace=self.kube_namespace
-                )
+                try:
+                    self.core_api.delete_namespaced_service(
+                        name=service.metadata.name, namespace=self.kube_namespace
+                    )
+                except ApiException as e:
+                    logger.error(
+                        f"Could not delete Kubernetes service {service.metadata.name}: {e}"
+                    )
+        except ApiException as e:
+            logger.error(
+                f"Could not list Kubernetes services for deletion in project {project_id}: {e}"
+            )
 
-            status = self.apps_api.delete_collection_namespaced_deployment(
+        try:
+            self.apps_api.delete_collection_namespaced_deployment(
                 namespace=self.kube_namespace,
                 label_selector=label_selector,
                 propagation_policy="Foreground",
             )
+        except ApiException as e:
+            logger.error(
+                f"Could not delete Kubernetes deployments for project '{project_id}':\n{e}"
+            )
 
-            if status.status == "Failure":
-                raise ServerBaseError(
-                    f"Could not delete Kubernetes deployments for project '{project_id}'"
-                )
-
-            status = self.core_api.delete_collection_namespaced_persistent_volume_claim(
+        try:
+            self.core_api.delete_collection_namespaced_persistent_volume_claim(
                 namespace=self.kube_namespace,
                 label_selector=label_selector,
                 propagation_policy="Foreground",
             )
-
-            if status.status == "Failure":
-                raise ServerBaseError(
-                    f"Could not delete Kubernetes volumes for project '{project_id}'"
-                )
-
-        except Exception as e:
-            logger.error(f"Error in Kubernetes->delete_services. Reason: {e}")
-            raise ClientBaseError(
-                500, f"Could not delete services for project '{project_id}'"
+        except ApiException as e:
+            logger.error(
+                f"Could not delete Kubernetes deployments for project '{project_id}':\n{e}"
             )
 
     def get_service_logs(
@@ -410,8 +405,10 @@ class KubernetesDeploymentPlatform:
                     tail_lines=lines if lines else None,
                     since_seconds=since_seconds,
                 )
-            except ApiException:
-                raise ServerBaseError(f"Could not read logs of service {service_id}.")
+            except ApiException as e:
+                raise ServerBaseError(
+                    f"Could not read logs of service {service_id}."
+                ) from e
         except Exception:
             return NO_LOGS_MESSAGE
 
@@ -458,10 +455,8 @@ class KubernetesDeploymentPlatform:
             deployed_job = self.batch_api.create_namespaced_job(
                 namespace=self.kube_namespace, body=_job
             )
-        except ApiException:
-            raise ClientBaseError(
-                status_code=500, message=f"Could not deploy job '{job.display_name}'."
-            )
+        except ApiException as e:
+            raise ServerBaseError(f"Could not deploy job '{job.display_name}'.") from e
 
         if wait:
             wait_for_job(
@@ -491,8 +486,10 @@ class KubernetesDeploymentPlatform:
                 name=job_id, namespace=self.kube_namespace
             )
             return map_kube_job(job)
-        except ApiException:
-            raise ResourceNotFoundError(f"Could not get metadata of job '{job_id}'.")
+        except ApiException as e:
+            raise ResourceNotFoundError(
+                f"Could not get metadata of job '{job_id}'."
+            ) from e
 
     def delete_job(self, project_id: str, job_id: str) -> None:
         try:
@@ -505,10 +502,9 @@ class KubernetesDeploymentPlatform:
             # wait some time for the job to be deleted
             wait_for_deletion(self.batch_api, self.kube_namespace, job_id)
         except ApiException as e:
-            raise ClientBaseError(
-                status_code=500,
-                message=f"Could not delete job '{job_id}' with reason: {e}",
-            )
+            raise ServerBaseError(
+                f"Could not delete job '{job_id}'.",
+            ) from e
 
     def delete_jobs(
         self,
@@ -519,20 +515,15 @@ class KubernetesDeploymentPlatform:
         )
 
         try:
-            status: V1Status = self.batch_api.delete_collection_namespaced_job(
+            self.batch_api.delete_collection_namespaced_job(
                 namespace=self.kube_namespace,
                 label_selector=label_selector,
                 propagation_policy="Foreground",
             )
-
-            if status.status == "Failure":
-                raise ServerBaseError(
-                    f"Could not delete Kubernetes jobs for project '{project_id}'"
-                )
         except ApiException as e:
-            log = f"Could not delete Kubernetes jobs for project '{project_id}'"
-            logger.error(f"{log}. Reason: {e}")
-            raise ServerBaseError(log)
+            raise ServerBaseError(
+                f"Could not delete Kubernetes jobs for project '{project_id}'"
+            ) from e
 
     def get_job_logs(
         self,

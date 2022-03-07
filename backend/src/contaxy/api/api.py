@@ -1,5 +1,6 @@
 import asyncio
 import functools
+import sys
 from typing import Any, Dict
 
 from fastapi import FastAPI
@@ -37,16 +38,28 @@ app = FastAPI(
 if config.settings.DEBUG:
     fastapi_utils.add_timing_info(app)
 
+# Setup logging
+logger.remove()
+if config.settings.DEBUG:
+    logger.add(sys.stderr, level="DEBUG")
+else:
+    logger.add(sys.stdout, level="INFO")
+
 
 # Custom Exception Handling
 @app.exception_handler(StarletteHTTPException)
-async def http_exception_handler(request, exc):  # type: ignore
-    return await error_handling.handel_http_exeptions(request, exc)
+async def http_exception_handler(_, exc):  # type: ignore
+    return await error_handling.handle_http_exception(exc)
 
 
 @app.exception_handler(RequestValidationError)
-async def validation_exception_handler(request, exc):  # type: ignore
-    return await error_handling.handle_validation_exception(request, exc)
+async def validation_exception_handler(_, exc):  # type: ignore
+    return await error_handling.handle_validation_exception(exc)
+
+
+@app.exception_handler(Exception)
+async def server_exception_handler(_, exc):  # type: ignore
+    return await error_handling.handle_server_exception(exc)
 
 
 # Startup and shutdown events
