@@ -1,4 +1,4 @@
-from typing import Any, List, Optional
+from typing import Any, List
 
 from fastapi import APIRouter, Depends, Query, Response, status
 from fastapi.param_functions import Body
@@ -271,9 +271,6 @@ def get_project_token(
         description="Access level of the token.",
         type="string",
     ),
-    description: Optional[str] = Query(
-        None, description="Attach a short description to the generated token."
-    ),
     component_manager: ComponentManager = Depends(get_component_manager),
     token: str = Depends(get_api_token),
 ) -> Any:
@@ -295,10 +292,26 @@ def get_project_token(
     project_permission = auth_utils.construct_permission(
         f"projects/{project_id}", access_level
     )
-    return component_manager.get_auth_manager().create_token(
-        scopes=[project_permission],
-        token_type=TokenType.API_TOKEN,
-        token_subject=authorized_access.authorized_subject,
-        token_purpose=TokenPurpose.PROJECT_API_TOKEN,
-        description=description,
+
+    # Check if a project token for this user was already created
+    tokens = component_manager.get_auth_manager().list_api_tokens(
+        token_subject=authorized_access.authorized_subject
     )
+
+    try:
+        return next(
+            (
+                token
+                for token in tokens
+                if token.token_purpose == TokenPurpose.PROJECT_API_TOKEN
+                if token.scopes == [project_permission]
+            )
+        ).token
+    except StopIteration:
+        return component_manager.get_auth_manager().create_token(
+            scopes=[project_permission],
+            token_type=TokenType.API_TOKEN,
+            token_subject=authorized_access.authorized_subject,
+            token_purpose=TokenPurpose.PROJECT_API_TOKEN,
+            description=f"{access_level} token for project {project_id}.",
+        )

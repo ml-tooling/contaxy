@@ -1,4 +1,4 @@
-from typing import Any, List, Optional
+from typing import Any, List
 
 from fastapi import APIRouter, Depends, Query, Response, status
 from fastapi.param_functions import Body
@@ -238,9 +238,6 @@ def get_user_token(
         description="Access level of the token.",
         type="string",
     ),
-    description: Optional[str] = Query(
-        None, description="Attach a short description to the generated token."
-    ),
     component_manager: ComponentManager = Depends(get_component_manager),
     token: str = Depends(get_api_token),
 ) -> Any:
@@ -251,17 +248,29 @@ def get_user_token(
     The `admin` access level allows additional user actions such as deletion of the user itself.
     """
     # Only allow creating tokens if user has admin access to the user object
-    authorized_access = component_manager.verify_access(
-        token, f"users/{user_id}", AccessLevel.ADMIN
-    )
-
+    user_resource = f"users/{user_id}"
+    component_manager.verify_access(token, user_resource, AccessLevel.ADMIN)
     # Provide access to all resources from the user
     user_token_scope = auth_utils.construct_permission("*", access_level)
 
-    return component_manager.get_auth_manager().create_token(
-        scopes=[user_token_scope],
-        token_type=TokenType.API_TOKEN,
-        token_subject=authorized_access.authorized_subject,
-        token_purpose=TokenPurpose.USER_API_TOKEN,
-        description=description,
+    # Check if a user token for this user was already created
+    tokens = component_manager.get_auth_manager().list_api_tokens(
+        token_subject=user_resource
     )
+    try:
+        return next(
+            (
+                token
+                for token in tokens
+                if token.token_purpose == TokenPurpose.USER_API_TOKEN
+                if token.scopes == [user_token_scope]
+            )
+        ).token
+    except StopIteration:
+        return component_manager.get_auth_manager().create_token(
+            scopes=[user_token_scope],
+            token_type=TokenType.API_TOKEN,
+            token_subject=user_resource,
+            token_purpose=TokenPurpose.USER_API_TOKEN,
+            description=f"{access_level} token for user {user_id}.",
+        )

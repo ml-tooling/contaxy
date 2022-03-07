@@ -276,7 +276,9 @@ class AzureBlobFileManager(FileOperations):
         try:
             blob_client = container_client.upload_blob(
                 file_key,
-                file_stream,
+                # Filestream class has read method which is the only requirement for upload blob
+                # Therefore the type mismatch can be ignored
+                file_stream,  # type: ignore
                 content_settings=ContentSettings(
                     content_type=content_type,
                 ),
