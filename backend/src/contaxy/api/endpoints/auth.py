@@ -336,6 +336,12 @@ def create_token(
         resource_name, access_level = auth_utils.parse_permission(scope)
         component_manager.verify_access(token, resource_name, access_level)
 
+    # Update user last activity time when new token is requested. This updates the time on logon and also on session token refresh.
+    user_id = id_utils.extract_user_id_from_resource_name(
+        authorized_access.authorized_subject
+    )
+    component_manager.get_auth_manager().update_user_last_activity_time(user_id=user_id)
+
     return component_manager.get_auth_manager().create_token(
         token_subject=authorized_access.authorized_subject,
         scopes=scopes,
