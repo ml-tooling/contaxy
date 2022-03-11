@@ -1,3 +1,4 @@
+import json
 import threading
 import time
 from collections import deque
@@ -896,7 +897,6 @@ class AuthManager(AuthOperations):
         user = User(
             id=user_id,
             technical_user=technical_user,
-            created_at=datetime.now(timezone.utc),
             **user_input.dict(exclude_unset=True),
         )
 
@@ -967,6 +967,7 @@ class AuthManager(AuthOperations):
         Returns:
             User: The updated user information.
         """
+        # TODO: Ensure username and email don't exist and update login-id-mapping
         updated_document = self._json_db_manager.update_json_document(
             project_id=config.SYSTEM_INTERNAL_PROJECT,
             collection_id=self._USER_COLLECTION,
@@ -974,6 +975,16 @@ class AuthManager(AuthOperations):
             json_document=user_input.json(exclude_unset=True),
         )
         return User.parse_raw(updated_document.json_value)
+
+    def update_user_last_activity_time(self, user_id: str) -> None:
+        self._json_db_manager.update_json_document(
+            project_id=config.SYSTEM_INTERNAL_PROJECT,
+            collection_id=AuthManager._USER_COLLECTION,
+            key=user_id,
+            json_document=json.dumps(
+                {"last_activity": str(datetime.now(timezone.utc))}
+            ),
+        )
 
     def delete_user(self, user_id: str) -> None:
         """Deletes a user.

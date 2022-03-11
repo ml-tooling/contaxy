@@ -116,12 +116,13 @@ def get_my_user(
     component_manager.verify_access(
         token, authorized_access.authorized_subject, AccessLevel.READ
     )
-
-    return component_manager.get_auth_manager().get_user(
-        id_utils.extract_user_id_from_resource_name(
-            authorized_access.authorized_subject
-        )
+    user_id = id_utils.extract_user_id_from_resource_name(
+        authorized_access.authorized_subject
     )
+    # Update the last activity time of the user only in this endpoint as it is always called when the UI is loaded
+    component_manager.get_auth_manager().update_user_last_activity_time(user_id)
+
+    return component_manager.get_auth_manager().get_user(user_id)
 
 
 @router.get(
