@@ -7,7 +7,7 @@ from loguru import logger
 from contaxy import config
 from contaxy.operations import AuthOperations, JsonDocumentOperations, ProjectOperations
 from contaxy.operations.components import ComponentOperations
-from contaxy.schema.auth import USERS_KIND, AccessLevel, User
+from contaxy.schema.auth import USERS_KIND, AccessLevel, TokenPurpose, TokenType, User
 from contaxy.schema.exceptions import (
     ClientValueError,
     ResourceAlreadyExistsError,
@@ -289,3 +289,32 @@ class ProjectManager(ProjectOperations):
         # Remove all permissions from the user that grant access to any part of the project
         self._remove_project_member(project_id, user_id)
         return self.list_project_members(project_id)
+
+    def get_project_token(
+        self, project_id: str, access_level: AccessLevel = AccessLevel.WRITE
+    ) -> str:
+        project_permission = auth_utils.construct_permission(
+            f"projects/{project_id}", access_level
+        )
+
+        # Check if a project token for this user was already created
+        tokens = self._auth_manager.list_api_tokens(
+            token_subject=self._request_state.authorized_subject
+        )
+        try:
+            return next(
+                (
+                    token
+                    for token in tokens
+                    if token.token_purpose == TokenPurpose.PROJECT_API_TOKEN
+                    if token.scopes == [project_permission]
+                )
+            ).token
+        except StopIteration:
+            return self._auth_manager.create_token(
+                scopes=[project_permission],
+                token_type=TokenType.API_TOKEN,
+                token_subject=self._request_state.authorized_subject,
+                token_purpose=TokenPurpose.PROJECT_API_TOKEN,
+                description=f"{access_level} token for project {project_id}.",
+            )

@@ -10,7 +10,7 @@ from contaxy.api.dependencies import (
     get_optional_api_token,
 )
 from contaxy.schema import CoreOperations, User, UserInput, UserRegistration
-from contaxy.schema.auth import USER_ID_PARAM, AccessLevel, TokenPurpose, TokenType
+from contaxy.schema.auth import USER_ID_PARAM, AccessLevel
 from contaxy.schema.exceptions import (
     AUTH_ERROR_RESPONSES,
     CREATE_RESOURCE_RESPONSES,
@@ -242,36 +242,16 @@ def get_user_token(
     component_manager: ComponentManager = Depends(get_component_manager),
     token: str = Depends(get_api_token),
 ) -> Any:
-    """Returns an API token with permission to access all resources accesible by the given user.
+    """Returns an API token with permission to access all resources accessible by the given user.
 
     The `read` access level allows read-only access on all resources.
     The `write` access level allows to create and delete user resources.
     The `admin` access level allows additional user actions such as deletion of the user itself.
     """
-    # Only allow creating tokens if user has admin access to the user object
-    user_resource = f"users/{user_id}"
-    component_manager.verify_access(token, user_resource, AccessLevel.ADMIN)
-    # Provide access to all resources from the user
-    user_token_scope = auth_utils.construct_permission("*", access_level)
-
-    # Check if a user token for this user was already created
-    tokens = component_manager.get_auth_manager().list_api_tokens(
-        token_subject=user_resource
-    )
-    try:
-        return next(
-            (
-                token
-                for token in tokens
-                if token.token_purpose == TokenPurpose.USER_API_TOKEN
-                if token.scopes == [user_token_scope]
-            )
-        ).token
-    except StopIteration:
-        return component_manager.get_auth_manager().create_token(
-            scopes=[user_token_scope],
-            token_type=TokenType.API_TOKEN,
-            token_subject=user_resource,
-            token_purpose=TokenPurpose.USER_API_TOKEN,
-            description=f"{access_level} token for user {user_id}.",
-        )
+    # Only allow creating tokens if user has requested access to the user object
+    access_level_to_check = access_level
+    if access_level_to_check not in [AccessLevel.ADMIN, AccessLevel.WRITE]:
+        # WRITE Access minimum should be the minimum to create tokens
+        access_level_to_check = AccessLevel.WRITE
+    component_manager.verify_access(token, f"users/{user_id}", access_level_to_check)
+    return component_manager.get_auth_manager().get_user_token(user_id, access_level)

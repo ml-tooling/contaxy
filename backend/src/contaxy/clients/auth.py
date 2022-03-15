@@ -8,6 +8,7 @@ from requests.models import Response
 from contaxy.clients.shared import handle_errors
 from contaxy.operations.auth import AuthOperations
 from contaxy.schema import (
+    AccessLevel,
     AuthorizedAccess,
     OAuth2TokenRequestFormNew,
     OAuthToken,
@@ -199,6 +200,7 @@ class AuthClient(AuthOperations):
     def list_users(self, request_kwargs: Dict = {}) -> List[User]:
         response = self._client.get("/users", **request_kwargs)
         handle_errors(response)
+        print(response.text)
         return parse_raw_as(List[User], response.text)
 
     def create_user(
@@ -235,3 +237,17 @@ class AuthClient(AuthOperations):
     def delete_user(self, user_id: str, request_kwargs: Dict = {}) -> None:
         response = self._client.delete(f"/users/{user_id}", **request_kwargs)
         handle_errors(response)
+
+    def get_user_token(
+        self,
+        user_id: str,
+        access_level: AccessLevel = AccessLevel.WRITE,
+        request_kwargs: Dict = {},
+    ) -> str:
+        response = self._client.get(
+            f"/users/{user_id}/token",
+            params={"access_level": access_level.value},
+            **request_kwargs,
+        )
+        handle_errors(response)
+        return response.json()

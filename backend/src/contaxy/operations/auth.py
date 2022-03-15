@@ -11,7 +11,7 @@ from contaxy.schema import (
     UserInput,
     UserRegistration,
 )
-from contaxy.schema.auth import ApiToken
+from contaxy.schema.auth import AccessLevel, ApiToken
 
 
 class AuthOperations(ABC):
@@ -321,5 +321,23 @@ class AuthOperations(ABC):
 
         Raises:
             ResourceNotFoundError: If no user with the specified ID exists.
+        """
+        pass
+
+    @abstractmethod
+    def get_user_token(
+        self, user_id: str, access_level: AccessLevel = AccessLevel.WRITE
+    ) -> str:
+        """Create user token with permission to access all resources accessible by the user.
+
+        If a token for the specified user and access level already exists in the DB, it is returned instead of creating
+        a new user token.
+
+        Args:
+            user_id: Id of the user for which the token should be created
+            access_level: The access level of the user token (defaults to "write")
+
+        Returns:
+            User token for specified user id and access level.
         """
         pass

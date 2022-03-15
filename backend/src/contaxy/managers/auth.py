@@ -1074,3 +1074,30 @@ class AuthManager(AuthOperations):
             f"Damn! Username cannot be inferred from email {email}. {MAX_RETRIES} combinations tried."
         )
         return ""
+
+    def get_user_token(
+        self, user_id: str, access_level: AccessLevel = AccessLevel.WRITE
+    ) -> str:
+        # Provide access to all resources from the user
+        user_token_scope = auth_utils.construct_permission("*", access_level)
+
+        # Check if a user token for this user was already created
+        user_resource = f"users/{user_id}"
+        tokens = self.list_api_tokens(token_subject=user_resource)
+        try:
+            return next(
+                (
+                    token
+                    for token in tokens
+                    if token.token_purpose == TokenPurpose.USER_API_TOKEN
+                    if token.scopes == [user_token_scope]
+                )
+            ).token
+        except StopIteration:
+            return self.create_token(
+                scopes=[user_token_scope],
+                token_type=TokenType.API_TOKEN,
+                token_subject=user_resource,
+                token_purpose=TokenPurpose.USER_API_TOKEN,
+                description=f"{access_level} token for user {user_id}.",
+            )
