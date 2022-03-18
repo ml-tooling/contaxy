@@ -51,61 +51,55 @@ setup(
     py_modules=[splitext(basename(path))[0] for path in glob("src/*.py")],
     zip_safe=False,
     install_requires=[
-        # Add all the runtime requirements here:
         "typer",  # TODO: remove typer?
-        "pydantic",
+        "pydantic[dotenv,email]",
         "fastapi",
-        "kubernetes",
-        "docker",
-        "psutil",
-        "uvicorn",
-        "addict",
-        "sqlalchemy>=1.4.0",
-        # Postgres Driver
-        "psycopg2",
-        # Generates concise, unambiguous, URL-safe UUIDs.
-        "shortuuid",
-        # Create slugs from unicode strings
-        "python-slugify",
+        "requests",
         # Better logging
         "loguru",
-        # Required by fastapi.security OAuth2PasswordBearer & fastapi.UploadFile for example
-        "python-multipart",
         # Used for multipart stream parsing in file manager
         "streaming_form_data",
-        # Used in MinioFileManager
         "filetype",
-        "minio",
-        # Used in AzureBlobFileManager
-        "azure-storage-blob",
-        # Used for jwt handling
-        "python-jose[cryptography]",
-        # Used for password hashing
-        "passlib[bcrypt]",
-        # TODO: FOR in-memory dict db: Merge dictionaries via json merge patch
-        "json-merge-patch",
-        # TODO: FOR in-memory dict db: Merge dictionaries via json merge patch
-        "jsonpath-ng",
-        # Email validation with pydantic
-        "email-validator",
-        # TODO: GraphQL support - remove
-        # "graphene",
-        # TODO: Dev only - timing
-        "fastapi-utils",
-        # TODO: Added because of an missing import error
-        "pydantic[dotenv]",
-        # Needed for admin registration HTML Form w/o the webapp
-        # TODO: Improve
-        "jinja2",
-        # Used for OIDC handling
-        "requests_oauthlib",
-        # Create fake data for testing
-        "faker",
     ],
     # deprecated: dependency_links=dependency_links,
     extras_require={
-        # Add all extras (e.g. for build and test) here:
-        # extras can be installed via: pip install package[dev]
+        "server": [
+            # Add all the runtime requirements here:
+            "kubernetes",
+            "docker",
+            # TODO: Dev only - timing
+            "fastapi-utils",
+            # Required by fastapi.security OAuth2PasswordBearer & fastapi.UploadFile for example
+            "python-multipart",
+            "psutil",
+            "uvicorn",
+            "sqlalchemy>=1.4.0",
+            "addict",
+            # Postgres Driver
+            "psycopg2",
+            # Generates concise, unambiguous, URL-safe UUIDs.
+            "shortuuid",
+            # Create slugs from unicode strings
+            "python-slugify",
+            # Used in MinioFileManager
+            "minio",
+            # Used in AzureBlobFileManager
+            "azure-storage-blob",
+            # Used for jwt handling
+            "python-jose[cryptography]",
+            # Used for password hashing
+            "passlib[bcrypt]",
+            # TODO: FOR in-memory dict db: Merge dictionaries via json merge patch
+            "json-merge-patch",
+            # TODO: FOR in-memory dict db: Merge dictionaries via json merge patch
+            "jsonpath-ng",
+            # TODO: Improve
+            "jinja2",
+            # Used for OIDC handling
+            "requests_oauthlib",
+            # Create fake data for testing
+            "faker",
+        ],
         "dev": [
             "setuptools",
             "wheel",

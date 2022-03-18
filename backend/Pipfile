@@ -4,10 +4,10 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-this-package = {editable = true, path = "."}
+this-package = {editable = true, extras = ["server"], path = "."}
 
 [dev-packages]
-this-package = {editable = true, extras = ["dev"], path = "."}
+this-package = {editable = true, extras = ["server", "dev"], path = "."}
 
 [pipenv]
 allow_prereleases = true
