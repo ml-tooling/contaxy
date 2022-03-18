@@ -13,7 +13,7 @@
 
 <a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/clients/deployment.py#L14"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
-## <kbd>class</kbd> `DeploymentManagerClient`
+## <kbd>class</kbd> `DeploymentClient`
 
 
 

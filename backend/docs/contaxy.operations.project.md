@@ -86,6 +86,35 @@ get_project(project_id: str) → Project
 
 ---
 
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/project.py#L52"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+### <kbd>method</kbd> `get_project_token`
+
+```python
+get_project_token(
+    project_id: str,
+    access_level: AccessLevel = <AccessLevel.WRITE: 'write'>
+) → str
+```
+
+Create project token with permission to access all resources of the project. 
+
+If a token for the specified project and access level already exists in the DB, it is returned instead of creating a new project token. 
+
+
+
+**Args:**
+ 
+ - <b>`project_id`</b>:  Id of the user for which the token should be created 
+ - <b>`access_level`</b>:  The access level of the user token (defaults to "write") 
+
+
+
+**Returns:**
+ User token for specified user id and access level. 
+
+---
+
 <a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/project.py#L35"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `list_project_members`
