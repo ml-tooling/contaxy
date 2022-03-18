@@ -1,7 +1,7 @@
 from typing import List, Optional, Tuple, Union
 
 from contaxy import config
-from contaxy.clients import DeploymentManagerClient, FileClient
+from contaxy.clients import DeploymentClient, FileClient
 from contaxy.clients.shared import BaseUrlSession
 from contaxy.managers.deployment.utils import (
     Labels,
@@ -97,7 +97,7 @@ def map_service_to_extension(service: Service, user_id: str) -> Extension:
     return extension
 
 
-class ExtensionClient(FileClient, DeploymentManagerClient):
+class ExtensionClient(FileClient, DeploymentClient):
     """Handels the request forwarding to the installed extensions.
 
     The extension client implements all extensible manager interfaces

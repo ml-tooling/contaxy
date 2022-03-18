@@ -1,5 +1,5 @@
 from .auth import AuthClient
-from .deployment import DeploymentManagerClient
+from .deployment import DeploymentClient
 from .extension import ExtensionClient
 from .file import FileClient
 from .json_db import JsonDocumentClient

@@ -13,7 +13,7 @@ from kubernetes.client.models import V1Namespace
 from kubernetes.client.rest import ApiException
 
 from contaxy import config
-from contaxy.clients import AuthClient, DeploymentManagerClient, SystemClient
+from contaxy.clients import AuthClient, DeploymentClient, SystemClient
 from contaxy.managers.auth import AuthManager
 from contaxy.managers.deployment.docker import DockerDeploymentPlatform
 from contaxy.managers.deployment.docker_utils import (
@@ -1037,7 +1037,7 @@ class DeploymentOperationsEndpointTests(DeploymentOperationsTests):
     def _init_managers(self, _client: requests.Session) -> Generator:
         self._endpoint_client = _client
         self._system_manager = SystemClient(self._endpoint_client)
-        self._deployment_manager = DeploymentManagerClient(client=self._endpoint_client)
+        self._deployment_manager = DeploymentClient(client=self._endpoint_client)
         self._auth_manager = AuthClient(self._endpoint_client)
 
         self.login_user(

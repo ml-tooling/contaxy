@@ -11,7 +11,7 @@ from contaxy.schema.deployment import DeploymentType, ServiceUpdate
 from contaxy.schema.shared import ResourceActionExecution
 
 
-class DeploymentManagerClient(DeploymentOperations):
+class DeploymentClient(DeploymentOperations):
     def __init__(self, client: requests.Session):
         self._client = client
 

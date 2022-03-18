@@ -420,15 +420,16 @@ def wait_for_deployment(
     deployment_name: str,
     kube_namespace: str,
     apps_api: kube_client.AppsV1Api,
-    timeout: int = 60,
+    timeout: int = 180,
 ) -> None:
     start = time.time()
     while time.time() - start < timeout:
-        time.sleep(2)
+        time.sleep(5)
         response = apps_api.read_namespaced_deployment_status(
             namespace=kube_namespace, name=deployment_name
         )
         s = response.status
+        # TODO: Check status of pod created by deployment. Is it crashing? Or is it pulling an image?
         if (
             s.updated_replicas == response.spec.replicas
             and s.replicas == response.spec.replicas

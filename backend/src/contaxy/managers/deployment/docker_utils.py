@@ -163,7 +163,7 @@ def create_network(
     """
 
     networks = client.networks.list()
-    highest_cidr = ipaddress.ip_network(INITIAL_CIDR)
+    highest_cidr = ipaddress.IPv4Network(INITIAL_CIDR)
 
     # determine subnet for the network to be created by finding the highest subnet so far.
     # E.g. when you have three subnets 172.33.1.0, 172.33.2.0, and 172.33.3.0, highest_cidr will be 172.33.3.0
@@ -179,7 +179,7 @@ def create_network(
             and network.attrs["IPAM"]["Config"][0]["Subnet"]
         )
         if has_all_properties:
-            cidr = ipaddress.ip_network(network.attrs["IPAM"]["Config"][0]["Subnet"])
+            cidr = ipaddress.IPv4Network(network.attrs["IPAM"]["Config"][0]["Subnet"])
 
             if (
                 cidr.network_address.packed[0] == INITIAL_CIDR_FIRST_OCTET
@@ -189,7 +189,7 @@ def create_network(
                 highest_cidr = cidr
 
     # take the highest cidr and add 256 bits, so that if the highest subnet was 172.33.2.0, the new subnet is 172.33.3.0
-    next_cidr = ipaddress.ip_network(
+    next_cidr = ipaddress.IPv4Network(
         (highest_cidr.network_address + 256).exploded + "/24"
     )
     if next_cidr.network_address.packed[0] > INITIAL_CIDR_FIRST_OCTET:
@@ -386,7 +386,7 @@ def delete_container(
 
 
 def check_minimal_resources(
-    min_cpus: int,
+    min_cpus: float,
     min_memory: int,
     min_gpus: int,
     compute_resources: DeploymentCompute = None,
@@ -413,7 +413,7 @@ def check_minimal_resources(
 
 def extract_minimal_resources(
     compute_resources: DeploymentCompute,
-) -> Tuple[int, int, int]:
+) -> Tuple[float, int, int]:
     min_cpus = (
         compute_resources.min_cpus if compute_resources.min_cpus is not None else 0
     )

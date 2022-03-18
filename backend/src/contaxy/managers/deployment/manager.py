@@ -32,14 +32,17 @@ from contaxy.schema import (
     Service,
     ServiceInput,
 )
-from contaxy.schema.deployment import DeploymentStatus, DeploymentType, ServiceUpdate
+from contaxy.schema.deployment import (
+    ACTION_ACCESS,
+    ACTION_DELIMITER,
+    ACTION_RESTART,
+    ACTION_START,
+    ACTION_STOP,
+    DeploymentStatus,
+    DeploymentType,
+    ServiceUpdate,
+)
 from contaxy.schema.shared import ResourceActionExecution
-
-ACTION_DELIMITER = "-"
-ACTION_ACCESS = "access"
-ACTION_START = "start"
-ACTION_STOP = "stop"
-ACTION_RESTART = "restart"
 
 
 class DeploymentManager(DeploymentOperations):

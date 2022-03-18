@@ -60,13 +60,13 @@ class DeploymentStatus(str, Enum):
 
 
 class DeploymentCompute(BaseModel):
-    min_cpus: Optional[int] = Field(
+    min_cpus: Optional[float] = Field(
         None,
         example=2,
         ge=0,
         description="Minimum number of CPU cores required by this deployment. The system will make sure that atleast this amount is available to the deployment.",
     )
-    max_cpus: Optional[int] = Field(
+    max_cpus: Optional[float] = Field(
         None,
         example=4,
         ge=0,
@@ -302,3 +302,10 @@ class JobInput(JobBase, DeploymentInput):
 
 class Job(JobBase, Deployment):
     pass
+
+
+ACTION_DELIMITER = "-"
+ACTION_ACCESS = "access"
+ACTION_START = "start"
+ACTION_STOP = "stop"
+ACTION_RESTART = "restart"
