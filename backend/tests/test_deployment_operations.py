@@ -662,19 +662,6 @@ class TestDockerDeploymentManager(DeploymentOperationsTests):
     def service_display_name(self) -> str:
         return self._service_display_name
 
-    def deploy_service(self, project_id: str, service: ServiceInput) -> Service:
-        deployed_service = self._deployment_manager.deploy_service(
-            project_id=project_id, service_input=service, wait=True
-        )
-        return deployed_service
-
-    def deploy_job(self, project_id: str, job: JobInput) -> Job:
-        deployed_job = self._deployment_manager.deploy_job(
-            project_id=project_id, job_input=job, wait=True
-        )
-        time.sleep(3)
-        return deployed_job
-
     def test_volume_deletion(self):
         test_service_input = create_test_service_input(
             display_name=self.service_display_name
@@ -864,16 +851,6 @@ class TestKubernetesDeploymentManager(DeploymentOperationsTests):
     @property
     def service_display_name(self) -> str:
         return self._service_display_name
-
-    def deploy_service(self, project_id: str, service: ServiceInput) -> Service:
-        return self._deployment_manager.deploy_service(
-            project_id=project_id, service_input=service, wait=True
-        )
-
-    def deploy_job(self, project_id: str, job: JobInput) -> Job:
-        return self._deployment_manager.deploy_job(
-            project_id=project_id, job_input=job, wait=True
-        )
 
     def test_project_isolation(self) -> None:
         """Test that services of the same project can reach each others' endpoints and services of different projects cannot."""
