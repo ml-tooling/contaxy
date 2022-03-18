@@ -7,6 +7,13 @@
 
 
 
+**Global Variables**
+---------------
+- **ACTION_DELIMITER**
+- **ACTION_ACCESS**
+- **ACTION_START**
+- **ACTION_STOP**
+- **ACTION_RESTART**
 
 
 ---

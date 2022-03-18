@@ -213,6 +213,23 @@ Returns the user metadata for a single user.
 
 ---
 
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/auth.py#L1078"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+### <kbd>method</kbd> `get_user_token`
+
+```python
+get_user_token(
+    user_id: str,
+    access_level: AccessLevel = <AccessLevel.WRITE: 'write'>
+) → str
+```
+
+
+
+
+
+---
+
 <a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/auth.py#L723"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `introspect_token`
