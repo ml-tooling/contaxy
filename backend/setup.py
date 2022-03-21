@@ -60,6 +60,7 @@ setup(
         # Used for multipart stream parsing in file manager
         "streaming_form_data",
         "filetype",
+        "addict",
     ],
     # deprecated: dependency_links=dependency_links,
     extras_require={
@@ -74,7 +75,6 @@ setup(
             "psutil",
             "uvicorn",
             "sqlalchemy>=1.4.0",
-            "addict",
             # Postgres Driver
             "psycopg2",
             # Generates concise, unambiguous, URL-safe UUIDs.
