@@ -3,11 +3,7 @@ from typing import Any, List, Optional
 
 from fastapi import APIRouter, Depends, Path, Query, Response, status
 
-from contaxy.api.dependencies import (
-    ComponentManager,
-    get_api_token,
-    get_component_manager,
-)
+from contaxy.api.dependencies import ComponentManager, get_component_manager
 from contaxy.managers.extension import parse_composite_id
 from contaxy.schema import (
     ExtensibleOperations,
@@ -35,6 +31,7 @@ from contaxy.schema.shared import (
     ResourceActionExecution,
 )
 from contaxy.utils import auth_utils
+from contaxy.utils.auth_utils import get_api_token
 
 service_router = APIRouter(
     tags=["services"],

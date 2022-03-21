@@ -8,11 +8,7 @@ from starlette.requests import Request
 from starlette.responses import HTMLResponse
 
 from contaxy import config
-from contaxy.api.dependencies import (
-    ComponentManager,
-    get_api_token,
-    get_component_manager,
-)
+from contaxy.api.dependencies import ComponentManager, get_component_manager
 from contaxy.schema import CoreOperations, SystemInfo, SystemStatistics
 from contaxy.schema.auth import AccessLevel
 from contaxy.schema.exceptions import (
@@ -21,6 +17,7 @@ from contaxy.schema.exceptions import (
     ClientValueError,
 )
 from contaxy.schema.system import IMAGE_NAME_PARAM, AllowedImageInfo
+from contaxy.utils.auth_utils import get_api_token
 
 HERE = os.path.abspath(os.path.dirname(__file__))
 

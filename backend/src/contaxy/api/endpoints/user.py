@@ -3,12 +3,7 @@ from typing import Any, List
 from fastapi import APIRouter, Depends, Query, Response, status
 from fastapi.param_functions import Body
 
-from contaxy.api.dependencies import (
-    ComponentManager,
-    get_api_token,
-    get_component_manager,
-    get_optional_api_token,
-)
+from contaxy.api.dependencies import ComponentManager, get_component_manager
 from contaxy.schema import CoreOperations, User, UserInput, UserRegistration
 from contaxy.schema.auth import USER_ID_PARAM, AccessLevel
 from contaxy.schema.exceptions import (
@@ -22,6 +17,7 @@ from contaxy.schema.exceptions import (
 )
 from contaxy.schema.system import SystemState
 from contaxy.utils import auth_utils, id_utils
+from contaxy.utils.auth_utils import get_api_token, get_optional_api_token
 
 router = APIRouter(
     tags=["users"],

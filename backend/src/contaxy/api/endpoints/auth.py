@@ -6,11 +6,7 @@ from requests_oauthlib import OAuth2Session
 from starlette.responses import RedirectResponse, Response
 
 from contaxy import config
-from contaxy.api.dependencies import (
-    ComponentManager,
-    get_api_token,
-    get_component_manager,
-)
+from contaxy.api.dependencies import ComponentManager, get_component_manager
 from contaxy.managers.auth import AuthManager
 from contaxy.schema import (
     ApiToken,
@@ -37,6 +33,7 @@ from contaxy.schema.exceptions import (
 )
 from contaxy.schema.system import SystemState
 from contaxy.utils import auth_utils, id_utils
+from contaxy.utils.auth_utils import get_api_token
 
 OAUTH_CALLBACK_ROUTE = "auth/oauth/callback"
 
