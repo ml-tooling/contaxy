@@ -80,6 +80,7 @@ class ComponentOperations(ABC):
         """
         pass
 
+    @abstractmethod
     def get_service_manager(
         self, extension_id: Optional[str] = CORE_EXTENSION_ID
     ) -> ServiceOperations:

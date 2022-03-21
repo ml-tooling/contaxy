@@ -20,6 +20,7 @@ from contaxy.operations import (
     JsonDocumentOperations,
     ProjectOperations,
     SeedOperations,
+    ServiceOperations,
     SystemOperations,
 )
 from contaxy.operations.components import ComponentOperations
@@ -58,6 +59,11 @@ class ComponentClient(ComponentOperations):
         self, extension_id: Optional[str] = CORE_EXTENSION_ID
     ) -> FileOperations:
         return FileClient(self.session)
+
+    def get_service_manager(
+        self, extension_id: Optional[str] = CORE_EXTENSION_ID
+    ) -> ServiceOperations:
+        return DeploymentClient(self.session)
 
     def get_job_manager(
         self, extension_id: Optional[str] = CORE_EXTENSION_ID
