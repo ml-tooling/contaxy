@@ -190,6 +190,35 @@ Returns the user metadata for a single user.
 
 ---
 
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/auth.py#L327"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+### <kbd>method</kbd> `get_user_token`
+
+```python
+get_user_token(
+    user_id: str,
+    access_level: AccessLevel = <AccessLevel.WRITE: 'write'>
+) → str
+```
+
+Create user token with permission to access all resources accessible by the user. 
+
+If a token for the specified user and access level already exists in the DB, it is returned instead of creating a new user token. 
+
+
+
+**Args:**
+ 
+ - <b>`user_id`</b>:  Id of the user for which the token should be created 
+ - <b>`access_level`</b>:  The access level of the user token (defaults to "write") 
+
+
+
+**Returns:**
+ User token for specified user id and access level. 
+
+---
+
 <a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/auth.py#L228"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `introspect_token`

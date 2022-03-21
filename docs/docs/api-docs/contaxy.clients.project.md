@@ -100,6 +100,24 @@ get_project(project_id: str, request_kwargs: Dict = {}) → Project
 
 ---
 
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/clients/project.py#L98"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+### <kbd>method</kbd> `get_project_token`
+
+```python
+get_project_token(
+    project_id: str,
+    access_level: AccessLevel = <AccessLevel.WRITE: 'write'>,
+    request_kwargs: Dict = {}
+) → str
+```
+
+
+
+
+
+---
+
 <a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/clients/project.py#L67"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `list_project_members`

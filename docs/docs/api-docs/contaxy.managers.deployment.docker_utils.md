@@ -269,7 +269,7 @@ delete_container(
 
 ```python
 check_minimal_resources(
-    min_cpus: int,
+    min_cpus: float,
     min_memory: int,
     min_gpus: int,
     compute_resources: DeploymentCompute = None
@@ -290,7 +290,7 @@ check_minimal_resources(
 ```python
 extract_minimal_resources(
     compute_resources: DeploymentCompute
-) → Tuple[int, int, int]
+) → Tuple[float, int, int]
 ```
 
 
