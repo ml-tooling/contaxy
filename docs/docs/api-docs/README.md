@@ -6,6 +6,7 @@
 
 - [`contaxy.clients`](./contaxy.clients.md#module-contaxyclients)
 - [`contaxy.clients.auth`](./contaxy.clients.auth.md#module-contaxyclientsauth)
+- [`contaxy.clients.components`](./contaxy.clients.components.md#module-contaxyclientscomponents)
 - [`contaxy.clients.deployment`](./contaxy.clients.deployment.md#module-contaxyclientsdeployment)
 - [`contaxy.clients.extension`](./contaxy.clients.extension.md#module-contaxyclientsextension)
 - [`contaxy.clients.file`](./contaxy.clients.file.md#module-contaxyclientsfile)
@@ -65,7 +66,8 @@
 ## Classes
 
 - [`auth.AuthClient`](./contaxy.clients.auth.md#class-authclient)
-- [`deployment.DeploymentManagerClient`](./contaxy.clients.deployment.md#class-deploymentmanagerclient)
+- [`components.ComponentClient`](./contaxy.clients.components.md#class-componentclient)
+- [`deployment.DeploymentClient`](./contaxy.clients.deployment.md#class-deploymentclient)
 - [`extension.ExtensionClient`](./contaxy.clients.extension.md#class-extensionclient)
 - [`file.FileClient`](./contaxy.clients.file.md#class-fileclient)
 - [`json_db.JsonDocumentClient`](./contaxy.clients.json_db.md#class-jsondocumentclient)
