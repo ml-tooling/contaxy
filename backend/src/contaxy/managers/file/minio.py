@@ -213,7 +213,8 @@ class MinioFileManager(FileOperations):
         project_id: str,
         file_key: str,
         file_stream: FileStream,
-        content_type: str = "application/octet-stream",
+        metadata: dict = None,
+        content_type: str = "application/octet-stream"
     ) -> File:
         """Upload a file.
 
@@ -250,6 +251,7 @@ class MinioFileManager(FileOperations):
                 -1,
                 content_type,
                 part_size=10 * 1024 * 1024,
+                metadata=metadata
             )
         except S3Error as err:
             raise ServerBaseError(
@@ -315,7 +317,7 @@ class MinioFileManager(FileOperations):
                     f"Invalid file {file_key} (version: {version}."
                 )
 
-        return response.stream()
+        return response.stream(), int(response.headers.get("Content-Length"))
 
     def delete_file(
         self,
@@ -449,6 +451,7 @@ class MinioFileManager(FileOperations):
             "etag": object.etag,
             "latest_version": object.is_latest or False,
             "version": object.version_id,
+            "metadata": object.metadata
         }
 
         # ! Minio seems to not set the content type, only when reading single object via stat_object, hence we persist it in the db

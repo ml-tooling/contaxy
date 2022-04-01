@@ -1,6 +1,7 @@
+from importlib.metadata import metadata
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, Path, Query, Request, Response, status
+from fastapi import APIRouter, Depends, Path, Query, Request, Response, status, Form
 from fastapi.responses import StreamingResponse
 
 from contaxy.api.dependencies import ComponentManager, get_component_manager
@@ -22,11 +23,12 @@ from contaxy.schema.shared import OPEN_URL_REDIRECT, RESOURCE_ID_REGEX
 from contaxy.utils.auth_utils import get_api_token
 from contaxy.utils.file_utils import FormMultipartStream, SyncFromAsyncGenerator
 
+_FILE_METADATA_PREFIX = "x-amz-meta-"
+
 router = APIRouter(
     tags=["files"],
     responses={**AUTH_ERROR_RESPONSES, **VALIDATION_ERROR_RESPONSE},
 )
-
 
 @router.get(
     "/projects/{project_id}/files",
@@ -74,7 +76,7 @@ def list_files(
     response_model=File,
     summary="Upload a file.",
     status_code=status.HTTP_200_OK,
-    responses={**CREATE_RESOURCE_RESPONSES},
+    responses={**CREATE_RESOURCE_RESPONSES}
 )
 def upload_file(
     request: Request,
@@ -110,8 +112,14 @@ def upload_file(
         if multipart_stream.content_type
         else "application/octet-stream"
     )
+
+    metadata = dict()
+    for key, value in request.headers.items():
+        if _FILE_METADATA_PREFIX in key:
+            metadata[key] = value
+
     return component_manager.get_file_manager().upload_file(
-        project_id, file_key, multipart_stream, content_type
+        project_id, file_key, multipart_stream, metadata, content_type
     )
 
 
@@ -267,12 +275,15 @@ def download_file(
     )
     file_manager = component_manager.get_file_manager()
     metadata = file_manager.get_file_metadata(project_id, file_key, version)
-    file_stream = file_manager.download_file(project_id, file_key, version)
+    file_stream, file_len = file_manager.download_file(project_id, file_key, version)
 
     return StreamingResponse(
         file_stream,
         media_type=metadata.content_type,
-        headers={"Content-Disposition": f"attachment;filename={file_key}"},
+        headers={
+            "Content-Disposition": f"attachment;filename={file_key}", 
+            "Content-length": f"{file_len}"
+        }
     )
 
 

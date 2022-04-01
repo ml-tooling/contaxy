@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from ast import Dict
 from typing import Any, Iterator, List, Optional
 
 from contaxy.schema import File, FileInput, FileStream, ResourceAction
@@ -82,6 +83,7 @@ class FileOperations(ABC):
         project_id: str,
         file_key: str,
         file_stream: FileStream,
+        metadata: dict = None,
         content_type: str = "application/octet-stream",
     ) -> File:
         """Upload a file.

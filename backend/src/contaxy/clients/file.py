@@ -1,3 +1,4 @@
+from email.errors import MultipartInvariantViolationDefect
 from typing import Dict, Iterator, List, Optional
 
 import requests
@@ -9,6 +10,9 @@ from contaxy.schema import File, FileInput, FileStream, ResourceAction
 
 
 class FileClient(FileOperations):
+
+    _FILE_METADATA_PREFIX = "x-amz-meta-"
+
     def __init__(self, client: requests.Session):
         self._client = client
 
@@ -82,18 +86,29 @@ class FileClient(FileOperations):
         project_id: str,
         file_key: str,
         file_stream: FileStream,
+        metadata: Dict = None,
         content_type: str = "application/octet-stream",
-        request_kwargs: Dict = {},
+        request_kwargs: Dict = {}
     ) -> File:
         # ! It is strongly recommended that you open files in binary mode. This is because Requests may attempt to provide the Content-Length header for you, and if it does this value will be set to the number of bytes in the file. Errors may occur if you open the file in text mode.
 
         # TODO Check if it actually gets streamed or not
         # ! In the event you are posting a very large file as a multipart/form-data request, you may want to stream the request. By default, requests does not support this, but there is a separate package which does - requests-toolbelt. You should read the toolbelt’s documentation for more details about how to use it.
+        processed_metadata = {}
+
+        if metadata:
+            # Add metadata as headers, to be valid, metadata needs to have the x-amz-meta prefix (S3 conform)
+            for key in metadata:
+                value = metadata[key]
+                if not key.startswith(self._FILE_METADATA_PREFIX):
+                    key = self._FILE_METADATA_PREFIX + key
+                processed_metadata[key] = value
 
         response = self._client.post(
             f"/projects/{project_id}/files/{file_key}",
             files={"file": (f"{file_key}", file_stream, content_type)},
-            **request_kwargs,
+            headers=processed_metadata,
+            **request_kwargs
         )
         handle_errors(response)
         return parse_obj_as(File, response.json())
@@ -116,7 +131,7 @@ class FileClient(FileOperations):
             **request_kwargs,
         )
         handle_errors(response)
-        return response.iter_content(chunk_size=10 * 1024 * 1024)
+        return response.iter_content(chunk_size=10 * 1024 * 1024), int(response.headers.get('content-length'))
 
     def delete_file(
         self,
