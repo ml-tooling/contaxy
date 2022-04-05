@@ -5,7 +5,12 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import docker
+import docker.errors
+import docker.models.containers
+import docker.models.networks
+import docker.types
 import psutil
+from docker import DockerClient
 from loguru import logger
 
 from contaxy.config import settings
@@ -14,22 +19,17 @@ from contaxy.managers.deployment.utils import (
     DEFAULT_DEPLOYMENT_ACTION_ID,
     NO_LOGS_MESSAGE,
     Labels,
-    clean_labels,
-    get_default_environment_variables,
-    get_deployment_id,
     get_gpu_info,
     get_label_string,
     get_network_name,
     get_project_selection_labels,
-    get_template_mapping,
     get_volume_name,
-    map_endpoints_to_endpoints_label,
     map_labels,
-    replace_templates,
+    map_list_to_string,
 )
-from contaxy.operations import AuthOperations
 from contaxy.schema import ResourceAction
 from contaxy.schema.deployment import (
+    Deployment,
     DeploymentCompute,
     DeploymentStatus,
     DeploymentType,
@@ -38,15 +38,12 @@ from contaxy.schema.deployment import (
     Service,
     ServiceInput,
 )
-from contaxy.schema.exceptions import (
-    ClientBaseError,
-    ClientValueError,
-    ResourceNotFoundError,
-    ServerBaseError,
-)
+from contaxy.schema.exceptions import ResourceNotFoundError, ServerBaseError
 
 # we create networks in the range of 172.33-255.0.0/24
 # Docker by default uses the range 172.17-32.0.0, so we should be save using that range
+from contaxy.utils.utils import remove_none_values_from_dict
+
 INITIAL_CIDR_FIRST_OCTET = 10
 INITIAL_CIDR_SECOND_OCTET = 0
 INITIAL_CIDR = f"{INITIAL_CIDR_FIRST_OCTET}.{INITIAL_CIDR_SECOND_OCTET}.0.0/24"
@@ -66,7 +63,7 @@ def map_container(
         max_cpus=host_config["NanoCpus"] / 1e9,
         max_memory=host_config["Memory"] / 1000 / 1000,
         max_gpus=None,  # TODO: fill with sensible information - where to get it from?
-        min_lifetime=mapped_labels.min_lifetime,
+        min_lifetime=mapped_labels.min_lifetime or 0,
         volume_path=mapped_labels.volume_path,
         # TODO: add max_volume_size, max_replicas
     )
@@ -130,17 +127,20 @@ def map_service(
     container: docker.models.containers.Container,
 ) -> Service:
     transformed_container = map_container(container=container)
+    transformed_container = remove_none_values_from_dict(transformed_container)
+
     return Service(**transformed_container)
 
 
 def map_job(container: docker.models.containers.Container) -> Job:
     transformed_container = map_container(container=container)
+    transformed_container = remove_none_values_from_dict(transformed_container)
     return Job(**transformed_container)
 
 
 # TODO: copied from ML Hub
 def create_network(
-    client: docker.client, name: str, labels: Dict[str, str]
+    client: DockerClient, name: str, labels: Dict[str, str]
 ) -> docker.models.networks.Network:
     """Create a new network to put the new container into it.
 
@@ -151,8 +151,9 @@ def create_network(
     See: https://stackoverflow.com/questions/41609998/how-to-increase-maximum-docker-network-on-one-server ; https://loomchild.net/2016/09/04/docker-can-create-only-31-networks-on-a-single-machine/
 
     Args:
-        network_name (str): name of the network to be created
-        network_labels (Dict[str, str]): labels that will be attached to the network
+        client (DockerClient): docker client that provides access to the docker API
+        name (str): name of the network to be created
+        labels (Dict[str, str]): labels that will be attached to the network
     Raises:
         docker.errors.APIError: Thrown by `docker.client.networks.create` upon error.
 
@@ -162,7 +163,7 @@ def create_network(
     """
 
     networks = client.networks.list()
-    highest_cidr = ipaddress.ip_network(INITIAL_CIDR)
+    highest_cidr = ipaddress.IPv4Network(INITIAL_CIDR)
 
     # determine subnet for the network to be created by finding the highest subnet so far.
     # E.g. when you have three subnets 172.33.1.0, 172.33.2.0, and 172.33.3.0, highest_cidr will be 172.33.3.0
@@ -178,7 +179,7 @@ def create_network(
             and network.attrs["IPAM"]["Config"][0]["Subnet"]
         )
         if has_all_properties:
-            cidr = ipaddress.ip_network(network.attrs["IPAM"]["Config"][0]["Subnet"])
+            cidr = ipaddress.IPv4Network(network.attrs["IPAM"]["Config"][0]["Subnet"])
 
             if (
                 cidr.network_address.packed[0] == INITIAL_CIDR_FIRST_OCTET
@@ -188,7 +189,7 @@ def create_network(
                 highest_cidr = cidr
 
     # take the highest cidr and add 256 bits, so that if the highest subnet was 172.33.2.0, the new subnet is 172.33.3.0
-    next_cidr = ipaddress.ip_network(
+    next_cidr = ipaddress.IPv4Network(
         (highest_cidr.network_address + 256).exploded + "/24"
     )
     if next_cidr.network_address.packed[0] > INITIAL_CIDR_FIRST_OCTET:
@@ -206,7 +207,7 @@ def create_network(
 
 
 def handle_network(
-    client: docker.client, project_id: str
+    client: DockerClient, project_id: str
 ) -> docker.models.networks.Network:
     network_name = get_network_name(project_id)
     try:
@@ -236,16 +237,16 @@ def connect_to_network(
         if not is_backend_connected_to_network:
             try:
                 network.connect(container)
-            except docker.errors.APIError:
+            except docker.errors.APIError as e:
                 # Remove the network again as it is not connected to any service.
                 network.remove()
-                raise RuntimeError(
+                raise ServerBaseError(
                     f"Could not connect the {container.name} to the network {network.name}"
-                )
+                ) from e
 
 
 def reconnect_to_all_networks(
-    client: docker.client,
+    client: DockerClient,
 ) -> None:
     """Connects the backend container to all networks that belong to the installation.
 
@@ -264,7 +265,7 @@ def reconnect_to_all_networks(
             )
 
 
-def get_backend_networks(client: docker.client) -> List[docker.models.networks.Network]:
+def get_backend_networks(client: DockerClient) -> List[docker.models.networks.Network]:
     try:
         networks = client.networks.list(
             filters={
@@ -273,8 +274,8 @@ def get_backend_networks(client: docker.client) -> List[docker.models.networks.N
                 )
             }
         )
-    except docker.errors.NotFound:
-        raise ServerBaseError("Could not list backend networks.")
+    except docker.errors.APIError as e:
+        raise ServerBaseError("Could not list backend networks.") from e
 
     return networks
 
@@ -291,7 +292,7 @@ def get_project_container_selection_labels(
 
 
 def get_project_containers(
-    client: docker.client,
+    client: DockerClient,
     project_id: str,
     deployment_type: DeploymentType = DeploymentType.SERVICE,
 ) -> List[docker.models.containers.Container]:
@@ -301,16 +302,16 @@ def get_project_containers(
 
     try:
         containers = client.containers.list(all=True, filters={"label": labels})
-    except docker.errors.NotFound:
+    except docker.errors.APIError as e:
         raise ServerBaseError(
             f"Could not list Docker containers for project '{project_id}'."
-        )
+        ) from e
 
     return containers
 
 
 def get_project_container(
-    client: docker.client,
+    client: DockerClient,
     project_id: str,
     deployment_id: str,
     deployment_type: DeploymentType = DeploymentType.SERVICE,
@@ -319,14 +320,14 @@ def get_project_container(
         project_id=project_id, deployment_type=deployment_type
     )
     labels.append(
-        get_label_string(Labels.DEPLOYMENT_NAME.value, deployment_id),
+        get_label_string(Labels.DEPLOYMENT_ID.value, deployment_id),
     )
     try:
         containers = client.containers.list(all=True, filters={"label": labels})
-    except docker.errors.NotFound:
+    except docker.errors.APIError as e:
         raise ServerBaseError(
             f"Could not list Docker containers for project '{project_id}' and service '{deployment_id}'."
-        )
+        ) from e
 
     if len(containers) == 0:
         raise ResourceNotFoundError(
@@ -336,11 +337,13 @@ def get_project_container(
     return containers[0]
 
 
-def get_this_container(client: docker.client) -> docker.models.containers.Container:
+def get_this_container(
+    client: DockerClient,
+) -> docker.models.containers.Container:
     """This function returns the Docker container in which this code is running or None if it does not run in a container.
 
     Args:
-        client (docker.client): The Docker client object
+        client (DockerClient): The Docker client object
 
     Returns:
         docker.models.containers.Container: If this code runs in a container, it returns this container otherwise None
@@ -354,7 +357,9 @@ def get_this_container(client: docker.client) -> docker.models.containers.Contai
 
 
 def delete_container(
-    container: docker.models.containers.Container, delete_volumes: bool = False
+    client: DockerClient,
+    container: docker.models.containers.Container,
+    delete_volumes: bool = False,
 ) -> None:
     try:
         container.stop()
@@ -364,14 +369,24 @@ def delete_container(
     try:
         container.remove(v=delete_volumes)
     except docker.errors.APIError:
-        raise ClientBaseError(
-            status_code=500,
-            message=f"Could not delete deployment '{container.name}'.",
+        raise ServerBaseError(
+            f"Could not delete deployment '{container.name}'.",
         )
+
+    # Named volumes must be deleted manually
+    if delete_volumes:
+        for mount in container.attrs.get("Mounts", []):
+            if mount.get("Type") == "volume" and "Name" in mount:
+                try:
+                    client.api.remove_volume(mount["Name"])
+                except docker.errors.APIError:
+                    raise ServerBaseError(
+                        f"Could not delete volume {mount['Name']} of deployment '{container.name}'.",
+                    )
 
 
 def check_minimal_resources(
-    min_cpus: int,
+    min_cpus: float,
     min_memory: int,
     min_gpus: int,
     compute_resources: DeploymentCompute = None,
@@ -398,7 +413,7 @@ def check_minimal_resources(
 
 def extract_minimal_resources(
     compute_resources: DeploymentCompute,
-) -> Tuple[int, int, int]:
+) -> Tuple[float, int, int]:
     min_cpus = (
         compute_resources.min_cpus if compute_resources.min_cpus is not None else 0
     )
@@ -445,7 +460,7 @@ def define_mounts(
                 labels={
                     Labels.NAMESPACE.value: settings.SYSTEM_NAMESPACE,
                     Labels.PROJECT_NAME.value: project_id,
-                    Labels.DEPLOYMENT_NAME.value: container_name,
+                    Labels.DEPLOYMENT_ID.value: container_name,
                 },
                 type=mount_type,
             )
@@ -455,15 +470,10 @@ def define_mounts(
 
 
 def create_container_config(
-    service: Union[JobInput, ServiceInput],
+    deployment: Deployment,
     project_id: str,
-    auth_manager: AuthOperations,
-    user_id: Optional[str] = None,
 ) -> Dict[str, Any]:
-    if service.display_name is None:
-        raise ClientValueError("Service display_name not defined")
-
-    compute_resources = service.compute or DeploymentCompute()
+    compute_resources = deployment.compute
     (
         min_cpus,
         min_memory,
@@ -474,16 +484,6 @@ def create_container_config(
         min_memory=min_memory,
         min_gpus=min_gpus,
     )
-
-    deployment_type = (
-        DeploymentType.SERVICE if type(service) == ServiceInput else DeploymentType.JOB
-    )
-    container_name = get_deployment_id(
-        project_id,
-        deployment_name=service.display_name,
-        deployment_type=deployment_type,
-    )
-
     max_cpus = (
         compute_resources.max_cpus if compute_resources.max_cpus is not None else 1
     )
@@ -495,61 +495,31 @@ def create_container_config(
     # With regards to memory, Docker requires at least 6MB for a container
     mem_limit = f"{max(_MIN_MEMORY_DEFAULT_MB, min(max_memory, system_memory_in_mb))}MB"
 
+    container_name = deployment.id
     mounts = define_mounts(
         project_id=project_id,
         container_name=container_name,
         compute_resources=compute_resources,
-        service_requirements=service.requirements,
+        service_requirements=deployment.requirements,
     )
 
-    environment = service.parameters or {}
-    # The user MUST not be able to manually set (which) GPUs to use
-    if "NVIDIA_VISIBLE_DEVICES" in environment:
-        del environment["NVIDIA_VISIBLE_DEVICES"]
-    environment = {
-        **environment,
-        **get_default_environment_variables(
-            project_id=project_id,
-            deployment_id=container_name,
-            auth_manager=auth_manager,
-            endpoints=service.endpoints,
-            compute_resources=compute_resources,
-        ),
-    }
-    environment = replace_templates(
-        environment,
-        get_template_mapping(
-            project_id=project_id, user_id=user_id, environment=environment
-        ),
-    )
-
-    min_lifetime = (
-        compute_resources.min_lifetime
-        if compute_resources.min_lifetime is not None
-        else "0"
-    )
-
-    endpoints_label = map_endpoints_to_endpoints_label(service.endpoints)
-    requirements_label = (
-        ",".join(service.requirements) if service.requirements else None
-    )
-    metadata = clean_labels(service.metadata)
     return {
-        "image": service.container_image,
-        "entrypoint": service.command,
-        "command": service.args,
+        "image": deployment.container_image,
+        "entrypoint": deployment.command,
+        "command": deployment.args,
         "detach": True,
-        "environment": environment,
+        "environment": deployment.parameters,
         "labels": {
-            Labels.DISPLAY_NAME.value: service.display_name,
-            Labels.NAMESPACE.value: settings.SYSTEM_NAMESPACE,
-            Labels.MIN_LIFETIME.value: str(min_lifetime),
-            Labels.PROJECT_NAME.value: project_id,
-            Labels.DEPLOYMENT_NAME.value: container_name,
-            Labels.ENDPOINTS.value: endpoints_label,
-            Labels.REQUIREMENTS.value: requirements_label,
-            Labels.CREATED_BY.value: user_id,
-            **metadata,
+            **deployment.metadata,
+            Labels.DISPLAY_NAME.value: deployment.display_name,
+            Labels.DEPLOYMENT_TYPE.value: deployment.deployment_type.value,
+            Labels.DESCRIPTION.value: deployment.description,
+            Labels.ENDPOINTS.value: map_list_to_string(deployment.endpoints),
+            Labels.REQUIREMENTS.value: map_list_to_string(deployment.requirements),
+            Labels.ICON.value: deployment.icon,
+            Labels.MIN_LIFETIME.value: str(compute_resources.min_lifetime),
+            Labels.CREATED_BY.value: deployment.created_by,
+            Labels.VOLUME_PATH.value: compute_resources.volume_path,
         },
         "name": container_name,
         "nano_cpus": int(nano_cpus),
@@ -580,7 +550,7 @@ def read_container_logs(
 
 def wait_for_container(
     container: docker.models.containers.Container,
-    client: docker.client,
+    client: DockerClient,
     timeout: int = 60,
 ) -> docker.models.containers.Container:
     start = time.time()

@@ -23,7 +23,7 @@
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/auth.py#L86"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/auth.py#L95"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `add_permission`
 
@@ -48,7 +48,7 @@ Grants a permission to the specified resource.
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/auth.py#L70"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/auth.py#L79"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `change_password`
 
@@ -77,7 +77,9 @@ The password is stored as a hash.
 create_token(
     scopes: List[str],
     token_type: TokenType,
-    description: Optional[str] = None
+    description: Optional[str] = None,
+    token_purpose: Optional[str] = None,
+    token_subject: Optional[str] = None
 ) → str
 ```
 
@@ -92,6 +94,8 @@ The token is created on behalfe of the authorized user.
  - <b>`scopes`</b>:  Scopes requested for this token. If none specified, the token will be generated with same set of scopes as the authorized token. 
  - <b>`token_type`</b>:  The type of the token. 
  - <b>`description`</b> (optional):  A short description about the generated token. 
+ - <b>`token_purpose`</b>:  Purpose of the newly created token 
+ - <b>`token_subject`</b>:  Subject that the token belongs to 
 
 
 
@@ -101,7 +105,7 @@ The token is created on behalfe of the authorized user.
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/auth.py#L211"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/auth.py#L263"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `create_user`
 
@@ -132,7 +136,7 @@ Creates a user.
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/auth.py#L263"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/auth.py#L315"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `delete_user`
 
@@ -156,7 +160,7 @@ Deletes a user.
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/auth.py#L229"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/auth.py#L281"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `get_user`
 
@@ -186,7 +190,36 @@ Returns the user metadata for a single user.
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/auth.py#L176"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/auth.py#L327"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+### <kbd>method</kbd> `get_user_token`
+
+```python
+get_user_token(
+    user_id: str,
+    access_level: AccessLevel = <AccessLevel.WRITE: 'write'>
+) → str
+```
+
+Create user token with permission to access all resources accessible by the user. 
+
+If a token for the specified user and access level already exists in the DB, it is returned instead of creating a new user token. 
+
+
+
+**Args:**
+ 
+ - <b>`user_id`</b>:  Id of the user for which the token should be created 
+ - <b>`access_level`</b>:  The access level of the user token (defaults to "write") 
+
+
+
+**Returns:**
+ User token for specified user id and access level. 
+
+---
+
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/auth.py#L228"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `introspect_token`
 
@@ -214,15 +247,20 @@ This operation implements the [OAuth2 Introspection Flow](https://www.oauth.com/
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/auth.py#L39"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/auth.py#L43"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `list_api_tokens`
 
 ```python
-list_api_tokens() → List[ApiToken]
+list_api_tokens(token_subject: Optional[str] = None) → List[ApiToken]
 ```
 
-Lists all API tokens associated from the authorized user. 
+Lists all API tokens associated with the given token subject. 
+
+
+
+**Args:**
+  token_subject:  Subject for which the tokens should be listed.  If it is not provided, the tokens of the authorized user are returned. 
 
 
 
@@ -232,7 +270,64 @@ Lists all API tokens associated from the authorized user.
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/auth.py#L200"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/auth.py#L125"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+### <kbd>method</kbd> `list_permissions`
+
+```python
+list_permissions(
+    resource_name: str,
+    resolve_roles: bool = True,
+    use_cache: bool = False
+) → List[str]
+```
+
+Returns all permissions granted to the specified resource. 
+
+
+
+**Args:**
+ 
+ - <b>`resource_name`</b>:  The name of the resource (relative URI). 
+ - <b>`resolve_roles`</b>:  If `True`, all roles of the resource will be resolved to the associated permissions. Defaults to `True`. 
+
+
+
+**Returns:**
+ 
+ - <b>`List[str]`</b>:  List of permissions granted to the given resource. 
+
+---
+
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/auth.py#L140"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+### <kbd>method</kbd> `list_resources_with_permission`
+
+```python
+list_resources_with_permission(
+    permission: str,
+    resource_name_prefix: Optional[str] = None
+) → List[str]
+```
+
+Returns all resources that are granted for the specified permission. 
+
+
+
+**Args:**
+ 
+ - <b>`permission`</b>:  The permission to use. If the permission is specified without the access level, it will filter for all access levels. 
+ - <b>`resource_name_prefix`</b>:  Only return resources that match with this prefix. 
+
+
+
+**Returns:**
+ 
+ - <b>`List[str]`</b>:  List of resources names (relative URIs). 
+
+---
+
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/auth.py#L252"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `list_users`
 
@@ -252,7 +347,31 @@ TODO: Filter based on authenticated user?
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/auth.py#L108"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/auth.py#L112"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+### <kbd>method</kbd> `remove_permission`
+
+```python
+remove_permission(
+    resource_name: str,
+    permission: str,
+    remove_sub_permissions: bool = False
+) → None
+```
+
+Revokes a permission from the specified resource. 
+
+
+
+**Args:**
+ 
+ - <b>`resource_name`</b>:  The resource name that the permission should be revoked from. 
+ - <b>`permission`</b>:  The permission to revoke from the specified resource. 
+ - <b>`remove_sub_permissions`</b>:  If `True`, the permission is used as prefix, and all permissions that start with this prefix will be revoked. Defaults to `False`. 
+
+---
+
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/auth.py#L160"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `request_token`
 
@@ -308,7 +427,7 @@ This endpoint implements the [OAuth2 Token Endpoint](https://tools.ietf.org/html
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/auth.py#L154"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/auth.py#L206"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `revoke_token`
 
@@ -336,7 +455,7 @@ This operation implements the OAuth2 Revocation Flow ([RFC7009](https://tools.ie
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/auth.py#L244"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/auth.py#L296"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `update_user`
 
@@ -369,7 +488,7 @@ This will update only the properties that are explicitly set in the `user_input`
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/auth.py#L48"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/auth.py#L57"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `verify_access`
 
@@ -377,7 +496,7 @@ This will update only the properties that are explicitly set in the `user_input`
 verify_access(
     token: str,
     permission: Optional[str] = None,
-    disable_cache: bool = False
+    use_cache: bool = True
 ) → AuthorizedAccess
 ```
 
@@ -391,7 +510,7 @@ The token is verfied for its validity and - if provided - if it has the specifie
  
  - <b>`token`</b>:  Token (session or API) to verify. 
  - <b>`permission`</b> (optional):  The token is checked if it is granted this permission. If none specified, only the existence or validity of the token itself is checked. 
- - <b>`disable_cache`</b> (optional):  If `True`, no cache will be used for verifying the token. Defaults to `False`. 
+ - <b>`use_cache`</b> (optional):  If `False`, no cache will be used for verifying the token. Defaults to `True`. 
 
 
 

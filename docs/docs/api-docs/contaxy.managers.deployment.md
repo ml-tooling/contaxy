@@ -9,8 +9,12 @@
 
 **Global Variables**
 ---------------
-- **manager**
 - **utils**
+- **docker_utils**
+- **docker**
+- **kube_utils**
+- **kubernetes**
+- **manager**
 
 
 

@@ -35,23 +35,20 @@ from contaxy.config import settings
 from contaxy.managers.deployment.utils import (
     _MIN_MEMORY_DEFAULT_MB,
     Labels,
-    clean_labels,
-    get_default_environment_variables,
     get_label_string,
     get_project_selection_labels,
-    get_template_mapping,
-    map_endpoints_to_endpoints_label,
     map_labels,
-    replace_templates,
+    map_list_to_string,
 )
-from contaxy.operations import AuthOperations
-from contaxy.schema import Job, JobInput, Service, ServiceInput
+from contaxy.schema import Job, Service
 from contaxy.schema.deployment import (
+    Deployment,
     DeploymentCompute,
     DeploymentStatus,
     DeploymentType,
 )
 from contaxy.schema.exceptions import ResourceNotFoundError, ServerBaseError
+from contaxy.utils.utils import remove_none_values_from_dict
 
 
 def get_label_selector(label_pairs: List[Tuple[str, str]]) -> str:
@@ -102,7 +99,7 @@ def get_pod(
         [
             (Labels.NAMESPACE.value, settings.SYSTEM_NAMESPACE),
             (Labels.PROJECT_NAME.value, project_id),
-            (Labels.DEPLOYMENT_NAME.value, service_id),
+            (Labels.DEPLOYMENT_ID.value, service_id),
         ]
     )
 
@@ -135,7 +132,7 @@ def create_pvc(
         if e.status != 409:
             raise ServerBaseError(
                 f"Could not create persistent volume claim for service '{pvc.metadata.name}' with reason: {e}"
-            )
+            ) from e
 
 
 def create_service(
@@ -153,11 +150,11 @@ def create_service(
     except ApiException as e:
         raise ServerBaseError(
             f"Could not create namespaced service '{service_config.metadata.name}' with reason: {e}"
-        )
+        ) from e
 
 
 def build_kube_service_config(
-    service_id: str, service: ServiceInput, project_id: str, kube_namespace: str
+    service: Service, project_id: str, kube_namespace: str
 ) -> V1Service:
     # TODO: set the endpoints as annotations
     service_ports: Dict[str, V1ServicePort] = {}
@@ -179,21 +176,21 @@ def build_kube_service_config(
     return V1Service(
         metadata=V1ObjectMeta(
             namespace=kube_namespace,
-            name=service_id,
+            name=service.id,
             labels={
                 # Labels.DISPLAY_NAME.value: service.display_name,# display_name cannot be a label since whitespaces are not allowed in label values. Kubernetes validation regex: (([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?')
                 Labels.NAMESPACE.value: settings.SYSTEM_NAMESPACE,
                 Labels.PROJECT_NAME.value: project_id,
-                Labels.DEPLOYMENT_NAME.value: service_id,
-                Labels.DEPLOYMENT_TYPE.value: DeploymentType.SERVICE.value,
+                Labels.DEPLOYMENT_ID.value: service.id,
+                Labels.DEPLOYMENT_TYPE.value: service.deployment_type,
             },  # service.labels
         ),
         spec=V1ServiceSpec(
             selector={
-                Labels.DEPLOYMENT_NAME.value: service_id,
+                Labels.DEPLOYMENT_ID.value: service.id,
                 Labels.PROJECT_NAME.value: project_id,
                 Labels.NAMESPACE.value: settings.SYSTEM_NAMESPACE,
-                Labels.DEPLOYMENT_TYPE.value: DeploymentType.SERVICE.value,
+                Labels.DEPLOYMENT_TYPE.value: service.deployment_type,
             },
             # ports must be set and it must contain at least one port
             ports=list(service_ports.values())
@@ -205,14 +202,10 @@ def build_kube_service_config(
 
 
 def build_pod_template_spec(
-    project_id: str,
-    service_id: str,
-    service: Union[ServiceInput, JobInput],
+    deployment: Deployment,
     metadata: V1ObjectMeta,
-    auth_manager: AuthOperations,
-    user_id: Optional[str] = None,
 ) -> V1PodTemplateSpec:
-    compute_resources = service.compute or DeploymentCompute()
+    compute_resources = deployment.compute
     # TODO: check default values and store them globally probably!
     min_cpus = compute_resources.min_cpus or 0
     max_cpus = compute_resources.max_cpus or 1
@@ -233,57 +226,38 @@ def build_pod_template_spec(
         },
     )
 
-    environment = service.parameters or {}
-    # The user MUST not be able to manually set (which) GPUs to use
-    if "NVIDIA_VISIBLE_DEVICES" in environment:
-        del environment["NVIDIA_VISIBLE_DEVICES"]
-    environment = {
-        **environment,
-        **get_default_environment_variables(
-            project_id=project_id,
-            deployment_id=service_id,
-            auth_manager=auth_manager,
-            endpoints=service.endpoints,
-            compute_resources=compute_resources,
-        ),
-    }
-    environment = replace_templates(
-        environment,
-        get_template_mapping(
-            project_id=project_id, user_id=user_id, environment=environment
-        ),
-    )
-
     # the name is used by Kubernetes to match the container-volume and the pod-volume section
-    mount_name = f"mount-{service_id}"
-    container = V1Container(
-        name=service_id,
-        image=service.container_image,
-        image_pull_policy="IfNotPresent",
-        resources=resource_requirements,
-        command=service.command,
-        args=service.args,
-        env=[V1EnvVar(name=name, value=value) for name, value in environment.items()],
-        volume_mounts=[
+    mount_name = f"mount-{deployment.id}"
+    volume_mounts, volumes = None, None
+    if compute_resources.volume_path:
+        volume_mounts = [
             V1VolumeMount(
                 name=mount_name, mount_path=str(compute_resources.volume_path)
             )
         ]
-        if compute_resources.volume_path
-        else None,
-    )
-
-    pod_spec = V1PodSpec(
-        volumes=[
+        volumes = [
             V1Volume(
                 name=mount_name,
                 persistent_volume_claim=V1PersistentVolumeClaimVolumeSource(
-                    claim_name=service_id
+                    claim_name=deployment.id
                 ),
             )
         ]
-        if compute_resources.volume_path
-        else None,
+    container = V1Container(
+        name=deployment.id,
+        image=deployment.container_image,
+        image_pull_policy="IfNotPresent",
+        resources=resource_requirements,
+        command=deployment.command,
+        args=deployment.args,
+        env=[
+            V1EnvVar(name=name, value=value)
+            for name, value in deployment.parameters.items()
+        ],
+        volume_mounts=volume_mounts,
+    )
+    pod_spec = V1PodSpec(
+        volumes=volumes,
         containers=[container],
     )
 
@@ -293,60 +267,44 @@ def build_pod_template_spec(
 def build_deployment_metadata(
     kube_namespace: str,
     project_id: str,
-    deployment_id: str,
-    display_name: Optional[str],
-    labels: Optional[Dict[str, str]],
-    compute_resources: Optional[DeploymentCompute],
-    endpoints: Optional[List[str]],
-    deployment_type: DeploymentType = DeploymentType.SERVICE,
-    user_id: Optional[str] = None,
+    deployment: Deployment,
 ) -> V1ObjectMeta:
-    display_name = display_name or ""
-    _compute_resources = compute_resources or DeploymentCompute()
-    min_lifetime = _compute_resources.min_lifetime or 0
-    cleaned_labels = clean_labels(labels)
-
     return V1ObjectMeta(
         namespace=kube_namespace,
-        name=deployment_id,
+        name=deployment.id,
         labels={
             Labels.NAMESPACE.value: settings.SYSTEM_NAMESPACE,
             Labels.PROJECT_NAME.value: project_id,
-            Labels.DEPLOYMENT_NAME.value: deployment_id,
-            Labels.DEPLOYMENT_TYPE.value: deployment_type.value,
+            Labels.DEPLOYMENT_ID.value: deployment.id,
+            Labels.DEPLOYMENT_TYPE.value: deployment.deployment_type.value,
         },
         annotations={
-            Labels.DISPLAY_NAME.value: display_name,
-            Labels.MIN_LIFETIME.value: str(min_lifetime),
-            Labels.ENDPOINTS.value: map_endpoints_to_endpoints_label(endpoints),
-            Labels.CREATED_BY.value: user_id,
-            **cleaned_labels,
+            **deployment.metadata,
+            Labels.DISPLAY_NAME.value: deployment.display_name,
+            Labels.DEPLOYMENT_TYPE.value: deployment.deployment_type.value,
+            Labels.DESCRIPTION.value: deployment.description,
+            Labels.ENDPOINTS.value: map_list_to_string(deployment.endpoints),
+            Labels.REQUIREMENTS.value: map_list_to_string(deployment.requirements),
+            Labels.ICON.value: deployment.icon,
+            Labels.MIN_LIFETIME.value: str(deployment.compute.min_lifetime),
+            Labels.CREATED_BY.value: deployment.created_by,
+            Labels.VOLUME_PATH.value: deployment.compute.volume_path,
         },
     )
 
 
 def build_kube_deployment_config(
-    service_id: str,
-    service: ServiceInput,
+    service: Service,
     project_id: str,
     kube_namespace: str,
-    auth_manager: AuthOperations,
-    user_id: Optional[str] = None,
 ) -> Tuple[V1Deployment, Union[V1PersistentVolumeClaim, None]]:
-    # ---
-    compute_resources = service.compute or DeploymentCompute()
+    compute_resources = service.compute
 
     metadata = build_deployment_metadata(
         kube_namespace=kube_namespace,
         project_id=project_id,
-        deployment_id=service_id,
-        display_name=service.display_name,
-        labels=service.metadata,
-        compute_resources=compute_resources,
-        endpoints=service.endpoints,
+        deployment=service,
     )
-
-    # ---
 
     pvc = None
     # add mount - handle PVC; ignore Secret, Bind and NFS for now
@@ -373,7 +331,6 @@ def build_kube_deployment_config(
 
     # --
 
-    # TODO: set `.spec.minReadySeconds` option (see https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#min-ready-seconds)
     deployment = V1Deployment(
         metadata=metadata,
         spec=V1DeploymentSpec(
@@ -383,20 +340,18 @@ def build_kube_deployment_config(
             else 1,
             selector=V1LabelSelector(
                 match_labels={
-                    Labels.DEPLOYMENT_NAME.value: service_id,
+                    Labels.DEPLOYMENT_ID.value: service.id,
                     Labels.PROJECT_NAME.value: project_id,
                     Labels.NAMESPACE.value: settings.SYSTEM_NAMESPACE,
-                    Labels.DEPLOYMENT_TYPE.value: DeploymentType.SERVICE.value,
+                    Labels.DEPLOYMENT_TYPE.value: service.deployment_type.value,
                 }
             ),
             template=build_pod_template_spec(
-                project_id=project_id,
-                service_id=service_id,
-                service=service,
+                deployment=service,
                 metadata=metadata,
-                auth_manager=auth_manager,
-                user_id=user_id,
             ),
+            # TODO: Make min ready seconds configurable? (see https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#min-ready-seconds)
+            min_ready_seconds=5,
         ),
     )
 
@@ -465,15 +420,16 @@ def wait_for_deployment(
     deployment_name: str,
     kube_namespace: str,
     apps_api: kube_client.AppsV1Api,
-    timeout: int = 60,
+    timeout: int = 180,
 ) -> None:
     start = time.time()
     while time.time() - start < timeout:
-        time.sleep(2)
+        time.sleep(5)
         response = apps_api.read_namespaced_deployment_status(
             namespace=kube_namespace, name=deployment_name
         )
         s = response.status
+        # TODO: Check status of pod created by deployment. Is it crashing? Or is it pulling an image?
         if (
             s.updated_replicas == response.spec.replicas
             and s.replicas == response.spec.replicas
@@ -488,7 +444,7 @@ def wait_for_deployment(
             # )
             pass
 
-    raise RuntimeError(f"Waiting timeout for deployment {deployment_name}")
+    raise ServerBaseError(f"Waiting timeout for deployment {deployment_name}")
 
 
 def wait_for_job(
@@ -548,8 +504,8 @@ def map_deployment(deployment: Union[V1Deployment, V1Job]) -> Dict[str, Any]:
             resources.limits["memory"].strip(string.ascii_letters)
         ),  # / 1000 / 1000,
         max_gpus=None,  # TODO: fill with sensible information - where to get it from?
-        min_lifetime=mapped_labels.min_lifetime,
-        volume_Path=mapped_labels.volume_path,
+        min_lifetime=mapped_labels.min_lifetime or 0,
+        volume_path=mapped_labels.volume_path,
         # TODO: add max_volume_size, max_replicas
     )
 
@@ -615,10 +571,12 @@ def map_kube_service(
     deployment: V1Deployment,
 ) -> Service:
     transformed_deployment = map_deployment(deployment=deployment)
+    transformed_deployment = remove_none_values_from_dict(transformed_deployment)
     return Service(**transformed_deployment)
 
 
 def map_kube_job(job: V1Job) -> Job:
     transformed_job = map_deployment(deployment=job)
+    transformed_job = remove_none_values_from_dict(transformed_job)
     # TODO: add status SUCCESSFUL or FAILED
     return Job(**transformed_job)

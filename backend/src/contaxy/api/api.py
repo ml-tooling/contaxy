@@ -1,4 +1,6 @@
 import asyncio
+import functools
+import sys
 from typing import Any, Dict
 
 from fastapi import FastAPI
@@ -22,6 +24,8 @@ from contaxy.api.endpoints import (
     system,
     user,
 )
+from contaxy.managers.components import ComponentManager
+from contaxy.managers.deployment.utils import stop_idle_services
 from contaxy.utils import fastapi_utils, state_utils
 
 # Initialize API
@@ -34,16 +38,28 @@ app = FastAPI(
 if config.settings.DEBUG:
     fastapi_utils.add_timing_info(app)
 
+# Setup logging
+logger.remove()
+if config.settings.DEBUG:
+    logger.add(sys.stderr, level="DEBUG")
+else:
+    logger.add(sys.stdout, level="INFO")
+
 
 # Custom Exception Handling
 @app.exception_handler(StarletteHTTPException)
-async def http_exception_handler(request, exc):  # type: ignore
-    return await error_handling.handel_http_exeptions(request, exc)
+async def http_exception_handler(_, exc):  # type: ignore
+    return await error_handling.handle_http_exception(exc)
 
 
 @app.exception_handler(RequestValidationError)
-async def validation_exception_handler(request, exc):  # type: ignore
-    return await error_handling.handle_validation_exception(request, exc)
+async def validation_exception_handler(_, exc):  # type: ignore
+    return await error_handling.handle_validation_exception(exc)
+
+
+@app.exception_handler(Exception)
+async def server_exception_handler(_, exc):  # type: ignore
+    return await error_handling.handle_server_exception(exc)
 
 
 # Startup and shutdown events
@@ -55,6 +71,12 @@ def on_startup() -> None:
     state_utils.GlobalState(
         app.state
     ).shared_namespace.async_loop = asyncio.get_running_loop()
+    component_manager = ComponentManager.from_app(app)
+    # Schedule regular cleanup of idle services
+    fastapi_utils.schedule_call(
+        func=functools.partial(stop_idle_services, component_manager),
+        interval=config.settings.SERVICE_IDLE_CHECK_INTERVAL,
+    )
 
 
 @app.on_event("shutdown")

@@ -1,3 +1,4 @@
+import json
 import threading
 import time
 from collections import deque
@@ -66,6 +67,7 @@ class AuthManager(AuthOperations):
     _API_TOKEN_COLLECTION = "tokens"
     _USER_COLLECTION = "users"
     _LOGIN_ID_MAPPING_COLLECTION = "login-id-mapping"
+    _PROJECT_COLLECTION = "projects"
 
     def __init__(
         self,
@@ -136,6 +138,16 @@ class AuthManager(AuthOperations):
         pass
 
     def logout_session(self) -> RedirectResponse:
+        # Remove login token of user from DB
+        if (
+            self._request_state.authorized_access
+            and self._request_state.authorized_access.access_token
+        ):
+            self._json_db_manager.delete_json_document(
+                config.SYSTEM_INTERNAL_PROJECT,
+                self._API_TOKEN_COLLECTION,
+                self._request_state.authorized_access.access_token.token,
+            )
         # TODO: where to redirect to
         rr = RedirectResponse("/welcome", status_code=307)
         rr.delete_cookie(config.API_TOKEN_NAME)
@@ -173,7 +185,7 @@ class AuthManager(AuthOperations):
         scopes: List[str],
         token_type: TokenType,
         description: Optional[str] = None,
-        token_purpose: Optional[TokenPurpose] = None,
+        token_purpose: Optional[str] = None,
         token_subject: Optional[str] = None,
     ) -> str:
         if not token_subject:
@@ -364,7 +376,7 @@ class AuthManager(AuthOperations):
     def verify_access(
         self, token: str, permission: Optional[str] = None, use_cache: bool = True
     ) -> AuthorizedAccess:
-        # This will thows UnauthenticatedError if the token is not valid or does not existx
+        # This will throw an UnauthenticatedError if the token is not valid or does not exist
         resolved_token = self._resolve_token(token, use_cache=use_cache)
         if not permission or settings.DEBUG_DEACTIVATE_VERIFICATION:
             # no permissions to check -> return granted permission
@@ -640,9 +652,9 @@ class AuthManager(AuthOperations):
                 ).permissions
             ):
                 continue
-            if resource_name_prefix and resource_name.startswith(resource_name_prefix):
-                resource_names.add(resource_name)
-            else:
+            if (not resource_name_prefix) or resource_name.startswith(
+                resource_name_prefix
+            ):
                 resource_names.add(resource_name)
         return list(resource_names)
 
@@ -679,7 +691,8 @@ class AuthManager(AuthOperations):
             token_subject="users/" + user_id,
             scopes=scopes,
             token_type=TokenType.API_TOKEN,
-            description="Login Token.",
+            token_purpose=TokenPurpose.LOGIN_TOKEN,
+            description=f"Login token for user {user_id}.",
         )
 
         # TODO: change this here if we validated token scopes
@@ -885,7 +898,6 @@ class AuthManager(AuthOperations):
         user = User(
             id=user_id,
             technical_user=technical_user,
-            created_at=datetime.now(timezone.utc),
             has_password=has_password,
             **user_input.dict(exclude_unset=True),
         )
@@ -957,6 +969,7 @@ class AuthManager(AuthOperations):
         Returns:
             User: The updated user information.
         """
+        # TODO: Ensure username and email don't exist and update login-id-mapping
         updated_document = self._json_db_manager.update_json_document(
             project_id=config.SYSTEM_INTERNAL_PROJECT,
             collection_id=self._USER_COLLECTION,
@@ -964,6 +977,16 @@ class AuthManager(AuthOperations):
             json_document=user_input.json(exclude_unset=True),
         )
         return User.parse_raw(updated_document.json_value)
+
+    def update_user_last_activity_time(self, user_id: str) -> None:
+        self._json_db_manager.update_json_document(
+            project_id=config.SYSTEM_INTERNAL_PROJECT,
+            collection_id=AuthManager._USER_COLLECTION,
+            key=user_id,
+            json_document=json.dumps(
+                {"last_activity": str(datetime.now(timezone.utc))}
+            ),
+        )
 
     def delete_user(self, user_id: str) -> None:
         """Deletes a user.
@@ -974,9 +997,69 @@ class AuthManager(AuthOperations):
         Raises:
             ResourceNotFoundError: If no user with the specified ID exists.
         """
-        self._json_db_manager.delete_json_document(
-            config.SYSTEM_INTERNAL_PROJECT, self._USER_COLLECTION, user_id
-        )
+        try:
+            self._json_db_manager.delete_json_document(
+                config.SYSTEM_INTERNAL_PROJECT, self._USER_COLLECTION, user_id
+            )
+        except ResourceNotFoundError:
+            logger.warning(
+                f"ResourceNotFoundError: No JSON document was found in the users table with the given key: {user_id}."
+            )
+
+        try:
+            self._json_db_manager.delete_json_document(
+                config.SYSTEM_INTERNAL_PROJECT, self._USER_PASSWORD_COLLECTION, user_id
+            )
+        except ResourceNotFoundError:
+            logger.warning(
+                f"ResourceNotFoundError: No JSON document was found in the password table with the given key: {user_id}."
+            )
+
+        user_resource_name = "users/" + user_id
+        try:
+            self._json_db_manager.delete_json_document(
+                config.SYSTEM_INTERNAL_PROJECT,
+                self._PERMISSION_COLLECTION,
+                user_resource_name,
+            )
+        except ResourceNotFoundError:
+            logger.warning(
+                f"ResourceNotFoundError: No JSON document was found in the permissions table with the given key: {user_id}."
+            )
+
+        try:
+            for token_doc in self._json_db_manager.list_json_documents(
+                config.SYSTEM_INTERNAL_PROJECT, self._API_TOKEN_COLLECTION
+            ):
+                token_subject = ApiToken.parse_raw(token_doc.json_value).subject
+                if token_subject == user_resource_name:
+                    self._json_db_manager.delete_json_document(
+                        config.SYSTEM_INTERNAL_PROJECT,
+                        self._API_TOKEN_COLLECTION,
+                        token_doc.key,
+                    )
+        except ResourceNotFoundError:
+            logger.warning(
+                f"ResourceNotFoundError: No JSON document was found in the token table with the given key: {user_id}."
+            )
+
+        try:
+            for login_mapping_doc in self._json_db_manager.list_json_documents(
+                config.SYSTEM_INTERNAL_PROJECT, self._LOGIN_ID_MAPPING_COLLECTION
+            ):
+                mapped_user_id = LoginIdMapping.parse_raw(
+                    login_mapping_doc.json_value
+                ).user_id
+                if mapped_user_id == user_id:
+                    self._json_db_manager.delete_json_document(
+                        config.SYSTEM_INTERNAL_PROJECT,
+                        self._LOGIN_ID_MAPPING_COLLECTION,
+                        login_mapping_doc.key,
+                    )
+        except ResourceNotFoundError:
+            logger.warning(
+                f"ResourceNotFoundError: No JSON document was found in the loginID table with the given key: {user_id}."
+            )
 
     def _propose_username(self, email: str) -> str:
         MAX_RETRIES = 10000
@@ -993,3 +1076,30 @@ class AuthManager(AuthOperations):
             f"Damn! Username cannot be inferred from email {email}. {MAX_RETRIES} combinations tried."
         )
         return ""
+
+    def get_user_token(
+        self, user_id: str, access_level: AccessLevel = AccessLevel.WRITE
+    ) -> str:
+        # Provide access to all resources from the user
+        user_token_scope = auth_utils.construct_permission("*", access_level)
+
+        # Check if a user token for this user was already created
+        user_resource = f"users/{user_id}"
+        tokens = self.list_api_tokens(token_subject=user_resource)
+        try:
+            return next(
+                (
+                    token
+                    for token in tokens
+                    if token.token_purpose == TokenPurpose.USER_API_TOKEN
+                    if token.scopes == [user_token_scope]
+                )
+            ).token
+        except StopIteration:
+            return self.create_token(
+                scopes=[user_token_scope],
+                token_type=TokenType.API_TOKEN,
+                token_subject=user_resource,
+                token_purpose=TokenPurpose.USER_API_TOKEN,
+                description=f"{access_level} token for user {user_id}.",
+            )

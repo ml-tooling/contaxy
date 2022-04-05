@@ -1,16 +1,12 @@
-from typing import Any, List, Optional
+from typing import Any, List
 
 from fastapi import APIRouter, Depends, Query, Response, status
 from fastapi.param_functions import Body
 
 from contaxy import config
-from contaxy.api.dependencies import (
-    ComponentManager,
-    get_api_token,
-    get_component_manager,
-)
+from contaxy.api.dependencies import ComponentManager, get_component_manager
 from contaxy.schema import AccessLevel, CoreOperations, Project, ProjectInput, User
-from contaxy.schema.auth import USER_ID_PARAM, TokenPurpose, TokenType
+from contaxy.schema.auth import USER_ID_PARAM
 from contaxy.schema.exceptions import (
     AUTH_ERROR_RESPONSES,
     CREATE_RESOURCE_RESPONSES,
@@ -20,7 +16,7 @@ from contaxy.schema.exceptions import (
 )
 from contaxy.schema.project import PROJECT_ID_PARAM, ProjectCreation
 from contaxy.schema.shared import MAX_DISPLAY_NAME_LENGTH, MIN_DISPLAY_NAME_LENGTH
-from contaxy.utils import auth_utils
+from contaxy.utils.auth_utils import get_api_token
 
 router = APIRouter(
     tags=["projects"],
@@ -271,9 +267,6 @@ def get_project_token(
         description="Access level of the token.",
         type="string",
     ),
-    description: Optional[str] = Query(
-        None, description="Attach a short description to the generated token."
-    ),
     component_manager: ComponentManager = Depends(get_component_manager),
     token: str = Depends(get_api_token),
 ) -> Any:
@@ -287,18 +280,10 @@ def get_project_token(
     if access_level_to_check not in [AccessLevel.ADMIN, AccessLevel.WRITE]:
         # WRITE Access minimum should be the minimum to create tokens
         access_level_to_check = AccessLevel.WRITE
-
-    authorized_access = component_manager.verify_access(
+    component_manager.verify_access(
         token, f"projects/{project_id}", access_level_to_check
     )
 
-    project_permission = auth_utils.construct_permission(
-        f"projects/{project_id}", access_level
-    )
-    return component_manager.get_auth_manager().create_token(
-        scopes=[project_permission],
-        token_type=TokenType.API_TOKEN,
-        token_subject=authorized_access.authorized_subject,
-        token_purpose=TokenPurpose.PROJECT_API_TOKEN,
-        description=description,
+    return component_manager.get_project_manager().get_project_token(
+        project_id, access_level
     )

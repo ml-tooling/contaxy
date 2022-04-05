@@ -164,6 +164,7 @@ class FileOperationsTests(ABC):
         )
         assert version_1.md5_hash == file_stream.hash
         assert version_1.key == file_key
+        assert version_1.latest_version is True
 
         # Test - File exists
         file_stream = self.seeder.create_file_stream()
@@ -172,6 +173,12 @@ class FileOperationsTests(ABC):
         )
         assert version_1.version != version_2.version
         assert version_2.md5_hash == file_stream.hash
+        assert version_2.latest_version is True
+
+        version_1 = self.file_manager.get_file_metadata(
+            self.project_id, file_key, version=version_1.version
+        )
+        assert version_1.latest_version is False
 
     def test_download_file(self) -> None:
         file_key = "test-download-file.bin"
@@ -467,7 +474,6 @@ class TestMinioFileManagerViaRemoteEndpoints(FileOperationsTests):
     @pytest.fixture(autouse=True)
     def _init_managers(self, remote_client: requests.Session) -> Generator:
         self._endpoint_client = remote_client
-        system_manager = SystemClient(self._endpoint_client)
         self._json_db = JsonDocumentClient(self._endpoint_client)
         self._auth_manager = AuthClient(self._endpoint_client)
         self._file_manager = FileClient(self._endpoint_client)
@@ -476,7 +482,6 @@ class TestMinioFileManagerViaRemoteEndpoints(FileOperationsTests):
         )
 
         self._project_id = f"{randint(1, 100000)}-file-manager-test"
-        system_manager.initialize_system()
 
         self.login_user(
             config.SYSTEM_ADMIN_USERNAME, config.SYSTEM_ADMIN_INITIAL_PASSWORD

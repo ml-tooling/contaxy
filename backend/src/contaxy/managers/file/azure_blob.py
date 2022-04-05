@@ -19,11 +19,7 @@ from contaxy.operations import FileOperations
 from contaxy.operations.components import ComponentOperations
 from contaxy.operations.json_db import JsonDocumentOperations
 from contaxy.schema import File, FileInput, ResourceAction
-from contaxy.schema.exceptions import (
-    ClientValueError,
-    ResourceNotFoundError,
-    ServerBaseError,
-)
+from contaxy.schema.exceptions import ResourceNotFoundError, ServerBaseError
 from contaxy.schema.file import FileStream
 from contaxy.schema.json_db import JsonDocument
 from contaxy.utils.file_utils import generate_file_id
@@ -53,7 +49,7 @@ def create_azure_blob_client(settings: Settings) -> BlobServiceClient:
             f"Could not connect to Azure object storage ({settings.AZURE_BLOB_CONNECTION_STRING})."
         )
         raise ServerBaseError(
-            "Could not connect to object storage. Check S3 endpoint configuration."
+            "Could not connect to object storage. Check Azure object storage endpoint configuration."
         )
     return client
 
@@ -207,11 +203,6 @@ class AzureBlobFileManager(FileOperations):
             f"update_file_metadata (`project_id`: {project_id}, `file_key`: {file_key}, `version`: {version})"
         )
 
-        if file.key != file_key:
-            raise ClientValueError(
-                f"File keys do not match (file_key: {file_key}, file.key {file.key})"
-            )
-
         azure_blob_client: BlobClient = self.client.get_blob_client(
             get_container_name(
                 project_id, self._global_state.settings.SYSTEM_NAMESPACE
@@ -285,7 +276,9 @@ class AzureBlobFileManager(FileOperations):
         try:
             blob_client = container_client.upload_blob(
                 file_key,
-                file_stream,
+                # Filestream class has read method which is the only requirement for upload blob
+                # Therefore the type mismatch can be ignored
+                file_stream,  # type: ignore
                 content_settings=ContentSettings(
                     content_type=content_type,
                 ),
@@ -486,7 +479,7 @@ class AzureBlobFileManager(FileOperations):
             "file_extension": file_extension,
             "file_size": blob.size,
             "etag": blob.etag,
-            "latest_version": blob.is_current_version,
+            "latest_version": blob.is_current_version or False,
             "version": blob.version_id,
             "content_type": blob.content_settings.content_type,
         }
@@ -533,7 +526,7 @@ class AzureBlobFileManager(FileOperations):
             file_versions.update({file.key: versions + [str(file.version)]})
 
         for file in file_data:
-            file.available_versions = file_versions.get(file.key)
+            file.available_versions = file_versions.get(file.key, [])
 
         return file_data, db_keys
 

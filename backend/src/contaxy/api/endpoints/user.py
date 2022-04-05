@@ -1,16 +1,11 @@
-from typing import Any, List, Optional
+from typing import Any, List
 
 from fastapi import APIRouter, Depends, Query, Response, status
 from fastapi.param_functions import Body
 
-from contaxy.api.dependencies import (
-    ComponentManager,
-    get_api_token,
-    get_component_manager,
-    get_optional_api_token,
-)
+from contaxy.api.dependencies import ComponentManager, get_component_manager
 from contaxy.schema import CoreOperations, User, UserInput, UserRegistration
-from contaxy.schema.auth import USER_ID_PARAM, AccessLevel, TokenPurpose, TokenType
+from contaxy.schema.auth import USER_ID_PARAM, AccessLevel
 from contaxy.schema.exceptions import (
     AUTH_ERROR_RESPONSES,
     CREATE_RESOURCE_RESPONSES,
@@ -22,6 +17,7 @@ from contaxy.schema.exceptions import (
 )
 from contaxy.schema.system import SystemState
 from contaxy.utils import auth_utils, id_utils
+from contaxy.utils.auth_utils import get_api_token, get_optional_api_token
 
 router = APIRouter(
     tags=["users"],
@@ -116,12 +112,13 @@ def get_my_user(
     component_manager.verify_access(
         token, authorized_access.authorized_subject, AccessLevel.READ
     )
-
-    return component_manager.get_auth_manager().get_user(
-        id_utils.extract_user_id_from_resource_name(
-            authorized_access.authorized_subject
-        )
+    user_id = id_utils.extract_user_id_from_resource_name(
+        authorized_access.authorized_subject
     )
+    # Update the last activity time of the user only in this endpoint as it is always called when the UI is loaded
+    component_manager.get_auth_manager().update_user_last_activity_time(user_id)
+
+    return component_manager.get_auth_manager().get_user(user_id)
 
 
 @router.get(
@@ -238,30 +235,19 @@ def get_user_token(
         description="Access level of the token.",
         type="string",
     ),
-    description: Optional[str] = Query(
-        None, description="Attach a short description to the generated token."
-    ),
     component_manager: ComponentManager = Depends(get_component_manager),
     token: str = Depends(get_api_token),
 ) -> Any:
-    """Returns an API token with permission to access all resources accesible by the given user.
+    """Returns an API token with permission to access all resources accessible by the given user.
 
     The `read` access level allows read-only access on all resources.
     The `write` access level allows to create and delete user resources.
     The `admin` access level allows additional user actions such as deletion of the user itself.
     """
-    # Only allow creating tokens if user has admin access to the user object
-    authorized_access = component_manager.verify_access(
-        token, f"users/{user_id}", AccessLevel.ADMIN
-    )
-
-    # Provide access to all resources from the user
-    user_token_scope = auth_utils.construct_permission("*", access_level)
-
-    return component_manager.get_auth_manager().create_token(
-        scopes=[user_token_scope],
-        token_type=TokenType.API_TOKEN,
-        token_subject=authorized_access.authorized_subject,
-        token_purpose=TokenPurpose.USER_API_TOKEN,
-        description=description,
-    )
+    # Only allow creating tokens if user has requested access to the user object
+    access_level_to_check = access_level
+    if access_level_to_check not in [AccessLevel.ADMIN, AccessLevel.WRITE]:
+        # WRITE Access minimum should be the minimum to create tokens
+        access_level_to_check = AccessLevel.WRITE
+    component_manager.verify_access(token, f"users/{user_id}", access_level_to_check)
+    return component_manager.get_auth_manager().get_user_token(user_id, access_level)

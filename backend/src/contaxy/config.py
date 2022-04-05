@@ -1,4 +1,5 @@
 import os
+from datetime import timedelta
 from enum import Enum
 from typing import List, Optional, Union
 
@@ -51,6 +52,7 @@ class Settings(BaseSettings):
     DEPLOYMENT_MANAGER: DeploymentManager = DeploymentManager.DOCKER
     KUBERNETES_NAMESPACE: Optional[str] = None
     HOST_DATA_ROOT_PATH: Optional[str] = None
+    SERVICE_IDLE_CHECK_INTERVAL: timedelta = timedelta(minutes=20)
 
     # Ensure host data root path ends with a slash
     @validator("HOST_DATA_ROOT_PATH")
@@ -130,7 +132,7 @@ class Settings(BaseSettings):
         return cors_origins
 
     # TODO: Finalize
-    DEBUG: bool = True
+    DEBUG: bool = False
     DEBUG_DEACTIVATE_VERIFICATION: bool = False
 
     def get_redirect_uri(self, omit_host: bool = False) -> str:

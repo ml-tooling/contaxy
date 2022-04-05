@@ -3,11 +3,7 @@ from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, Path, Query, Response, status
 
-from contaxy.api.dependencies import (
-    ComponentManager,
-    get_api_token,
-    get_component_manager,
-)
+from contaxy.api.dependencies import ComponentManager, get_component_manager
 from contaxy.schema import CoreOperations, JsonDocument
 from contaxy.schema.auth import AccessLevel
 from contaxy.schema.exceptions import (
@@ -18,6 +14,7 @@ from contaxy.schema.exceptions import (
     VALIDATION_ERROR_RESPONSE,
 )
 from contaxy.schema.project import PROJECT_ID_PARAM
+from contaxy.utils.auth_utils import get_api_token
 
 router = APIRouter(
     tags=["json"], responses={**AUTH_ERROR_RESPONSES, **VALIDATION_ERROR_RESPONSE}

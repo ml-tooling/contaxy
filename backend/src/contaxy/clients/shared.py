@@ -53,7 +53,10 @@ def handle_errors(response: Response) -> None:
     # if response.status_code == status.HTTP_409_CONFLICT:
     #    raise ResourceUpdateFailedError(message)
 
-    if response.status_code == status.HTTP_400_BAD_REQUEST:
+    if response.status_code in [
+        status.HTTP_400_BAD_REQUEST,
+        status.HTTP_422_UNPROCESSABLE_ENTITY,
+    ]:
         raise ClientValueError(message)
 
     # If different error, raise generic http exception

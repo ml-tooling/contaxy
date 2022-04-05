@@ -71,7 +71,7 @@ class FileClient(FileOperations):
         response = self._client.patch(
             f"/projects/{project_id}/files/{file_key}",
             params=query_params,
-            json=file.dict(exclude_unset=True),
+            data=file.json(exclude_unset=True),
             **request_kwargs,
         )
         handle_errors(response)

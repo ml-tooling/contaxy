@@ -2,11 +2,7 @@ from typing import Any, List, Optional
 
 from fastapi import APIRouter, Depends, Path, Query, status
 
-from contaxy.api.dependencies import (
-    ComponentManager,
-    get_api_token,
-    get_component_manager,
-)
+from contaxy.api.dependencies import ComponentManager, get_component_manager
 from contaxy.schema import CoreOperations, Extension, ExtensionInput
 from contaxy.schema.auth import AccessLevel
 from contaxy.schema.exceptions import (
@@ -17,6 +13,7 @@ from contaxy.schema.exceptions import (
 )
 from contaxy.schema.extension import GLOBAL_EXTENSION_PROJECT
 from contaxy.schema.project import PROJECT_ID_PARAM
+from contaxy.utils.auth_utils import get_api_token
 
 router = APIRouter(
     tags=["extensions"],

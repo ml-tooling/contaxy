@@ -48,3 +48,21 @@ class ProjectOperations(ABC):
     @abstractmethod
     def remove_project_member(self, project_id: str, user_id: str) -> List[User]:
         pass
+
+    @abstractmethod
+    def get_project_token(
+        self, project_id: str, access_level: AccessLevel = AccessLevel.WRITE
+    ) -> str:
+        """Create project token with permission to access all resources of the project.
+
+        If a token for the specified project and access level already exists in the DB, it is returned instead of creating
+        a new project token.
+
+        Args:
+            project_id: Id of the user for which the token should be created
+            access_level: The access level of the user token (defaults to "write")
+
+        Returns:
+            User token for specified user id and access level.
+        """
+        pass

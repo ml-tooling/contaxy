@@ -94,3 +94,19 @@ class ProjectClient(ProjectOperations):
         )
         handle_errors(resource)
         return parse_raw_as(List[User], resource.text)
+
+    def get_project_token(
+        self,
+        project_id: str,
+        access_level: AccessLevel = AccessLevel.WRITE,
+        request_kwargs: Dict = {},
+    ) -> str:
+        if len(project_id) == 0:
+            raise ValueError("Parameter project_id must not be empty!")
+        response = self._client.get(
+            f"/projects/{project_id}/token",
+            params={"access_level": access_level.value},
+            **request_kwargs,
+        )
+        handle_errors(response)
+        return response.json()

@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Any, List, Literal, Optional
 
 import docker
-from loguru import logger
+import docker.errors
 
 from contaxy.managers.deployment.docker_utils import (
     create_container_config,
@@ -17,44 +17,22 @@ from contaxy.managers.deployment.docker_utils import (
     reconnect_to_all_networks,
     wait_for_container,
 )
-from contaxy.managers.deployment.utils import Labels, split_image_name_and_tag
-from contaxy.operations import AuthOperations, DeploymentOperations, SystemOperations
-from contaxy.operations.components import ComponentOperations
 from contaxy.schema import Job, JobInput, ResourceAction, Service, ServiceInput
 from contaxy.schema.deployment import DeploymentType, ServiceUpdate
-from contaxy.schema.exceptions import ClientBaseError, ClientValueError
-from contaxy.utils.auth_utils import parse_userid_from_resource_name
+from contaxy.schema.exceptions import ServerBaseError
 
 
-class DockerDeploymentManager(DeploymentOperations):
+class DockerDeploymentPlatform:
     _is_initialized = False
 
-    def __init__(
-        self,
-        component_manager: ComponentOperations,
-    ):
-        """Initializes the docker deployment manager.
-
-        Args:
-            component_manager: Instance of the component manager that grants access to the other managers.
-        """
-        self._global_state = component_manager.global_state
-        self._request_state = component_manager.request_state
-        self._component_manager = component_manager
+    def __init__(self) -> None:
+        """Initializes the docker deployment manager."""
 
         self.client = docker.from_env()
         # Reconnect the backend to all existing docker networks on startup
-        if not DockerDeploymentManager._is_initialized:
+        if not DockerDeploymentPlatform._is_initialized:
             reconnect_to_all_networks(self.client)
-            DockerDeploymentManager._is_initialized = True
-
-    @property
-    def _system_manager(self) -> SystemOperations:
-        return self._component_manager.get_system_manager()
-
-    @property
-    def _auth_manager(self) -> AuthOperations:
-        return self._component_manager.get_auth_manager()
+            DockerDeploymentPlatform._is_initialized = True
 
     def list_services(
         self,
@@ -77,24 +55,14 @@ class DockerDeploymentManager(DeploymentOperations):
     def deploy_service(
         self,
         project_id: str,
-        service: ServiceInput,
+        service: Service,
         action_id: Optional[str] = None,
-        deployment_type: Literal[
-            DeploymentType.SERVICE, DeploymentType.EXTENSION
-        ] = DeploymentType.SERVICE,
         wait: bool = False,
     ) -> Service:
-        image_name, image_tag = split_image_name_and_tag(service.container_image)
-        self._system_manager.check_allowed_image(image_name, image_tag)
         container_config = create_container_config(
-            service=service,
+            deployment=service,
             project_id=project_id,
-            auth_manager=self._auth_manager,
-            user_id=parse_userid_from_resource_name(
-                self._request_state.authorized_subject
-            ),
         )
-        container_config["labels"][Labels.DEPLOYMENT_TYPE.value] = deployment_type.value
         handle_network(client=self.client, project_id=project_id)
 
         try:
@@ -102,10 +70,9 @@ class DockerDeploymentManager(DeploymentOperations):
             if wait:
                 container = wait_for_container(container, self.client)
         except docker.errors.APIError as e:
-            logger.error(f"Error in deploy service '{service.display_name}': {e}")
-            raise ClientValueError(
+            raise ServerBaseError(
                 f"Could not deploy service '{service.display_name}'."
-            )
+            ) from e
 
         return map_service(container)
 
@@ -136,7 +103,9 @@ class DockerDeploymentManager(DeploymentOperations):
         container = get_project_container(
             self.client, project_id=project_id, deployment_id=service_id
         )
-        delete_container(container=container, delete_volumes=delete_volumes)
+        delete_container(
+            client=self.client, container=container, delete_volumes=delete_volumes
+        )
 
     def delete_services(
         self,
@@ -168,33 +137,22 @@ class DockerDeploymentManager(DeploymentOperations):
     def deploy_job(
         self,
         project_id: str,
-        job: JobInput,
+        job: Job,
         action_id: Optional[str] = None,
         wait: bool = False,
     ) -> Job:
-        image_name, image_tag = split_image_name_and_tag(job.container_image)
-        self._system_manager.check_allowed_image(image_name, image_tag)
         container_config = create_container_config(
-            service=job,
+            deployment=job,
             project_id=project_id,
-            auth_manager=self._auth_manager,
-            user_id=parse_userid_from_resource_name(
-                self._request_state.authorized_subject
-            ),
         )
-        container_config["labels"][
-            Labels.DEPLOYMENT_TYPE.value
-        ] = DeploymentType.JOB.value
         handle_network(client=self.client, project_id=project_id)
 
         try:
             container = self.client.containers.run(**container_config)
             if wait:
                 container = wait_for_container(container, self.client)
-        except docker.errors.APIError:
-            raise ClientBaseError(
-                status_code=500, message=f"Could not deploy job '{job.display_name}'."
-            )
+        except docker.errors.APIError as e:
+            raise ServerBaseError("Could not deploy job '{job.display_name}'.") from e
 
         response_service = map_job(container)
         return response_service
@@ -223,7 +181,7 @@ class DockerDeploymentManager(DeploymentOperations):
             deployment_id=job_id,
             deployment_type=DeploymentType.JOB,
         )
-        delete_container(container=container)
+        delete_container(client=self.client, container=container)
 
     def delete_jobs(
         self,

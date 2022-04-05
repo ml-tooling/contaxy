@@ -1,7 +1,8 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
-from typing import List, Optional
+from typing import Dict, List, Optional
 
+import pydantic
 from fastapi import HTTPException, Path, status
 from pydantic import BaseModel, EmailStr, Field
 
@@ -20,6 +21,7 @@ class AccessLevel(str, Enum):
     READ = "read"  # Viewer, view: Allows admin access , Can only view existing resources. Permissions for read-only actions that do not affect state, such as viewing (but not modifying) existing resources or data.
     WRITE = "write"  # Editor, edit, Contributor : Allows read/write access , Can create and manage all types of resources but can’t grant access to others.  All viewer permissions, plus permissions for actions that modify state, such as changing existing resources.
     ADMIN = "admin"  # Owner : Allows read-only access. Has full access to all resources including the right to edit IAM, invite users, edit roles. All editor permissions and permissions for the following actions
+
     # UNKNOWN = "unknown"  # Deny?
 
     @classmethod
@@ -38,6 +40,9 @@ class TokenPurpose(str, Enum):
     LOGIN_TOKEN = "login-token"
     REFRESH_TOKEN = "refresh-token"  # For user sessions
     # DEPLOYMENT_TOKEN = "deployment-token"
+
+
+contaxy_token_purposes = {purpose for purpose in TokenPurpose}
 
 
 class TokenType(str, Enum):
@@ -89,9 +94,9 @@ class ApiToken(AccessToken):
         example="16fd2706-8baf-433b-82eb-8c7fada847da",
         description="ID of the user that created this token.",
     )
-    token_purpose: Optional[TokenPurpose] = Field(
+    token_purpose: Optional[str] = Field(
         None,
-        example=TokenPurpose.REFRESH_TOKEN,
+        example=TokenPurpose.LOGIN_TOKEN,
         description="The purpose of the token.",
     )
 
@@ -368,9 +373,8 @@ USER_ID_PARAM = Path(
     # TODO: add length restriction
 )
 
+
 # User Models
-
-
 class UserBase(BaseModel):
     username: Optional[str] = Field(
         None,
@@ -380,9 +384,9 @@ class UserBase(BaseModel):
     email: Optional[EmailStr] = Field(
         None, example="john.doe@example.com", description="User email address."
     )
-    disabled: Optional[bool] = Field(
+    disabled: bool = Field(
         False,
-        description="Indicates that user is disabled. Disabling a user will prevent any access to user-accesible resources.",
+        description="Indicates that user is disabled. Disabling a user will prevent any access to user-accessible resources.",
     )
 
 
@@ -402,18 +406,27 @@ class UserRegistration(UserInput):
 
 class User(UserBase):
     id: str = Field(
-        None,
+        ...,
         example="16fd2706-8baf-433b-82eb-8c7fada847da",
         description="Unique ID of the user.",
     )
-    technical_user: Optional[bool] = Field(
+    technical_user: bool = Field(
         False,
         description="Indicates if the user is a technical user created by the system.",
     )
-    created_at: Optional[datetime] = Field(
-        None,
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
         description="Timestamp of the user creation. Assigned by the server and read-only.",
     )
+    last_activity: datetime = Field(
+        None,  # If none the validator below will set last_activity to the create_at time
+        description="Last time the user accessed the system. Right now this is only updated when the user "
+        "calls the /users/me endpoint so that call should always be done when the user loads the UI.",
+    )
+
+    @pydantic.validator("last_activity", pre=True, always=True)
+    def default_last_activity(cls, v: datetime, *, values: Dict) -> datetime:
+        return v if v is not None else values["created_at"]
     has_password: bool = Field(
         True,
         description="Indicates if the user log in with password or SSO",

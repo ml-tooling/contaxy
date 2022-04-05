@@ -1,10 +1,33 @@
 """Collection of utilities for FastAPI apps."""
 
+import asyncio
 import inspect
-from typing import Any, Type
+from datetime import timedelta
+from typing import Any, Callable, Type
 
 from fastapi import FastAPI, Form
+from loguru import logger
 from pydantic import BaseModel
+from starlette.concurrency import run_in_threadpool
+
+
+def schedule_call(func: Callable, interval: timedelta) -> None:
+    """Schedule a function to be called in regular intervals.
+
+    Args:
+        func (Callable): The function to be called regularly
+        interval (timedelta): The amount of time to wait between function calls
+    """
+
+    async def loop() -> None:
+        while True:
+            await asyncio.sleep(interval.seconds)
+            try:
+                await run_in_threadpool(func)
+            except Exception:
+                logger.exception(f"Error while executing scheduled function {func}!")
+
+    asyncio.create_task(loop())
 
 
 def as_form(cls: Type[BaseModel]) -> Any:

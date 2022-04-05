@@ -3,11 +3,7 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, Path, Query, Request, Response, status
 from fastapi.responses import StreamingResponse
 
-from contaxy.api.dependencies import (
-    ComponentManager,
-    get_api_token,
-    get_component_manager,
-)
+from contaxy.api.dependencies import ComponentManager, get_component_manager
 from contaxy.managers.extension import parse_composite_id
 from contaxy.schema import ExtensibleOperations, File, FileInput, ResourceAction
 from contaxy.schema.auth import AccessLevel
@@ -23,6 +19,7 @@ from contaxy.schema.extension import EXTENSION_ID_PARAM
 from contaxy.schema.file import FILE_KEY_PARAM
 from contaxy.schema.project import PROJECT_ID_PARAM
 from contaxy.schema.shared import OPEN_URL_REDIRECT, RESOURCE_ID_REGEX
+from contaxy.utils.auth_utils import get_api_token
 from contaxy.utils.file_utils import FormMultipartStream, SyncFromAsyncGenerator
 
 router = APIRouter(

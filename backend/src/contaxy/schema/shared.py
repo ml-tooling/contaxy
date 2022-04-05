@@ -42,6 +42,10 @@ class CoreOperations(str, Enum):
     CREATE_TOKEN = "create_token"
     LOGOUT_USER_SESSION = "logout_user_session"
     LOGIN_USER_SESSION = "login_user_session"
+    LIST_RESOURCE_PERMISSIONS = "list_resource_permissions"
+    SET_RESOURCE_PERMISSIONS = "set_resource_permissions"
+    DELETE_RESOURCE_PERMISSIONS = "delete_resource_permissions"
+    GET_RESOURCES_WITH_PERMISSION = "get_resources_with_permission"
     # OAuth2 Endpoints
     AUTHORIZE_CLIENT = "authorize_client"
     REQUEST_TOKEN = "request_token"
@@ -197,8 +201,8 @@ class ResourceInput(BaseModel):
         max_length=MAX_DISPLAY_NAME_LENGTH,
         description="A user-defined human-readable name of the resource. The name can be up to 128 characters long and can consist of any UTF-8 character.",
     )
-    description: Optional[str] = Field(
-        None,
+    description: str = Field(
+        "",
         max_length=MAX_DESCRIPTION_LENGTH,
         description="A user-defined short description about the resource. Can consist of any UTF-8 character.",
     )
@@ -206,12 +210,12 @@ class ResourceInput(BaseModel):
         None,
         description="Identifier or image URL used for displaying this resource.",
     )
-    metadata: Optional[Dict[str, str]] = Field(
-        None,
+    metadata: Dict[str, str] = Field(
+        {},
         example={"additional-metadata": "value"},
         description="A collection of arbitrary key-value pairs associated with this resource that does not need predefined structure. Enable third-party integrations to decorate objects with additional metadata for their own use.",
     )
-    disabled: Optional[bool] = Field(
+    disabled: bool = Field(
         False,
         description="Allows to disable a resource without requiring deletion. A disabled resource is not shown and not accessible.",
     )
@@ -262,6 +266,14 @@ class ResourceAction(BaseModel):
         None,
         example=["new-tab"],
         description="A list of instructions for the frontend application.",
+    )
+
+
+class ResourceActionExecution(BaseModel):
+    parameters: Dict[str, str] = Field(
+        {},
+        description="Parameters that are passed to the resource action.",
+        example={"action-parameter": "parameter-value"},
     )
 
 

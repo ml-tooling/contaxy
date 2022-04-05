@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from enum import Enum
 from typing import Dict, List, Optional
 
@@ -27,6 +27,7 @@ class DeploymentType(str, Enum):
     SERVICE = "service"
     JOB = "job"
     EXTENSION = "extension"
+    UNKNOWN = "unknown"
 
 
 class DeploymentStatus(str, Enum):
@@ -59,13 +60,13 @@ class DeploymentStatus(str, Enum):
 
 
 class DeploymentCompute(BaseModel):
-    min_cpus: Optional[int] = Field(
+    min_cpus: Optional[float] = Field(
         None,
         example=2,
         ge=0,
         description="Minimum number of CPU cores required by this deployment. The system will make sure that atleast this amount is available to the deployment.",
     )
-    max_cpus: Optional[int] = Field(
+    max_cpus: Optional[float] = Field(
         None,
         example=4,
         ge=0,
@@ -115,15 +116,15 @@ class DeploymentCompute(BaseModel):
         description="Maximum container size in Megabyte. The deployment will be killed if it grows above this limit.",
     )
     # TODO: min_replicas
-    max_replicas: Optional[int] = Field(
+    max_replicas: int = Field(
         1,
         example=2,
         ge=1,
         description="Maximum number of deployment instances. The system will make sure to optimize the deployment based on the available resources and requests. Use 1 if the deployment is not scalable.",
     )
     # TODO: use timedelta
-    min_lifetime: Optional[int] = Field(
-        None,
+    min_lifetime: int = Field(
+        0,
         example=86400,
         description="Minimum guaranteed lifetime in seconds. Once the lifetime is reached, the system is allowed to kill the deployment in case it requires additional resources.",
     )
@@ -136,13 +137,13 @@ class DeploymentBase(BaseModel):
         max_length=2000,
         description="The container image used for this deployment.",
     )
-    parameters: Optional[Dict[str, str]] = Field(
-        None,
+    parameters: Dict[str, str] = Field(
+        {},
         example={"TEST_PARAM": "param-value"},
-        description="Parmeters (enviornment variables) for this deployment.",
+        description="Parameters (environment variables) for this deployment.",
     )
-    compute: Optional[DeploymentCompute] = Field(
-        None,
+    compute: DeploymentCompute = Field(
+        DeploymentCompute(),
         description="Compute instructions and limitations for this deployment.",
     )
     command: Optional[List[str]] = Field(
@@ -153,12 +154,12 @@ class DeploymentBase(BaseModel):
         None,
         description="Arguments to the command/entrypoint. This overwrites the existing docker CMD.",
     )
-    requirements: Optional[List[str]] = Field(
-        None,
+    requirements: List[str] = Field(
+        [],
         description="Additional requirements for deployment.",
     )
-    endpoints: Optional[List[str]] = Field(
-        None,
+    endpoints: List[str] = Field(
+        [],
         example=["8080", "9001/webapp/ui", "9002b"],
         description="A list of HTTP endpoints that can be accessed. This should always have an internal port and can include additional instructions, such as the URL path.",
     )
@@ -191,12 +192,12 @@ class Deployment(Resource, DeploymentBase):
         None,
         description="The extension ID in case the deployment is deployed via an extension.",
     )
-    deployment_type: Optional[DeploymentType] = Field(
-        None,
+    deployment_type: DeploymentType = Field(
+        DeploymentType.UNKNOWN,
         description="The type of this deployment.",
     )
-    status: Optional[DeploymentStatus] = Field(
-        None,
+    status: DeploymentStatus = Field(
+        DeploymentStatus.UNKNOWN,
         example=DeploymentStatus.RUNNING,
         description="The status of this deployment.",
     )
@@ -235,10 +236,24 @@ class ServiceBase(BaseModel):
         example="8080/healthz",
         description="The endpoint instruction that can be used for checking the deployment health.",
     )
+    idle_timeout: Optional[timedelta] = Field(
+        None,
+        description="Time after which the service is considered idling and will be stopped during the next idle check."
+        "If set to None, the service will never be considered idling."
+        "Can be specified as seconds or ISO 8601 time delta.",
+    )
+    clear_volume_on_stop: bool = Field(
+        False,
+        description="If set to true, any volume attached to the service be deleted when the service is stopped."
+        "This means all persisted data will be cleared on service stop.",
+    )
 
 
 class ServiceInput(ServiceBase, DeploymentInput):
-    pass
+    is_stopped: bool = Field(
+        False,
+        description="If set to true, the service will be created in the DB but not started. The service status will be 'stopped'.",
+    )
 
 
 class ServiceUpdate(ServiceInput):
@@ -250,13 +265,13 @@ class ServiceUpdate(ServiceInput):
         description="The container image used for this deployment.",
     )
     # Allow None for parameters and metadata values so they can be completely removed in an update request
-    parameters: Optional[Dict[str, Optional[str]]] = Field(  # type: ignore[assignment]
-        None,
+    parameters: Dict[str, Optional[str]] = Field(  # type: ignore[assignment]
+        {},
         example={"TEST_PARAM": "param-value"},
         description="Parmeters (enviornment variables) for this deployment.",
     )
-    metadata: Optional[Dict[str, Optional[str]]] = Field(  # type: ignore[assignment]
-        None,
+    metadata: Dict[str, Optional[str]] = Field(  # type: ignore[assignment]
+        {},
         example={"additional-metadata": "value"},
         description="A collection of arbitrary key-value pairs associated with this resource that does not need predefined structure. Enable third-party integrations to decorate objects with additional metadata for their own use.",
     )
@@ -287,3 +302,10 @@ class JobInput(JobBase, DeploymentInput):
 
 class Job(JobBase, Deployment):
     pass
+
+
+ACTION_DELIMITER = "-"
+ACTION_ACCESS = "access"
+ACTION_START = "start"
+ACTION_STOP = "stop"
+ACTION_RESTART = "restart"

@@ -6,11 +6,7 @@ from requests_oauthlib import OAuth2Session
 from starlette.responses import RedirectResponse, Response
 
 from contaxy import config
-from contaxy.api.dependencies import (
-    ComponentManager,
-    get_api_token,
-    get_component_manager,
-)
+from contaxy.api.dependencies import ComponentManager, get_component_manager
 from contaxy.managers.auth import AuthManager
 from contaxy.schema import (
     ApiToken,
@@ -21,15 +17,23 @@ from contaxy.schema import (
     OAuthTokenIntrospection,
     TokenType,
 )
-from contaxy.schema.auth import AccessLevel, OAuth2ErrorDetails, OAuth2TokenGrantTypes
+from contaxy.schema.auth import (
+    AccessLevel,
+    AuthorizedAccess,
+    OAuth2ErrorDetails,
+    OAuth2TokenGrantTypes,
+    contaxy_token_purposes,
+)
 from contaxy.schema.exceptions import (
     AUTH_ERROR_RESPONSES,
     VALIDATION_ERROR_RESPONSE,
     ClientBaseError,
+    ClientValueError,
     ServerBaseError,
 )
 from contaxy.schema.system import SystemState
 from contaxy.utils import auth_utils, id_utils
+from contaxy.utils.auth_utils import get_api_token
 
 OAUTH_CALLBACK_ROUTE = "auth/oauth/callback"
 
@@ -136,12 +140,13 @@ def login_user_session(
 )
 def logout_user_session(
     component_manager: ComponentManager = Depends(get_component_manager),
+    token: str = Depends(get_api_token),
 ) -> Any:
     """Removes all session token cookies and redirects to the login page.
 
     When making requests to the this endpoint, the browser should be redirected to this endpoint.
     """
-    # RedirectResponse("./login", status_code=307)
+    component_manager.verify_access(token)
     return component_manager.get_auth_manager().logout_session()
 
 
@@ -155,20 +160,111 @@ def logout_user_session(
     responses={**AUTH_ERROR_RESPONSES},
 )
 def list_api_tokens(
+    token_subject: Optional[str] = Query(
+        None,
+        title="Token Subject",
+        description="Subject for which the tokens should be listed."
+        "If it is not provided, the tokens of the authorized user are returned.",
+    ),
     component_manager: ComponentManager = Depends(get_component_manager),
     token: str = Depends(get_api_token),
 ) -> Any:
     """Returns list of created API tokens associated with the authenticated user."""
-    authorized_access = component_manager.verify_access(token)
+    if token_subject is None:
+        authorized_access = component_manager.verify_access(token)
+        token_subject = authorized_access.authorized_subject
+
     # Check if the caller has admin access on the user resource
     component_manager.verify_access(
         token,
-        authorized_access.authorized_subject,
+        token_subject,
         AccessLevel.ADMIN,
     )
 
-    return component_manager.get_auth_manager().list_api_tokens(
-        authorized_access.authorized_subject
+    return component_manager.get_auth_manager().list_api_tokens(token_subject)
+
+
+@router.get(
+    "/auth/permissions",
+    summary="Lists permissions for given resource.",
+    operation_id=CoreOperations.LIST_RESOURCE_PERMISSIONS.value,
+    status_code=status.HTTP_200_OK,
+    response_model=List[str],
+)
+def list_resource_permissions(
+    resource_name: str,
+    resolve_roles: bool = True,
+    use_cache: bool = True,
+    token: str = Depends(get_api_token),
+    component_manager: ComponentManager = Depends(get_component_manager),
+) -> Any:
+    """Lists the permissions for a given resource, admin access for that resource is required."""
+    component_manager.verify_access(token, resource_name, AccessLevel.ADMIN)
+
+    return component_manager.get_auth_manager().list_permissions(
+        resource_name, resolve_roles, use_cache
+    )
+
+
+@router.post(
+    "/auth/permissions",
+    summary="Add permission to specified resource.",
+    operation_id=CoreOperations.SET_RESOURCE_PERMISSIONS.value,
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def add_resource_permission(
+    resource_name: str,
+    permission: str,
+    token: str = Depends(get_api_token),
+    component_manager: ComponentManager = Depends(get_component_manager),
+) -> Any:
+    """Adds permission to specified resource, admin access to the /auth/permissions resource is required."""
+    component_manager.verify_access(token, "/auth/permissions", AccessLevel.ADMIN)
+
+    component_manager.get_auth_manager().add_permission(resource_name, permission)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.delete(
+    "/auth/permissions",
+    summary="Deletes permission of specified resource.",
+    operation_id=CoreOperations.DELETE_RESOURCE_PERMISSIONS.value,
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def delete_resource_permissions(
+    resource_name: str,
+    permission: str,
+    remove_sub_permissions: bool = False,
+    token: str = Depends(get_api_token),
+    component_manager: ComponentManager = Depends(get_component_manager),
+) -> Any:
+    """Deletes permission of specified resource, admin access to the /auth/permissions resource is required."""
+    component_manager.verify_access(token, "/auth/permissions", AccessLevel.ADMIN)
+
+    component_manager.get_auth_manager().remove_permission(
+        resource_name, permission, remove_sub_permissions
+    )
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.get(
+    "/auth/resources",
+    summary="List all resources that have a certain permission.",
+    operation_id=CoreOperations.GET_RESOURCES_WITH_PERMISSION.value,
+    status_code=status.HTTP_200_OK,
+    response_model=List[str],
+)
+def list_resources_with_permission(
+    permission: str,
+    resource_name_prefix: Optional[str] = None,
+    token: str = Depends(get_api_token),
+    component_manager: ComponentManager = Depends(get_component_manager),
+) -> Any:
+    """List all resources that have a certain permission, admin access to the /auth/resources resource is required."""
+    component_manager.verify_access(token, "/auth/resources", AccessLevel.ADMIN)
+
+    return component_manager.get_auth_manager().list_resources_with_permission(
+        permission, resource_name_prefix
     )
 
 
@@ -195,6 +291,10 @@ def create_token(
     description: Optional[str] = Query(
         None, description="Attach a short description to the generated token."
     ),
+    token_purpose: Optional[str] = Query(
+        "custom-token-purpose",
+        description="Purpose of this token.",
+    ),
     component_manager: ComponentManager = Depends(get_component_manager),
     token: str = Depends(get_api_token),
 ) -> Any:
@@ -213,6 +313,12 @@ def create_token(
     """
     authorized_access = component_manager.verify_access(token)
 
+    if token_purpose is not None:
+        if token_purpose in contaxy_token_purposes:
+            raise ClientValueError(
+                f"Cannot generate token with purpose {token_purpose} as it is a reserved token purpose."
+            )
+
     if not scopes:
         # Get scopes from token
         scopes = []
@@ -227,19 +333,27 @@ def create_token(
         resource_name, access_level = auth_utils.parse_permission(scope)
         component_manager.verify_access(token, resource_name, access_level)
 
+    # Update user last activity time when new token is requested. This updates the time on logon and also on session token refresh.
+    user_id = id_utils.extract_user_id_from_resource_name(
+        authorized_access.authorized_subject
+    )
+    component_manager.get_auth_manager().update_user_last_activity_time(user_id=user_id)
+
     return component_manager.get_auth_manager().create_token(
         token_subject=authorized_access.authorized_subject,
         scopes=scopes,
         token_type=token_type,
         description=description,
+        token_purpose=token_purpose,
     )
 
 
 @router.post(
     "/auth/tokens/verify",
     operation_id=CoreOperations.VERIFY_ACCESS.value,
+    response_model=AuthorizedAccess,
     summary="Verify a Session or API Token.",
-    status_code=status.HTTP_204_NO_CONTENT,
+    status_code=status.HTTP_200_OK,
     responses={**AUTH_ERROR_RESPONSES},
 )
 def verify_access(
@@ -253,6 +367,11 @@ def verify_access(
         title="Resource Type ",
         description="The token is checked if it is granted this permission. If none specified, only the existence or validity of the token itself is checked.",
     ),
+    use_cache: bool = Query(
+        True,
+        title="Use Cache",
+        description="If false, no cache will be used for verifying the token.",
+    ),
     component_manager: ComponentManager = Depends(get_component_manager),
     token: str = Depends(get_api_token),
 ) -> Any:
@@ -263,15 +382,15 @@ def verify_access(
     if token_in_body:
         # Prefer token from request body
         token = token_in_body
-    component_manager.get_auth_manager().verify_access(token, permission)
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
+    return component_manager.get_auth_manager().verify_access(
+        token, permission, use_cache
+    )
 
 
 # OAuth Endpoints
 def _add_cookies_to_response(
     auth_manager: AuthManager, response: Response, token: OAuthToken
 ) -> Response:
-
     # TODO: Set cookie and path or other configurations
     token_info = auth_manager.introspect_token(token.access_token)
     response.set_cookie(
@@ -459,7 +578,8 @@ def login_callback(
         os.path.join(
             schema,
             config.settings.get_redirect_uri(),
-            f"{config.settings.CONTAXY_WEBAPP_PATH}/",  # TODO remove when nginx routing is possible without trailing slash
+            f"{config.settings.CONTAXY_WEBAPP_PATH}/",
+            # TODO remove when nginx routing is possible without trailing slash
         ),
         status_code=status.HTTP_303_SEE_OTHER,
     )

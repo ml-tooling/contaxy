@@ -9,9 +9,10 @@ Collection of utilities usable across all modules.
 ---------------
 - **fastapi_utils**
 - **file_utils**
+- **state_utils**
 - **auth_utils**
 - **id_utils**
-- **state_utils**
+- **utils**
 - **minio_utils**
 - **postgres_utils**
 

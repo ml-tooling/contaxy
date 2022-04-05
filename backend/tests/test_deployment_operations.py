@@ -1,9 +1,10 @@
 import time
 from abc import ABC, abstractmethod
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from random import randint
 from typing import Generator, Tuple
 
+import docker.errors
 import pytest
 import requests
 from fastapi.testclient import TestClient
@@ -12,19 +13,19 @@ from kubernetes.client.models import V1Namespace
 from kubernetes.client.rest import ApiException
 
 from contaxy import config
-from contaxy.clients import AuthClient, DeploymentManagerClient, SystemClient
+from contaxy.clients import AuthClient, DeploymentClient, SystemClient
 from contaxy.managers.auth import AuthManager
-from contaxy.managers.deployment.docker import DockerDeploymentManager
+from contaxy.managers.deployment.docker import DockerDeploymentPlatform
 from contaxy.managers.deployment.docker_utils import (
     get_network_name,
     get_this_container,
 )
-from contaxy.managers.deployment.kubernetes import KubernetesDeploymentManager
-from contaxy.managers.deployment.manager import DeploymentManagerWithDB
+from contaxy.managers.deployment.kubernetes import KubernetesDeploymentPlatform
+from contaxy.managers.deployment.manager import DeploymentManager
 from contaxy.managers.deployment.utils import (
     _ENV_VARIABLE_CONTAXY_SERVICE_URL,
     Labels,
-    get_deployment_id,
+    get_volume_name,
 )
 from contaxy.managers.json_db.inmemory_dict import InMemoryDictJsonDocumentManager
 from contaxy.managers.system import SystemManager
@@ -59,17 +60,12 @@ TYPE_DOCKER = "docker"
 TYPE_KUBERNETES = "kubernetes"
 
 
-def get_random_resources() -> Tuple[int, str, str, str]:
+def get_random_resources() -> Tuple[int, str, str]:
     uid = randint(1, 100000)
     project_id = f"{uid}-dm-test-project"
     service_display_name = f"{uid}-dm-test-service"
-    service_id = get_deployment_id(
-        project_id=project_id,
-        deployment_name=service_display_name,
-        deployment_type=DeploymentType.SERVICE,
-    )
 
-    return uid, project_id, service_display_name, service_id
+    return uid, project_id, service_display_name
 
 
 def create_test_service_input(display_name: str) -> ServiceInput:
@@ -127,13 +123,22 @@ class DeploymentOperationsTests(ABC):
     def service_display_name(self) -> str:
         pass
 
-    @abstractmethod
-    def deploy_service(self, project_id: str, service: ServiceInput) -> Service:
-        pass
+    @pytest.fixture(autouse=True)
+    def reset_deployed_services(self):
+        self._deployed_services = []
 
-    @abstractmethod
+    def deploy_service(self, project_id: str, service: ServiceInput) -> Service:
+        service = self.deployment_manager.deploy_service(
+            project_id=project_id, service_input=service, wait=True
+        )
+        self._deployed_services.append(service.id)
+        return service
+
     def deploy_job(self, project_id: str, job: JobInput) -> Job:
-        pass
+        deployed_job = self.deployment_manager.deploy_job(
+            project_id=project_id, job_input=job, wait=True
+        )
+        return deployed_job
 
     def test_deploy_service(self) -> None:
         test_service_input = create_test_service_input(
@@ -162,6 +167,8 @@ class DeploymentOperationsTests(ABC):
             parameters={"FOO": "updated", "BASE_URL": None},
             metadata={"some-metadata": None},
             description="Updated service",
+            idle_timeout=9000,
+            clear_volume_on_stop=True,
         )
         service = self.deployment_manager.update_service(
             project_id=self.project_id,
@@ -175,6 +182,8 @@ class DeploymentOperationsTests(ABC):
         assert service.parameters.get("FOO2", "") == "bar2"
         assert "BASE_URL" not in service.parameters
         assert "some-metadata" not in service.metadata
+        assert service.idle_timeout == timedelta(seconds=9000)
+        assert service.clear_volume_on_stop is True
 
     def test_invalid_update_service(self) -> None:
         test_service_input = create_test_service_input(
@@ -213,7 +222,7 @@ class DeploymentOperationsTests(ABC):
             service_id=service.id,
         )
         assert service.last_access_time <= datetime.now(timezone.utc)
-        assert service.last_access_user == ""
+        assert service.last_access_user is not None
         # TODO: Test with authenticated user which should be set in last_access_user
 
         self.deployment_manager.update_service_access(
@@ -226,13 +235,19 @@ class DeploymentOperationsTests(ABC):
         )
         assert service.last_access_time <= service_updated.last_access_time
 
-    def test_cannot_deploy_disallowed_image(self) -> None:
+    @pytest.fixture
+    def add_allowed_image(self) -> Generator:
         self.system_manager.add_allowed_image(
             AllowedImageInfo(
                 image_name="allowed-image",
                 image_tags=["0.1"],
             )
         )
+        yield
+        self.system_manager.delete_allowed_image("allowed-image")
+
+    @pytest.mark.usefixtures("add_allowed_image")
+    def test_cannot_deploy_disallowed_image(self) -> None:
         with pytest.raises(ClientValueError):
             self.deploy_service(
                 project_id=self.project_id,
@@ -580,11 +595,9 @@ class TestDockerDeploymentManager(DeploymentOperationsTests):
         self._system_manager = SystemManager(component_manager_mock)
         component_manager_mock.system_manager = self._system_manager
 
-        self._docker_deployment_manager = DockerDeploymentManager(
-            component_manager_mock
-        )
-        self._deployment_manager = DeploymentManagerWithDB(
-            self._docker_deployment_manager, component_manager_mock
+        self._docker_deployment_platform = DockerDeploymentPlatform()
+        self._deployment_manager = DeploymentManager(
+            self._docker_deployment_platform, component_manager_mock
         )
         component_manager_mock.deployment_manager = self._deployment_manager
 
@@ -592,39 +605,40 @@ class TestDockerDeploymentManager(DeploymentOperationsTests):
             _,
             self._project_id,
             self._service_display_name,
-            self._service_id,
         ) = get_random_resources()
 
         yield
 
-        try:
-            self._deployment_manager.delete_service(
-                project_id=self._project_id,
-                service_id=self._service_id,
-                delete_volumes=True,
-            )
-        except (ResourceNotFoundError, ClientBaseError):
-            # service not found
-            return
-
-        # Wait until container is deleted
-        while True:
+        for service_id in self._deployed_services:
             try:
-                container = self._docker_deployment_manager.client.containers.get(
-                    self._service_id
+                self._deployment_manager.delete_service(
+                    project_id=self._project_id,
+                    service_id=service_id,
+                    delete_volumes=True,
                 )
-                container.remove(force=True)
-                time.sleep(5)
-            except Exception:
-                break
+                # Wait until container is deleted
+                while True:
+                    try:
+                        container = (
+                            self._docker_deployment_platform.client.containers.get(
+                                service_id
+                            )
+                        )
+                        container.remove(force=True)
+                        time.sleep(5)
+                    except Exception:
+                        break
+            except (ResourceNotFoundError, ClientBaseError):
+                # service not found
+                return
 
         try:
-            network = self._docker_deployment_manager.client.networks.get(
+            network = self._docker_deployment_platform.client.networks.get(
                 get_network_name(project_id=self._project_id)
             )
             # only relevant for when the code runs within a container (as then the DockerDeploymentManager behaves slightly different)
             host_container = get_this_container(
-                client=self._docker_deployment_manager.client
+                client=self._docker_deployment_platform.client
             )
             if host_container:
                 network.disconnect()
@@ -648,18 +662,22 @@ class TestDockerDeploymentManager(DeploymentOperationsTests):
     def service_display_name(self) -> str:
         return self._service_display_name
 
-    def deploy_service(self, project_id: str, service: ServiceInput) -> Service:
-        deployed_service = self._deployment_manager.deploy_service(
-            project_id=project_id, service=service, wait=True
+    def test_volume_deletion(self):
+        test_service_input = create_test_service_input(
+            display_name=self.service_display_name
         )
-        return deployed_service
-
-    def deploy_job(self, project_id: str, job: JobInput) -> Job:
-        deployed_job = self._deployment_manager.deploy_job(
-            project_id=project_id, job=job, wait=True
+        test_service_input.compute.volume_path = "/test"
+        service = self.deploy_service(
+            project_id=self.project_id,
+            service=test_service_input,
         )
-        time.sleep(3)
-        return deployed_job
+        self.deployment_manager.delete_service(
+            self.project_id, service.id, delete_volumes=True
+        )
+        # Check that volume was deleted
+        with pytest.raises(docker.errors.NotFound):
+            volume_name = get_volume_name(self.project_id, service.id)
+            self._docker_deployment_platform.client.volumes.get(volume_name)
 
     def test_missing_docker_container(self):
         test_service_input = create_test_service_input(
@@ -669,7 +687,7 @@ class TestDockerDeploymentManager(DeploymentOperationsTests):
             project_id=self.project_id,
             service=test_service_input,
         )
-        self._docker_deployment_manager.delete_service(
+        self._docker_deployment_platform.delete_service(
             self.project_id, service.id, True
         )
         time.sleep(2)
@@ -709,13 +727,13 @@ class TestDockerDeploymentManager(DeploymentOperationsTests):
             service=test_service_input_3,
         )
 
-        container_1 = self._docker_deployment_manager.client.containers.get(
+        container_1 = self._docker_deployment_platform.client.containers.get(
             service_1.id
         )
-        container_2 = self._docker_deployment_manager.client.containers.get(
+        container_2 = self._docker_deployment_platform.client.containers.get(
             service_2.id
         )
-        container_3 = self._docker_deployment_manager.client.containers.get(
+        container_3 = self._docker_deployment_platform.client.containers.get(
             service_3.id
         )
         assert container_1
@@ -775,25 +793,35 @@ class TestKubernetesDeploymentManager(DeploymentOperationsTests):
             uid,
             self._project_id,
             self._service_display_name,
-            self._service_id,
         ) = get_random_resources()
         _kube_namespace = f"{uid}-deployment-manager-test-namespace"
 
-        self._kubernetes_deployment_manager = KubernetesDeploymentManager(
-            component_manager_mock, kube_namespace=_kube_namespace
+        self._kubernetes_deployment_platform = KubernetesDeploymentPlatform(
+            kube_namespace=_kube_namespace
         )
-        self._deployment_manager = DeploymentManagerWithDB(
-            self._kubernetes_deployment_manager, component_manager_mock
+        self._deployment_manager = DeploymentManager(
+            self._kubernetes_deployment_platform, component_manager_mock
         )
         component_manager_mock.deployment_manager = self._deployment_manager
 
-        self._kubernetes_deployment_manager.core_api.create_namespace(
+        self._kubernetes_deployment_platform.core_api.create_namespace(
             V1Namespace(metadata={"name": _kube_namespace})
         )
 
         yield
 
-        self._kubernetes_deployment_manager.core_api.delete_namespace(
+        for service_id in self._deployed_services:
+            try:
+                self._deployment_manager.delete_service(
+                    project_id=self._project_id,
+                    service_id=service_id,
+                    delete_volumes=True,
+                )
+            except (ResourceNotFoundError, ClientBaseError):
+                # service not found
+                return
+
+        self._kubernetes_deployment_platform.core_api.delete_namespace(
             _kube_namespace, propagation_policy="Foreground"
         )
 
@@ -801,7 +829,7 @@ class TestKubernetesDeploymentManager(DeploymentOperationsTests):
         timeout = 60
         while time.time() - start < timeout:
             try:
-                self._kubernetes_deployment_manager.core_api.read_namespace(
+                self._kubernetes_deployment_platform.core_api.read_namespace(
                     name=_kube_namespace
                 )
                 time.sleep(2)
@@ -823,16 +851,6 @@ class TestKubernetesDeploymentManager(DeploymentOperationsTests):
     @property
     def service_display_name(self) -> str:
         return self._service_display_name
-
-    def deploy_service(self, project_id: str, service: ServiceInput) -> Service:
-        return self._deployment_manager.deploy_service(
-            project_id=project_id, service=service, wait=True
-        )
-
-    def deploy_job(self, project_id: str, job: JobInput) -> Job:
-        return self._deployment_manager.deploy_job(
-            project_id=project_id, job=job, wait=True
-        )
 
     def test_project_isolation(self) -> None:
         """Test that services of the same project can reach each others' endpoints and services of different projects cannot."""
@@ -872,23 +890,23 @@ class TestKubernetesDeploymentManager(DeploymentOperationsTests):
             project_id=project_core, service=test_service_input_core
         )
 
-        namespace = self._kubernetes_deployment_manager.kube_namespace
-        pod_1 = self._kubernetes_deployment_manager.core_api.list_namespaced_pod(
+        namespace = self._kubernetes_deployment_platform.kube_namespace
+        pod_1 = self._kubernetes_deployment_platform.core_api.list_namespaced_pod(
             namespace=namespace,
             label_selector=f"ctxy.deploymentName={service_1.id},ctxy.projectName={project_1}",
         ).items[0]
 
-        pod_2 = self._kubernetes_deployment_manager.core_api.list_namespaced_pod(
+        pod_2 = self._kubernetes_deployment_platform.core_api.list_namespaced_pod(
             namespace=namespace,
             label_selector=f"ctxy.deploymentName={service_2.id},ctxy.projectName={project_1}",
         ).items[0]
 
-        pod_3 = self._kubernetes_deployment_manager.core_api.list_namespaced_pod(
+        pod_3 = self._kubernetes_deployment_platform.core_api.list_namespaced_pod(
             namespace=namespace,
             label_selector=f"ctxy.deploymentName={service_3.id},ctxy.projectName={project_2}",
         ).items[0]
 
-        pod_core = self._kubernetes_deployment_manager.core_api.list_namespaced_pod(
+        pod_core = self._kubernetes_deployment_platform.core_api.list_namespaced_pod(
             namespace=namespace,
             label_selector=f"ctxy.deploymentName={service_core.id},ctxy.projectName={project_core}",
         ).items[0]
@@ -896,13 +914,13 @@ class TestKubernetesDeploymentManager(DeploymentOperationsTests):
         pod_core.metadata.labels[
             "ctxy.deploymentType"
         ] = DeploymentType.CORE_BACKEND.value
-        self._kubernetes_deployment_manager.core_api.patch_namespaced_pod(
+        self._kubernetes_deployment_platform.core_api.patch_namespaced_pod(
             name=pod_core.metadata.name, namespace=namespace, body=pod_core
         )
 
         _command_prefix = ["/bin/sh", "-c"]
         output = stream.stream(
-            self._kubernetes_deployment_manager.core_api.connect_get_namespaced_pod_exec,
+            self._kubernetes_deployment_platform.core_api.connect_get_namespaced_pod_exec,
             pod_1.metadata.name,
             namespace,
             command=[
@@ -918,7 +936,7 @@ class TestKubernetesDeploymentManager(DeploymentOperationsTests):
         assert "Hello world!" in output
 
         output = stream.stream(
-            self._kubernetes_deployment_manager.core_api.connect_get_namespaced_pod_exec,
+            self._kubernetes_deployment_platform.core_api.connect_get_namespaced_pod_exec,
             pod_1.metadata.name,
             namespace,
             command=[
@@ -934,7 +952,7 @@ class TestKubernetesDeploymentManager(DeploymentOperationsTests):
         assert "wget: download timed out" in output
 
         output = stream.stream(
-            self._kubernetes_deployment_manager.core_api.connect_get_namespaced_pod_exec,
+            self._kubernetes_deployment_platform.core_api.connect_get_namespaced_pod_exec,
             pod_3.metadata.name,
             namespace,
             command=[
@@ -951,7 +969,7 @@ class TestKubernetesDeploymentManager(DeploymentOperationsTests):
 
         # The core service can reach all services, no matter the project
         output = stream.stream(
-            self._kubernetes_deployment_manager.core_api.connect_get_namespaced_pod_exec,
+            self._kubernetes_deployment_platform.core_api.connect_get_namespaced_pod_exec,
             pod_core.metadata.name,
             namespace,
             command=[
@@ -995,11 +1013,9 @@ class DeploymentOperationsEndpointTests(DeploymentOperationsTests):
     @pytest.fixture(autouse=True)
     def _init_managers(self, _client: requests.Session) -> Generator:
         self._endpoint_client = _client
-        system_manager = SystemClient(self._endpoint_client)
         self._system_manager = SystemClient(self._endpoint_client)
-        self._deployment_manager = DeploymentManagerClient(client=self._endpoint_client)
+        self._deployment_manager = DeploymentClient(client=self._endpoint_client)
         self._auth_manager = AuthClient(self._endpoint_client)
-        system_manager.initialize_system()
 
         self.login_user(
             config.SYSTEM_ADMIN_USERNAME, config.SYSTEM_ADMIN_INITIAL_PASSWORD
@@ -1009,7 +1025,6 @@ class DeploymentOperationsEndpointTests(DeploymentOperationsTests):
             uid,
             self._project_id,
             self._service_display_name,
-            self._service_id,
         ) = get_random_resources()
 
         yield
@@ -1018,12 +1033,16 @@ class DeploymentOperationsEndpointTests(DeploymentOperationsTests):
             config.SYSTEM_ADMIN_USERNAME, config.SYSTEM_ADMIN_INITIAL_PASSWORD
         )
 
-        try:
-            self._deployment_manager.delete_service(
-                project_id=self._project_id, service_id=self._service_id
-            )
-        except Exception:
-            pass
+        for service_id in self._deployed_services:
+            try:
+                self._deployment_manager.delete_service(
+                    project_id=self._project_id,
+                    service_id=service_id,
+                    delete_volumes=True,
+                )
+            except (ResourceNotFoundError, ClientBaseError):
+                # service not found
+                return
 
         if type(_client) == TestClient:
             _client.__exit__()
@@ -1044,10 +1063,6 @@ class DeploymentOperationsEndpointTests(DeploymentOperationsTests):
     def service_display_name(self) -> str:
         return self._service_display_name
 
-    @property
-    def service_id(self) -> str:
-        return self._service_id
-
     def login_user(self, username: str, password: str) -> None:
         self._auth_manager.request_token(
             OAuth2TokenRequestFormNew(
@@ -1060,18 +1075,6 @@ class DeploymentOperationsEndpointTests(DeploymentOperationsTests):
                 set_as_cookie=True,
             )
         )
-
-    def deploy_service(self, project_id: str, service: ServiceInput) -> Service:
-        deployed_service = self._deployment_manager.deploy_service(
-            project_id=project_id, service=service, wait=True
-        )
-        return deployed_service
-
-    def deploy_job(self, project_id: str, job: JobInput) -> Job:
-        deployed_job = self._deployment_manager.deploy_job(
-            project_id=project_id, job=job, wait=True
-        )
-        return deployed_job
 
 
 @pytest.mark.skipif(

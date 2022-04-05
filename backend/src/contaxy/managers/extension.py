@@ -1,7 +1,7 @@
 from typing import List, Optional, Tuple, Union
 
 from contaxy import config
-from contaxy.clients import DeploymentManagerClient, FileClient
+from contaxy.clients import DeploymentClient, FileClient
 from contaxy.clients.shared import BaseUrlSession
 from contaxy.managers.deployment.utils import (
     Labels,
@@ -55,7 +55,7 @@ def map_service_to_extension(service: Service, user_id: str) -> Extension:
 
     if service.metadata:
         project_id = service.metadata[Labels.PROJECT_NAME.value]
-        deployment_id = service.metadata[Labels.DEPLOYMENT_NAME.value]
+        deployment_id = service.id
         endpoint_prefix = f"{config.settings.CONTAXY_BASE_URL}/projects/{project_id}/services/{deployment_id}/access/"
 
         if METADATA_CAPABILITIES in service.metadata:
@@ -97,7 +97,7 @@ def map_service_to_extension(service: Service, user_id: str) -> Extension:
     return extension
 
 
-class ExtensionClient(FileClient, DeploymentManagerClient):
+class ExtensionClient(FileClient, DeploymentClient):
     """Handels the request forwarding to the installed extensions.
 
     The extension client implements all extensible manager interfaces
@@ -217,7 +217,7 @@ class ExtensionManager(ExtensionOperations):
 
         service = self._service_manager.deploy_service(
             project_id=project_id,
-            service=service_input,
+            service_input=service_input,
             deployment_type=DeploymentType.EXTENSION,
         )
         return map_service_to_extension(

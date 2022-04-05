@@ -6,12 +6,7 @@ import pytest
 import requests
 
 from contaxy import config
-from contaxy.clients import (
-    AuthClient,
-    DeploymentManagerClient,
-    ExtensionClient,
-    SystemClient,
-)
+from contaxy.clients import AuthClient, DeploymentClient, ExtensionClient
 from contaxy.managers.extension import ExtensionInput
 from contaxy.operations.deployment import DeploymentOperations
 from contaxy.operations.extension import ExtensionOperations
@@ -42,11 +37,11 @@ def create_test_extension_input(uid: int) -> ExtensionInput:
 
 def get_cleaned_extension_dict(extension: Extension):
     """
-    Removes the started_at and status field from extension description because
-    they should not be considered for comparison of extension objects.
+    Removes fields from extension description that
+    should not be considered for comparison of extension objects.
     """
     extension_dict = extension.dict()
-    for key in ["started_at", "status"]:
+    for key in ["started_at", "status", "last_access_time", "last_access_user"]:
         extension_dict.pop(key)
     return extension_dict
 
@@ -177,11 +172,9 @@ class TestExtensionManagerViaRemoteEndpoint(ExtensionOperationsTests):
 
     @pytest.fixture(autouse=True)
     def _init_managers(self, _client: requests.Session) -> Generator:
-        system_manager = SystemClient(_client)
         self._auth_manager = AuthClient(_client)
-        self._deployment_manager = DeploymentManagerClient(_client)
+        self._deployment_manager = DeploymentClient(_client)
         self._extension_manager = ExtensionClient(_client)
-        system_manager.initialize_system()
 
         self.login_user(
             config.SYSTEM_ADMIN_USERNAME, config.SYSTEM_ADMIN_INITIAL_PASSWORD

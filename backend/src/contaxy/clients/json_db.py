@@ -1,4 +1,3 @@
-import json
 from json.decoder import JSONDecodeError
 from typing import Dict, List, Optional
 
@@ -27,7 +26,7 @@ class JsonDocumentClient(JsonDocumentOperations):
         try:
             response = self._client.put(
                 f"/projects/{project_id}/json/{collection_id}/{key}",
-                json=json.loads(json_document),
+                data=json_document,
                 params={"upsert": upsert},
                 **request_kwargs,
             )
@@ -47,7 +46,7 @@ class JsonDocumentClient(JsonDocumentOperations):
         try:
             response = self._client.patch(
                 f"/projects/{project_id}/json/{collection_id}/{key}",
-                json=json.loads(json_document),
+                data=json_document,
                 **request_kwargs,
             )
             handle_errors(response)
