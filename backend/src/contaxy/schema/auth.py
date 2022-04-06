@@ -427,6 +427,7 @@ class User(UserBase):
     @pydantic.validator("last_activity", pre=True, always=True)
     def default_last_activity(cls, v: datetime, *, values: Dict) -> datetime:
         return v if v is not None else values["created_at"]
+
     has_password: bool = Field(
         True,
         description="Indicates if the user log in with password or SSO",

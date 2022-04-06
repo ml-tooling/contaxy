@@ -14,6 +14,3 @@ allow_prereleases = true
 
 [scripts]
 install-kernel = "python -m ipykernel install --user --name=contaxy-pipenv"
-
-[requires]
-python_version = "3.8"

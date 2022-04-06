@@ -37,6 +37,7 @@ from .utils import ComponentManagerMock
 
 DEFAULT_USERS_TO_GENERATE = 3
 
+
 def _generate_user_data() -> List[UserRegistration]:
     fake = Faker()
     generated_users: List[UserRegistration] = [
