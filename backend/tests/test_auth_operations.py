@@ -327,7 +327,7 @@ class AuthOperationsTests(ABC):
         assert token_introspection.active is False
 
     def test_request_token_password_grant(self) -> None:
-        generated_user = _generate_user_data(1)[0]
+        generated_user = _generate_user_data()[0]
         password = generated_user.password  # .get_secret_value()
         self.auth_manager.create_user(generated_user)
         USER_SCOPE = "projects/" + id_utils.generate_short_uuid() + "#write"
@@ -402,7 +402,7 @@ class AuthOperationsTests(ABC):
 
     def test_get_user(self, user_data: List[UserRegistration]) -> None:
         # Create and get a single user
-        created_user = self.auth_manager.create_user(_generate_user_data(1)[0])
+        created_user = self.auth_manager.create_user(_generate_user_data()[0])
         retrieved_user = self.auth_manager.get_user(created_user.id)
         assert retrieved_user.dict() == created_user.dict()
 
@@ -417,7 +417,7 @@ class AuthOperationsTests(ABC):
             assert retrieved_user.dict() == created_user.dict()
 
     def test_update_user(self, user_data: List[UserRegistration]) -> None:
-        updated_users = _generate_user_data(len(user_data))
+        updated_users = _generate_user_data()
         # Create and update a single user
         for user_data, updated_user_data in zip(user_data, updated_users):
             created_user = self.auth_manager.create_user(user_data)
@@ -431,7 +431,7 @@ class AuthOperationsTests(ABC):
 
     def test_delete_user(self) -> None:
         # Create and delete single user
-        created_user = self.auth_manager.create_user(_generate_user_data(1)[0])
+        created_user = self.auth_manager.create_user(_generate_user_data()[0])
         user_resource_name = f"users/{created_user.id}"
         self.auth_manager.add_permission(user_resource_name, "test#read")
         self.auth_manager.delete_user(created_user.id)
