@@ -368,10 +368,13 @@ def delete_container(
 
     try:
         container.remove(v=delete_volumes)
-    except docker.errors.APIError:
+    except docker.errors.APIError as e:
+        if e.status_code == 409:
+            # Deletion is already in progress
+            return
         raise ServerBaseError(
             f"Could not delete deployment '{container.name}'.",
-        )
+        ) from e
 
     # Named volumes must be deleted manually
     if delete_volumes:

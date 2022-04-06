@@ -1,6 +1,6 @@
 import string
 import subprocess
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple, Type, TypeVar
 
@@ -83,7 +83,7 @@ def stop_idle_services(component_manager: ComponentOperations) -> None:
         # Only check running services
         if service.status == DeploymentStatus.RUNNING
         # If idle timeout is not set or 0, the service should never be stopped automatically
-        if service.idle_timeout is not None and service.idle_timeout != 0
+        if service.idle_timeout is not None and service.idle_timeout != timedelta(0)
         # Last access time must be set to compute idle time
         if service.last_access_time is not None
         # Check if time last access time is longer ago than idle timeout
@@ -91,7 +91,8 @@ def stop_idle_services(component_manager: ComponentOperations) -> None:
     ]
     for project_id, service in idle_services:
         logger.info(
-            f"Stopping idle service {service.display_name}(id: {service.id}). Last access time: {service.last_access_time}."
+            f"Stopping idle service {service.display_name}(id: {service.id}) with last "
+            f"access time {service.last_access_time} and idle timeout {service.idle_timeout}."
         )
         service_manager.execute_service_action(
             project_id,
