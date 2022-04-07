@@ -879,6 +879,7 @@ class AuthManager(AuthOperations):
         """
         logger.debug(f"User creation request for UserRegistration({user_input}).")
         user_id = id_utils.generate_short_uuid()
+        has_password = bool(user_input.password)
 
         if user_input.password:
             self.change_password(user_id, user_input.password)  # .get_secret_value()
@@ -897,6 +898,7 @@ class AuthManager(AuthOperations):
         user = User(
             id=user_id,
             technical_user=technical_user,
+            has_password=has_password,
             **user_input.dict(exclude_unset=True),
         )
 
