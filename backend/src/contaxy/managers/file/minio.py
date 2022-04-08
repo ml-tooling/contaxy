@@ -250,8 +250,7 @@ class MinioFileManager(FileOperations):
                 file_stream,
                 -1,
                 content_type,
-                part_size=10 * 1024 * 1024,
-                metadata=metadata
+                part_size=10 * 1024 * 1024
             )
         except S3Error as err:
             raise ServerBaseError(
@@ -268,7 +267,7 @@ class MinioFileManager(FileOperations):
 
         # ? Get the data from the last version if existing?
         self._create_file_metadata_json_document(
-            project_id, file_key, result.version_id, file_hash
+            project_id, file_key, metadata, result.version_id, file_hash
         )
 
         # This is necessary in order to have the available versions metadata set
@@ -417,6 +416,7 @@ class MinioFileManager(FileOperations):
         self,
         project_id: str,
         file_key: str,
+        metadata: Dict[str, str],
         version: Optional[str] = None,
         md5_hash: Optional[str] = None,
     ) -> JsonDocument:
@@ -426,6 +426,7 @@ class MinioFileManager(FileOperations):
             version_id=version,
         )
         meta_file = self._map_s3_object_to_file_model(s3_object)
+        meta_file.metadata = metadata
         if md5_hash:
             meta_file.md5_hash = md5_hash
         metadata_json = self._map_file_obj_to_json_document(meta_file)
@@ -451,7 +452,6 @@ class MinioFileManager(FileOperations):
             "etag": object.etag,
             "latest_version": object.is_latest or False,
             "version": object.version_id,
-            "metadata": object.metadata
         }
 
         # ! Minio seems to not set the content type, only when reading single object via stat_object, hence we persist it in the db

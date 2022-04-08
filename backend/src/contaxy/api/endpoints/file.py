@@ -115,8 +115,8 @@ def upload_file(
 
     metadata = dict()
     for key, value in request.headers.items():
-        if _FILE_METADATA_PREFIX in key:
-            metadata[key] = value
+        if key.startswith(_FILE_METADATA_PREFIX):
+            metadata[key[len(_FILE_METADATA_PREFIX):]] = value
 
     return component_manager.get_file_manager().upload_file(
         project_id, file_key, multipart_stream, metadata, content_type
