@@ -137,6 +137,7 @@ def create_and_setup_user(
         user_input (UserRegistration): Information required for creating a new user.
         auth_manager (AuthOperations): The auth manager used to setup default permissions.
         project_manager (ProjectOperations): The project manager used to create the default user project.
+        technical_user (bool): Flag to indicate if this is an account not connected to a human user
 
     Raises:
         ResourceAlreadyExistsError: If the user already exists
