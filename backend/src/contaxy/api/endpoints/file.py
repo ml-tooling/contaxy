@@ -22,6 +22,8 @@ from contaxy.schema.shared import OPEN_URL_REDIRECT, RESOURCE_ID_REGEX
 from contaxy.utils.auth_utils import get_api_token
 from contaxy.utils.file_utils import FormMultipartStream, SyncFromAsyncGenerator
 
+_FILE_METADATA_PREFIX = "x-amz-meta-"
+
 router = APIRouter(
     tags=["files"],
     responses={**AUTH_ERROR_RESPONSES, **VALIDATION_ERROR_RESPONSE},
@@ -79,7 +81,7 @@ def list_files(
 def upload_file(
     request: Request,
     project_id: str = PROJECT_ID_PARAM,
-    file_key: str = FILE_KEY_PARAM,
+    file_key: Optional[str] = FILE_KEY_PARAM,
     component_manager: ComponentManager = Depends(get_component_manager),
     token: str = Depends(get_api_token),
 ) -> Any:
@@ -87,9 +89,9 @@ def upload_file(
 
     The file will be streamed to the selected file storage (core platform or extension).
 
-    This upload operation only supports to attach a limited set of file metadata.
+    This upload operation allows to attach file metadata by passing headers with the prefix 'x-amz-meta-'
     Once the upload is finished, you can use the [update_file_metadata operation](#files/update_file_metadata)
-    to add or update the metadata of the files.
+    to add or update the metadata of the file.
 
     The `file_key` allows to categorize the uploaded file under a virtual file structure managed by the core platform.
     This allows to create a directory-like structure for files from different extensions and file-storage types.
@@ -110,8 +112,21 @@ def upload_file(
         if multipart_stream.content_type
         else "application/octet-stream"
     )
+
+    if not file_key:
+        if not multipart_stream.filename:
+            raise ClientValueError(
+                "The multipart stream does not contain a file name. Use the endpoint `/projects/{project_id}/files/{file_key:path/}` to explicitly provide a file key."
+            )
+        file_key = multipart_stream.filename
+
+    metadata = {}
+    for key, value in request.headers.items():
+        if key.startswith(_FILE_METADATA_PREFIX):
+            metadata[key[len(_FILE_METADATA_PREFIX) :]] = value
+
     return component_manager.get_file_manager().upload_file(
-        project_id, file_key, multipart_stream, content_type
+        project_id, file_key, multipart_stream, metadata, content_type
     )
 
 
@@ -137,36 +152,11 @@ def upload_file_without_key(
 
     The file key will be derived based on the filename in the multipart stream.
 
-    This upload operation only supports to attach a limited set of file metadata.
+    This upload operation allows to attach file metadata by passing headers with the prefix 'x-amz-meta-'
     Once the upload is finished, you can use the [update_file_metadata operation](#files/update_file_metadata)
-    to add or update the metadata of the files.
+    to add or update the metadata of the file.
     """
-    component_manager.verify_access(
-        token, f"projects/{project_id}/files", AccessLevel.WRITE
-    )
-
-    file_stream = SyncFromAsyncGenerator(
-        request.stream(), component_manager.global_state.shared_namespace.async_loop
-    )
-
-    multipart_stream = FormMultipartStream(
-        file_stream, request.headers, form_field="file", hash_algo="md5"
-    )
-
-    content_type = (
-        multipart_stream.content_type
-        if multipart_stream.content_type
-        else "application/octet-stream"
-    )
-
-    if not multipart_stream.filename:
-        raise ClientValueError(
-            "The multipart stream does not contain a file name. Use the endpoint `/projects/{project_id}/files/{file_key:path/}` to explicitly provide a file key."
-        )
-
-    return component_manager.get_file_manager().upload_file(
-        project_id, multipart_stream.filename, multipart_stream, content_type
-    )
+    return upload_file(request, project_id, None, component_manager, token)
 
 
 @router.get(
@@ -267,12 +257,15 @@ def download_file(
     )
     file_manager = component_manager.get_file_manager()
     metadata = file_manager.get_file_metadata(project_id, file_key, version)
-    file_stream = file_manager.download_file(project_id, file_key, version)
+    file_stream, file_len = file_manager.download_file(project_id, file_key, version)
 
     return StreamingResponse(
         file_stream,
         media_type=metadata.content_type,
-        headers={"Content-Disposition": f"attachment;filename={file_key}"},
+        headers={
+            "Content-Disposition": f"attachment;filename={file_key}",
+            "Content-Length": f"{file_len}",
+        },
     )
 
 
@@ -427,7 +420,6 @@ def delete_files(
 
 
 def modify_openapi_schema(openapi_schema: dict) -> Dict[str, Any]:
-
     request_body = {
         "required": True,
         "content": {

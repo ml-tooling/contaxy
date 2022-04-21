@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Iterator, List, Optional
+from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 from contaxy.schema import File, FileInput, FileStream, ResourceAction
 
@@ -82,6 +82,7 @@ class FileOperations(ABC):
         project_id: str,
         file_key: str,
         file_stream: FileStream,
+        metadata: Optional[Dict[str, str]] = None,
         content_type: str = "application/octet-stream",
     ) -> File:
         """Upload a file.
@@ -90,6 +91,7 @@ class FileOperations(ABC):
             project_id (str): Project ID associated with the file.
             file_key (str): Key of the file.
             file_stream (FileStream): The actual file stream object.
+            metadata (Dict, optional): Additional key-value pairs of file meta data
             content_type (str, optional): The mime-type of the file. Defaults to "application/octet-stream".
 
         Raises:
@@ -106,7 +108,7 @@ class FileOperations(ABC):
         project_id: str,
         file_key: str,
         version: Optional[str] = None,
-    ) -> Iterator[bytes]:
+    ) -> Tuple[Iterator[bytes], int]:
         """Download a file.
 
         Either the latest version will be returned or the specified one.

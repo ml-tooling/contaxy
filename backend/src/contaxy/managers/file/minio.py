@@ -200,7 +200,7 @@ class MinioFileManager(FileOperations):
         except ResourceNotFoundError:
             # Lazily create and update a metadata entry in the DB, since the resource might be uploaded externally
             self._create_file_metadata_json_document(
-                project_id, file_key, s3_object.version_id
+                project_id, file_key, metadata=None, version=s3_object.version_id
             )
             self._json_db_manager.update_json_document(
                 project_id, self.DOC_COLLECTION_NAME, doc_key, json_value
@@ -213,6 +213,7 @@ class MinioFileManager(FileOperations):
         project_id: str,
         file_key: str,
         file_stream: FileStream,
+        metadata: Optional[Dict[str, str]] = None,
         content_type: str = "application/octet-stream",
     ) -> File:
         """Upload a file.
@@ -221,6 +222,7 @@ class MinioFileManager(FileOperations):
             project_id (str): Project ID associated with the file.
             file_key (str): Key of the file.
             file_stream (FileStream): The actual file stream object.
+            metadata (Dict, optional): Additional key-value pairs of file meta data
             content_type (str, optional): The mime-type of the file. Defaults to "application/octet-stream".
 
         Raises:
@@ -266,7 +268,7 @@ class MinioFileManager(FileOperations):
 
         # ? Get the data from the last version if existing?
         self._create_file_metadata_json_document(
-            project_id, file_key, result.version_id, file_hash
+            project_id, file_key, metadata, result.version_id, file_hash
         )
 
         # This is necessary in order to have the available versions metadata set
@@ -281,7 +283,7 @@ class MinioFileManager(FileOperations):
         project_id: str,
         file_key: str,
         version: Optional[str] = None,
-    ) -> Iterator[bytes]:
+    ) -> Tuple[Iterator[bytes], int]:
         """Download a file.
 
         Either the latest version will be returned or the specified one.
@@ -312,10 +314,14 @@ class MinioFileManager(FileOperations):
                     f"Download failed - Invalid file {file_key} (version: {version})."
                 )
                 raise ResourceNotFoundError(
-                    f"Invalid file {file_key} (version: {version}."
+                    f"Invalid file {file_key} (version: {version})."
+                )
+            else:
+                raise ServerBaseError(
+                    f"Unknown error while downloading file {file_key} (version: {version})."
                 )
 
-        return response.stream()
+        return response.stream(), int(response.headers.get("Content-Length"))
 
     def delete_file(
         self,
@@ -415,6 +421,7 @@ class MinioFileManager(FileOperations):
         self,
         project_id: str,
         file_key: str,
+        metadata: Optional[Dict[str, str]],
         version: Optional[str] = None,
         md5_hash: Optional[str] = None,
     ) -> JsonDocument:
@@ -424,6 +431,8 @@ class MinioFileManager(FileOperations):
             version_id=version,
         )
         meta_file = self._map_s3_object_to_file_model(s3_object)
+        if metadata is not None:
+            meta_file.metadata = metadata
         if md5_hash:
             meta_file.md5_hash = md5_hash
         metadata_json = self._map_file_obj_to_json_document(meta_file)
