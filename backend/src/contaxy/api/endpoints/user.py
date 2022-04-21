@@ -71,16 +71,17 @@ def create_user(
             "User registration is not possible before system has been initialized!",
         )
 
+    # If self registration is enabled, everyone can create users
     if not component_manager.global_state.settings.USER_REGISTRATION_ENABLED:
         if token is not None:
             # An admin can create users even if registration is disabled
             component_manager.verify_access(token, "users", AccessLevel.ADMIN)
+            # Make sure admin is not set as authenticated user so new user creation is not affected
+            component_manager.request_state.authorized_access = None
         else:
             raise PermissionDeniedError(
                 "User self-registration is deactivated. Please contact an administrator."
             )
-
-    # If self registration is enabled, everyone can create users
     user = auth_utils.create_and_setup_user(
         user_input=user_input,
         auth_manager=component_manager.get_auth_manager(),
