@@ -90,6 +90,8 @@ class ProjectCreation(ProjectInput):
         ...,
         example="my-awesome-project",
         description="Project ID used for creating the project.",
+        min_length=MIN_PROJECT_ID_LENGTH,
+        max_length=MAX_PROJECT_ID_LENGTH,
     )
 
 
