@@ -50,51 +50,61 @@ class ProjectManager(ProjectOperations):
         return self._component_manager.get_auth_manager()
 
     def list_projects(self) -> List[Project]:
+        def _includes_admin_permission(permissions: List[str]) -> bool:
+            projects_admin = auth_utils.construct_permission(
+                "projects", AccessLevel.ADMIN
+            )
+            super_admin = auth_utils.construct_permission("*", AccessLevel.ADMIN)
+            return projects_admin in permissions or super_admin in permissions
+
         authorized_user = None
         if self._request_state.authorized_access:
             authorized_user = self._request_state.authorized_access.authorized_subject
-        projects: List[Project] = []
+
         if authorized_user:
             # Filter by the user
             resource_permissions = self._auth_manager.list_permissions(authorized_user)
-            for permission in resource_permissions:
-                resource_name, _ = auth_utils.parse_permission(permission)
-                try:
-                    project_id = id_utils.extract_project_id_from_resource_name(
-                        resource_name
-                    )
-                    try:
-                        project = self.get_project(project_id)
-                        # If the project is a technical project, it is only returned for users with the `projects#admin` permission
-                        if (
-                            not project.technical_project
-                            or auth_utils.construct_permission(
-                                "projects", AccessLevel.ADMIN
-                            )
-                            in resource_permissions
-                            or auth_utils.construct_permission("*", AccessLevel.ADMIN)
-                            in resource_permissions
-                        ):
-                            projects.append(project)
-                    except ResourceNotFoundError:
-                        # this should not happen
-                        logger.info(
-                            f"Project not found: {project_id} during list projects."
-                        )
-                        continue
-                except ValueError:
-                    # do nothing
-                    continue
 
+            # If user is an admin, return all projects
+            if _includes_admin_permission(resource_permissions):
+                return self._list_all_projects()
+            else:
+                return self._get_projects_from_permissions(resource_permissions)
         else:
-            # TODO: also return all projects if user has admin role
             # If called without authorized user -> return all projects
+            return self._list_all_projects()
+
+    def _get_projects_from_permissions(self, permissions: List[str]) -> List[Project]:
+        projects = []
+        for permission in permissions:
+            resource_name, _ = auth_utils.parse_permission(permission)
+            try:
+                project_id = id_utils.extract_project_id_from_resource_name(
+                    resource_name
+                )
+                try:
+                    project = self.get_project(project_id)
+                    # If the project is a technical project, it is only returned for users with the `projects#admin` permission
+                    if not project.technical_project:
+                        projects.append(project)
+                except ResourceNotFoundError:
+                    # this should not happen
+                    logger.info(
+                        f"Project not found: {project_id} during list projects."
+                    )
+                    continue
+            except ValueError:
+                # Not a project permission
+                continue
+        return projects
+
+    def _list_all_projects(self) -> List[Project]:
+        return [
+            Project.parse_raw(json_document.json_value)
             for json_document in self._json_db_manager.list_json_documents(
                 config.SYSTEM_INTERNAL_PROJECT, self._PROJECT_COLLECTION
-            ):
-                projects.append(Project.parse_raw(json_document.json_value))
-
-        return projects
+            )
+        ]
 
     def create_project(
         self, project_input: ProjectCreation, technical_project: bool = False
@@ -259,7 +269,6 @@ class ProjectManager(ProjectOperations):
         user_id: str,
         access_level: AccessLevel,
     ) -> List[User]:
-
         try:
             # Check if user with the given ID exists
             self._auth_manager.get_user(user_id)
