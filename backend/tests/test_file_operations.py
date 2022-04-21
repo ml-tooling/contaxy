@@ -118,34 +118,35 @@ class FileOperationsTests(ABC):
         assert len(result_v2.available_versions) == 2
 
     def test_update_file_metadata(self) -> None:
-        version_1 = self.seeder.create_file(self.project_id)
-        version_2 = self.seeder.create_file(self.project_id)
+        file_key = "my-test-file.txt"
+        version_1 = self.seeder.create_file(self.project_id, file_key=file_key)
+        version_2 = self.seeder.create_file(self.project_id, file_key=file_key)
 
-        # Test - File does not exsists
+        # Test - File does not exist
         with pytest.raises(ResourceNotFoundError):
             self.file_manager.update_file_metadata(
-                FileInput(key="invalid-file"), self.project_id, "invalid-file"
+                FileInput(), self.project_id, "invalid-file"
             )
 
         # Test - File exists
         #    -- Update latest version
         exp_description = "Updated description"
         exp_metadata = {"source": "http://fc.de"}
-        updates = FileInput(
-            key=version_1.key, description=exp_description, metadata=exp_metadata
-        )
+        updates = FileInput(description=exp_description, metadata=exp_metadata)
         updated_file = self.file_manager.update_file_metadata(
-            updates, self.project_id, version_1.key
+            updates, self.project_id, file_key
         )
-        assert updated_file.version == version_2.version
+        assert (
+            updated_file.version == version_2.version
+        )  # metadata change does not change the version
         assert updated_file != version_1
         assert updated_file.description == exp_description
         assert updated_file.metadata == exp_metadata
         version_1 = self.file_manager.get_file_metadata(
-            self.project_id, version_1.key, version_1.version
+            self.project_id, file_key, version_1.version
         )
-        assert updated_file.description != version_1.description
-        assert updated_file.metadata != version_1.metadata
+        assert version_1.description != exp_description
+        assert version_1.metadata != exp_metadata
         #    -- Update specific
         updated_file = self.file_manager.update_file_metadata(
             updates, self.project_id, version_1.key, version_1.version
@@ -156,7 +157,7 @@ class FileOperationsTests(ABC):
 
     def test_upload_file(self) -> None:
         file_stream = self.seeder.create_file_stream(max_number_chars=10000)
-        file_key = "my-test.bin"
+        file_key = "my-test.txt"
 
         # Test - File does not exist
         version_1 = self.file_manager.upload_file(
@@ -169,16 +170,26 @@ class FileOperationsTests(ABC):
         # Test - File exists
         file_stream = self.seeder.create_file_stream()
         version_2 = self.file_manager.upload_file(
-            self.project_id, file_key, file_stream
+            self.project_id,
+            file_key,
+            file_stream,
+            metadata={"test": "data"},
+            content_type="text/plain",
         )
         assert version_1.version != version_2.version
         assert version_2.md5_hash == file_stream.hash
+        assert version_2.content_type == "text/plain"
+        assert version_2.metadata == {"test": "data"}
         assert version_2.latest_version is True
 
         version_1 = self.file_manager.get_file_metadata(
             self.project_id, file_key, version=version_1.version
         )
         assert version_1.latest_version is False
+        assert (
+            version_1.content_type == "application/octet-stream"
+        )  # Default content type
+        assert version_1.metadata == {}
 
     def test_download_file(self) -> None:
         file_key = "test-download-file.bin"
@@ -194,17 +205,24 @@ class FileOperationsTests(ABC):
         # Test - File exists
         #     -- Latest version
         hash = hashlib.md5()
-        file_stream = self.file_manager.download_file(self.project_id, file_key)
+        file_stream, file_size = self.file_manager.download_file(
+            self.project_id, file_key
+        )
+        calculated_size = 0
         for chunk in file_stream:
+            calculated_size += len(chunk)
             hash.update(chunk)
         assert version_2.md5_hash == hash.hexdigest()
+        assert file_size == calculated_size
 
         #     -- Specific version
         hash = hashlib.md5()
-        file_stream = self.file_manager.download_file(
+        file_stream, file_size = self.file_manager.download_file(
             self.project_id, file_key, version_1.version
         )
+        calculated_size = 0
         for chunk in file_stream:
+            calculated_size += len(chunk)
             hash.update(chunk)
         assert version_1.md5_hash == hash.hexdigest()
 

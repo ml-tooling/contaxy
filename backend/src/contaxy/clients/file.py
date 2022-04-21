@@ -1,5 +1,4 @@
-from email.errors import MultipartInvariantViolationDefect
-from typing import Dict, Iterator, List, Optional
+from typing import Dict, Iterator, List, Optional, Tuple
 
 import requests
 from pydantic import parse_obj_as
@@ -86,9 +85,9 @@ class FileClient(FileOperations):
         project_id: str,
         file_key: str,
         file_stream: FileStream,
-        metadata: Dict = None,
+        metadata: Optional[Dict[str, str]] = None,
         content_type: str = "application/octet-stream",
-        request_kwargs: Dict = {}
+        request_kwargs: Dict = {},
     ) -> File:
         # ! It is strongly recommended that you open files in binary mode. This is because Requests may attempt to provide the Content-Length header for you, and if it does this value will be set to the number of bytes in the file. Errors may occur if you open the file in text mode.
 
@@ -108,7 +107,7 @@ class FileClient(FileOperations):
             f"/projects/{project_id}/files/{file_key}",
             files={"file": (f"{file_key}", file_stream, content_type)},
             headers=processed_metadata,
-            **request_kwargs
+            **request_kwargs,
         )
         handle_errors(response)
         return parse_obj_as(File, response.json())
@@ -119,7 +118,7 @@ class FileClient(FileOperations):
         file_key: str,
         version: Optional[str] = None,
         request_kwargs: Dict = {},
-    ) -> Iterator[bytes]:
+    ) -> Tuple[Iterator[bytes], int]:
         query_params: Dict = {}
         if version:
             query_params.update({"version": version})
@@ -131,7 +130,9 @@ class FileClient(FileOperations):
             **request_kwargs,
         )
         handle_errors(response)
-        return response.iter_content(chunk_size=10 * 1024 * 1024), int(response.headers.get('content-length'))
+        return response.iter_content(chunk_size=10 * 1024 * 1024), int(
+            response.headers.get("Content-Length", 0)
+        )
 
     def delete_file(
         self,

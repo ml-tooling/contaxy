@@ -230,7 +230,9 @@ class AzureBlobFileManager(FileOperations):
             )
         except ResourceNotFoundError:
             # Lazily create and update a metadata entry in the DB, since the resource might be uploaded externally
-            self._create_file_metadata_json_document(project_id, azure_blob)
+            self._create_file_metadata_json_document(
+                project_id, azure_blob, metadata=None
+            )
             self.json_db_manager.update_json_document(
                 project_id, self.DOC_COLLECTION_NAME, doc_key, json_value
             )
@@ -242,6 +244,7 @@ class AzureBlobFileManager(FileOperations):
         project_id: str,
         file_key: str,
         file_stream: FileStream,
+        metadata: Optional[Dict[str, str]] = None,
         content_type: str = "application/octet-stream",
     ) -> File:
         """Upload a file.
@@ -250,6 +253,7 @@ class AzureBlobFileManager(FileOperations):
             project_id (str): Project ID associated with the file.
             file_key (str): Key of the file.
             file_stream (FileStream): The actual file stream object.
+            metadata (Dict, optional): Additional key-value pairs of file meta data
             content_type (str, optional): The mime-type of the file. Defaults to "application/octet-stream".
 
         Raises:
@@ -298,7 +302,7 @@ class AzureBlobFileManager(FileOperations):
             )
 
         self._create_file_metadata_json_document(
-            project_id, blob_client.get_blob_properties(), file_hash
+            project_id, blob_client.get_blob_properties(), metadata, file_hash
         )
 
         # This is necessary in order to have the available versions metadata set
@@ -313,7 +317,7 @@ class AzureBlobFileManager(FileOperations):
         project_id: str,
         file_key: str,
         version: Optional[str] = None,
-    ) -> Iterator[bytes]:
+    ) -> Tuple[Iterator[bytes], int]:
         """Download a file.
 
         Either the latest version will be returned or the specified one.
@@ -335,11 +339,12 @@ class AzureBlobFileManager(FileOperations):
         container_name = get_container_name(project_id, self.sys_namespace)
         try:
             blob_client = self.client.get_blob_client(container_name, file_key)
-            return blob_client.download_blob(version_id=version).chunks()
+            response = blob_client.download_blob(version_id=version)
         except AzureResourceNotFoundError as err:
             raise ResourceNotFoundError(
                 f"Could not find file {file_key} (version: {version}) in project {project_id}."
             ) from err
+        return response.chunks(), len(response)
 
     def delete_file(
         self,
@@ -453,9 +458,12 @@ class AzureBlobFileManager(FileOperations):
         self,
         project_id: str,
         azure_blob: BlobProperties,
+        metadata: Optional[Dict[str, str]],
         md5_hash: Optional[str] = None,
     ) -> JsonDocument:
         meta_file = self._map_azure_blob_to_file_model(azure_blob)
+        if metadata is not None:
+            meta_file.metadata = metadata
         if md5_hash:
             meta_file.md5_hash = md5_hash
         metadata_json = self._map_file_obj_to_json_document(meta_file)
