@@ -72,8 +72,8 @@ def list_projects(
 ) -> Any:
     """Lists all projects visible to the authenticated user.
 
-    A project is visible to a user, if the user has the atleast a `read` permission for the project.
-    System adminstrators will also see technical projects, such as `system-internal` and `system-global`.
+    A project is visible to a user, if the user has the at least a `read` permission for the project.
+    System administrators will also see technical projects, such as `system-internal` and `system-global`.
     """
     # Check the token and get the authorized user
     authorized_access = component_manager.verify_access(token)
