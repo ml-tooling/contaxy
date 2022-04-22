@@ -174,6 +174,7 @@ Create a new user and setup default project and permissions.
  - <b>`user_input`</b> (UserRegistration):  Information required for creating a new user. 
  - <b>`auth_manager`</b> (AuthOperations):  The auth manager used to setup default permissions. 
  - <b>`project_manager`</b> (ProjectOperations):  The project manager used to create the default user project. 
+ - <b>`technical_user`</b> (bool):  Flag to indicate if this is an account not connected to a human user 
 
 
 
@@ -190,7 +191,7 @@ Create a new user and setup default project and permissions.
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/utils/auth_utils.py#L212"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/utils/auth_utils.py#L213"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>function</kbd> `parse_userid_from_resource_name`
 
@@ -217,14 +218,14 @@ For example, 'users/abcd' returns 'abcd' as 'users' is the prefix.
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/utils/auth_utils.py#L230"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/utils/auth_utils.py#L231"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>class</kbd> `APITokenExtractor`
 
 
 
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/utils/auth_utils.py#L231"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/utils/auth_utils.py#L232"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `__init__`
 

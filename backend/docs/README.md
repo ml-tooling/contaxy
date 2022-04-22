@@ -150,7 +150,6 @@
 - [`shared.ResourceInput`](./contaxy.schema.shared.md#class-resourceinput)
 - [`shared.ResourceMetadata`](./contaxy.schema.shared.md#class-resourcemetadata)
 - [`auth_utils.APITokenExtractor`](./contaxy.utils.auth_utils.md#class-apitokenextractor)
-- [`file_utils.FileStreamWrapper`](./contaxy.utils.file_utils.md#class-filestreamwrapper)
 - [`file_utils.FormMultipartStream`](./contaxy.utils.file_utils.md#class-formmultipartstream)
 - [`file_utils.MultipartStreamTarget`](./contaxy.utils.file_utils.md#class-multipartstreamtarget): StreamTarget stores one chunk at a time in-memory and deletes it upon read.
 - [`file_utils.SyncFromAsyncGenerator`](./contaxy.utils.file_utils.md#class-syncfromasyncgenerator): This genrator implementation wraps an async generator to make it compatible for sync implementations.

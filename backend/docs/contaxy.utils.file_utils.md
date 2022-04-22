@@ -223,53 +223,6 @@ throw(typ, val=None, tb=None) → None
 
 
 
----
-
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/utils/file_utils.py#L175"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>class</kbd> `FileStreamWrapper`
-
-
-
-
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/utils/file_utils.py#L176"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-### <kbd>method</kbd> `__init__`
-
-```python
-__init__(stream: IO[bytes], hash_algo: str = 'md5')
-```
-
-
-
-
-
-
----
-
-#### <kbd>property</kbd> hash
-
-
-
-
-
-
-
----
-
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/utils/file_utils.py#L184"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-### <kbd>method</kbd> `read`
-
-```python
-read(size: int = -1) → bytes
-```
-
-
-
-
-
-
 
 
 ---

@@ -11,7 +11,7 @@
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/clients/file.py#L11"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/clients/file.py#L12"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>class</kbd> `FileClient`
 
@@ -35,7 +35,7 @@ __init__(client: Session)
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/clients/file.py#L137"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/clients/file.py#L153"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `delete_file`
 
@@ -55,7 +55,7 @@ delete_file(
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/clients/file.py#L156"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/clients/file.py#L172"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `delete_files`
 
@@ -69,7 +69,7 @@ delete_files(project_id: str, request_kwargs: Dict = {}) → None
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/clients/file.py#L115"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/clients/file.py#L131"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `download_file`
 
@@ -88,7 +88,7 @@ download_file(
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/clients/file.py#L177"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/clients/file.py#L193"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `execute_file_action`
 
@@ -127,7 +127,7 @@ get_file_metadata(
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/clients/file.py#L167"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/clients/file.py#L183"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `list_file_actions`
 
@@ -194,16 +194,37 @@ update_file_metadata(
 upload_file(
     project_id: str,
     file_key: str,
-    file_stream: FileStream,
+    file_stream: IO[bytes],
     metadata: Optional[Dict[str, str]] = None,
-    content_type: str = 'application/octet-stream',
+    content_type: Optional[str] = None,
+    callback: Optional[Callable[[int, int]], NoneType] = None,
     request_kwargs: Dict = {}
 ) → File
 ```
 
+Upload a file. 
 
 
 
+**Args:**
+ 
+ - <b>`project_id`</b> (str):  Project ID associated with the file. 
+ - <b>`file_key`</b> (str):  Key of the file. 
+ - <b>`file_stream`</b> (IO[bytes]):  The actual file stream object. 
+ - <b>`metadata`</b> (Dict, optional):  Additional key-value pairs of file meta data 
+ - <b>`content_type`</b> (str, optional):  The mime-type of the file. Defaults to "application/octet-stream". 
+ - <b>`callback`</b>:  Callback function for updating a progress bar. Callback function takes 2 parameters: bytes_read and total_bytes 
+ - <b>`request_kwargs`</b>:  Additional arguments to pass to the request function 
+
+**Raises:**
+ 
+ - <b>`ServerBaseError`</b>:  If the upload failed. 
+
+
+
+**Returns:**
+ 
+ - <b>`File`</b>:  The file metadata object of the uploaded file. 
 
 
 
