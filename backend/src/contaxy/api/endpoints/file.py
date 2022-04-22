@@ -126,7 +126,11 @@ def upload_file(
             metadata[key[len(_FILE_METADATA_PREFIX) :]] = value
 
     return component_manager.get_file_manager().upload_file(
-        project_id, file_key, multipart_stream, metadata, content_type
+        project_id=project_id,
+        file_key=file_key,
+        file_stream=multipart_stream,  # type: ignore[arg-type]
+        metadata=metadata,
+        content_type=content_type,
     )
 
 

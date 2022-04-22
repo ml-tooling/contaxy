@@ -163,7 +163,7 @@ class FileOperationsTests(ABC):
         version_1 = self.file_manager.upload_file(
             self.project_id, file_key, file_stream
         )
-        assert version_1.md5_hash == file_stream.hash
+        assert version_1.md5_hash == hashlib.md5(file_stream.getvalue()).hexdigest()
         assert version_1.key == file_key
         assert version_1.latest_version is True
 
@@ -177,7 +177,7 @@ class FileOperationsTests(ABC):
             content_type="text/plain",
         )
         assert version_1.version != version_2.version
-        assert version_2.md5_hash == file_stream.hash
+        assert version_2.md5_hash == hashlib.md5(file_stream.getvalue()).hexdigest()
         assert version_2.content_type == "text/plain"
         assert version_2.metadata == {"test": "data"}
         assert version_2.latest_version is True

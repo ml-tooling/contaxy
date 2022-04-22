@@ -92,10 +92,9 @@ class ProjectManager(ProjectOperations):
                     logger.info(
                         f"Project not found: {project_id} during list projects."
                     )
-                    continue
             except ValueError:
                 # Not a project permission
-                continue
+                pass
         return projects
 
     def _list_all_projects(self) -> List[Project]:

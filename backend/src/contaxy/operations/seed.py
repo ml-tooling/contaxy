@@ -1,10 +1,10 @@
+import io
 from abc import ABC, abstractmethod
 from typing import List
 
 from pydantic import EmailStr
 
 from contaxy.schema import File, Project, ProjectCreation, User, UserRegistration
-from contaxy.utils.file_utils import FileStreamWrapper
 
 
 class SeedOperations(ABC):
@@ -57,5 +57,5 @@ class SeedOperations(ABC):
     def create_file_stream(
         self,
         max_number_chars: int = 200,
-    ) -> FileStreamWrapper:
+    ) -> io.BytesIO:
         pass

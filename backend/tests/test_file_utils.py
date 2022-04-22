@@ -6,11 +6,7 @@ from typing import AsyncGenerator
 
 import pytest
 
-from contaxy.utils.file_utils import (
-    FileStreamWrapper,
-    FormMultipartStream,
-    SyncFromAsyncGenerator,
-)
+from contaxy.utils.file_utils import FormMultipartStream, SyncFromAsyncGenerator
 
 
 @pytest.fixture()
@@ -88,19 +84,3 @@ class TestSyncFromAsyncGenerator:
         iterated_data = [element for element in sync_generator]
         loop.stop()
         assert data == iterated_data
-
-
-@pytest.mark.unit
-class TestFileStreamWrapper:
-    def test_file_stream_wrapper(self, file_data: dict) -> None:
-
-        wrapped_file_stream = FileStreamWrapper(file_data.get("stream"))
-        initial_hash = wrapped_file_stream.hash
-
-        while True:
-            chunk = wrapped_file_stream.read(10 * 1024)
-            if not chunk:
-                break
-
-        assert initial_hash != wrapped_file_stream.hash
-        assert wrapped_file_stream.hash == file_data.get("hash")

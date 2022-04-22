@@ -42,7 +42,7 @@ def main(args: dict) -> None:
         build_utils.run(f"pipenv run black src")
         build_utils.run(f"pipenv run black tests")
         build_utils.run(f"pipenv run isort --profile black src")
-        build_utils.run(f"pipenv run isort --profile black src")
+        build_utils.run(f"pipenv run isort --profile black tests")
 
     if args.get(build_utils.FLAG_CHECK):
         build_python.code_checks(exit_on_error=True, safety=False)

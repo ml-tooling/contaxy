@@ -1,7 +1,7 @@
 import json
 import logging
 import os
-from typing import Dict, Iterator, List, Optional, Tuple
+from typing import IO, Dict, Iterator, List, Optional, Tuple
 
 from azure.core.exceptions import AzureError, HttpResponseError
 from azure.core.exceptions import ResourceNotFoundError as AzureResourceNotFoundError
@@ -20,7 +20,6 @@ from contaxy.operations.components import ComponentOperations
 from contaxy.operations.json_db import JsonDocumentOperations
 from contaxy.schema import File, FileInput, ResourceAction
 from contaxy.schema.exceptions import ResourceNotFoundError, ServerBaseError
-from contaxy.schema.file import FileStream
 from contaxy.schema.json_db import JsonDocument
 from contaxy.utils.file_utils import generate_file_id
 
@@ -243,16 +242,16 @@ class AzureBlobFileManager(FileOperations):
         self,
         project_id: str,
         file_key: str,
-        file_stream: FileStream,
+        file_stream: IO[bytes],
         metadata: Optional[Dict[str, str]] = None,
-        content_type: str = "application/octet-stream",
+        content_type: Optional[str] = None,
     ) -> File:
         """Upload a file.
 
         Args:
             project_id (str): Project ID associated with the file.
             file_key (str): Key of the file.
-            file_stream (FileStream): The actual file stream object.
+            file_stream (IO[bytes]): The actual file stream object.
             metadata (Dict, optional): Additional key-value pairs of file meta data
             content_type (str, optional): The mime-type of the file. Defaults to "application/octet-stream".
 
@@ -284,7 +283,9 @@ class AzureBlobFileManager(FileOperations):
                 # Therefore the type mismatch can be ignored
                 file_stream,  # type: ignore
                 content_settings=ContentSettings(
-                    content_type=content_type,
+                    content_type=content_type
+                    if content_type is not None
+                    else "application/octet-stream",
                 ),
                 overwrite=True,
             )
@@ -295,7 +296,7 @@ class AzureBlobFileManager(FileOperations):
 
         file_hash: Optional[str] = None
         if hasattr(file_stream, "hash"):
-            file_hash = file_stream.hash
+            file_hash = file_stream.hash  # type: ignore[attr-defined]
         else:
             logger.warning(
                 "The provided stream object does not provide a hash property. No hash will be available."

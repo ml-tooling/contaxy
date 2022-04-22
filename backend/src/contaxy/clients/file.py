@@ -1,15 +1,15 @@
-from typing import Dict, Iterator, List, Optional, Tuple
+from typing import IO, Callable, Dict, Iterator, List, Optional, Tuple
 
 import requests
 from pydantic import parse_obj_as
+from requests_toolbelt import MultipartEncoderMonitor
 
 from contaxy.clients.shared import handle_errors
 from contaxy.operations.file import FileOperations
-from contaxy.schema import File, FileInput, FileStream, ResourceAction
+from contaxy.schema import File, FileInput, ResourceAction
 
 
 class FileClient(FileOperations):
-
     _FILE_METADATA_PREFIX = "x-amz-meta-"
 
     def __init__(self, client: requests.Session):
@@ -84,29 +84,45 @@ class FileClient(FileOperations):
         self,
         project_id: str,
         file_key: str,
-        file_stream: FileStream,
+        file_stream: IO[bytes],
         metadata: Optional[Dict[str, str]] = None,
-        content_type: str = "application/octet-stream",
+        content_type: Optional[str] = None,
+        callback: Optional[Callable[[int, int], None]] = None,
         request_kwargs: Dict = {},
     ) -> File:
+        """Upload a file.
+
+        Args:
+            project_id (str): Project ID associated with the file.
+            file_key (str): Key of the file.
+            file_stream (IO[bytes]): The actual file stream object.
+            metadata (Dict, optional): Additional key-value pairs of file meta data
+            content_type (str, optional): The mime-type of the file. Defaults to "application/octet-stream".
+            callback: Callback function for updating a progress bar. Callback function takes 2 parameters: bytes_read and total_bytes
+            request_kwargs: Additional arguments to pass to the request function
+        Raises:
+            ServerBaseError: If the upload failed.
+
+        Returns:
+            File: The file metadata object of the uploaded file.
+        """
         # ! It is strongly recommended that you open files in binary mode. This is because Requests may attempt to provide the Content-Length header for you, and if it does this value will be set to the number of bytes in the file. Errors may occur if you open the file in text mode.
 
-        # TODO Check if it actually gets streamed or not
-        # ! In the event you are posting a very large file as a multipart/form-data request, you may want to stream the request. By default, requests does not support this, but there is a separate package which does - requests-toolbelt. You should read the toolbelt’s documentation for more details about how to use it.
-        processed_metadata = {}
-
+        metadata_headers = {}
         if metadata:
-            # Add metadata as headers, to be valid, metadata needs to have the x-amz-meta prefix (S3 conform)
-            for key in metadata:
-                value = metadata[key]
-                if not key.startswith(self._FILE_METADATA_PREFIX):
-                    key = self._FILE_METADATA_PREFIX + key
-                processed_metadata[key] = value
-
+            # Add metadata as headers. Use prefix x-amz-meta prefix for header names (S3 conform)
+            metadata_headers = {
+                self._FILE_METADATA_PREFIX + key: value
+                for key, value in metadata.items()
+            }
+        multipart_data = MultipartEncoderMonitor.from_fields(
+            fields={"file": (file_key, file_stream, content_type)},
+            callback=lambda m: callback(m.bytes_read, m.len) if callback else None,
+        )
         response = self._client.post(
             f"/projects/{project_id}/files/{file_key}",
-            files={"file": (f"{file_key}", file_stream, content_type)},
-            headers=processed_metadata,
+            data=multipart_data,
+            headers={"Content-Type": multipart_data.content_type, **metadata_headers},
             **request_kwargs,
         )
         handle_errors(response)

@@ -61,6 +61,7 @@ setup(
         "streaming_form_data",
         "filetype",
         "addict",
+        "requests-toolbelt"
     ],
     # deprecated: dependency_links=dependency_links,
     extras_require={

@@ -1,6 +1,6 @@
 import json
 import os
-from typing import Dict, Iterator, List, Optional, Tuple
+from typing import IO, Dict, Iterator, List, Optional, Tuple
 
 from loguru import logger
 from minio import Minio
@@ -14,7 +14,6 @@ from contaxy.operations.components import ComponentOperations
 from contaxy.operations.json_db import JsonDocumentOperations
 from contaxy.schema import File, FileInput, ResourceAction
 from contaxy.schema.exceptions import ResourceNotFoundError, ServerBaseError
-from contaxy.schema.file import FileStream
 from contaxy.schema.json_db import JsonDocument
 from contaxy.utils.file_utils import generate_file_id
 from contaxy.utils.minio_utils import (
@@ -26,7 +25,6 @@ from contaxy.utils.minio_utils import (
 
 
 class MinioFileManager(FileOperations):
-
     DOC_COLLECTION_NAME = "s3_files"
     METADATA_FIELD_SET = {
         "key",
@@ -212,16 +210,16 @@ class MinioFileManager(FileOperations):
         self,
         project_id: str,
         file_key: str,
-        file_stream: FileStream,
+        file_stream: IO[bytes],
         metadata: Optional[Dict[str, str]] = None,
-        content_type: str = "application/octet-stream",
+        content_type: Optional[str] = None,
     ) -> File:
         """Upload a file.
 
         Args:
             project_id (str): Project ID associated with the file.
             file_key (str): Key of the file.
-            file_stream (FileStream): The actual file stream object.
+            file_stream (IO[bytes]): The actual file stream object.
             metadata (Dict, optional): Additional key-value pairs of file meta data
             content_type (str, optional): The mime-type of the file. Defaults to "application/octet-stream".
 
@@ -250,7 +248,9 @@ class MinioFileManager(FileOperations):
                 file_key,
                 file_stream,
                 -1,
-                content_type,
+                content_type
+                if content_type is not None
+                else "application/octet-stream",
                 part_size=10 * 1024 * 1024,
             )
         except S3Error as err:
@@ -258,10 +258,10 @@ class MinioFileManager(FileOperations):
                 f"The file {file_key} could not be uploaded ({err.code})."
             )
 
+        file_hash: Optional[str] = None
         if hasattr(file_stream, "hash"):
-            file_hash: Optional[str] = file_stream.hash
+            file_hash = file_stream.hash  # type: ignore[attr-defined]
         else:
-            file_hash = None
             logger.error(
                 "The provided stream object does not provide a hash property. No hash will be available."
             )

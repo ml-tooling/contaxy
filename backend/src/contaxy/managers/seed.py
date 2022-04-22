@@ -11,7 +11,6 @@ from contaxy.operations.seed import SeedOperations
 from contaxy.schema import File, Project, User, UserRegistration
 from contaxy.schema.project import ProjectCreation
 from contaxy.utils import auth_utils
-from contaxy.utils.file_utils import FileStreamWrapper
 
 FAKER = Faker()
 Faker.seed(0)
@@ -102,8 +101,8 @@ class SeedManager(SeedOperations):
     ) -> File:
         if not self.file_manager:
             raise RuntimeError("Seeder needs to be initialized with a file manager")
-        file_stream = FileStreamWrapper(
-            io.BytesIO(FAKER.text(max_nb_chars=max_number_chars).encode("UTF-8"))
+        file_stream = io.BytesIO(
+            FAKER.text(max_nb_chars=max_number_chars).encode("UTF-8")
         )
         return self.file_manager.upload_file(
             project_id=project_id, file_key=file_key, file_stream=file_stream  # type: ignore
@@ -122,13 +121,11 @@ class SeedManager(SeedOperations):
                 f"{prefix}-{randint(1, 10000)}",
                 max_number_chars,
             )
-            for index in range(number_of_files)
+            for _ in range(number_of_files)
         ]
 
     def create_file_stream(
         self,
         max_number_chars: int = 200,
-    ) -> FileStreamWrapper:
-        return FileStreamWrapper(
-            io.BytesIO(FAKER.text(max_nb_chars=max_number_chars).encode("UTF-8"))
-        )
+    ) -> io.BytesIO:
+        return io.BytesIO(FAKER.text(max_nb_chars=max_number_chars).encode("UTF-8"))
