@@ -76,7 +76,7 @@ Initializes the Azure Blob File Manager.
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/file/azure_blob.py#L344"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/file/azure_blob.py#L349"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `delete_file`
 
@@ -104,7 +104,7 @@ If a specific file `version` is provided, only this one will be deleted. If no `
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/file/azure_blob.py#L396"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/file/azure_blob.py#L401"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `delete_files`
 
@@ -122,7 +122,7 @@ Delete all files and storage resources related to a project.
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/file/azure_blob.py#L311"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/file/azure_blob.py#L315"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `download_file`
 
@@ -131,7 +131,7 @@ download_file(
     project_id: str,
     file_key: str,
     version: Optional[str] = None
-) → Iterator[bytes]
+) → Tuple[Iterator[bytes], int]
 ```
 
 Download a file. 
@@ -160,7 +160,7 @@ Either the latest version will be returned or the specified one.
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/file/azure_blob.py#L430"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/file/azure_blob.py#L435"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `execute_file_action`
 
@@ -217,7 +217,7 @@ If no version is provided then the latest version will be returned.
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/file/azure_blob.py#L425"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/file/azure_blob.py#L430"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `list_file_actions`
 
@@ -307,7 +307,7 @@ If no version is provided then the latest version will be returned. Moreover, ad
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/file/azure_blob.py#L240"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/file/azure_blob.py#L242"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `upload_file`
 
@@ -316,6 +316,7 @@ upload_file(
     project_id: str,
     file_key: str,
     file_stream: FileStream,
+    metadata: Optional[Dict[str, str]] = None,
     content_type: str = 'application/octet-stream'
 ) → File
 ```
@@ -329,6 +330,7 @@ Upload a file.
  - <b>`project_id`</b> (str):  Project ID associated with the file. 
  - <b>`file_key`</b> (str):  Key of the file. 
  - <b>`file_stream`</b> (FileStream):  The actual file stream object. 
+ - <b>`metadata`</b> (Dict, optional):  Additional key-value pairs of file meta data 
  - <b>`content_type`</b> (str, optional):  The mime-type of the file. Defaults to "application/octet-stream". 
 
 
