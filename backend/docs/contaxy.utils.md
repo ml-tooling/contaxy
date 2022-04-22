@@ -8,11 +8,11 @@ Collection of utilities usable across all modules.
 **Global Variables**
 ---------------
 - **fastapi_utils**
-- **file_utils**
 - **state_utils**
 - **auth_utils**
 - **id_utils**
 - **utils**
+- **file_utils**
 - **minio_utils**
 - **postgres_utils**
 

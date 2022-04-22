@@ -46,7 +46,7 @@ create_file(
 ### <kbd>method</kbd> `create_file_stream`
 
 ```python
-create_file_stream(max_number_chars: int = 200) → FileStreamWrapper
+create_file_stream(max_number_chars: int = 200) → BytesIO
 ```
 
 

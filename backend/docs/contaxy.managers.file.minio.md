@@ -11,14 +11,14 @@
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/file/minio.py#L28"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/file/minio.py#L27"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>class</kbd> `MinioFileManager`
 
 
 
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/file/minio.py#L44"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/file/minio.py#L42"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `__init__`
 
@@ -142,7 +142,7 @@ execute_file_action(
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/file/minio.py#L107"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/file/minio.py#L105"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `get_file_metadata`
 
@@ -198,7 +198,7 @@ list_file_actions(
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/file/minio.py#L63"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/file/minio.py#L61"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `list_files`
 
@@ -230,7 +230,7 @@ List files.
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/file/minio.py#L146"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/file/minio.py#L144"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `update_file_metadata`
 
@@ -270,7 +270,7 @@ If no version is provided then the latest version will be returned. Moreover, ad
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/file/minio.py#L211"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/managers/file/minio.py#L209"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `upload_file`
 
@@ -278,9 +278,9 @@ If no version is provided then the latest version will be returned. Moreover, ad
 upload_file(
     project_id: str,
     file_key: str,
-    file_stream: FileStream,
+    file_stream: IO[bytes],
     metadata: Optional[Dict[str, str]] = None,
-    content_type: str = 'application/octet-stream'
+    content_type: Optional[str] = None
 ) → File
 ```
 
@@ -292,7 +292,7 @@ Upload a file.
  
  - <b>`project_id`</b> (str):  Project ID associated with the file. 
  - <b>`file_key`</b> (str):  Key of the file. 
- - <b>`file_stream`</b> (FileStream):  The actual file stream object. 
+ - <b>`file_stream`</b> (IO[bytes]):  The actual file stream object. 
  - <b>`metadata`</b> (Dict, optional):  Additional key-value pairs of file meta data 
  - <b>`content_type`</b> (str, optional):  The mime-type of the file. Defaults to "application/octet-stream". 
 
