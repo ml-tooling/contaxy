@@ -35,8 +35,6 @@ from contaxy.utils.state_utils import GlobalState, RequestState
 from .conftest import test_settings
 from .utils import ComponentManagerMock
 
-DEFAULT_USERS_TO_GENERATE = 3
-
 
 def _generate_user_data() -> List[UserRegistration]:
     fake = Faker()
