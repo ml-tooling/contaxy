@@ -39,10 +39,21 @@ def list_users(
     token: str = Depends(get_api_token),
 ) -> Any:
     """Lists all users that are visible to the authenticated user."""
-    component_manager.verify_access(
-        token, "users", AccessLevel.READ
-    )  # TODO: the right permission?
-    return component_manager.get_auth_manager().list_users()
+    try:
+        component_manager.verify_access(
+            token, "users", AccessLevel.ADMIN
+        )  # TODO: the right permission?
+        return component_manager.get_auth_manager().list_users(AccessLevel.ADMIN)
+    except Exception as e:
+        pass
+
+    try:
+        component_manager.verify_access(
+            token, "users", AccessLevel.READ
+        )  # TODO: the right permission?
+        return component_manager.get_auth_manager().list_users(AccessLevel.READ)
+    except Exception as e:
+        pass
 
 
 @router.post(
