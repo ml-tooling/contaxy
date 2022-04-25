@@ -432,3 +432,11 @@ class User(UserBase):
         True,
         description="Indicates if the user log in with password or SSO",
     )
+
+
+class UserRead(UserBase):
+    id: str = Field(
+        ...,
+        example="16fd2706-8baf-433b-82eb-8c7fada847da",
+        description="Unique ID of the user.",
+    )

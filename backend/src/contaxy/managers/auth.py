@@ -22,7 +22,7 @@ from contaxy.operations import (
     ServiceOperations,
 )
 from contaxy.operations.components import ComponentOperations
-from contaxy.schema import AuthorizedAccess, TokenType, User, UserInput
+from contaxy.schema import AuthorizedAccess, TokenType, User, UserInput, UserRead
 from contaxy.schema.auth import (
     AccessLevel,
     AccessToken,
@@ -357,7 +357,6 @@ class AuthManager(AuthOperations):
         token_subject_permissions = self.list_permissions(
             token.subject, resolve_roles=True, use_cache=use_cache
         )
-
         for token_subject_permission in token_subject_permissions:
             if auth_utils.is_permission_granted(token_subject_permission, permission):
                 # The token subject (= usually user) is granted the requested permission
@@ -377,31 +376,38 @@ class AuthManager(AuthOperations):
         self, token: str, permission: Optional[str] = None, use_cache: bool = True
     ) -> AuthorizedAccess:
         # This will throw an UnauthenticatedError if the token is not valid or does not exist
-        resolved_token = self._resolve_token(token, use_cache=use_cache)
-        if not permission or settings.DEBUG_DEACTIVATE_VERIFICATION:
-            # no permissions to check -> return granted permission
-            return AuthorizedAccess(
-                authorized_subject=resolved_token.subject, access_token=resolved_token
-            )
-        if not use_cache or not self._global_state.settings.VERIFY_ACCESS_CACHE_ENABLED:
-            # Do not use cache
-            return self._verify_access_via_db(
-                resolved_token, permission, use_cache=use_cache
-            )
-
-        cache = self._get_verify_access_cache()
-        cache_key = token + "-perm-" + str(permission)
-        if cache_key in cache:
-            return cache[cache_key]
-        else:
-            # lock thread if item is updated
-            with self._lock:
-                # Add the verification result to the cache
-                verification_result = self._verify_access_via_db(
+        try:
+            resolved_token = self._resolve_token(token, use_cache=use_cache)
+            if not permission or settings.DEBUG_DEACTIVATE_VERIFICATION:
+                # no permissions to check -> return granted permission
+                return AuthorizedAccess(
+                    authorized_subject=resolved_token.subject,
+                    access_token=resolved_token,
+                )
+            if (
+                not use_cache
+                or not self._global_state.settings.VERIFY_ACCESS_CACHE_ENABLED
+            ):
+                # Do not use cache
+                return self._verify_access_via_db(
                     resolved_token, permission, use_cache=use_cache
                 )
-                cache[cache_key] = verification_result
-                return verification_result
+
+            cache = self._get_verify_access_cache()
+            cache_key = token + "-perm-" + str(permission)
+            if cache_key in cache:
+                return cache[cache_key]
+            else:
+                # lock thread if item is updated
+                with self._lock:
+                    # Add the verification result to the cache
+                    verification_result = self._verify_access_via_db(
+                        resolved_token, permission, use_cache=use_cache
+                    )
+                    cache[cache_key] = verification_result
+                    return verification_result
+        except Exception as e:
+            raise e
 
     def change_password(
         self,
@@ -811,7 +817,10 @@ class AuthManager(AuthOperations):
 
     # User Operations
 
-    def list_users(self) -> List[User]:
+    def list_users(
+        self,
+        access_level: Optional[AccessLevel] = None,
+    ) -> List[User]:
         """Lists all users.
 
         TODO: Filter based on authenticated user?
@@ -823,7 +832,10 @@ class AuthManager(AuthOperations):
         for json_document in self._json_db_manager.list_json_documents(
             config.SYSTEM_INTERNAL_PROJECT, self._USER_COLLECTION
         ):
-            user_list.append(User.parse_raw(json_document.json_value))
+            if access_level == AccessLevel.ADMIN:
+                user_list.append(User.parse_raw(json_document.json_value))
+            elif access_level == AccessLevel.READ:
+                user_list.append(UserRead.parse_raw(json_document.json_value))
         return user_list
 
     def _create_login_id_mapping(self, login_id: str, user_id: str) -> None:

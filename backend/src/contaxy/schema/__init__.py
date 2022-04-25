@@ -12,6 +12,7 @@ from .auth import (
     User,
     UserInput,
     UserRegistration,
+    UserRead,
 )
 from .deployment import (
     Deployment,
