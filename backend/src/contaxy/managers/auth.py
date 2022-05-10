@@ -33,6 +33,7 @@ from contaxy.schema.auth import (
     OAuthToken,
     OAuthTokenIntrospection,
     TokenPurpose,
+    UserPermission,
     UserRegistration,
 )
 from contaxy.schema.exceptions import (
@@ -946,7 +947,7 @@ class AuthManager(AuthOperations):
         logger.debug(f"Successfully created User({user}).")
         return user
 
-    def get_user(self, user_id: str) -> User:
+    def get_user(self, user_id: str) -> UserPermission:
         """Returns the user metadata for a single user.
 
         Args:
@@ -963,7 +964,7 @@ class AuthManager(AuthOperations):
             collection_id=self._USER_COLLECTION,
             key=user_id,
         )
-        return User.parse_raw(json_document.json_value)
+        return UserPermission.parse_raw(json_document.json_value)
 
     def update_user(self, user_id: str, user_input: UserInput) -> User:
         """Updates the user metadata.

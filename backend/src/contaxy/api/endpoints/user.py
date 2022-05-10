@@ -29,7 +29,7 @@ router = APIRouter(
     "/users",
     operation_id=CoreOperations.LIST_USERS.value,
     response_model=List[User],
-    response_model_exclude_unset=False,
+    response_model_exclude_unset=True,
     summary="List all users.",
     tags=["users"],
     status_code=status.HTTP_200_OK,

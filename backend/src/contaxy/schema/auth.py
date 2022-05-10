@@ -440,3 +440,11 @@ class UserRead(UserBase):
         example="16fd2706-8baf-433b-82eb-8c7fada847da",
         description="Unique ID of the user.",
     )
+
+
+class UserPermission(User):
+    permission: Optional[str] = Field(
+        None,
+        example="read/write/admin",
+        description="Permissions of the user for the particular project",
+    )
