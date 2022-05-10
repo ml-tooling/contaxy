@@ -6,7 +6,7 @@ from fastapi.param_functions import Body
 from contaxy import config
 from contaxy.api.dependencies import ComponentManager, get_component_manager
 from contaxy.schema import AccessLevel, CoreOperations, Project, ProjectInput, User
-from contaxy.schema.auth import USER_ID_PARAM
+from contaxy.schema.auth import USER_ID_PARAM, UserPermission
 from contaxy.schema.exceptions import (
     AUTH_ERROR_RESPONSES,
     CREATE_RESOURCE_RESPONSES,
@@ -177,7 +177,7 @@ def delete_project(
     "/projects/{project_id}/users",
     operation_id=CoreOperations.LIST_PROJECT_MEMBERS.value,
     summary="List project members.",
-    response_model=List[User],
+    response_model=List[UserPermission],
     response_model_exclude_unset=True,
     status_code=status.HTTP_200_OK,
 )

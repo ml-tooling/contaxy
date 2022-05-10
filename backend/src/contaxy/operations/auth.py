@@ -11,7 +11,7 @@ from contaxy.schema import (
     UserInput,
     UserRegistration,
 )
-from contaxy.schema.auth import AccessLevel, ApiToken
+from contaxy.schema.auth import AccessLevel, ApiToken, UserPermission
 
 
 class AuthOperations(ABC):
@@ -279,7 +279,7 @@ class AuthOperations(ABC):
         pass
 
     @abstractmethod
-    def get_user(self, user_id: str) -> User:
+    def get_user(self, user_id: str) -> UserPermission:
         """Returns the user metadata for a single user.
 
         Args:
