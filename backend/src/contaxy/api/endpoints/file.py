@@ -1,3 +1,4 @@
+import os.path
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, Path, Query, Request, Response, status
@@ -267,7 +268,7 @@ def download_file(
         file_stream,
         media_type=metadata.content_type,
         headers={
-            "Content-Disposition": f"attachment;filename={file_key}",
+            "Content-Disposition": f"attachment;filename={metadata.display_name}",
             "Content-Length": f"{file_len}",
         },
     )
