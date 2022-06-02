@@ -442,9 +442,14 @@ class UserRead(UserBase):
     )
 
 
-class UserPermission(User):
-    permission: Optional[str] = Field(
+class UserPermission(UserBase):
+    id: str = Field(
+        ...,
+        example="16fd2706-8baf-433b-82eb-8c7fada847da",
+        description="Unique ID of the user.",
+    )
+    permission: Optional[AccessLevel] = Field(
         None,
-        example="read/write/admin",
+        example="READ",
         description="Permissions of the user for the particular project",
     )

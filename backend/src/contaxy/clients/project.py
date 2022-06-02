@@ -5,7 +5,8 @@ from pydantic import parse_raw_as
 
 from contaxy.clients.shared import handle_errors
 from contaxy.operations import ProjectOperations
-from contaxy.schema import AccessLevel, Project, ProjectCreation, ProjectInput, User
+from contaxy.schema import AccessLevel, Project, ProjectCreation, ProjectInput
+from contaxy.schema.auth import UserPermission
 
 
 class ProjectClient(ProjectOperations):
@@ -66,10 +67,10 @@ class ProjectClient(ProjectOperations):
 
     def list_project_members(
         self, project_id: str, request_kwargs: Dict = {}
-    ) -> List[User]:
+    ) -> List[UserPermission]:
         response = self._client.get(f"/projects/{project_id}/users", **request_kwargs)
         handle_errors(response)
-        return parse_raw_as(List[User], response.text)
+        return parse_raw_as(List[UserPermission], response.text)
 
     def add_project_member(
         self,
@@ -77,23 +78,23 @@ class ProjectClient(ProjectOperations):
         user_id: str,
         access_level: AccessLevel,
         request_kwargs: Dict = {},
-    ) -> List[User]:
+    ) -> List[UserPermission]:
         resource = self._client.put(
             f"/projects/{project_id}/users/{user_id}",
             params={"access_level": access_level.value},
             **request_kwargs,
         )
         handle_errors(resource)
-        return parse_raw_as(List[User], resource.text)
+        return parse_raw_as(List[UserPermission], resource.text)
 
     def remove_project_member(
         self, project_id: str, user_id: str, request_kwargs: Dict = {}
-    ) -> List[User]:
+    ) -> List[UserPermission]:
         resource = self._client.delete(
             f"/projects/{project_id}/users/{user_id}", **request_kwargs
         )
         handle_errors(resource)
-        return parse_raw_as(List[User], resource.text)
+        return parse_raw_as(List[UserPermission], resource.text)
 
     def get_project_token(
         self,

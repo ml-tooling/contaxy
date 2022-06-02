@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import List
 
-from contaxy.schema import AccessLevel, Project, ProjectCreation, ProjectInput, User
+from contaxy.schema import AccessLevel, Project, ProjectCreation, ProjectInput
+from contaxy.schema.auth import UserPermission
 
 
 class ProjectOperations(ABC):
@@ -33,7 +34,7 @@ class ProjectOperations(ABC):
         pass
 
     @abstractmethod
-    def list_project_members(self, project_id: str) -> List[User]:
+    def list_project_members(self, project_id: str) -> List[UserPermission]:
         pass
 
     @abstractmethod
@@ -42,11 +43,13 @@ class ProjectOperations(ABC):
         project_id: str,
         user_id: str,
         access_level: AccessLevel,
-    ) -> List[User]:
+    ) -> List[UserPermission]:
         pass
 
     @abstractmethod
-    def remove_project_member(self, project_id: str, user_id: str) -> List[User]:
+    def remove_project_member(
+        self, project_id: str, user_id: str
+    ) -> List[UserPermission]:
         pass
 
     @abstractmethod

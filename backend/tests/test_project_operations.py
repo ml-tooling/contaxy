@@ -281,7 +281,6 @@ class ProjectOperationsTests(ABC):
             user.id for user in self.project_manager.list_project_members(project_id)
         ]
         self.login_user(username=user2.username, password=DEFAULT_PASSWORD)
-
         assert (
             len(self.project_manager.list_projects()) == 1
         ), "The authorized user should see 1 project"
@@ -290,7 +289,11 @@ class ProjectOperationsTests(ABC):
         assert (
             len(self.project_manager.list_projects()) == 0
         ), "The authorized user should see 0 projects"
-
+        # Test if user 1 has write access to the project
+        assert "write" in [
+            user.permission
+            for user in self.project_manager.list_project_members(project_id)
+        ]
         # Test that project can be deleted even if users don't exist anymore
         self.login_user(
             config.SYSTEM_ADMIN_USERNAME, config.SYSTEM_ADMIN_INITIAL_PASSWORD
