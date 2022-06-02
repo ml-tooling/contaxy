@@ -132,26 +132,24 @@ class ComponentManager(ComponentOperations):
         """
 
         # TODO: dynamic access level check: If `None`, the highest access level that the subject is granted for the given resource will be determined.
-        try:
-            permission = None
-            if resource_name:
-                # Only check for permission if resource name is provided
-                # The access level should be provided
-                assert access_level is not None
-                processed_resource_name = (
-                    resource_name.rstrip("/").rstrip(":").lstrip("/").lstrip(":")
-                )
-                permission = (
-                    processed_resource_name
-                    + auth_utils.PERMISSION_SEPERATOR
-                    + access_level.value
-                )
-            authorized_access = self.get_auth_manager().verify_access(token, permission)
-            # Set the authroized access into the request state
-            self.request_state.authorized_access = authorized_access
-            return authorized_access
-        except Exception as e:
-            raise e
+
+        permission = None
+        if resource_name:
+            # Only check for permission if resource name is provided
+            # The access level should be provided
+            assert access_level is not None
+            processed_resource_name = (
+                resource_name.rstrip("/").rstrip(":").lstrip("/").lstrip(":")
+            )
+            permission = (
+                processed_resource_name
+                + auth_utils.PERMISSION_SEPERATOR
+                + access_level.value
+            )
+        authorized_access = self.get_auth_manager().verify_access(token, permission)
+        # Set the authroized access into the request state
+        self.request_state.authorized_access = authorized_access
+        return authorized_access
 
     def get_project_manager(self) -> ProjectManager:
         """Returns a Project Manager instance."""

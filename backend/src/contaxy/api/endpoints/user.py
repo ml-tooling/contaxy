@@ -1,11 +1,11 @@
-from typing import Any, List
+from typing import Any, List, Union
 
 from fastapi import APIRouter, Depends, Query, Response, status
 from fastapi.param_functions import Body
 
 from contaxy.api.dependencies import ComponentManager, get_component_manager
 from contaxy.schema import CoreOperations, User, UserInput, UserRegistration
-from contaxy.schema.auth import USER_ID_PARAM, AccessLevel
+from contaxy.schema.auth import USER_ID_PARAM, AccessLevel, UserRead
 from contaxy.schema.exceptions import (
     AUTH_ERROR_RESPONSES,
     CREATE_RESOURCE_RESPONSES,
@@ -28,7 +28,7 @@ router = APIRouter(
 @router.get(
     "/users",
     operation_id=CoreOperations.LIST_USERS.value,
-    response_model=List[User],
+    response_model=List[Union[User, UserRead]],
     response_model_exclude_unset=True,
     summary="List all users.",
     tags=["users"],
@@ -40,20 +40,13 @@ def list_users(
 ) -> Any:
     """Lists all users that are visible to the authenticated user."""
     try:
-        component_manager.verify_access(
-            token, "users", AccessLevel.ADMIN
-        )  # TODO: the right permission?
+        component_manager.verify_access(token, "users", AccessLevel.ADMIN)
         return component_manager.get_auth_manager().list_users(AccessLevel.ADMIN)
-    except Exception as e:
-        pass
+    except PermissionDeniedError:
+        print("User does not have admin access to list project users")
 
-    try:
-        component_manager.verify_access(
-            token, "users", AccessLevel.READ
-        )  # TODO: the right permission?
-        return component_manager.get_auth_manager().list_users(AccessLevel.READ)
-    except Exception as e:
-        pass
+    component_manager.verify_access(token, "users", AccessLevel.READ)
+    return component_manager.get_auth_manager().list_users(AccessLevel.READ)
 
 
 @router.post(

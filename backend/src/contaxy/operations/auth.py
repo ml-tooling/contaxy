@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List, Optional
+from typing import List, Optional, Union
 
 from contaxy.schema import (
     AuthorizedAccess,
@@ -11,7 +11,7 @@ from contaxy.schema import (
     UserInput,
     UserRegistration,
 )
-from contaxy.schema.auth import AccessLevel, ApiToken, UserPermission
+from contaxy.schema.auth import AccessLevel, ApiToken, UserPermission, UserRead
 
 
 class AuthOperations(ABC):
@@ -250,7 +250,7 @@ class AuthOperations(ABC):
     # User Operations
 
     @abstractmethod
-    def list_users(self) -> List[User]:
+    def list_users(self) -> List[Union[User, UserRead]]:
         """Lists all users.
 
         TODO: Filter based on authenticated user?
@@ -279,7 +279,7 @@ class AuthOperations(ABC):
         pass
 
     @abstractmethod
-    def get_user(self, user_id: str) -> UserPermission:
+    def get_user(self, user_id: str) -> Union[User, UserRead]:
         """Returns the user metadata for a single user.
 
         Args:
@@ -290,6 +290,21 @@ class AuthOperations(ABC):
 
         Returns:
             User: The user information.
+        """
+        pass
+
+    @abstractmethod
+    def get_user_with_permission(self, user_id: str) -> UserPermission:
+        """Returns the user metadata for a single user.
+
+        Args:
+            user_id: The ID of the user.
+
+        Raises:
+            ResourceNotFoundError: If no user with the specified ID exists.
+
+        Returns:
+            User: The user information with permssion to resource.
         """
         pass
 

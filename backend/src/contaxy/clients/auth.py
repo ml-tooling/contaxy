@@ -1,5 +1,5 @@
 import json
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
 import requests
 from pydantic import parse_raw_as
@@ -18,7 +18,7 @@ from contaxy.schema import (
     UserInput,
     UserRegistration,
 )
-from contaxy.schema.auth import ApiToken, OAuth2Error
+from contaxy.schema.auth import ApiToken, OAuth2Error, UserPermission, UserRead
 
 
 def handle_oauth_error(response: Response) -> None:
@@ -197,11 +197,10 @@ class AuthClient(AuthOperations):
 
     # User Operations
 
-    def list_users(self, request_kwargs: Dict = {}) -> List[User]:
+    def list_users(self, request_kwargs: Dict = {}) -> List[Union[User, UserRead]]:
         response = self._client.get("/users", **request_kwargs)
         handle_errors(response)
-        print(response.text)
-        return parse_raw_as(List[User], response.text)
+        return parse_raw_as(List[Union[User, UserRead]], response.text)
 
     def create_user(
         self,
@@ -222,6 +221,13 @@ class AuthClient(AuthOperations):
         response = self._client.get(f"/users/{user_id}", **request_kwargs)
         handle_errors(response)
         return parse_raw_as(User, response.text)
+
+    def get_user_with_permission(
+        self, user_id: str, request_kwargs: Dict = {}
+    ) -> UserPermission:
+        response = self._client.get(f"/users/{user_id}", **request_kwargs)
+        handle_errors(response)
+        return parse_raw_as(UserPermission, response.text)
 
     def update_user(
         self, user_id: str, user_input: UserInput, request_kwargs: Dict = {}

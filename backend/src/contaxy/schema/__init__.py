@@ -11,8 +11,8 @@ from .auth import (
     TokenType,
     User,
     UserInput,
-    UserRegistration,
     UserRead,
+    UserRegistration,
 )
 from .deployment import (
     Deployment,

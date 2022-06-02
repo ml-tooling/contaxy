@@ -377,38 +377,32 @@ class AuthManager(AuthOperations):
         self, token: str, permission: Optional[str] = None, use_cache: bool = True
     ) -> AuthorizedAccess:
         # This will throw an UnauthenticatedError if the token is not valid or does not exist
-        try:
-            resolved_token = self._resolve_token(token, use_cache=use_cache)
-            if not permission or settings.DEBUG_DEACTIVATE_VERIFICATION:
-                # no permissions to check -> return granted permission
-                return AuthorizedAccess(
-                    authorized_subject=resolved_token.subject,
-                    access_token=resolved_token,
-                )
-            if (
-                not use_cache
-                or not self._global_state.settings.VERIFY_ACCESS_CACHE_ENABLED
-            ):
-                # Do not use cache
-                return self._verify_access_via_db(
+        resolved_token = self._resolve_token(token, use_cache=use_cache)
+        if not permission or settings.DEBUG_DEACTIVATE_VERIFICATION:
+            # no permissions to check -> return granted permission
+            return AuthorizedAccess(
+                authorized_subject=resolved_token.subject,
+                access_token=resolved_token,
+            )
+        if not use_cache or not self._global_state.settings.VERIFY_ACCESS_CACHE_ENABLED:
+            # Do not use cache
+            return self._verify_access_via_db(
+                resolved_token, permission, use_cache=use_cache
+            )
+
+        cache = self._get_verify_access_cache()
+        cache_key = token + "-perm-" + str(permission)
+        if cache_key in cache:
+            return cache[cache_key]
+        else:
+            # lock thread if item is updated
+            with self._lock:
+                # Add the verification result to the cache
+                verification_result = self._verify_access_via_db(
                     resolved_token, permission, use_cache=use_cache
                 )
-
-            cache = self._get_verify_access_cache()
-            cache_key = token + "-perm-" + str(permission)
-            if cache_key in cache:
-                return cache[cache_key]
-            else:
-                # lock thread if item is updated
-                with self._lock:
-                    # Add the verification result to the cache
-                    verification_result = self._verify_access_via_db(
-                        resolved_token, permission, use_cache=use_cache
-                    )
-                    cache[cache_key] = verification_result
-                    return verification_result
-        except Exception as e:
-            raise e
+                cache[cache_key] = verification_result
+                return verification_result
 
     def change_password(
         self,
@@ -821,7 +815,7 @@ class AuthManager(AuthOperations):
     def list_users(
         self,
         access_level: Optional[AccessLevel] = None,
-    ) -> List[User]:
+    ) -> List[Union[User, UserRead]]:
         """Lists all users.
 
         TODO: Filter based on authenticated user?
@@ -829,7 +823,7 @@ class AuthManager(AuthOperations):
         Returns:
             List[User]: List of users.
         """
-        user_list: List[User] = []
+        user_list: List[Union[User, UserRead]] = []
         for json_document in self._json_db_manager.list_json_documents(
             config.SYSTEM_INTERNAL_PROJECT, self._USER_COLLECTION
         ):
@@ -947,7 +941,26 @@ class AuthManager(AuthOperations):
         logger.debug(f"Successfully created User({user}).")
         return user
 
-    def get_user(self, user_id: str) -> UserPermission:
+    def get_user(self, user_id: str) -> Union[User, UserRead]:
+        """Returns the user metadata for a single user.
+
+        Args:
+            user_id: The ID of the user.
+
+        Raises:
+            ResourceNotFoundError: If no user with the specified ID exists.
+
+        Returns:
+            User: The user information.
+        """
+        json_document = self._json_db_manager.get_json_document(
+            project_id=config.SYSTEM_INTERNAL_PROJECT,
+            collection_id=self._USER_COLLECTION,
+            key=user_id,
+        )
+        return User.parse_raw(json_document.json_value)
+
+    def get_user_with_permission(self, user_id: str) -> UserPermission:
         """Returns the user metadata for a single user.
 
         Args:
