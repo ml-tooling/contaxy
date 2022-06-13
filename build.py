@@ -4,6 +4,7 @@ import os
 
 from universal_build import build_utils
 from universal_build.helpers import build_docker, build_python, openapi_utils
+from universal_build.helpers.openapi_utils import OpenApiGenerator
 
 HERE = os.path.abspath(os.path.dirname(__file__))
 
@@ -32,10 +33,13 @@ def main(args: dict) -> None:
         build_utils.duplicate_folder(
             f"./{PYTHON_LIB_COMPONENT}/docs/", f"./{DOCS_COMPONENT}/docs/api-docs/"
         )
-
+        openapi_generator = OpenApiGenerator.OPENAPI_CODEGEN
+        # Use new version of openapi generator
+        openapi_generator.download_url = "https://repo1.maven.org/maven2/org/openapitools/openapi-generator-cli/6.0.0/openapi-generator-cli-6.0.0.jar"
         output_path = openapi_utils.generate_openapi_js_client(
             openapi_spec_file=f"./{PYTHON_LIB_COMPONENT}/openapi-spec.json",
             additional_flags="--global-property skipFormModel=false",
+            client_generator=openapi_generator
         )
         is_successful = False
         if output_path:
