@@ -63,7 +63,7 @@ TYPE_KUBERNETES = "kubernetes"
 def get_random_resources() -> Tuple[int, str, str]:
     uid = randint(1, 100000)
     project_id = f"{uid}-dm-test-project"
-    service_display_name = f"{uid}-dm-test-service"
+    service_display_name = f"{uid}-test-service"
 
     return uid, project_id, service_display_name
 
@@ -153,6 +153,24 @@ class DeploymentOperationsTests(ABC):
         assert service.metadata.get(Labels.PROJECT_NAME.value, "") == self.project_id
         assert service.parameters.get("FOO", "") == "bar"
         assert "some-metadata" in service.metadata
+
+    def test_deploy_jobs(self) -> None:
+        test_job = create_test_echo_job_input(
+            display_name=f"{self.service_display_name}",
+        )
+        job_1 = self.deploy_job(
+            project_id=self.project_id,
+            job=test_job
+        )
+        # It should be possible to schedule same job twice with the same name
+        job_2 = self.deploy_job(
+            project_id=self.project_id,
+            job=test_job
+        )
+        assert job_1.id != job_2.id
+        self.deployment_manager.delete_jobs(self.project_id)
+
+
 
     def test_update_service(self) -> None:
         test_service_input = create_test_service_input(

@@ -1,5 +1,6 @@
 import string
 import subprocess
+import time
 from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple, Type, TypeVar
@@ -285,6 +286,9 @@ def get_deployment_id(
     if deployment_type == DeploymentType.JOB:
         # Currently, only job has a different separator
         separator = _JOB_ID_SEPERATOR
+        # Add the current timestamp to the deployment name so multiple jobs
+        # with the same deployment name can be created.
+        deployment_name += f"-{time.time_ns()}"
 
     deployment_name_part = id_utils.generate_readable_id(
         deployment_name,
