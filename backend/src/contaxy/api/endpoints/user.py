@@ -43,10 +43,9 @@ def list_users(
         component_manager.verify_access(token, "users", AccessLevel.ADMIN)
         return component_manager.get_auth_manager().list_users(AccessLevel.ADMIN)
     except PermissionDeniedError:
-        print("User does not have admin access to list project users")
-
-    component_manager.verify_access(token, "users", AccessLevel.READ)
-    return component_manager.get_auth_manager().list_users(AccessLevel.READ)
+        # If the user does not have admin access, a limited view of the users is still allowed
+        component_manager.verify_access(token)
+        return component_manager.get_auth_manager().list_users(AccessLevel.READ)
 
 
 @router.post(
