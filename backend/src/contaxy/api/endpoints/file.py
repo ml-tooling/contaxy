@@ -1,4 +1,3 @@
-import os.path
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, Path, Query, Request, Response, status

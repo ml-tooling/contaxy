@@ -19,7 +19,7 @@ from contaxy.managers.deployment.docker_utils import (
 )
 from contaxy.schema import Job, JobInput, ResourceAction, Service, ServiceInput
 from contaxy.schema.deployment import DeploymentType, ServiceUpdate
-from contaxy.schema.exceptions import ServerBaseError, ClientValueError
+from contaxy.schema.exceptions import ClientValueError, ServerBaseError
 
 
 class DockerDeploymentPlatform:
@@ -72,7 +72,9 @@ class DockerDeploymentPlatform:
         except docker.errors.APIError as e:
             message = f"Could not deploy service '{service.display_name}'."
             if e.status_code == 400:
-                raise ClientValueError(message=message, explanation=e.explanation) from e
+                raise ClientValueError(
+                    message=message, explanation=e.explanation
+                ) from e
             raise ServerBaseError(message) from e
 
         return map_service(container)
@@ -155,7 +157,9 @@ class DockerDeploymentPlatform:
         except docker.errors.APIError as e:
             message = f"Could not deploy job '{job.display_name}'."
             if e.status_code == 400:
-                raise ClientValueError(message=message, explanation=e.explanation) from e
+                raise ClientValueError(
+                    message=message, explanation=e.explanation
+                ) from e
             raise ServerBaseError(message) from e
 
         response_service = map_job(container)

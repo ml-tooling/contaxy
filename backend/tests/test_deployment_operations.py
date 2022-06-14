@@ -158,19 +158,11 @@ class DeploymentOperationsTests(ABC):
         test_job = create_test_echo_job_input(
             display_name=f"{self.service_display_name}",
         )
-        job_1 = self.deploy_job(
-            project_id=self.project_id,
-            job=test_job
-        )
+        job_1 = self.deploy_job(project_id=self.project_id, job=test_job)
         # It should be possible to schedule same job twice with the same name
-        job_2 = self.deploy_job(
-            project_id=self.project_id,
-            job=test_job
-        )
+        job_2 = self.deploy_job(project_id=self.project_id, job=test_job)
         assert job_1.id != job_2.id
         self.deployment_manager.delete_jobs(self.project_id)
-
-
 
     def test_update_service(self) -> None:
         test_service_input = create_test_service_input(
