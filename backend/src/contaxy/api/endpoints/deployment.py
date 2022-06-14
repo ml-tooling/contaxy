@@ -304,7 +304,7 @@ def delete_services(
 ) -> Any:
     """Deletes all services associated with a project."""
     component_manager.verify_access(
-        token, f"projects/{project_id}/services", AccessLevel.ADMIN
+        token, f"projects/{project_id}/services", AccessLevel.WRITE
     )
 
     component_manager.get_service_manager(extension_id).delete_services(project_id)
@@ -461,7 +461,7 @@ def delete_jobs(
 ) -> Any:
     """Deletes all jobs associated with a project."""
     component_manager.verify_access(
-        token, f"projects/{project_id}/jobs", AccessLevel.ADMIN
+        token, f"projects/{project_id}/jobs", AccessLevel.WRITE
     )
     component_manager.get_job_manager(extension_id).delete_jobs(project_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
