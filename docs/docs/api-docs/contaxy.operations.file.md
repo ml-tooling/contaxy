@@ -262,9 +262,9 @@ If no version is provided then the latest version will be returned. Moreover, ad
 upload_file(
     project_id: str,
     file_key: str,
-    file_stream: FileStream,
+    file_stream: IO[bytes],
     metadata: Optional[Dict[str, str]] = None,
-    content_type: str = 'application/octet-stream'
+    content_type: Optional[str] = None
 ) → File
 ```
 
@@ -276,7 +276,7 @@ Upload a file.
  
  - <b>`project_id`</b> (str):  Project ID associated with the file. 
  - <b>`file_key`</b> (str):  Key of the file. 
- - <b>`file_stream`</b> (FileStream):  The actual file stream object. 
+ - <b>`file_stream`</b> (IO):  The actual file stream object. 
  - <b>`metadata`</b> (Dict, optional):  Additional key-value pairs of file meta data 
  - <b>`content_type`</b> (str, optional):  The mime-type of the file. Defaults to "application/octet-stream". 
 

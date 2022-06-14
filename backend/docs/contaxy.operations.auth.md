@@ -136,7 +136,7 @@ Creates a user.
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/auth.py#L315"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/auth.py#L330"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `delete_user`
 
@@ -165,7 +165,7 @@ Deletes a user.
 ### <kbd>method</kbd> `get_user`
 
 ```python
-get_user(user_id: str) → User
+get_user(user_id: str) → Union[User, UserRead]
 ```
 
 Returns the user metadata for a single user. 
@@ -190,7 +190,7 @@ Returns the user metadata for a single user.
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/auth.py#L327"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/auth.py#L342"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `get_user_token`
 
@@ -216,6 +216,36 @@ If a token for the specified user and access level already exists in the DB, it 
 
 **Returns:**
  User token for specified user id and access level. 
+
+---
+
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/auth.py#L296"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+### <kbd>method</kbd> `get_user_with_permission`
+
+```python
+get_user_with_permission(user_id: str) → UserPermission
+```
+
+Returns the user metadata for a single user. 
+
+
+
+**Args:**
+ 
+ - <b>`user_id`</b>:  The ID of the user. 
+
+
+
+**Raises:**
+ 
+ - <b>`ResourceNotFoundError`</b>:  If no user with the specified ID exists. 
+
+
+
+**Returns:**
+ 
+ - <b>`User`</b>:  The user information with permssion to resource. 
 
 ---
 
@@ -332,7 +362,7 @@ Returns all resources that are granted for the specified permission.
 ### <kbd>method</kbd> `list_users`
 
 ```python
-list_users() → List[User]
+list_users() → List[Union[User, UserRead]]
 ```
 
 Lists all users. 
@@ -455,7 +485,7 @@ This operation implements the OAuth2 Revocation Flow ([RFC7009](https://tools.ie
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/auth.py#L296"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/auth.py#L311"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `update_user`
 
