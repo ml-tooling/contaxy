@@ -6,37 +6,25 @@ from contaxy.managers.deployment.utils import split_image_name_and_tag
 from contaxy.schema.deployment import DeploymentType
 
 
-@pytest.mark.parametrize(
-    "project_id,deployment_name,deployment_type,expected_id",
-    [
-        (
-            "my-project",
-            "Foo Bar Service",
-            DeploymentType.SERVICE,
-            settings.SYSTEM_NAMESPACE + "-p-my-project-s-foo-bar-service",
-        ),
-        (
-            "my-project",
-            "Foo Bar Job",
-            DeploymentType.JOB,
-            settings.SYSTEM_NAMESPACE + "-p-my-project-j-foo-bar-job",
-        ),
-    ],
-)
-@pytest.mark.unit
-def test_get_deployment_id(
-    project_id: str,
-    deployment_name: str,
-    deployment_type: DeploymentType,
-    expected_id: str,
-) -> None:
+def test_get_deployment_id_for_service() -> None:
     deployment_id = utils.get_deployment_id(
-        project_id, deployment_name, deployment_type
+        "my-project", "Foo Bar Service", DeploymentType.SERVICE
     )
-    assert deployment_id == expected_id
+    assert (
+        deployment_id == settings.SYSTEM_NAMESPACE + "-p-my-project-s-foo-bar-service"
+    )
     # The deployment id should be always under 63 chars
     assert len(deployment_id) <= 63
+    # TODO check if the id is DNS conform...
 
+
+def test_get_deployment_id_for_job() -> None:
+    job_id_1 = utils.get_deployment_id("my-project", "Foo Bar Job", DeploymentType.JOB)
+    job_id_2 = utils.get_deployment_id("my-project", "Foo Bar Job", DeploymentType.JOB)
+    # Job ids should be unique even for same name
+    assert job_id_1 != job_id_2
+    # The deployment id should be always under 63 chars
+    assert len(job_id_1) <= 63
     # TODO check if the id is DNS conform...
 
 
