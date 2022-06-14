@@ -22,7 +22,7 @@ from contaxy.operations import (
     ServiceOperations,
 )
 from contaxy.operations.components import ComponentOperations
-from contaxy.schema import AuthorizedAccess, TokenType, User, UserInput
+from contaxy.schema import AuthorizedAccess, TokenType, User, UserInput, UserRead
 from contaxy.schema.auth import (
     AccessLevel,
     AccessToken,
@@ -33,6 +33,7 @@ from contaxy.schema.auth import (
     OAuthToken,
     OAuthTokenIntrospection,
     TokenPurpose,
+    UserPermission,
     UserRegistration,
 )
 from contaxy.schema.exceptions import (
@@ -357,7 +358,6 @@ class AuthManager(AuthOperations):
         token_subject_permissions = self.list_permissions(
             token.subject, resolve_roles=True, use_cache=use_cache
         )
-
         for token_subject_permission in token_subject_permissions:
             if auth_utils.is_permission_granted(token_subject_permission, permission):
                 # The token subject (= usually user) is granted the requested permission
@@ -381,7 +381,8 @@ class AuthManager(AuthOperations):
         if not permission or settings.DEBUG_DEACTIVATE_VERIFICATION:
             # no permissions to check -> return granted permission
             return AuthorizedAccess(
-                authorized_subject=resolved_token.subject, access_token=resolved_token
+                authorized_subject=resolved_token.subject,
+                access_token=resolved_token,
             )
         if not use_cache or not self._global_state.settings.VERIFY_ACCESS_CACHE_ENABLED:
             # Do not use cache
@@ -811,7 +812,10 @@ class AuthManager(AuthOperations):
 
     # User Operations
 
-    def list_users(self) -> List[User]:
+    def list_users(
+        self,
+        access_level: Optional[AccessLevel] = None,
+    ) -> List[Union[User, UserRead]]:
         """Lists all users.
 
         TODO: Filter based on authenticated user?
@@ -819,11 +823,14 @@ class AuthManager(AuthOperations):
         Returns:
             List[User]: List of users.
         """
-        user_list: List[User] = []
+        user_list: List[Union[User, UserRead]] = []
         for json_document in self._json_db_manager.list_json_documents(
             config.SYSTEM_INTERNAL_PROJECT, self._USER_COLLECTION
         ):
-            user_list.append(User.parse_raw(json_document.json_value))
+            if access_level == AccessLevel.ADMIN:
+                user_list.append(User.parse_raw(json_document.json_value))
+            elif access_level == AccessLevel.READ:
+                user_list.append(UserRead.parse_raw(json_document.json_value))
         return user_list
 
     def _create_login_id_mapping(self, login_id: str, user_id: str) -> None:
@@ -934,7 +941,7 @@ class AuthManager(AuthOperations):
         logger.debug(f"Successfully created User({user}).")
         return user
 
-    def get_user(self, user_id: str) -> User:
+    def get_user(self, user_id: str) -> Union[User, UserRead]:
         """Returns the user metadata for a single user.
 
         Args:
@@ -952,6 +959,25 @@ class AuthManager(AuthOperations):
             key=user_id,
         )
         return User.parse_raw(json_document.json_value)
+
+    def get_user_with_permission(self, user_id: str) -> UserPermission:
+        """Returns the user metadata for a single user.
+
+        Args:
+            user_id: The ID of the user.
+
+        Raises:
+            ResourceNotFoundError: If no user with the specified ID exists.
+
+        Returns:
+            User: The user information.
+        """
+        json_document = self._json_db_manager.get_json_document(
+            project_id=config.SYSTEM_INTERNAL_PROJECT,
+            collection_id=self._USER_COLLECTION,
+            key=user_id,
+        )
+        return UserPermission.parse_raw(json_document.json_value)
 
     def update_user(self, user_id: str, user_input: UserInput) -> User:
         """Updates the user metadata.

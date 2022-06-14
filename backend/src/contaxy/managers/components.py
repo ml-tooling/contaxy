@@ -163,7 +163,6 @@ class ComponentManager(ComponentOperations):
         """Returns an Auth Manager instance."""
         if not self._auth_manager:
             self._auth_manager = AuthManager(self)
-
         assert self._auth_manager is not None
         return self._auth_manager
 

@@ -215,6 +215,7 @@ class AuthOperationsTests(ABC):
         USER = "users/" + id_utils.generate_short_uuid()
         self.auth_manager.add_permission(USER, PROJECT + "#admin")
         self.auth_manager.add_permission(USER, USER_ROLE)
+        self.auth_manager.add_permission("users", "#read")
         token = self.auth_manager.create_token(
             token_subject=USER,
             scopes=[PROJECT + "#write"],
@@ -391,7 +392,7 @@ class AuthOperationsTests(ABC):
             created_user = self.auth_manager.create_user(user_input)
             created_users.append(created_user)
 
-        users_in_db = {user.id: user for user in self.auth_manager.list_users()}
+        users_in_db = {user.id: user for user in self.auth_manager.list_users("read")}
 
         for user in created_users:
             assert user.id in users_in_db

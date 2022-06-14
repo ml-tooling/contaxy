@@ -7,7 +7,13 @@ from loguru import logger
 from contaxy import config
 from contaxy.operations import AuthOperations, JsonDocumentOperations, ProjectOperations
 from contaxy.operations.components import ComponentOperations
-from contaxy.schema.auth import USERS_KIND, AccessLevel, TokenPurpose, TokenType, User
+from contaxy.schema.auth import (
+    USERS_KIND,
+    AccessLevel,
+    TokenPurpose,
+    TokenType,
+    UserPermission,
+)
 from contaxy.schema.exceptions import (
     ClientValueError,
     ResourceAlreadyExistsError,
@@ -210,39 +216,35 @@ class ProjectManager(ProjectOperations):
             config.SYSTEM_INTERNAL_PROJECT, self._PROJECT_COLLECTION, project_id
         )
 
-    def list_project_members(self, project_id: str) -> List[User]:
+    def list_project_members(self, project_id: str) -> List[UserPermission]:
         project_member_resource_names: List[str] = []
         admin_permission = auth_utils.construct_permission(
             f"{PROJECTS_KIND}/{project_id}",
             AccessLevel.ADMIN,
         )
-        project_member_resource_names.extend(
-            self._auth_manager.list_resources_with_permission(
-                admin_permission, resource_name_prefix=USERS_KIND
-            )
+        admin = self._auth_manager.list_resources_with_permission(
+            admin_permission, resource_name_prefix=USERS_KIND
         )
-
+        project_member_resource_names.extend(admin)
         write_permission = auth_utils.construct_permission(
             f"{PROJECTS_KIND}/{project_id}",
             AccessLevel.WRITE,
         )
-        project_member_resource_names.extend(
-            self._auth_manager.list_resources_with_permission(
-                write_permission, resource_name_prefix=USERS_KIND
-            )
+        write = self._auth_manager.list_resources_with_permission(
+            write_permission, resource_name_prefix=USERS_KIND
         )
+        project_member_resource_names.extend(write)
 
         read_permission = auth_utils.construct_permission(
             f"{PROJECTS_KIND}/{project_id}",
             AccessLevel.READ,
         )
-        project_member_resource_names.extend(
-            self._auth_manager.list_resources_with_permission(
-                read_permission, resource_name_prefix=USERS_KIND
-            )
+        read = self._auth_manager.list_resources_with_permission(
+            read_permission, resource_name_prefix=USERS_KIND
         )
+        project_member_resource_names.extend(read)
 
-        project_users: List[User] = []
+        project_users: List[UserPermission] = []
 
         for resource_name in project_member_resource_names:
             try:
@@ -253,7 +255,17 @@ class ProjectManager(ProjectOperations):
                 )
                 continue
             try:
-                project_users.append(self._auth_manager.get_user(user_id))
+                user_details = self._auth_manager.get_user_with_permission(user_id)
+                user_details.permission = (
+                    AccessLevel.ADMIN
+                    if resource_name in admin
+                    else AccessLevel.WRITE
+                    if resource_name in write
+                    else AccessLevel.READ
+                    if resource_name in read
+                    else None
+                )
+                project_users.append(user_details)
             except ResourceNotFoundError:
                 logger.warning(
                     f"User with id {user_id} does not exist anymore but its permissions have not been removed from the DB!"
@@ -267,7 +279,7 @@ class ProjectManager(ProjectOperations):
         project_id: str,
         user_id: str,
         access_level: AccessLevel,
-    ) -> List[User]:
+    ) -> List[UserPermission]:
         try:
             # Check if user with the given ID exists
             self._auth_manager.get_user(user_id)
@@ -293,7 +305,9 @@ class ProjectManager(ProjectOperations):
             remove_sub_permissions=True,
         )
 
-    def remove_project_member(self, project_id: str, user_id: str) -> List[User]:
+    def remove_project_member(
+        self, project_id: str, user_id: str
+    ) -> List[UserPermission]:
         # Remove all permissions from the user that grant access to any part of the project
         self._remove_project_member(project_id, user_id)
         return self.list_project_members(project_id)
