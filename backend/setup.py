@@ -53,7 +53,7 @@ setup(
     install_requires=[
         "typer",  # TODO: remove typer?
         "pydantic[dotenv,email]",
-        "fastapi",
+        "fastapi==0.75.2",
         "requests",
         # Better logging
         "loguru",
