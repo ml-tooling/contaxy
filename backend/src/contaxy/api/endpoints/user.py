@@ -200,14 +200,15 @@ def change_password(
     else:
         # Only check if token allows admin access on user object
         component_manager.verify_access(token, f"users/{user_id}", AccessLevel.ADMIN)
+        is_admin = True
 
     if component_manager.get_auth_manager().get_user(user_id).has_password or is_admin:
         component_manager.get_auth_manager().change_password(user_id, password)
         return Response(status_code=status.HTTP_204_NO_CONTENT)
     else:
         raise PermissionDeniedError(
-            'Password cannot be changed. Please contact an administrator.'
-        )
+                "Password cannot be changed. Please contact an administrator."
+            )
 
 
 @router.delete(
