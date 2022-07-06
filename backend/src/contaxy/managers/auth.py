@@ -941,7 +941,7 @@ class AuthManager(AuthOperations):
         logger.debug(f"Successfully created User({user}).")
         return user
 
-    def get_user(self, user_id: str) -> Union[User, UserRead]:
+    def get_user(self, user_id: str) -> User:
         """Returns the user metadata for a single user.
 
         Args:
