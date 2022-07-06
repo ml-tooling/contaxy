@@ -207,7 +207,7 @@ def change_password(
         return Response(status_code=status.HTTP_204_NO_CONTENT)
     else:
         raise PermissionDeniedError(
-            "Password cannot be changed. Please contact an administrator."
+            'Password cannot be changed. Please contact an administrator.'
         )
 
 
