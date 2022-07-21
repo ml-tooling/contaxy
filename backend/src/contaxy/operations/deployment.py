@@ -95,14 +95,14 @@ class ServiceOperations(ABC):
 
     @abstractmethod
     def update_service(
-        self, project_id: str, service_id: str, service: ServiceUpdate
+        self, project_id: str, service_id: str, service_update: ServiceUpdate
     ) -> Service:
         """Updates the service.
 
         Args:
             project_id (str): The project ID associated with the service.
             service_id (str): The ID of the service.
-            service (ServiceUpdate): Updates that should be applied to the service
+            service_update (ServiceUpdate): Updates that should be applied to the service
         Returns:
             Service: The updated service metadata
         """

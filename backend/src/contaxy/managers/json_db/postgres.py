@@ -160,7 +160,6 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
         select_statement = table.select().with_for_update().where(table.c.key == key)
 
         with self._engine.begin() as conn:
-
             result = conn.execute(select_statement)
 
             if result.rowcount == 0:
@@ -170,7 +169,9 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
             row = result.one()
 
             update_data["json_value"] = json_merge_patch.merge(
-                row["json_value"], json.loads(json_document)
+                # TODO: Allow passing dict directly to avoid converting a dict to json and right back to a dict here
+                row["json_value"],
+                json.loads(json_document),
             )
 
             # The json_value needs to be a dict otherwise the string gets escaped

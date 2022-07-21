@@ -95,7 +95,7 @@ def create_test_echo_job_input(
     return JobInput(
         container_image="ubuntu:20.04",
         command=["/bin/bash"],
-        args=["-c", f"echo {log_input}"],
+        args=["-c", f"echo {log_input} && sleep 1"],
         display_name=display_name,
         parameters={"FOO": "bar", "FOO2": "bar2"},
         metadata={"some-metadata": "some-metadata-value"},
@@ -162,6 +162,14 @@ class DeploymentOperationsTests(ABC):
         # It should be possible to schedule same job twice with the same name
         job_2 = self.deploy_job(project_id=self.project_id, job=test_job)
         assert job_1.id != job_2.id
+        start_time = time.time()
+        timeout_seconds = 60
+        while job_1.status == DeploymentStatus.RUNNING:
+            assert time.time() - start_time < timeout_seconds
+            time.sleep(5)
+            job_1 = self.deployment_manager.get_job_metadata(self.project_id, job_1.id)
+        assert job_1.status == DeploymentStatus.SUCCEEDED
+        assert job_1.started_at < job_1.stopped_at
         self.deployment_manager.delete_jobs(self.project_id)
 
     def test_update_service(self) -> None:
@@ -183,7 +191,7 @@ class DeploymentOperationsTests(ABC):
         service = self.deployment_manager.update_service(
             project_id=self.project_id,
             service_id=service.id,
-            service=updated_service_input,
+            service_update=updated_service_input,
         )
         assert service.display_name == test_service_input.display_name
         assert service.container_image == test_service_input.container_image
@@ -194,6 +202,8 @@ class DeploymentOperationsTests(ABC):
         assert "some-metadata" not in service.metadata
         assert service.idle_timeout == timedelta(seconds=9000)
         assert service.clear_volume_on_stop is True
+        assert service.created_at < service.updated_at
+        assert service.started_at >= service.updated_at
 
     def test_invalid_update_service(self) -> None:
         test_service_input = create_test_service_input(
@@ -209,7 +219,7 @@ class DeploymentOperationsTests(ABC):
             self.deployment_manager.update_service(
                 project_id=self.project_id,
                 service_id=service.id,
-                service=updated_service_input,
+                service_update=updated_service_input,
             )
 
     def test_update_service_access(self):

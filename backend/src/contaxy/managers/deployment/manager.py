@@ -3,6 +3,7 @@ import time
 from datetime import datetime, timezone
 from typing import Dict, List, Literal, Optional, Union
 
+from fastapi.encoders import jsonable_encoder
 from starlette.responses import Response
 
 from contaxy import config
@@ -11,6 +12,7 @@ from contaxy.managers.deployment.docker import DockerDeploymentPlatform
 from contaxy.managers.deployment.kubernetes import KubernetesDeploymentPlatform
 from contaxy.managers.deployment.utils import (
     create_deployment_config,
+    enrich_deployment_with_runtime_info,
     get_job_collection_id,
     get_service_collection_id,
     split_image_name_and_tag,
@@ -43,6 +45,7 @@ from contaxy.schema.deployment import (
     ServiceUpdate,
 )
 from contaxy.schema.shared import ResourceActionExecution
+from contaxy.utils.auth_utils import parse_userid_from_resource_name
 
 
 class DeploymentManager(DeploymentOperations):
@@ -97,11 +100,9 @@ class DeploymentManager(DeploymentOperations):
             deployed_service = self._deploy_service(
                 project_id, db_service, action_id, wait
             )
-            db_service.status = deployed_service.status
-            db_service.internal_id = deployed_service.internal_id
+            enrich_deployment_with_runtime_info(db_service, deployed_service)
         else:
             db_service.status = DeploymentStatus.STOPPED
-            db_service.internal_id = None
         return db_service
 
     def list_services(
@@ -132,10 +133,8 @@ class DeploymentManager(DeploymentOperations):
             deployed_service = deployed_service_lookup.pop(db_service.id, None)
             if deployed_service is None:
                 db_service.status = DeploymentStatus.STOPPED
-                db_service.internal_id = None
             else:
-                db_service.status = deployed_service.status
-                db_service.internal_id = deployed_service.internal_id
+                enrich_deployment_with_runtime_info(db_service, deployed_service)
             services.append(db_service)
         # Add services to DB that were not added via the contaxy API
         for deployed_service in deployed_service_lookup.values():
@@ -159,36 +158,44 @@ class DeploymentManager(DeploymentOperations):
             deployed_service = self.deployment_platform.get_service_metadata(
                 project_id, db_service.id
             )
-            db_service.status = deployed_service.status
-            db_service.internal_id = deployed_service.internal_id
+            enrich_deployment_with_runtime_info(db_service, deployed_service)
         except ResourceNotFoundError:
             db_service.status = DeploymentStatus.STOPPED
-            db_service.internal_id = None
 
         return db_service
 
     def update_service(
-        self, project_id: str, service_id: str, service: ServiceUpdate
+        self, project_id: str, service_id: str, service_update: ServiceUpdate
     ) -> Service:
-        service_dict = service.dict(exclude_unset=True)
-        if "display_name" in service_dict:
+        service_update_dict = jsonable_encoder(service_update, exclude_unset=True)
+
+        if "display_name" in service_update_dict:
             raise ClientValueError("Display name of service cannot be updated!")
-        if "container_image" in service_dict:
-            image_name, image_tag = split_image_name_and_tag(service.container_image)
+        if "container_image" in service_update_dict:
+            image_name, image_tag = split_image_name_and_tag(
+                service_update.container_image
+            )
             self._system_manager.check_allowed_image(image_name, image_tag)
+        service_update_dict.update(
+            {
+                "updated_at": str(datetime.now(timezone.utc)),
+                "updated_by": parse_userid_from_resource_name(
+                    self._request_state.authorized_subject
+                ),
+            }
+        )
         service_doc = self._json_db_manager.update_json_document(
             project_id=config.SYSTEM_INTERNAL_PROJECT,
             collection_id=get_service_collection_id(project_id),
             key=service_id,
-            json_document=service.json(exclude_unset=True),
+            json_document=json.dumps(service_update_dict),
         )
         db_service = Service.parse_raw(service_doc.json_value)
         try:
             deployed_service = self._execute_restart_service_action(
                 project_id, service_id
             )
-            db_service.status = deployed_service.status
-            db_service.internal_id = deployed_service.internal_id
+            enrich_deployment_with_runtime_info(db_service, deployed_service)
         except ClientValueError:
             db_service.status = DeploymentStatus.STOPPED
             db_service.internal_id = None
@@ -276,10 +283,8 @@ class DeploymentManager(DeploymentOperations):
             deployed_job = deployed_job_lookup.get(db_job.id)
             if deployed_job is None:
                 db_job.status = DeploymentStatus.STOPPED
-                db_job.internal_id = None
             else:
-                db_job.status = deployed_job.status
-                db_job.internal_id = deployed_job.internal_id
+                enrich_deployment_with_runtime_info(db_job, deployed_job)
             jobs.append(db_job)
 
         return jobs
@@ -312,8 +317,7 @@ class DeploymentManager(DeploymentOperations):
         deployed_job = self.deployment_platform.deploy_job(
             project_id, db_job, action_id, wait
         )
-        db_job.status = deployed_job.status
-        db_job.internal_id = deployed_job.internal_id
+        enrich_deployment_with_runtime_info(db_job, deployed_job)
         return db_job
 
     def get_job_metadata(self, project_id: str, job_id: str) -> Job:
@@ -322,11 +326,9 @@ class DeploymentManager(DeploymentOperations):
             deployed_job = self.deployment_platform.get_job_metadata(
                 project_id, db_job.id
             )
-            db_job.status = deployed_job.status
-            db_job.internal_id = deployed_job.internal_id
+            enrich_deployment_with_runtime_info(db_job, deployed_job)
         except ResourceNotFoundError:
-            db_job.status = DeploymentStatus.STOPPED
-            db_job.internal_id = None
+            db_job.status = DeploymentStatus.UNKNOWN
 
         return db_job
 

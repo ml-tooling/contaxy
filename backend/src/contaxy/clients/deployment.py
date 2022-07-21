@@ -65,12 +65,12 @@ class DeploymentClient(DeploymentOperations):
         self,
         project_id: str,
         service_id: str,
-        service: ServiceUpdate,
+        service_update: ServiceUpdate,
         request_kwargs: Dict = {},
     ) -> Service:
         resource = self.client.patch(
             f"/projects/{project_id}/services/{service_id}",
-            data=service.json(exclude_unset=True),
+            data=service_update.json(exclude_unset=True),
             **request_kwargs,
         )
         handle_errors(resource)
