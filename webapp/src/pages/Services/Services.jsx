@@ -15,6 +15,7 @@ import GlobalStateContainer from '../../app/store';
 import ResourceActionsDialog from '../../components/Dialogs/ResourceActionsDialog';
 import ServicesContainer from './ServicesContainer';
 import showStandardSnackbar from '../../app/showStandardSnackbar';
+import { BodyIntrospectTokenAuthOauthIntrospectPost } from '../../services/contaxy-client';
 
 function Services(props) {
   const { className } = props;
@@ -46,8 +47,14 @@ function Services(props) {
           onClose();
           reloadServices();
         } catch (err) {
-          showStandardSnackbar(`Could not deploy service '${deploymentName}'.`);
-        }
+            if (err.body.code == 409){
+              showStandardSnackbar(`Service with name '${deploymentName}' already exists.`);
+            }
+            else {
+              showStandardSnackbar(`Could not deploy service '${deploymentName}'.`);
+            }
+              
+        } 
       },
     });
   }, [activeProject.id, showAppDialog, reloadServices]);
