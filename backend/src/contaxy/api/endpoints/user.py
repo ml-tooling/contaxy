@@ -191,17 +191,15 @@ def change_password(
 
     The password is stored as a hash.
     """
-    is_admin = False
     # TODO: check existing password as well for normal users
     if not component_manager.global_state.settings.PASSWORD_AUTH_ENABLED:
         # Admins still can set and change password
         component_manager.verify_access(token, "users", AccessLevel.ADMIN)
-        is_admin = True
     else:
         # Only check if token allows admin access on user object
         component_manager.verify_access(token, f"users/{user_id}", AccessLevel.ADMIN)
 
-    if component_manager.get_auth_manager().get_user(user_id).has_password or is_admin:
+    if component_manager.get_auth_manager().get_user(user_id).has_password or component_manager.verify_access(token, "users", AccessLevel.ADMIN):
         component_manager.get_auth_manager().change_password(user_id, password)
         return Response(status_code=status.HTTP_204_NO_CONTENT)
     else:
