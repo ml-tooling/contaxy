@@ -18,6 +18,7 @@ from contaxy.schema import (
 )
 from contaxy.schema.auth import TokenPurpose
 from contaxy.schema.deployment import (
+    Deployment,
     DeploymentCompute,
     DeploymentInput,
     DeploymentStatus,
@@ -522,3 +523,24 @@ def split_image_name_and_tag(full_image_name: str) -> Tuple[str, str]:
         full_image_name[:last_colon_position],
         full_image_name[last_colon_position + 1 :],
     )
+
+
+def enrich_deployment_with_runtime_info(
+    deployment_from_db: Deployment, deployment_with_runtime_info: Deployment
+) -> None:
+    """Transfers runtime information from one deployment object to another.
+
+    If a deployment is loaded from the DB certain fields are not set (e.g. the internal id)
+    because they are received at runtime from the running container. This function takes a
+    deployment retrieved from the DB and adds these missing runtime field from another
+    deployment object that was created directly from the running container.
+
+    Args:
+        deployment_from_db: The deployment object retrieved from the DB without runtime info.
+                            This object is edited in place to add the missing runtime fields.
+        deployment_with_runtime_info: The deployment object created directly from the container with runtime info
+    """
+    deployment_from_db.status = deployment_with_runtime_info.status
+    deployment_from_db.internal_id = deployment_with_runtime_info.internal_id
+    deployment_from_db.started_at = deployment_with_runtime_info.started_at
+    deployment_from_db.stopped_at = deployment_with_runtime_info.stopped_at
