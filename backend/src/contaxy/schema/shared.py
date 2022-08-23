@@ -196,7 +196,7 @@ class ResourceMetadata(BaseModel):
 
 
 class ResourceInput(BaseModel):
-    display_name: Optional[str] = Field(
+    display_name: str = Field(
         None,
         max_length=MAX_DISPLAY_NAME_LENGTH,
         description="A user-defined human-readable name of the resource. The name can be up to 128 characters long and can consist of any UTF-8 character.",
