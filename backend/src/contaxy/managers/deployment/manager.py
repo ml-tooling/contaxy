@@ -46,6 +46,7 @@ from contaxy.schema.deployment import (
 )
 from contaxy.schema.shared import ResourceActionExecution
 from contaxy.utils.auth_utils import parse_userid_from_resource_name
+from contaxy.utils.id_utils import generate_short_uuid
 
 
 class DeploymentManager(DeploymentOperations):
@@ -557,8 +558,13 @@ class DeploymentManager(DeploymentOperations):
         container_image: str,
     ) -> ServiceInput:
         # TODO: add sensible logic here
-        return ServiceInput(container_image=container_image)
+        return ServiceInput(
+            display_name=f"Service {generate_short_uuid()}",
+            container_image=container_image,
+        )
 
     def suggest_job_config(self, project_id: str, container_image: str) -> JobInput:
         # TODO: add sensible logic here
-        return JobInput(container_image=container_image)
+        return JobInput(
+            display_name=f"Job {generate_short_uuid()}", container_image=container_image
+        )
