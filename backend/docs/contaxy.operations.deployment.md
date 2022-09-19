@@ -326,7 +326,7 @@ The suggestion is based on metadata extracted from the container image (e.g. lab
 update_service(
     project_id: str,
     service_id: str,
-    service: ServiceUpdate
+    service_update: ServiceUpdate
 ) → Service
 ```
 
@@ -338,7 +338,7 @@ Updates the service.
  
  - <b>`project_id`</b> (str):  The project ID associated with the service. 
  - <b>`service_id`</b> (str):  The ID of the service. 
- - <b>`service`</b> (ServiceUpdate):  Updates that should be applied to the service 
+ - <b>`service_update`</b> (ServiceUpdate):  Updates that should be applied to the service 
 
 **Returns:**
  
@@ -1012,7 +1012,7 @@ The suggestion is based on metadata extracted from the container image (e.g. lab
 update_service(
     project_id: str,
     service_id: str,
-    service: ServiceUpdate
+    service_update: ServiceUpdate
 ) → Service
 ```
 
@@ -1024,7 +1024,7 @@ Updates the service.
  
  - <b>`project_id`</b> (str):  The project ID associated with the service. 
  - <b>`service_id`</b> (str):  The ID of the service. 
- - <b>`service`</b> (ServiceUpdate):  Updates that should be applied to the service 
+ - <b>`service_update`</b> (ServiceUpdate):  Updates that should be applied to the service 
 
 **Returns:**
  
