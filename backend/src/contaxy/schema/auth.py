@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
 import pydantic
 from fastapi import HTTPException, Path, status
@@ -418,7 +418,7 @@ class User(UserBase):
         default_factory=lambda: datetime.now(timezone.utc),
         description="Timestamp of the user creation. Assigned by the server and read-only.",
     )
-    last_activity: datetime = Field(
+    last_activity: Union[datetime, None] = Field(
         None,  # If none the validator below will set last_activity to the create_at time
         description="Last time the user accessed the system. Right now this is only updated when the user "
         "calls the /users/me endpoint so that call should always be done when the user loads the UI.",

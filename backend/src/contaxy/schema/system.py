@@ -41,12 +41,12 @@ class SystemStatistics(BaseModel):
 
 class AllowedImageInfo(BaseModel):
     image_name: str = Field(
-        None,
+        ...,
         example="my-docker-registry.com/my-image",
         description="Name of the docker image to allow. Do not specify the image tag (the part after the colon)",
     )
     image_tags: List[str] = Field(
-        None,
+        ...,
         example=["0.2.1", "0.3.0"],
         description='List of tags that are allowed for this image. Can be set to ["*"] to allow all tags.',
     )
