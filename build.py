@@ -45,7 +45,7 @@ def main(args: dict) -> None:
         if output_path:
             is_successful = build_utils.copy(
                 src_path=f"{output_path}/src",
-                target_path="./webapp/src/services/contaxy-client/",
+                target_path="./js-client/",
                 preserve_target=True,
             )
 
@@ -53,24 +53,9 @@ def main(args: dict) -> None:
             build_utils.log("Error in generating the JavaScript client library")
             # build_utils.exit_process(1)
 
-    build_utils.build(WEBAPP_COMPONENT, args)
 
     # Build mkdocs documentation
     # build_utils.build(DOCS_COMPONENT, args)
-
-    # Build all docker component
-    docker_image_prefix = args.get(build_docker.FLAG_DOCKER_IMAGE_PREFIX)
-
-    if not docker_image_prefix:
-        docker_image_prefix = DOCKER_IMAGE_PREFIX  # type: ignore
-
-    if args.get(build_utils.FLAG_MAKE):
-        build_docker.build_docker_image(COMPONENT_NAME, version, exit_on_error=True)
-
-    # TODO: Uncomment when dockerfile is finalized
-    # if args.get(build_utils.FLAG_CHECK):
-    # build_docker.lint_dockerfile(exit_on_error=True)
-
 
 if __name__ == "__main__":
     args = build_utils.parse_arguments()
