@@ -67,7 +67,7 @@ class File(Resource, FileBase):
         description="The full file extension extracted from the key field. May contain multiple concatenated extensions, such as `tar.gz`.",
     )
     file_size: ByteSize = Field(
-        0,
+        ByteSize(0),
         example=1073741824,
         description="The file size in bytes.",
     )
