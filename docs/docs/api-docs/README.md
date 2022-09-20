@@ -201,6 +201,7 @@
 - [`kube_utils.wait_for_job`](./contaxy.managers.deployment.kube_utils.md#function-wait_for_job)
 - [`utils.clean_metadata`](./contaxy.managers.deployment.utils.md#function-clean_metadata): Remove system labels that should not be settable by the user.
 - [`utils.create_deployment_config`](./contaxy.managers.deployment.utils.md#function-create_deployment_config)
+- [`utils.enrich_deployment_with_runtime_info`](./contaxy.managers.deployment.utils.md#function-enrich_deployment_with_runtime_info): Transfers runtime information from one deployment object to another.
 - [`utils.get_default_environment_variables`](./contaxy.managers.deployment.utils.md#function-get_default_environment_variables): Sets default environment variables that should be set for each container.
 - [`utils.get_deployment_id`](./contaxy.managers.deployment.utils.md#function-get_deployment_id): Returns a valid deployment ID based on some specified metadata.
 - [`utils.get_gpu_info`](./contaxy.managers.deployment.utils.md#function-get_gpu_info)
