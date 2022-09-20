@@ -424,7 +424,7 @@ suggest_service_config(
 update_service(
     project_id: str,
     service_id: str,
-    service: ServiceUpdate,
+    service_update: ServiceUpdate,
     request_kwargs: Dict = {}
 ) → Service
 ```
