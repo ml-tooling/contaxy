@@ -63,7 +63,7 @@ class DeploymentCompute(BaseModel):
     min_cpus: Optional[float] = Field(
         1,
         example=2,
-        ge=1,
+        ge=0,
         description="Minimum number of CPU cores required by this deployment. The system will make sure that atleast this amount is available to the deployment.",
     )
     max_cpus: Optional[float] = Field(
@@ -75,7 +75,7 @@ class DeploymentCompute(BaseModel):
     min_memory: Optional[int] = Field(
         1000,
         example=4000,
-        ge=1000,  # 4 is the minimal RAM needed for containers
+        ge=4,  # 4 is the minimal RAM needed for containers
         description="Minimum amount of memory in Megabyte required by this deployment. The system will make sure that atleast this amount is available to the deployment.",
     )
     max_memory: Optional[int] = Field(
