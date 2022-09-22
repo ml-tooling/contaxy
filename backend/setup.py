@@ -57,8 +57,6 @@ setup(
         "requests",
         # Better logging
         "loguru",
-        # Used for multipart stream parsing in file manager
-        "streaming_form_data",
         "filetype",
         "addict",
         "requests-toolbelt"
@@ -73,6 +71,8 @@ setup(
             "fastapi-utils",
             # Required by fastapi.security OAuth2PasswordBearer & fastapi.UploadFile for example
             "python-multipart",
+            # Used for multipart stream parsing in file manager
+            "streaming_form_data",
             "psutil",
             "uvicorn",
             "sqlalchemy>=1.4.0",

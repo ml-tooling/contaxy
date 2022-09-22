@@ -61,7 +61,7 @@ class DeploymentStatus(str, Enum):
 
 class DeploymentCompute(BaseModel):
     min_cpus: Optional[float] = Field(
-        None,
+        1,
         example=2,
         ge=0,
         description="Minimum number of CPU cores required by this deployment. The system will make sure that atleast this amount is available to the deployment.",
@@ -73,9 +73,9 @@ class DeploymentCompute(BaseModel):
         description="Maximum number of CPU cores. Even so the system will try to provide the specified amount, it's only guaranteed that the deployment cannot use more. 0 means unlimited.",
     )
     min_memory: Optional[int] = Field(
-        None,
+        1000,
         example=4000,
-        ge=5,  # 4 is the minimal RAM needed for containers
+        ge=4,  # 4 is the minimal RAM needed for containers
         description="Minimum amount of memory in Megabyte required by this deployment. The system will make sure that atleast this amount is available to the deployment.",
     )
     max_memory: Optional[int] = Field(

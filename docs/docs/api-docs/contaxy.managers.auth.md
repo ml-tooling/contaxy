@@ -188,7 +188,7 @@ Deletes a user.
 ### <kbd>method</kbd> `get_user`
 
 ```python
-get_user(user_id: str) → Union[User, UserRead]
+get_user(user_id: str) → User
 ```
 
 Returns the user metadata for a single user. 
