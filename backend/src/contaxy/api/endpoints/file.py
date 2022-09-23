@@ -121,7 +121,7 @@ def upload_file(
                 "The multipart stream does not contain a file name. Use the endpoint `/projects/{project_id}/files/{file_key:path/}` to explicitly provide a file key."
             )
         file_key = multipart_stream.filename
-    
+        
     file_name = os.path.basename(file_key)
     if len(file_name) > MAX_DISPLAY_NAME_LENGTH:
         raise ClientValueError(
