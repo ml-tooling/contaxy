@@ -1,4 +1,6 @@
 import hashlib
+import random
+import string
 from abc import ABC, abstractmethod
 from random import randint
 from typing import Generator, Optional
@@ -24,7 +26,8 @@ from contaxy.schema.auth import (
     OAuth2TokenGrantTypes,
     OAuth2TokenRequestFormNew,
 )
-from contaxy.schema.exceptions import ResourceNotFoundError, ClientValueError
+from contaxy.schema.exceptions import ClientValueError, ResourceNotFoundError
+from contaxy.schema.shared import MAX_DISPLAY_NAME_LENGTH
 from contaxy.utils import auth_utils
 from contaxy.utils.minio_utils import delete_bucket, get_bucket_name
 from contaxy.utils.state_utils import GlobalState, RequestState
@@ -32,8 +35,6 @@ from contaxy.utils.state_utils import GlobalState, RequestState
 from .conftest import test_settings
 from .utils import ComponentManagerMock
 
-from contaxy.schema.shared import MAX_DISPLAY_NAME_LENGTH
-import string, random
 
 class FileOperationsTests(ABC):
     @property
@@ -194,9 +195,11 @@ class FileOperationsTests(ABC):
         assert version_1.metadata == {}
 
         letters = string.ascii_lowercase
-        prefix_str = ''.join(random.choice(letters) for i in range(MAX_DISPLAY_NAME_LENGTH))
+        prefix_str = "".join(
+            random.choice(letters) for i in range(MAX_DISPLAY_NAME_LENGTH)
+        )
 
-        file_key = prefix_str + '.txt'
+        file_key = prefix_str + ".txt"
         file_stream = self.seeder.create_file_stream()
 
         with pytest.raises(ClientValueError):
