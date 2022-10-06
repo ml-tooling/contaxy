@@ -1,4 +1,6 @@
 import hashlib
+import random
+import string
 from abc import ABC, abstractmethod
 from random import randint
 from typing import Generator, Optional
@@ -24,7 +26,8 @@ from contaxy.schema.auth import (
     OAuth2TokenGrantTypes,
     OAuth2TokenRequestFormNew,
 )
-from contaxy.schema.exceptions import ResourceNotFoundError
+from contaxy.schema.exceptions import ClientValueError, ResourceNotFoundError
+from contaxy.schema.shared import MAX_DISPLAY_NAME_LENGTH
 from contaxy.utils import auth_utils
 from contaxy.utils.minio_utils import delete_bucket, get_bucket_name
 from contaxy.utils.state_utils import GlobalState, RequestState
@@ -190,6 +193,25 @@ class FileOperationsTests(ABC):
             version_1.content_type == "application/octet-stream"
         )  # Default content type
         assert version_1.metadata == {}
+
+    def test_upload_file_with_long_name(self) -> None:
+        # In this test case, we upload file with long name greater than the max length. This should throw an exception.
+        letters = string.ascii_lowercase
+        prefix_str = "".join(
+            random.choice(letters) for i in range(MAX_DISPLAY_NAME_LENGTH)
+        )
+
+        file_key = prefix_str + ".txt"
+        file_stream = self.seeder.create_file_stream()
+
+        with pytest.raises(ClientValueError):
+            self.file_manager.upload_file(
+                self.project_id,
+                file_key,
+                file_stream,
+                metadata={"test": "data"},
+                content_type="text/plain",
+            )
 
     def test_download_file(self) -> None:
         file_key = "test-download-file.bin"

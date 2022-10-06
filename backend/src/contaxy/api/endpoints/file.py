@@ -1,3 +1,4 @@
+import os
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, Path, Query, Request, Response, status
@@ -18,7 +19,11 @@ from contaxy.schema.exceptions import (
 from contaxy.schema.extension import EXTENSION_ID_PARAM
 from contaxy.schema.file import FILE_KEY_PARAM
 from contaxy.schema.project import PROJECT_ID_PARAM
-from contaxy.schema.shared import OPEN_URL_REDIRECT, RESOURCE_ID_REGEX
+from contaxy.schema.shared import (
+    MAX_DISPLAY_NAME_LENGTH,
+    OPEN_URL_REDIRECT,
+    RESOURCE_ID_REGEX,
+)
 from contaxy.utils.auth_utils import get_api_token
 from contaxy.utils.file_utils import FormMultipartStream, SyncFromAsyncGenerator
 
@@ -119,6 +124,16 @@ def upload_file(
                 "The multipart stream does not contain a file name. Use the endpoint `/projects/{project_id}/files/{file_key:path/}` to explicitly provide a file key."
             )
         file_key = multipart_stream.filename
+
+    file_name = os.path.basename(file_key)
+    if len(file_name) > MAX_DISPLAY_NAME_LENGTH:
+        raise ClientValueError(
+            "Error in uploading file "
+            + file_name
+            + ". File name is more than "
+            + str(MAX_DISPLAY_NAME_LENGTH)
+            + " characters."
+        )
 
     metadata = {}
     for key, value in request.headers.items():
