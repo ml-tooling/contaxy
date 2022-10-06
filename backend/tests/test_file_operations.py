@@ -194,6 +194,8 @@ class FileOperationsTests(ABC):
         )  # Default content type
         assert version_1.metadata == {}
 
+    def test_upload_file_with_long_name(self) -> None:
+        # In this test case, we upload file with long name greater than the max length. This should throw an exception.
         letters = string.ascii_lowercase
         prefix_str = "".join(
             random.choice(letters) for i in range(MAX_DISPLAY_NAME_LENGTH)
