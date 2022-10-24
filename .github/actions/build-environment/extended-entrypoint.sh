@@ -43,6 +43,9 @@ fi
 #               sleep 30
 #               done) & python -u build.py $INPUT_BUILD_ARGS $BUILD_SECRETS
 
+# Install build requirements
+pip install -r "$GITHUB_WORKSPACE/build_requirements.txt"
+
 # Call the original build-environment entrypoint (doing so, the logic does not have to be copied)
 # Disable immediate stop so that the cleanup phase can run even if entrypoint-sh fails
 set +e

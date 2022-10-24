@@ -31,8 +31,6 @@ RUN \
   apt-get update \
   && apt-get install -y libpq-dev
 
-RUN pip install --no-cache-dir pipenv==2022.9.8
-
 COPY extended-entrypoint.sh /extended-entrypoint.sh
 
 RUN chmod +x /extended-entrypoint.sh
