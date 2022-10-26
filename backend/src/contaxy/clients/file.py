@@ -1,3 +1,4 @@
+from optparse import Option
 from typing import IO, Callable, Dict, Iterator, List, Optional, Tuple
 
 import requests
@@ -7,7 +8,7 @@ from requests_toolbelt import MultipartEncoderMonitor
 from contaxy.clients.shared import handle_errors
 from contaxy.operations.file import FileOperations
 from contaxy.schema import File, FileInput, ResourceAction
-
+from datetime import datetime
 
 class FileClient(FileOperations):
     _FILE_METADATA_PREFIX = "x-amz-meta-"
@@ -172,10 +173,14 @@ class FileClient(FileOperations):
     def delete_files(
         self,
         project_id: str,
+        date_from: Optional[datetime] = None,
+        date_to: Optional[datetime] = None,
         request_kwargs: Dict = {},
     ) -> None:
+        query_params: Dict = {"date_from": date_from, "date_to": date_to}
         response = self._client.delete(
             f"/projects/{project_id}/files",
+            params=query_params,
             **request_kwargs,
         )
         handle_errors(response)

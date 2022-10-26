@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import IO, Any, Dict, Iterator, List, Optional, Tuple
 
 from contaxy.schema import File, FileInput, ResourceAction
-
+from datetime import datetime
 
 class FileOperations(ABC):
     @abstractmethod
@@ -150,6 +150,8 @@ class FileOperations(ABC):
     def delete_files(
         self,
         project_id: str,
+        date_from: Optional[datetime] = None,
+        date_to: Optional[datetime] = None,
     ) -> None:
         """Deletes all files associated with a project.
 

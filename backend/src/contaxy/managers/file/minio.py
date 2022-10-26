@@ -22,7 +22,7 @@ from contaxy.utils.minio_utils import (
     delete_bucket,
     get_bucket_name,
 )
-
+from datetime import datetime
 
 class MinioFileManager(FileOperations):
     DOC_COLLECTION_NAME = "s3_files"
@@ -377,20 +377,26 @@ class MinioFileManager(FileOperations):
     def delete_files(
         self,
         project_id: str,
+        date_from: Optional[datetime] = None,
+        date_to: Optional[datetime] = None,
     ) -> None:
         """Delete all files and storage resources related to a project.
 
         Args:
             project_id (str): Project ID associated with the files.
         """
-        delete_bucket(
-            self.client,
-            get_bucket_name(project_id, self._global_state.settings.SYSTEM_NAMESPACE),
-            force=True,
-        )
-        self._json_db_manager.delete_json_collection(
-            project_id, self.DOC_COLLECTION_NAME
-        )
+        if date_from and date_to:
+            self._delete_files_within_specific_period(project_id, date_from, date_to)
+        else:
+            delete_bucket(
+                self.client,
+                get_bucket_name(project_id, self._global_state.settings.SYSTEM_NAMESPACE),
+                force=True,
+            )
+            self._json_db_manager.delete_json_collection(
+                project_id, self.DOC_COLLECTION_NAME
+            )
+        return
 
     def list_file_actions(
         self, project_id: str, file_key: str, version: Optional[str] = None
@@ -604,3 +610,46 @@ class MinioFileManager(FileOperations):
             self._json_db_manager.delete_json_document(
                 project_id, self.DOC_COLLECTION_NAME, db_key
             )
+
+    def _delete_files_within_specific_period(
+        self, project_id: str, date_from: datetime, date_to: datetime
+    ) -> None:
+        bucket_name = get_bucket_name(project_id, self.sys_namespace)
+        files_to_prefix = self.list_files(
+            project_id, recursive=True, include_versions=False
+        )
+        delete_objects = []
+
+        for file in files_to_prefix:
+            if file.updated_at and (date_to > file.updated_at > date_from):
+                delete_objects.append(DeleteObject(file.key))
+
+        if not delete_objects:
+            logger.debug(f"No files in the time period {date_from} and {date_to} for deletion).")
+            return
+
+        errors = self.client.remove_objects(
+            bucket_name, delete_objects, bypass_governance_mode=True
+        )
+
+        for error in errors:
+            # TODO: Critical is only for testing an should be handled when tested
+            logger.critical(
+                f"Error deleting files between {date_from} and {date_to}. (Errors: {error}).",
+            )
+
+        db_keys = [
+            doc.key
+            for doc in self._json_db_manager.list_json_documents(
+                project_id, self.DOC_COLLECTION_NAME, time_range=[date_from, date_to]
+            )
+        ]
+
+        for db_key in db_keys:
+            self._json_db_manager.delete_json_document(
+                project_id, self.DOC_COLLECTION_NAME, db_key
+            )
+
+
+
+
