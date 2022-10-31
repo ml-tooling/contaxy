@@ -443,7 +443,9 @@ def delete_files(
         token, f"projects/{project_id}/files", AccessLevel.ADMIN
     )
 
-    component_manager.get_file_manager(extension_id).delete_files(project_id, date_from, date_to)
+    component_manager.get_file_manager(extension_id).delete_files(
+        project_id, date_from, date_to
+    )
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 

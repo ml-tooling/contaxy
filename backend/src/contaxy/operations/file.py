@@ -1,8 +1,9 @@
 from abc import ABC, abstractmethod
+from datetime import datetime
 from typing import IO, Any, Dict, Iterator, List, Optional, Tuple
 
 from contaxy.schema import File, FileInput, ResourceAction
-from datetime import datetime
+
 
 class FileOperations(ABC):
     @abstractmethod

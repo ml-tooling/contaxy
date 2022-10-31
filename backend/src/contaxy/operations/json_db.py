@@ -1,8 +1,9 @@
 from abc import ABC, abstractmethod
+from datetime import datetime
 from typing import List, Optional
 
 from contaxy.schema import JsonDocument
-from datetime import datetime
+
 
 class JsonDocumentOperations(ABC):
     @abstractmethod

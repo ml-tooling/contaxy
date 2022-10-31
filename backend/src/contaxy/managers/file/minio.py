@@ -1,5 +1,6 @@
 import json
 import os
+from datetime import datetime
 from typing import IO, Dict, Iterator, List, Optional, Tuple
 
 from loguru import logger
@@ -22,7 +23,7 @@ from contaxy.utils.minio_utils import (
     delete_bucket,
     get_bucket_name,
 )
-from datetime import datetime
+
 
 class MinioFileManager(FileOperations):
     DOC_COLLECTION_NAME = "s3_files"
@@ -390,7 +391,9 @@ class MinioFileManager(FileOperations):
         else:
             delete_bucket(
                 self.client,
-                get_bucket_name(project_id, self._global_state.settings.SYSTEM_NAMESPACE),
+                get_bucket_name(
+                    project_id, self._global_state.settings.SYSTEM_NAMESPACE
+                ),
                 force=True,
             )
             self._json_db_manager.delete_json_collection(
@@ -625,7 +628,9 @@ class MinioFileManager(FileOperations):
                 delete_objects.append(DeleteObject(file.key))
 
         if not delete_objects:
-            logger.debug(f"No files in the time period {date_from} and {date_to} for deletion).")
+            logger.debug(
+                f"No files in the time period {date_from} and {date_to} for deletion)."
+            )
             return
 
         errors = self.client.remove_objects(
@@ -649,7 +654,3 @@ class MinioFileManager(FileOperations):
             self._json_db_manager.delete_json_document(
                 project_id, self.DOC_COLLECTION_NAME, db_key
             )
-
-
-
-

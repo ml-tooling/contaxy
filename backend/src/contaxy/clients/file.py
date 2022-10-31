@@ -1,3 +1,4 @@
+from datetime import datetime
 from optparse import Option
 from typing import IO, Callable, Dict, Iterator, List, Optional, Tuple
 
@@ -8,7 +9,7 @@ from requests_toolbelt import MultipartEncoderMonitor
 from contaxy.clients.shared import handle_errors
 from contaxy.operations.file import FileOperations
 from contaxy.schema import File, FileInput, ResourceAction
-from datetime import datetime
+
 
 class FileClient(FileOperations):
     _FILE_METADATA_PREFIX = "x-amz-meta-"

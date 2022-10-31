@@ -1,4 +1,5 @@
 import json
+from datetime import datetime
 from typing import Dict, List, Optional
 
 import json_merge_patch
@@ -24,7 +25,7 @@ from contaxy.schema.exceptions import (
 from contaxy.schema.json_db import JsonDocument
 from contaxy.utils.postgres_utils import create_schema
 from contaxy.utils.state_utils import GlobalState, RequestState
-from datetime import datetime
+
 
 class PostgresJsonDocumentManager(JsonDocumentOperations):
     def __init__(
@@ -272,7 +273,9 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
             sql_statement = sql_statement.where(table.c.key.in_(keys))
 
         if time_range:
-            sql_statement = sql_statement.where(table.c.updated_at.between(time_range[0], time_range[1]))
+            sql_statement = sql_statement.where(
+                table.c.updated_at.between(time_range[0], time_range[1])
+            )
 
         with self._engine.begin() as conn:
             try:
@@ -324,7 +327,7 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
         insert_data = data.copy()
         # TODO: Finalize
         insert_data["created_at"] = datetime.utcnow()
-        #Added the updated_at column to facilitate the document deletion based on timestamp.
+        # Added the updated_at column to facilitate the document deletion based on timestamp.
         insert_data["updated_at"] = insert_data["created_at"]
         # data["created_by"] =
         return insert_data
