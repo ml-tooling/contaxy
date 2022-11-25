@@ -188,9 +188,11 @@ def create_network(
             ):
                 highest_cidr = cidr
 
-    # take the highest cidr and add 256 bits, so that if the highest subnet was 172.33.2.0, the new subnet is 172.33.3.0
+    # take the highest cidr and add bits used by it, so that if the highest subnet was 172.33.2.0, the new subnet is 172.33.3.0
+    # or if the highest subnet was 10.88.0.0/16, the new subnet is 10.89.0.0/24
     next_cidr = ipaddress.IPv4Network(
-        (highest_cidr.network_address + 256).exploded + "/24"
+        (highest_cidr.network_address + 2 ** (32 - highest_cidr.prefixlen)).exploded
+        + "/24"
     )
     if next_cidr.network_address.packed[0] > INITIAL_CIDR_FIRST_OCTET:
         raise RuntimeError("No more possible subnet addresses exist")
