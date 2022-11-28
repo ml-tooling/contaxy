@@ -59,7 +59,9 @@ setup(
         "loguru",
         "filetype",
         "addict",
-        "requests-toolbelt"
+        "requests-toolbelt",
+        "shortuuid",
+        "slugify",
     ],
     # deprecated: dependency_links=dependency_links,
     extras_require={
