@@ -242,8 +242,7 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
         project_id: str,
         collection_id: str,
         filter: Optional[str] = None,
-        keys: Optional[List[str]] = None,
-        time_range: Optional[List[datetime]] = None,
+        keys: Optional[List[str]] = None
     ) -> List[JsonDocument]:
         """List all existing Json documents and optionally filter via Json Path syntax.
 
@@ -271,11 +270,6 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
 
         if keys:
             sql_statement = sql_statement.where(table.c.key.in_(keys))
-
-        if time_range:
-            sql_statement = sql_statement.where(
-                table.c.updated_at.between(time_range[0], time_range[1])
-            )
 
         with self._engine.begin() as conn:
             try:

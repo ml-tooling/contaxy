@@ -34,7 +34,7 @@ from contaxy.utils.state_utils import GlobalState, RequestState
 
 from .conftest import test_settings
 from .utils import ComponentManagerMock
-
+from datetime import datetime, timedelta, timezone
 
 class FileOperationsTests(ABC):
     @property
@@ -334,6 +334,56 @@ class FileOperationsTests(ABC):
         self.file_manager.delete_files(self.project_id)
         files = self.file_manager.list_files(self.project_id, include_versions=True)
         assert not files
+
+    def test_delete_files_within_time_period(self) -> None:
+        file_key = "delete-1.bin"
+        self.seeder.create_file(self.project_id, file_key)
+        self.seeder.create_file(self.project_id, file_key)
+        file_key = "delete-2.bin"
+        self.seeder.create_file(self.project_id, file_key)
+        self.seeder.create_file(self.project_id, file_key)
+        self.seeder.create_file(self.project_id, file_key)
+
+        date_from = datetime.now(timezone.utc)
+        date_to = datetime.now(timezone.utc) + timedelta(days=1)
+
+        # Test - Delete all files including versions
+        self.file_manager.delete_files(self.project_id, date_from, date_to)
+        files = self.file_manager.list_files(self.project_id, include_versions=True)
+        assert not files
+        files = self.file_manager.list_files(
+            self.project_id, include_versions=True, prefix="delete-1.bin"
+        )
+        assert not files
+        files = self.file_manager.list_files(
+            self.project_id, include_versions=True, prefix="delete-2.bin"
+        )
+        assert not files
+
+        with pytest.raises(ResourceNotFoundError):
+            self.file_manager.get_file_metadata(self.project_id, file_key)
+
+        # Test - Try deleting an already deleted bucket
+        self.file_manager.delete_files(self.project_id)
+        files = self.file_manager.list_files(self.project_id, include_versions=True)
+        assert not files
+
+    def test_delete_files_outside_time_period(self) -> None:
+        file_key = "delete-1.bin"
+        self.seeder.create_file(self.project_id, file_key)
+        self.seeder.create_file(self.project_id, file_key)
+        file_key = "delete-2.bin"
+        self.seeder.create_file(self.project_id, file_key)
+        self.seeder.create_file(self.project_id, file_key)
+        self.seeder.create_file(self.project_id, file_key)
+
+        date_from = datetime.now(timezone.utc) - timedelta(days=2)
+        date_to = datetime.now(timezone.utc) - timedelta(days=1)
+
+        # Test - Delete all files including versions
+        self.file_manager.delete_files(self.project_id, date_from, date_to)
+        files = self.file_manager.list_files(self.project_id, include_versions=True)
+        assert len(files) == 5
 
     def _validate_file_not_found(
         self,

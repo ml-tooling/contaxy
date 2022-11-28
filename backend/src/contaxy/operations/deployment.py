@@ -277,6 +277,8 @@ class JobOperations(ABC):
     def delete_jobs(
         self,
         project_id: str,
+        date_from: Optional[datetime] = None,
+        date_to: Optional[datetime] = None
     ) -> None:
         """Deletes all jobs associated with a project.
 

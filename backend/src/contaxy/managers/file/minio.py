@@ -387,7 +387,11 @@ class MinioFileManager(FileOperations):
             project_id (str): Project ID associated with the files.
         """
         if date_from and date_to:
-            self._delete_files_within_specific_period(project_id, date_from, date_to)
+            files_to_delete = self.list_files(project_id)
+
+            for file in files_to_delete:
+                if file.updated_at and ((date_to.date() >= file.updated_at.date() >= date_from.date())):
+                    self.delete_file(project_id, file.key)
         else:
             delete_bucket(
                 self.client,
@@ -608,47 +612,6 @@ class MinioFileManager(FileOperations):
         ]
         if keep_latest_version:
             db_keys.remove(latest_version_db_key)
-
-        for db_key in db_keys:
-            self._json_db_manager.delete_json_document(
-                project_id, self.DOC_COLLECTION_NAME, db_key
-            )
-
-    def _delete_files_within_specific_period(
-        self, project_id: str, date_from: datetime, date_to: datetime
-    ) -> None:
-        bucket_name = get_bucket_name(project_id, self.sys_namespace)
-        files_to_prefix = self.list_files(
-            project_id, recursive=True, include_versions=False
-        )
-        delete_objects = []
-
-        for file in files_to_prefix:
-            if file.updated_at and (date_to > file.updated_at > date_from):
-                delete_objects.append(DeleteObject(file.key))
-
-        if not delete_objects:
-            logger.debug(
-                f"No files in the time period {date_from} and {date_to} for deletion)."
-            )
-            return
-
-        errors = self.client.remove_objects(
-            bucket_name, delete_objects, bypass_governance_mode=True
-        )
-
-        for error in errors:
-            # TODO: Critical is only for testing an should be handled when tested
-            logger.critical(
-                f"Error deleting files between {date_from} and {date_to}. (Errors: {error}).",
-            )
-
-        db_keys = [
-            doc.key
-            for doc in self._json_db_manager.list_json_documents(
-                project_id, self.DOC_COLLECTION_NAME, time_range=[date_from, date_to]
-            )
-        ]
 
         for db_key in db_keys:
             self._json_db_manager.delete_json_document(
