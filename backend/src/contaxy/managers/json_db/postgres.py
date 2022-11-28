@@ -242,7 +242,7 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
         project_id: str,
         collection_id: str,
         filter: Optional[str] = None,
-        keys: Optional[List[str]] = None
+        keys: Optional[List[str]] = None,
     ) -> List[JsonDocument]:
         """List all existing Json documents and optionally filter via Json Path syntax.
 

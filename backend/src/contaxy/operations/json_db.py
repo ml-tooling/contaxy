@@ -67,7 +67,7 @@ class JsonDocumentOperations(ABC):
         project_id: str,
         collection_id: str,
         filter: Optional[str] = None,
-        keys: Optional[List[str]] = None
+        keys: Optional[List[str]] = None,
     ) -> List[JsonDocument]:
         """Lists all JSON documents for the given project collection.
 

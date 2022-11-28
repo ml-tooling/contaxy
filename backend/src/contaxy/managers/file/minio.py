@@ -390,7 +390,9 @@ class MinioFileManager(FileOperations):
             files_to_delete = self.list_files(project_id)
 
             for file in files_to_delete:
-                if file.updated_at and ((date_to.date() >= file.updated_at.date() >= date_from.date())):
+                if file.updated_at and (
+                    (date_to.date() >= file.updated_at.date() >= date_from.date())
+                ):
                     self.delete_file(project_id, file.key)
         else:
             delete_bucket(

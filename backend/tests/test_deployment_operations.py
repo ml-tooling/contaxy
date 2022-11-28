@@ -56,8 +56,6 @@ from contaxy.utils.state_utils import GlobalState, RequestState
 from .conftest import test_settings
 from .utils import ComponentManagerMock
 
-from datetime import datetime, timedelta, timezone
-
 TYPE_DOCKER = "docker"
 TYPE_KUBERNETES = "kubernetes"
 

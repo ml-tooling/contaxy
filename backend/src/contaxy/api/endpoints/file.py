@@ -28,8 +28,6 @@ from contaxy.schema.shared import (
 from contaxy.utils.auth_utils import get_api_token
 from contaxy.utils.file_utils import FormMultipartStream, SyncFromAsyncGenerator
 
-import os
-
 _FILE_METADATA_PREFIX = "x-amz-meta-"
 
 router = APIRouter(

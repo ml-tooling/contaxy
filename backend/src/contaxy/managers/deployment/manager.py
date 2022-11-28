@@ -350,12 +350,18 @@ class DeploymentManager(DeploymentOperations):
             key=db_job.id,
         )
 
-    def delete_jobs(self, project_id: str, date_from: Optional[datetime] = None,
-        date_to: Optional[datetime] = None) -> None:
+    def delete_jobs(
+        self,
+        project_id: str,
+        date_from: Optional[datetime] = None,
+        date_to: Optional[datetime] = None,
+    ) -> None:
         if date_from and date_to:
             db_jobs = self.list_jobs(project_id)
             for db_job in db_jobs:
-                if db_job.created_at and (date_to.date() >= db_job.created_at.date() >= date_from.date()):
+                if db_job.created_at and (
+                    date_to.date() >= db_job.created_at.date() >= date_from.date()
+                ):
                     self.delete_job(project_id, db_job.id)
         else:
             self.deployment_platform.delete_jobs(project_id)
