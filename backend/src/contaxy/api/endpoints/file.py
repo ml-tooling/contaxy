@@ -440,7 +440,7 @@ def delete_files(
 ) -> Any:
     """Deletes all files associated with a project."""
     component_manager.verify_access(
-        token, f"projects/{project_id}/files", AccessLevel.WRITE
+        token, f"projects/{project_id}/files", AccessLevel.ADMIN
     )
 
     component_manager.get_file_manager(extension_id).delete_files(
