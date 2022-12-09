@@ -111,7 +111,7 @@ setup(
             "pytest",
             "pytest-mock",
             "pytest-cov",
-            "mypy",
+            "mypy==0.960",
             "types-python-slugify",
             "types-requests",
             "types-cachetools",
