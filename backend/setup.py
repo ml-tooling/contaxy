@@ -111,7 +111,7 @@ setup(
             "pytest",
             "pytest-mock",
             "pytest-cov",
-            "mypy==0.960",
+            "mypy",
             "types-python-slugify",
             "types-requests",
             "types-cachetools",
@@ -119,15 +119,15 @@ setup(
             "pydocstyle",
             "isort",
             "lazydocs",
-            # "locust",
+            "locust",
             # Test profiling
-            # "pyinstrument",
+            "pyinstrument",
             # Export profiling information about the tests
-            # "pytest-profiling",
+            "pytest-profiling",
             # For better print debugging via debug
-            # "devtools[pygments]",
+            "devtools[pygments]",
             # For Jupyter Kernel support
-            # "ipykernel",
+            "ipykernel",
             # TODO: Move to required when necessary
             "universal-build",
             "requests",
