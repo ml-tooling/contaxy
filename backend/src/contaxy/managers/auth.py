@@ -1,3 +1,4 @@
+from abc import abstractmethod
 import json
 import threading
 import time
@@ -135,6 +136,7 @@ class AuthManager(AuthOperations):
                 )
                 return state_namespace.resource_permissions_cache
 
+    @abstractmethod
     def login_page(self) -> RedirectResponse:
         pass
 

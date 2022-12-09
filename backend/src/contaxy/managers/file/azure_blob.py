@@ -1,3 +1,4 @@
+from abc import abstractmethod
 import json
 import logging
 import os
@@ -450,6 +451,7 @@ class AzureBlobFileManager(FileOperations):
     ) -> List[ResourceAction]:
         return []
 
+    @abstractmethod
     def execute_file_action(
         self,
         project_id: str,

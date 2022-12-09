@@ -484,7 +484,7 @@ def replace_templates(
 def get_template_mapping(
     project_id: Optional[str] = None,
     user_id: Optional[str] = None,
-    environment: Dict[str, str] = None,
+    environment: Optional[Dict[str, str]] = None,
 ) -> Dict[str, str]:
     template_mapping = {}
 
@@ -521,7 +521,7 @@ def split_image_name_and_tag(full_image_name: str) -> Tuple[str, str]:
         return full_image_name, "latest"
     return (
         full_image_name[:last_colon_position],
-        full_image_name[last_colon_position + 1 :],
+        full_image_name[last_colon_position + 1:],
     )
 
 

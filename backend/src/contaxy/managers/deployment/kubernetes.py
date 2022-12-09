@@ -48,7 +48,7 @@ from contaxy.schema.exceptions import ResourceNotFoundError, ServerBaseError
 class KubernetesDeploymentPlatform:
     def __init__(
         self,
-        kube_namespace: str = None,
+        kube_namespace: Optional[str] = None,
     ):
         """Initializes the Kubernetes Deployment Manager.
 

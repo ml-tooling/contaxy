@@ -394,7 +394,7 @@ def check_minimal_resources(
     min_cpus: float,
     min_memory: int,
     min_gpus: int,
-    compute_resources: DeploymentCompute = None,
+    compute_resources: Optional[DeploymentCompute] = None,
 ) -> None:
     if min_cpus > system_cpu_count:
         raise RuntimeError(

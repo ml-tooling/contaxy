@@ -1,3 +1,4 @@
+from abc import abstractmethod
 import json
 import os
 from datetime import datetime
@@ -414,6 +415,7 @@ class MinioFileManager(FileOperations):
     ) -> List[ResourceAction]:
         return []
 
+    @abstractmethod
     def execute_file_action(
         self,
         project_id: str,
