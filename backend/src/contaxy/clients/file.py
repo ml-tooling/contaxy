@@ -1,5 +1,4 @@
 from datetime import datetime
-from optparse import Option
 from typing import IO, Callable, Dict, Iterator, List, Optional, Tuple
 
 import requests
