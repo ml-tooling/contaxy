@@ -154,10 +154,12 @@ class FileOperations(ABC):
         date_from: Optional[datetime] = None,
         date_to: Optional[datetime] = None,
     ) -> None:
-        """Deletes all files associated with a project.
+        """Delete all files and storage resources related to a project.
 
         Args:
-            project_id (str): Project ID associated with the file.
+            project_id (str): Project ID associated with the files.
+            date_from (Optional[datetime], optional): The start date to delete the files. If not specified, all files will be deleted.
+            date_to (Optional[datetime], optional): The end date to delete the files. If not specified, all files will be deleted.
         """
         pass
 

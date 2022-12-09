@@ -385,6 +385,8 @@ class MinioFileManager(FileOperations):
 
         Args:
             project_id (str): Project ID associated with the files.
+            date_from (Optional[datetime], optional): The start date to delete the files. If not specified, all files will be deleted.
+            date_to (Optional[datetime], optional): The end date to delete the files. If not specified, all files will be deleted.
         """
         if date_from and date_to:
             files_to_delete = self.list_files(project_id)
