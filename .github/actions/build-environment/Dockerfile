@@ -31,7 +31,7 @@ RUN \
   apt-get update \
   && apt-get install -y libpq-dev
 
-RUN pip install git+https://github.com/ml-tooling/universal-build.git
+RUN pip uninstall universal-build -y && pip install git+https://github.com/ml-tooling/universal-build.git
 
 COPY extended-entrypoint.sh /extended-entrypoint.sh
 
