@@ -1,4 +1,3 @@
-from abc import abstractmethod
 from datetime import datetime
 from typing import IO, Callable, Dict, Iterator, List, Optional, Tuple
 
@@ -186,7 +185,6 @@ class FileClient(FileOperations):
         )
         handle_errors(response)
 
-    @abstractmethod
     def list_file_actions(
         self,
         project_id: str,
