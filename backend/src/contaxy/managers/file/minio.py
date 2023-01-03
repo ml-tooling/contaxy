@@ -422,7 +422,7 @@ class MinioFileManager(FileOperations):
         version: Optional[str] = None,
     ) -> Response:
         # TODO
-        return
+        return None
 
     def _create_client(self) -> Minio:
         settings = self._global_state.settings
