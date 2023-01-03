@@ -193,7 +193,7 @@ class FileClient(FileOperations):
         request_kwargs: Dict = {},
     ) -> List[ResourceAction]:
         # TODO
-        pass
+        return []
 
     def execute_file_action(
         self,
