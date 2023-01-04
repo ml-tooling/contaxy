@@ -456,7 +456,7 @@ class AzureBlobFileManager(FileOperations):
         file_key: str,
         action_id: str,
         version: Optional[str] = None,
-    ) -> Response:
+    ) -> Optional[Response]:
         # TODO
         return None
 

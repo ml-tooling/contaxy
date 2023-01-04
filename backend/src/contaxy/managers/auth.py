@@ -135,7 +135,7 @@ class AuthManager(AuthOperations):
                 )
                 return state_namespace.resource_permissions_cache
 
-    def login_page(self) -> RedirectResponse:
+    def login_page(self) -> Optional[RedirectResponse]:
         return None
 
     def logout_session(self) -> RedirectResponse:
