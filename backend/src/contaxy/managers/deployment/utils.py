@@ -521,7 +521,7 @@ def split_image_name_and_tag(full_image_name: str) -> Tuple[str, str]:
         return full_image_name, "latest"
     return (
         full_image_name[:last_colon_position],
-        full_image_name[last_colon_position + 1:],
+        full_image_name[last_colon_position + 1 :],
     )
 
 
