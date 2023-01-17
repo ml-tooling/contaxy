@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, Path, Query, Request, Response, status
@@ -425,6 +426,14 @@ def delete_file(
 )
 def delete_files(
     project_id: str = PROJECT_ID_PARAM,
+    date_from: Optional[datetime] = Query(
+        None,
+        description="The start date to delete the files. If not specified, all files will be deleted.",
+    ),
+    date_to: Optional[datetime] = Query(
+        None,
+        description="The end date to delete the files. If not specified, all files will be deleted.",
+    ),
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
     component_manager: ComponentManager = Depends(get_component_manager),
     token: str = Depends(get_api_token),
@@ -434,7 +443,9 @@ def delete_files(
         token, f"projects/{project_id}/files", AccessLevel.ADMIN
     )
 
-    component_manager.get_file_manager(extension_id).delete_files(project_id)
+    component_manager.get_file_manager(extension_id).delete_files(
+        project_id, date_from, date_to
+    )
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 

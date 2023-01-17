@@ -51,8 +51,8 @@ class File(Resource, FileBase):
         max_length=1024,  # Keys can only be 1024 chars long
         regex=FILE_KEY_REGEX,
     )
-    content_type: Optional[str] = Field(
-        None,
+    content_type: str = Field(
+        "",
         example="text/csv",
         description="A standard MIME type describing the format of the contents. If an file is stored without a Content-Type, it is served as application/octet-stream.",
     )

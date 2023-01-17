@@ -85,7 +85,7 @@ class InMemoryDictJsonDocumentManager(JsonDocumentOperations):
             key=key,
             json_value=json_document,
             created_at=datetime.now(timezone.utc),
-            update_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc),
         )
         collection[key] = created_document.dict()
         return created_document

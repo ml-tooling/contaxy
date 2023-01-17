@@ -1,5 +1,6 @@
 import json
 import os
+from datetime import datetime
 from typing import IO, Dict, Iterator, List, Optional, Tuple
 
 from loguru import logger
@@ -377,20 +378,36 @@ class MinioFileManager(FileOperations):
     def delete_files(
         self,
         project_id: str,
+        date_from: Optional[datetime] = None,
+        date_to: Optional[datetime] = None,
     ) -> None:
         """Delete all files and storage resources related to a project.
 
         Args:
             project_id (str): Project ID associated with the files.
+            date_from (Optional[datetime], optional): The start date to delete the files. If not specified, all files will be deleted.
+            date_to (Optional[datetime], optional): The end date to delete the files. If not specified, all files will be deleted.
         """
-        delete_bucket(
-            self.client,
-            get_bucket_name(project_id, self._global_state.settings.SYSTEM_NAMESPACE),
-            force=True,
-        )
-        self._json_db_manager.delete_json_collection(
-            project_id, self.DOC_COLLECTION_NAME
-        )
+        if date_from and date_to:
+            files_to_delete = self.list_files(project_id)
+
+            for file in files_to_delete:
+                if file.updated_at and (
+                    (date_to.date() >= file.updated_at.date() >= date_from.date())
+                ):
+                    self.delete_file(project_id, file.key)
+        else:
+            delete_bucket(
+                self.client,
+                get_bucket_name(
+                    project_id, self._global_state.settings.SYSTEM_NAMESPACE
+                ),
+                force=True,
+            )
+            self._json_db_manager.delete_json_collection(
+                project_id, self.DOC_COLLECTION_NAME
+            )
+        return
 
     def list_file_actions(
         self, project_id: str, file_key: str, version: Optional[str] = None
@@ -403,9 +420,9 @@ class MinioFileManager(FileOperations):
         file_key: str,
         action_id: str,
         version: Optional[str] = None,
-    ) -> Response:
+    ) -> Optional[Response]:
         # TODO
-        pass
+        return None
 
     def _create_client(self) -> Minio:
         settings = self._global_state.settings
