@@ -392,7 +392,7 @@ This operation implements the [Authorization Response](https://tools.ietf.org/ht
 ### <kbd>method</kbd> `login_page`
 
 ```python
-login_page() → RedirectResponse
+login_page() → Union[RedirectResponse, NoneType]
 ```
 
 

@@ -386,7 +386,7 @@ Returns the input dict where those values that are matching template strings are
 get_template_mapping(
     project_id: Optional[str] = None,
     user_id: Optional[str] = None,
-    environment: Dict[str, str] = None
+    environment: Optional[Dict[str, str]] = None
 ) → Dict[str, str]
 ```
 
