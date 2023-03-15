@@ -397,16 +397,22 @@ delete_job(project_id: str, job_id: str) → None
 ### <kbd>method</kbd> `delete_jobs`
 
 ```python
-delete_jobs(project_id: str) → None
+delete_jobs(
+    project_id: str,
+    date_from: Optional[datetime] = None,
+    date_to: Optional[datetime] = None
+) → None
 ```
 
-Deletes all jobs associated with a project. 
+Delete all files and storage resources related to a project. 
 
 
 
 **Args:**
  
- - <b>`project_id`</b> (str):  The project ID. 
+ - <b>`project_id`</b> (str):  Project ID associated with the files. 
+ - <b>`date_from`</b> (Optional[datetime], optional):  The start date to delete the files. If not specified, all files will be deleted. 
+ - <b>`date_to`</b> (Optional[datetime], optional):  The end date to delete the files. If not specified, all files will be deleted. 
 
 ---
 
@@ -429,7 +435,7 @@ deploy_job(
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/deployment.py#L306"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/deployment.py#L310"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `execute_job_action`
 
@@ -448,7 +454,7 @@ execute_job_action(
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/deployment.py#L288"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/deployment.py#L292"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `get_job_logs`
 
@@ -495,7 +501,7 @@ list_deploy_job_actions(project_id: str, job: JobInput) → List[ResourceAction]
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/deployment.py#L298"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/deployment.py#L302"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `list_job_actions`
 
@@ -538,7 +544,7 @@ suggest_job_config(project_id: str, container_image: str) → JobInput
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/deployment.py#L317"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/deployment.py#L321"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>class</kbd> `DeploymentOperations`
 
@@ -569,16 +575,22 @@ delete_job(project_id: str, job_id: str) → None
 ### <kbd>method</kbd> `delete_jobs`
 
 ```python
-delete_jobs(project_id: str) → None
+delete_jobs(
+    project_id: str,
+    date_from: Optional[datetime] = None,
+    date_to: Optional[datetime] = None
+) → None
 ```
 
-Deletes all jobs associated with a project. 
+Delete all files and storage resources related to a project. 
 
 
 
 **Args:**
  
- - <b>`project_id`</b> (str):  The project ID. 
+ - <b>`project_id`</b> (str):  Project ID associated with the files. 
+ - <b>`date_from`</b> (Optional[datetime], optional):  The start date to delete the files. If not specified, all files will be deleted. 
+ - <b>`date_to`</b> (Optional[datetime], optional):  The end date to delete the files. If not specified, all files will be deleted. 
 
 ---
 
@@ -689,7 +701,7 @@ The action mechanism is further explained in the description of the [list_deploy
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/deployment.py#L306"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/deployment.py#L310"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `execute_job_action`
 
@@ -741,7 +753,7 @@ The actions need to be first requested from the list_service_actions operation. 
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/deployment.py#L288"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/deployment.py#L292"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `get_job_logs`
 
@@ -880,7 +892,7 @@ Lists all available service deployment options (actions).
 
 ---
 
-<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/deployment.py#L298"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://github.com/ml-tooling/contaxy/blob/main/backend/src/contaxy/operations/deployment.py#L302"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `list_job_actions`
 

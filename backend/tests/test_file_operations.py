@@ -1,5 +1,8 @@
 import hashlib
+import random
+import string
 from abc import ABC, abstractmethod
+from datetime import datetime, timedelta, timezone
 from random import randint
 from typing import Generator, Optional
 
@@ -24,7 +27,8 @@ from contaxy.schema.auth import (
     OAuth2TokenGrantTypes,
     OAuth2TokenRequestFormNew,
 )
-from contaxy.schema.exceptions import ResourceNotFoundError
+from contaxy.schema.exceptions import ClientValueError, ResourceNotFoundError
+from contaxy.schema.shared import MAX_DISPLAY_NAME_LENGTH
 from contaxy.utils import auth_utils
 from contaxy.utils.minio_utils import delete_bucket, get_bucket_name
 from contaxy.utils.state_utils import GlobalState, RequestState
@@ -191,6 +195,25 @@ class FileOperationsTests(ABC):
         )  # Default content type
         assert version_1.metadata == {}
 
+    def test_upload_file_with_long_name(self) -> None:
+        # In this test case, we upload file with long name greater than the max length. This should throw an exception.
+        letters = string.ascii_lowercase
+        prefix_str = "".join(
+            random.choice(letters) for i in range(MAX_DISPLAY_NAME_LENGTH)
+        )
+
+        file_key = prefix_str + ".txt"
+        file_stream = self.seeder.create_file_stream()
+
+        with pytest.raises(ClientValueError):
+            self.file_manager.upload_file(
+                self.project_id,
+                file_key,
+                file_stream,
+                metadata={"test": "data"},
+                content_type="text/plain",
+            )
+
     def test_download_file(self) -> None:
         file_key = "test-download-file.bin"
         version_1 = self.seeder.create_file(self.project_id, file_key)
@@ -312,6 +335,56 @@ class FileOperationsTests(ABC):
         self.file_manager.delete_files(self.project_id)
         files = self.file_manager.list_files(self.project_id, include_versions=True)
         assert not files
+
+    def test_delete_files_within_time_period(self) -> None:
+        file_key = "delete-1.bin"
+        self.seeder.create_file(self.project_id, file_key)
+        self.seeder.create_file(self.project_id, file_key)
+        file_key = "delete-2.bin"
+        self.seeder.create_file(self.project_id, file_key)
+        self.seeder.create_file(self.project_id, file_key)
+        self.seeder.create_file(self.project_id, file_key)
+
+        date_from = datetime.now(timezone.utc)
+        date_to = datetime.now(timezone.utc) + timedelta(days=1)
+
+        # Test - Delete all files including versions
+        self.file_manager.delete_files(self.project_id, date_from, date_to)
+        files = self.file_manager.list_files(self.project_id, include_versions=True)
+        assert not files
+        files = self.file_manager.list_files(
+            self.project_id, include_versions=True, prefix="delete-1.bin"
+        )
+        assert not files
+        files = self.file_manager.list_files(
+            self.project_id, include_versions=True, prefix="delete-2.bin"
+        )
+        assert not files
+
+        with pytest.raises(ResourceNotFoundError):
+            self.file_manager.get_file_metadata(self.project_id, file_key)
+
+        # Test - Try deleting an already deleted bucket
+        self.file_manager.delete_files(self.project_id)
+        files = self.file_manager.list_files(self.project_id, include_versions=True)
+        assert not files
+
+    def test_delete_files_outside_time_period(self) -> None:
+        file_key = "delete-1.bin"
+        self.seeder.create_file(self.project_id, file_key)
+        self.seeder.create_file(self.project_id, file_key)
+        file_key = "delete-2.bin"
+        self.seeder.create_file(self.project_id, file_key)
+        self.seeder.create_file(self.project_id, file_key)
+        self.seeder.create_file(self.project_id, file_key)
+
+        date_from = datetime.now(timezone.utc) - timedelta(days=2)
+        date_to = datetime.now(timezone.utc) - timedelta(days=1)
+
+        # Test - Delete all files including versions
+        self.file_manager.delete_files(self.project_id, date_from, date_to)
+        files = self.file_manager.list_files(self.project_id, include_versions=True)
+        assert len(files) == 5
 
     def _validate_file_not_found(
         self,

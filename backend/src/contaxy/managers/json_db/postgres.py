@@ -1,5 +1,5 @@
-import datetime
 import json
+from datetime import datetime
 from typing import Dict, List, Optional
 
 import json_merge_patch
@@ -320,14 +320,16 @@ class PostgresJsonDocumentManager(JsonDocumentOperations):
         # TODO: Copy required?
         insert_data = data.copy()
         # TODO: Finalize
-        insert_data["created_at"] = datetime.datetime.utcnow()
+        insert_data["created_at"] = datetime.utcnow()
+        # Added the updated_at column to facilitate the document deletion based on timestamp.
+        insert_data["updated_at"] = insert_data["created_at"]
         # data["created_by"] =
         return insert_data
 
     def _add_metadata_for_update(self, data: dict) -> dict:
         update_data = data.copy()
         # TODO: Finalize
-        update_data["updated_at"] = datetime.datetime.utcnow()
+        update_data["updated_at"] = datetime.utcnow()
         # data["updated_by"] =
         return update_data
 

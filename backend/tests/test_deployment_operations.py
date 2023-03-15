@@ -421,6 +421,50 @@ class DeploymentOperationsTests(ABC):
         jobs = self.deployment_manager.list_jobs(project_id=project_1)
         assert len(jobs) == 0
 
+    def test_delete_jobs_within_time_period(self) -> None:
+        project_1 = f"{self.project_id}-1"
+        test_job_input_1 = create_test_echo_job_input(
+            display_name=f"{self.service_display_name}-1",
+        )
+
+        self.deploy_job(
+            project_id=project_1,
+            job=test_job_input_1,
+        )
+
+        jobs = self.deployment_manager.list_jobs(project_id=project_1)
+        assert len(jobs) == 1
+
+        date_from = datetime.now(timezone.utc)
+        date_to = datetime.now(timezone.utc) + timedelta(days=1)
+
+        self.deployment_manager.delete_jobs(project_1, date_from, date_to)
+        time.sleep(10)
+        jobs = self.deployment_manager.list_jobs(project_id=project_1)
+        assert len(jobs) == 0
+
+    def test_delete_jobs_outside_time_period(self) -> None:
+        project_1 = f"{self.project_id}-1"
+        test_job_input_1 = create_test_echo_job_input(
+            display_name=f"{self.service_display_name}-1",
+        )
+
+        self.deploy_job(
+            project_id=project_1,
+            job=test_job_input_1,
+        )
+
+        jobs = self.deployment_manager.list_jobs(project_id=project_1)
+        assert len(jobs) == 1
+
+        date_from = datetime.now(timezone.utc) - timedelta(days=2)
+        date_to = datetime.now(timezone.utc) - timedelta(days=1)
+
+        self.deployment_manager.delete_jobs(project_1, date_from, date_to)
+        time.sleep(10)
+        jobs = self.deployment_manager.list_jobs(project_id=project_1)
+        assert len(jobs) == 1
+
     def test_removal_of_system_params(self) -> None:
         user_set_project = "this-should-be-forbidden"
         min_lifetime_via_metadata = 10

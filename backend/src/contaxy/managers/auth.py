@@ -135,8 +135,8 @@ class AuthManager(AuthOperations):
                 )
                 return state_namespace.resource_permissions_cache
 
-    def login_page(self) -> RedirectResponse:
-        pass
+    def login_page(self) -> Optional[RedirectResponse]:
+        return None
 
     def logout_session(self) -> RedirectResponse:
         # Remove login token of user from DB

@@ -484,7 +484,7 @@ def replace_templates(
 def get_template_mapping(
     project_id: Optional[str] = None,
     user_id: Optional[str] = None,
-    environment: Dict[str, str] = None,
+    environment: Optional[Dict[str, str]] = None,
 ) -> Dict[str, str]:
     template_mapping = {}
 

@@ -31,7 +31,7 @@ RUN \
   apt-get update \
   && apt-get install -y libpq-dev
 
-RUN pip install --no-cache-dir pipenv==2022.9.8
+RUN pip uninstall universal-build -y && pip install git+https://github.com/ml-tooling/universal-build.git
 
 COPY extended-entrypoint.sh /extended-entrypoint.sh
 

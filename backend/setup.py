@@ -59,7 +59,9 @@ setup(
         "loguru",
         "filetype",
         "addict",
-        "requests-toolbelt"
+        "requests-toolbelt",
+        "shortuuid",
+        "slugify",
     ],
     # deprecated: dependency_links=dependency_links,
     extras_require={
@@ -132,6 +134,7 @@ setup(
             "requests",
         ],
     },
+    setup_requires=['wheel'],
     include_package_data=True,
     package_data={
         # If there are data files included in your packages that need to be

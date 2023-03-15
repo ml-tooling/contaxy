@@ -455,6 +455,14 @@ def list_jobs(
 )
 def delete_jobs(
     project_id: str = PROJECT_ID_PARAM,
+    date_from: Optional[datetime] = Query(
+        None,
+        description="The start date to delete the jobs. If not specified, all jobs will be deleted.",
+    ),
+    date_to: Optional[datetime] = Query(
+        None,
+        description="The end date to delete the jobs. If not specified, all jobs will be deleted.",
+    ),
     extension_id: Optional[str] = EXTENSION_ID_PARAM,
     component_manager: ComponentManager = Depends(get_component_manager),
     token: str = Depends(get_api_token),
@@ -463,7 +471,9 @@ def delete_jobs(
     component_manager.verify_access(
         token, f"projects/{project_id}/jobs", AccessLevel.WRITE
     )
-    component_manager.get_job_manager(extension_id).delete_jobs(project_id)
+    component_manager.get_job_manager(extension_id).delete_jobs(
+        project_id, date_from, date_to
+    )
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 

@@ -302,10 +302,14 @@ class DeploymentClient(DeploymentOperations):
     def delete_jobs(
         self,
         project_id: str,
+        date_from: Optional[datetime] = None,
+        date_to: Optional[datetime] = None,
         request_kwargs: Dict = {},
     ) -> None:
+        query_params: Dict = {"date_from": date_from, "date_to": date_to}
         response = self.client.delete(
             f"/projects/{project_id}/jobs",
+            params=query_params,
             **request_kwargs,
         )
         handle_errors(response)

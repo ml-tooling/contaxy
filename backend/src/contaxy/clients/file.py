@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import IO, Callable, Dict, Iterator, List, Optional, Tuple
 
 import requests
@@ -172,10 +173,14 @@ class FileClient(FileOperations):
     def delete_files(
         self,
         project_id: str,
+        date_from: Optional[datetime] = None,
+        date_to: Optional[datetime] = None,
         request_kwargs: Dict = {},
     ) -> None:
+        query_params: Dict = {"date_from": date_from, "date_to": date_to}
         response = self._client.delete(
             f"/projects/{project_id}/files",
+            params=query_params,
             **request_kwargs,
         )
         handle_errors(response)
@@ -188,7 +193,7 @@ class FileClient(FileOperations):
         request_kwargs: Dict = {},
     ) -> List[ResourceAction]:
         # TODO
-        pass
+        return []
 
     def execute_file_action(
         self,
