@@ -77,7 +77,6 @@ setup(
             "streaming_form_data",
             "psutil",
             "uvicorn",
-            "colorama",
             "sqlalchemy<=1.4.46",
             # Postgres Driver
             "psycopg2",
@@ -109,6 +108,7 @@ setup(
             "wheel",
             "twine",
             "flake8",
+            "colorama",
             "pytest",
             "pytest-mock",
             "pytest-cov",
