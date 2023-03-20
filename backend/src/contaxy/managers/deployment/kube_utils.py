@@ -160,7 +160,6 @@ def build_kube_service_config(
     service_ports: Dict[str, V1ServicePort] = {}
     if service.endpoints:
         for endpoint in service.endpoints:
-
             # An endpoint can be in the form of one of the examples ["8080", "9001/webapp/ui", "9002b"]. See the Contaxy endpoint docs <LINK> for more information.
             port_number = endpoint.split("/")[0].replace("b", "")
 

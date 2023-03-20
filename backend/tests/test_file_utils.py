@@ -23,7 +23,6 @@ def metadata() -> dict:
 
 @pytest.fixture()
 def multipart_data(metadata: dict) -> dict:
-
     stream = b'------WebKitFormBoundaryr1D8WqBUjhPTDqlM\r\nContent-Disposition: form-data; name="file"; filename="test.csv"\r\nContent-Type: text/csv\r\n\r\n'
     stream += 5000 * b"foo;bar\n"
     stream += b"\r\n------WebKitFormBoundaryr1D8WqBUjhPTDqlM--\r\n"
@@ -42,7 +41,6 @@ def file_data(metadata: dict) -> dict:
 @pytest.mark.unit
 class TestFormMultipartStream:
     def test_multipart_stream(self, multipart_data: dict) -> None:
-
         file_stream = multipart_data.get("stream")
         assert file_stream
 
@@ -66,7 +64,6 @@ class TestFormMultipartStream:
 @pytest.mark.unit
 class TestSyncFromAsyncGenerator:
     def test_iteration(self) -> None:
-
         data = list(range(5))
 
         async def iterate(data: list) -> AsyncGenerator:

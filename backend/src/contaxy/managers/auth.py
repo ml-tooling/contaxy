@@ -161,7 +161,6 @@ class AuthManager(AuthOperations):
         scopes: List[str],
         expiry_minutes: Optional[timedelta] = None,
     ) -> str:
-
         if expiry_minutes:
             expire = datetime.now(timezone.utc) + expiry_minutes
         else:
@@ -339,7 +338,6 @@ class AuthManager(AuthOperations):
     ) -> AuthorizedAccess:
         scope_grants_access = False
         for scope in token.scopes:
-
             if not auth_utils.is_valid_permission(scope):
                 logger.warning(f"The token scope ({scope}) is not valid.")
                 continue

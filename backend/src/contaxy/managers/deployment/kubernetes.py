@@ -109,7 +109,6 @@ class KubernetesDeploymentPlatform:
         action_id: Optional[str] = None,
         wait: bool = False,
     ) -> Service:
-
         kube_service_config = build_kube_service_config(
             service=service,
             project_id=project_id,
@@ -249,7 +248,6 @@ class KubernetesDeploymentPlatform:
         delete_volumes: bool = False,
         retries: int = 0,
     ) -> None:
-
         try:
             self.core_api.delete_namespaced_service(
                 name=service_id,

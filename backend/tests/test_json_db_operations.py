@@ -125,7 +125,6 @@ class JsonDocumentOperationsTests(ABC):
             )
 
     def test_update_json_document(self) -> None:
-
         original_dict = {
             "title": "Goodbye!",
             "author": {"givenName": "John", "familyName": "Doe"},
@@ -184,7 +183,6 @@ class JsonDocumentOperationsTests(ABC):
             )
 
     def test_list_json_documents(self) -> None:
-
         collection_id = self.COLLECTTION
 
         data = [
@@ -262,7 +260,6 @@ class JsonDocumentOperationsTests(ABC):
             )
 
     def test_list_json_documents_by_key(self) -> None:
-
         docs = []
         db_keys = []
         for i in range(3):
