@@ -526,7 +526,6 @@ class AzureBlobFileManager(FileOperations):
         prefix: Optional[str] = None,
         include_version: Optional[bool] = None,
     ) -> Tuple[List[File], List[str]]:
-
         file_data: List[File] = []
         db_keys: List[str] = []
         file_versions: Dict[str, List[str]] = {}
@@ -559,7 +558,6 @@ class AzureBlobFileManager(FileOperations):
     def _enrich_data_from_db(
         self, project_id: str, file_data: List[File], document_keys: List[str]
     ) -> Tuple[List[File], List[Tuple[str, str]]]:
-
         json_docs = self.json_db_manager.list_json_documents(
             project_id, self.DOC_COLLECTION_NAME, keys=document_keys
         )

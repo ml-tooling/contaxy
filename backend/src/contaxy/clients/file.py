@@ -24,7 +24,6 @@ class FileClient(FileOperations):
         prefix: Optional[str] = None,
         request_kwargs: Dict = {},
     ) -> List[File]:
-
         query_params: Dict = {
             "recursive": recursive,
             "include_versions": include_versions,
@@ -47,7 +46,6 @@ class FileClient(FileOperations):
         version: Optional[str] = None,
         request_kwargs: Dict = {},
     ) -> File:
-
         query_params: Dict = {}
         if version:
             query_params.update({"version": version})

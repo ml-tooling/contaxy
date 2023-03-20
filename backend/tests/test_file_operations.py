@@ -250,7 +250,6 @@ class FileOperationsTests(ABC):
         assert version_1.md5_hash == hash.hexdigest()
 
     def test_delete_file(self) -> None:
-
         # Test - File does not exist
         self.file_manager.delete_file(self.project_id, "invalid-key")
 

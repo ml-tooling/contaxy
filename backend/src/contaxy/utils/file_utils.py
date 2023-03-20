@@ -98,7 +98,6 @@ class FormMultipartStream(FileStream):
             return ""
 
     def read(self, size: int = -1) -> bytes:
-
         if size == 0:
             return b""
 

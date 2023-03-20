@@ -77,7 +77,8 @@ setup(
             "streaming_form_data",
             "psutil",
             "uvicorn",
-            "sqlalchemy>=1.4.0",
+            "colorama",
+            "sqlalchemy<=1.4.46",
             # Postgres Driver
             "psycopg2",
             # Generates concise, unambiguous, URL-safe UUIDs.
